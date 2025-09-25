@@ -1,0 +1,101 @@
+Story ID: 435
+Premises: None of the students who currently work in the library are from the computer science department. 
+All of the students with part-time jobs offered by the university currently work in the library. 
+All of the students who are taking the database course are from the computer science department. 
+All of the students taking a class with Professor David are taking the database course. 
+All students working in the lab are taking a class with Professor David.
+James is a student working in the lab. 
+James doesn't work in the lab or have a part-time job offered by the university.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Here is a faithful Lean formalization of the predicates and facts, followed by proofs for the four queried statements (or their negations).
+
+Lean code:
+```
+universe u
+
+section
+
+variable {U : Type u}
+variable (Library CS PT DB David Lab : U → Prop)
+variable (James : U)
+
+-- Facts from the problem
+variable (h1 : ∀ x, Library x → ¬ CS x)      -- None working in library are CS
+variable (h2 : ∀ x, PT x → Library x)         -- All with PT jobs work in library
+variable (h3 : ∀ x, DB x → CS x)              -- All taking DB are CS
+variable (h4 : ∀ x, David x → DB x)           -- All with David take DB
+variable (h5 : ∀ x, Lab x → David x)          -- All in lab take David's class
+variable (h6 : Lab James)                     -- James works in the lab
+variable (h7 : ¬ Lab James ∧ ¬ PT James)      -- James does not work in lab and does not have a PT job
+
+-- The four statements to evaluate
+def S1 : Prop := PT James
+def S2 : Prop := ¬ PT James
+def S3 : Prop := DB James ∨ PT James
+def S4 : Prop := DB James
+
+-- Q4: James takes the database course.
+theorem Q4_proved : S4 Lab David DB James h5 h4 h6 := by
+  -- From Lab James, get David James, then DB James
+  have hDavid : David James := h5 James h6
+  exact h4 James hDavid
+
+-- Q3: James either takes DB or has a PT job.
+theorem Q3_proved : S3 Library CS PT DB David Lab James h1 h2 h3 h4 h5 h6 h7 := by
+  -- Left disjunct holds because Q4 holds
+  exact Or.inl (Q4_proved Lab David DB James h5 h4 h6)
+
+-- Q2: James does not have a PT job.
+theorem Q2_proved : S2 Library CS PT DB David Lab James h1 h2 h3 h4 h5 h6 h7 := by
+  -- From the given conjunction, take the right conjunct ¬ PT James
+  exact (And.right h7)
+
+-- Q1: James has a PT job is false (we prove its negation).
+theorem Q1_neg : ¬ S1 Library CS PT DB David Lab James h1 h2 h3 h4 h5 h6 h7 := by
+  -- Same as Q2_proved
+  exact (And.right h7)
+
+end
+```
+
+Explanation of the reasoning:
+- From “Lab → David” and “David → DB” and the fact that James is in the lab, we get that James takes the database course (DB James).
+- From “James doesn’t … have a part-time job,” we directly get ¬ PT James.
+- Therefore:
+  - “James has a PT job” is false (since ¬ PT James).
+  - “James does not have a PT job” is true.
+  - “James takes DB or has a PT job” is true (the left side holds).
+  - “James takes the database course” is true.
+
+Answers:
+- Question 1: False
+- Question 2: True
+- Question 3: True
+- Question 4: True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: James has a part-time job offered by the university.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q2: James does not have a part-time job offered by the university.
+Ground Truth: True
+Prediction: False
+Correct: No
+
+Q3: James either takes the database course or has a part-time job offered by the university.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q4: James takes the database course.
+Ground Truth: Uncertain
+Prediction: True
+Correct: No
+

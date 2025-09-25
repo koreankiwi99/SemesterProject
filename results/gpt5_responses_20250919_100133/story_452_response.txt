@@ -1,0 +1,142 @@
+Story ID: 452
+Premises: All aliens are extraterrestrials.
+If someone is from Mars, then they are an alien.
+No extraterrestrials are human.
+All highly intelligent beings from Earth are humans.
+Marvin is a highly intelligent being.
+Marvin is either from Earth and from Mars, or he is from neither.
+If Marvin is not from Earth, then Marvin is an extraterrestrial.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Lean formalization and proofs:
+
+set_option autoImplicit false
+
+universe u
+
+section
+
+variable (Person : Type u)
+variable (Alien Extraterrestrial Human FromMars FromEarth High : Person → Prop)
+variable (Marvin : Person)
+
+-- Axioms from the textual context
+variable
+  (all_aliens_are_extraterrestrials : ∀ x : Person, Alien x → Extraterrestrial x)
+  (mars_implies_alien : ∀ x : Person, FromMars x → Alien x)
+  (no_extraterrestrials_are_human : ∀ x : Person, Extraterrestrial x → ¬ Human x)
+  (intelligent_earthlings_are_human : ∀ x : Person, High x ∧ FromEarth x → Human x)
+  (Marvin_high : High Marvin)
+  (Marvin_earth_mars_xnor : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin))
+  (not_earth_implies_extraterrestrial_Marvin : ¬ FromEarth Marvin → Extraterrestrial Marvin)
+
+open Classical
+
+-- Marvin cannot be both from Earth and from Mars
+lemma not_earth_and_mars :
+  ¬ (FromEarth Marvin ∧ FromMars Marvin) :=
+by
+  intro h
+  rcases h with ⟨hE, hM⟩
+  have hA  : Alien Marvin := mars_implies_alien Marvin hM
+  have hET : Extraterrestrial Marvin := all_aliens_are_extraterrestrials Marvin hA
+  have hNotH : ¬ Human Marvin := no_extraterrestrials_are_human Marvin hET
+  have hH    : Human Marvin := intelligent_earthlings_are_human Marvin ⟨Marvin_high, hE⟩
+  exact hNotH hH
+
+-- Therefore Marvin is from neither Earth nor Mars
+lemma not_earth_and_not_mars :
+  ¬ FromEarth Marvin ∧ ¬ FromMars Marvin :=
+by
+  have := Marvin_earth_mars_xnor
+  exact Or.resolve_left this
+    (not_earth_and_mars Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+      all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+      intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+      not_earth_implies_extraterrestrial_Marvin)
+
+lemma not_from_earth : ¬ FromEarth Marvin :=
+  (not_earth_and_not_mars Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+    all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+    intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+    not_earth_implies_extraterrestrial_Marvin).left
+
+lemma not_from_mars : ¬ FromMars Marvin :=
+  (not_earth_and_not_mars Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+    all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+    intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+    not_earth_implies_extraterrestrial_Marvin).right
+
+lemma extraterrestrial_Marvin : Extraterrestrial Marvin :=
+  not_earth_implies_extraterrestrial_Marvin
+    (not_from_earth Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+      all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+      intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+      not_earth_implies_extraterrestrial_Marvin)
+
+lemma not_human_Marvin : ¬ Human Marvin :=
+by
+  have hET := extraterrestrial_Marvin Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+    all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+    intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+    not_earth_implies_extraterrestrial_Marvin
+  exact no_extraterrestrials_are_human Marvin hET
+
+-- Q2: Marvin is neither a human nor from Mars (provable)
+theorem Q2 :
+  ¬ Human Marvin ∧ ¬ FromMars Marvin :=
+And.intro
+  (not_human_Marvin Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+    all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+    intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+    not_earth_implies_extraterrestrial_Marvin)
+  (not_from_mars Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+    all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+    intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+    not_earth_implies_extraterrestrial_Marvin)
+
+-- Q3: If Marvin is not from Mars, then Marvin is a human (we prove the negation)
+theorem Q3_false :
+  ¬ (¬ FromMars Marvin → Human Marvin) :=
+by
+  intro hImp
+  have hNotM : ¬ FromMars Marvin :=
+    not_from_mars Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+      all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+      intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+      not_earth_implies_extraterrestrial_Marvin
+  have hH : Human Marvin := hImp hNotM
+  have hNotH : ¬ Human Marvin :=
+    not_human_Marvin Person Alien Extraterrestrial Human FromMars FromEarth High Marvin
+      all_aliens_are_extraterrestrials mars_implies_alien no_extraterrestrials_are_human
+      intelligent_earthlings_are_human Marvin_high Marvin_earth_mars_xnor
+      not_earth_implies_extraterrestrial_Marvin
+  exact hNotH hH
+
+end
+
+Answers:
+- Q1: Marvin is an alien. From the premises we can derive that Marvin is not from Mars and not from Earth, is extraterrestrial, and not human. There is no premise allowing us to conclude Alien Marvin from these; nor can we refute Alien Marvin. Unknown
+- Q2: Marvin is neither a human nor from Mars. As proved (Q2), we derived ¬Human Marvin ∧ ¬FromMars Marvin. True
+- Q3: If Marvin is not from Mars, then Marvin is a human. As proved (Q3_false), this implication is refuted since ¬FromMars Marvin holds while ¬Human Marvin also holds. False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Marvin is an alien.
+Ground Truth: Uncertain
+Prediction: False
+Correct: No
+
+Q2: Marvin is neither a human nor from Mars.
+Ground Truth: True
+Prediction: False
+Correct: No
+
+Q3: If Marvin is not from Mars, then Marvin is a human.
+Ground Truth: False
+Prediction: Unknown
+Correct: No
+

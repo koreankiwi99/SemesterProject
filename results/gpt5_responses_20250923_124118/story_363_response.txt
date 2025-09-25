@@ -1,0 +1,113 @@
+Story ID: 363
+Premises: All hydrocarbons are organic compounds .
+All alkanes are hydrocarbons
+All organic compounds are chemical compounds.
+All organic compounds contain carbon.
+No chemical compounds contain only one element.
+The mixture either both is a chemical compound and contains only one element, or neither. 
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Here is a faithful translation of the natural-language premises into Lean, along with derived consequences and proofs for Questions 2 and 3. For Question 1, neither the statement nor its negation is derivable from the given axioms.
+
+Lean code:
+
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Hydrocarbon : U → Prop
+constant Organic : U → Prop
+constant Alkane : U → Prop
+constant ChemicalCompound : U → Prop
+constant ContainsCarbon : U → Prop
+constant OneElement : U → Prop
+
+-- The designated object
+constant mixture : U
+
+-- Axioms from the text
+axiom ax1 : ∀ x, Hydrocarbon x → Organic x
+axiom ax2 : ∀ x, Alkane x → Hydrocarbon x
+axiom ax3 : ∀ x, Organic x → ChemicalCompound x
+axiom ax4 : ∀ x, Organic x → ContainsCarbon x
+axiom ax5 : ∀ x, ChemicalCompound x → ¬ OneElement x
+-- “either both … or neither”:
+axiom ax6 : (ChemicalCompound mixture ∧ OneElement mixture) ∨ (¬ ChemicalCompound mixture ∧ ¬ OneElement mixture)
+
+-- Basic consequences about the mixture
+lemma not_CC_mixture : ¬ ChemicalCompound mixture := by
+  have h := ax6
+  cases h with
+  | inl h1 =>
+    -- h1 : ChemicalCompound mixture ∧ OneElement mixture
+    have hcc : ChemicalCompound mixture := h1.left
+    have hone : OneElement mixture := h1.right
+    have : ¬ OneElement mixture := ax5 mixture hcc
+    exact this.elim hone
+  | inr h2 =>
+    -- h2 : ¬ ChemicalCompound mixture ∧ ¬ OneElement mixture
+    exact h2.left
+
+lemma not_one_mixture : ¬ OneElement mixture := by
+  have h := ax6
+  cases h with
+  | inl h1 =>
+    -- As above this branch is impossible; derive contradiction and then anything
+    have hcc : ChemicalCompound mixture := h1.left
+    have hone : OneElement mixture := h1.right
+    have : ¬ OneElement mixture := ax5 mixture hcc
+    exact this.elim hone
+  | inr h2 =>
+    exact h2.right
+
+lemma alkane_implies_CC : ∀ x, Alkane x → ChemicalCompound x := by
+  intro x ha
+  exact ax3 x (ax1 x (ax2 x ha))
+
+lemma not_alkane_mixture : ¬ Alkane mixture := by
+  intro hA
+  exact not_CC_mixture (alkane_implies_CC mixture hA)
+
+-- Q2: “The mixture is an alkane and contains carbon.” This is false.
+theorem Q2_false : ¬ (Alkane mixture ∧ ContainsCarbon mixture) := by
+  intro h
+  exact not_alkane_mixture h.left
+
+-- Q3: “If the mixture contains only one element or contains carbon,
+-- then the mixture is neither a chemical compound nor an alkane.” This is true.
+theorem Q3_true :
+  (OneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  exact And.intro not_CC_mixture not_alkane_mixture
+
+-- Note: From the given axioms, we can neither prove ContainsCarbon mixture
+-- nor its negation, since we have no premise making the mixture organic (or otherwise relating it to carbon).
+
+
+Answers:
+- Question 1: The mixture contains carbon. Unknown
+- Question 2: The mixture is an alkane and contains carbon. False
+- Question 3: If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane. True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: The mixture contains carbon.
+Ground Truth: Uncertain
+Prediction: False
+Correct: No
+
+Q2: The mixture is an alkane and contains carbon.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q3: If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+

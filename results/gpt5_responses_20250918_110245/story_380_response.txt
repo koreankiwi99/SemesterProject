@@ -1,0 +1,176 @@
+Story ID: 380
+Premises: People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Lean translation and proofs
+
+-- We formalize the domain and predicates.
+namespace Club
+
+universe u
+
+constant Person : Type
+
+constants
+  InClub : Person → Prop
+  Performs : Person → Prop                     -- performs in school talent shows often
+  Attends : Person → Prop                      -- attends and is very engaged with school events
+  Inactive : Person → Prop                     -- inactive and disinterested community member
+  Chaperones : Person → Prop                   -- chaperones high school dances
+  Student : Person → Prop                      -- student who attends the school
+  YoungOrTeen : Person → Prop                  -- young child or teenager
+  Wishes : Person → Prop                       -- wishes to further academic careers and opportunities
+  Bonnie : Person
+
+-- Axioms from the textual context
+axiom h1 : ∀ x, InClub x → (Performs x → Attends x)
+axiom h2 : ∀ x, InClub x → (Performs x ∨ Inactive x)
+axiom h3 : ∀ x, InClub x → (Chaperones x → ¬ Student x)
+axiom h4 : ∀ x, InClub x → (Inactive x → Chaperones x)
+axiom h5 : ∀ x, InClub x → ((YoungOrTeen x ∧ Wishes x) → Student x)
+
+-- Bonnie is in the club, and (Attends ↔ Student) encoded as the disjunction of conjunctions.
+axiom hB : InClub Bonnie ∧ ((Attends Bonnie ∧ Student Bonnie) ∨ (¬ Attends Bonnie ∧ ¬ Student Bonnie))
+
+-- Abbreviation A(x) := young-or-teen ∧ wishes
+def A (x : Person) := YoungOrTeen x ∧ Wishes x
+
+-- Basic consequences for Bonnie
+lemma inClubB : InClub Bonnie := And.left hB
+
+lemma attends_to_student_B : Attends Bonnie → Student Bonnie :=
+by
+  intro hAtt
+  cases And.right hB with
+  | inl hAS => exact hAS.right
+  | inr hnotAS =>
+      exact False.elim (hnotAS.left hAtt)
+
+lemma performs_to_attends_B : Performs Bonnie → Attends Bonnie :=
+by
+  intro hP
+  exact h1 Bonnie inClubB hP
+
+lemma performs_to_student_B : Performs Bonnie → Student Bonnie :=
+by
+  intro hP
+  exact attends_to_student_B (performs_to_attends_B hP)
+
+lemma not_attends_to_not_performs_B : ¬ Attends Bonnie → ¬ Performs Bonnie :=
+by
+  intro hNotA
+  intro hP
+  exact hNotA (performs_to_attends_B hP)
+
+lemma chaperones_to_not_student_B : Chaperones Bonnie → ¬ Student Bonnie :=
+by
+  intro hC
+  exact h3 Bonnie inClubB hC
+
+lemma not_student_to_not_attends_B : ¬ Student Bonnie → ¬ Attends Bonnie :=
+by
+  intro hNotS
+  cases And.right hB with
+  | inl hAS =>
+      exact (fun _ => hNotS hAS.right)
+  | inr hnotAS =>
+      exact hnotAS.left
+
+lemma chaperones_to_inactive_B : Chaperones Bonnie → Inactive Bonnie :=
+by
+  intro hC
+  have hNotS : ¬ Student Bonnie := chaperones_to_not_student_B hC
+  have hNotA : ¬ Attends Bonnie := not_student_to_not_attends_B hNotS
+  have hNotP : ¬ Performs Bonnie := not_attends_to_not_performs_B hNotA
+  have hDisj : Performs Bonnie ∨ Inactive Bonnie := h2 Bonnie inClubB
+  cases hDisj with
+  | inl hP => exact False.elim (hNotP hP)
+  | inr hI => exact hI
+
+lemma inactive_to_chaperones_B : Inactive Bonnie → Chaperones Bonnie :=
+by
+  intro hI
+  exact h4 Bonnie inClubB hI
+
+lemma not_chaperones_to_not_inactive_B : ¬ Chaperones Bonnie → ¬ Inactive Bonnie :=
+by
+  intro hNotC
+  intro hI
+  exact hNotC (inactive_to_chaperones_B hI)
+
+lemma not_chaperones_to_performs_B : ¬ Chaperones Bonnie → Performs Bonnie :=
+by
+  intro hNotC
+  have hNotI : ¬ Inactive Bonnie := not_chaperones_to_not_inactive_B hNotC
+  have hDisj : Performs Bonnie ∨ Inactive Bonnie := h2 Bonnie inClubB
+  cases hDisj with
+  | inl hP => exact hP
+  | inr hI => exact False.elim (hNotI hI)
+
+lemma not_A_and_inactive_B : ¬ ((A Bonnie) ∧ Inactive Bonnie) :=
+by
+  intro h
+  have hA : A Bonnie := h.left
+  have hI : Inactive Bonnie := h.right
+  have hS : Student Bonnie := h5 Bonnie inClubB hA
+  have hC : Chaperones Bonnie := inactive_to_chaperones_B hI
+  have hNotS : ¬ Student Bonnie := chaperones_to_not_student_B hC
+  exact hNotS hS
+
+-- Question 2: provable implication
+def Antecedent2 := ((A Bonnie) ∧ Chaperones Bonnie) ∨ ¬(A Bonnie)
+def Conclusion2 := Student Bonnie ∨ Inactive Bonnie
+
+theorem Q2_true : Antecedent2 → Conclusion2 :=
+by
+  intro _
+  have hDisj : Performs Bonnie ∨ Inactive Bonnie := h2 Bonnie inClubB
+  cases hDisj with
+  | inl hP => exact Or.inl (performs_to_student_B hP)
+  | inr hI => exact Or.inr hI
+
+-- Question 3: the given implication is false; we prove its negation
+def Antecedent3 := Chaperones Bonnie ∨ (¬ Chaperones Bonnie → Performs Bonnie)
+def Conclusion3 := (A Bonnie) ∧ Inactive Bonnie
+
+theorem Q3_false : ¬ (Antecedent3 → Conclusion3) :=
+by
+  intro hImp
+  -- Build the antecedent using the right disjunct
+  have hAnt : Antecedent3 := Or.inr not_chaperones_to_performs_B
+  -- Get the (false) conclusion and derive a contradiction
+  have hConcl : Conclusion3 := hImp hAnt
+  exact not_A_and_inactive_B hConcl
+
+end Club
+
+Answers
+- Question 1: Unknown
+- Question 2: True
+- Question 3: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Bonnie performs in school talent shows often.
+Ground Truth: Uncertain
+Prediction: False
+Correct: No
+
+Q2: If Bonnie is either both a young child or teenager who wishes to further her academic career and educational opportunities and chaperones high school dances or neither is a young child nor teenager who wishes to further her academic career and educational opportunities, then Bonnie is either a student who attends the school or is an inactive and disinterested member of the community.
+Ground Truth: True
+Prediction: False
+Correct: No
+
+Q3: If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

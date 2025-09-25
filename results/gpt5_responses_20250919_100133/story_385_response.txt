@@ -1,0 +1,101 @@
+Story ID: 385
+Premises: If someone is ranked highly by the Women's Tennis Association, then they are one of the most active players in major tennis. 
+Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the Women's Tennis Association.
+All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+All tennis players at Roland Garros 2022 are either female or male.
+All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+If Coco Gauff is ranked highly by the Women's Tennis Association or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+Coco Gauff is at Roland Garros 2022.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Lean formalization and proofs:
+
+-- Universe of discourse
+constant Person : Type
+constant Coco : Person
+
+-- Predicates
+constant RG : Person → Prop                    -- tennis player at Roland Garros 2022
+constant Female : Person → Prop
+constant Male : Person → Prop
+constant LostIga : Person → Prop               -- lost to Iga Świątek
+constant LostNadal : Person → Prop             -- lost to Rafael Nadal
+constant High : Person → Prop                  -- ranked highly by WTA
+constant Most : Person → Prop                  -- among the most active major-tennis players
+
+-- Axioms from the text
+axiom A1 : ∀ x, High x → Most x
+axiom A2 : ∀ x, LostIga x → High x
+axiom A3 : ∀ x, RG x ∧ Female x → LostIga x
+axiom A4 : ∀ x, RG x → Female x ∨ Male x
+axiom A5 : ∀ x, RG x ∧ Male x → LostNadal x
+axiom A6 : (High Coco ∨ LostNadal Coco) → ¬ (RG Coco ∧ Male Coco)
+axiom A7 : RG Coco
+
+-- Derived lemmas
+theorem Coco_most : Most Coco := by
+  have h : Female Coco ∨ Male Coco := A4 Coco A7
+  cases h with
+  | inl hf =>
+    have hLI : LostIga Coco := A3 Coco ⟨A7, hf⟩
+    have hH : High Coco := A2 Coco hLI
+    exact A1 Coco hH
+  | inr hm =>
+    have hLN : LostNadal Coco := A5 Coco ⟨A7, hm⟩
+    have contra : False := by
+      have notMaleRG := A6 (Or.inr hLN)
+      exact notMaleRG ⟨A7, hm⟩
+    exact False.elim contra
+
+theorem Coco_lostIga : LostIga Coco := by
+  have h : Female Coco ∨ Male Coco := A4 Coco A7
+  cases h with
+  | inl hf =>
+    exact A3 Coco ⟨A7, hf⟩
+  | inr hm =>
+    have hLN : LostNadal Coco := A5 Coco ⟨A7, hm⟩
+    have contra : False := by
+      have notMaleRG := A6 (Or.inr hLN)
+      exact notMaleRG ⟨A7, hm⟩
+    exact False.elim contra
+
+theorem Coco_lostIga_and_most : LostIga Coco ∧ Most Coco :=
+  And.intro Coco_lostIga Coco_most
+
+-- The Q3 statement (“Coco is not both …”) is false
+def Q3_stmt : Prop := ¬ (LostIga Coco ∧ Most Coco)
+theorem Q3_false : ¬ Q3_stmt := by
+  intro h
+  exact h Coco_lostIga_and_most
+
+
+Answers:
+
+1) From RG Coco and the gender disjunction, the male case leads to a contradiction via the Nadal rule and the special Coco constraint, so Coco must be in the safe branch that yields Lost-to-Iga → High → Most; hence she is among the most active Grand-Slam players. True
+
+2) We only know all male RG players lost to Nadal, and Coco is not male-at-RG (from the special constraint together with our derivations), but nothing states that non-male players did not or did lose to Nadal; thus this cannot be concluded. Unknown
+
+3) We proved Coco_lostIga_and_most, so the statement “Coco is not both a player who lost to Iga Świątek at Roland Garros 2022 and one of the most active players in major tennis” is false. False
+
+True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Coco Gauff is among the most active Grand-Slam players.
+Ground Truth: True
+Prediction: False
+Correct: No
+
+Q2: Coco Gauff has lost to Rafael Nadal.
+Ground Truth: Uncertain
+Prediction: False
+Correct: No
+
+Q3: Coco Gauff is not both a player who lost to Iga Świątek at Roland Garros 2022 and one of the most active players in major tennis.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

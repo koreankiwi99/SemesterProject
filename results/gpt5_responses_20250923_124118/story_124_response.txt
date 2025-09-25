@@ -1,0 +1,93 @@
+Story ID: 124
+Premises: The Picuris Mountains are a mountain range in New Mexico or Texas.
+Juan de Onate visited the Picuris Mountains.
+The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+There are no mountain ranges in texas that have mines that have been donated.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Answers:
+1) True
+2) Unknown
+3) False
+
+Lean 4 formalization and proofs:
+
+-- Types
+universe u
+constant MountainRange : Type u
+constant Mine : Type u
+constant Person : Type u
+
+-- Predicates
+constant InNM : MountainRange → Prop
+constant InTX : MountainRange → Prop
+constant Visited : Person → MountainRange → Prop
+constant LocatedIn : Mine → MountainRange → Prop
+constant Donated : Mine → Prop
+
+-- Constants for our entities
+constant picuris : MountainRange
+constant juan : Person
+constant harding : Mine
+
+-- Assumptions from the textual context
+axiom nm_or_tx : InNM picuris ∨ InTX picuris
+axiom visited_picuris : Visited juan picuris
+axiom located_harding_picuris : LocatedIn harding picuris
+axiom harding_donated : Donated harding
+axiom no_tx_with_donated_mine :
+  ∀ (r : MountainRange), InTX r → ¬ (∃ m : Mine, LocatedIn m r ∧ Donated m)
+
+-- Derived facts
+lemma picuris_not_in_TX : ¬ InTX picuris :=
+by
+  intro hTX
+  have hcontra : ∃ m : Mine, LocatedIn m picuris ∧ Donated m :=
+    ⟨harding, And.intro located_harding_picuris harding_donated⟩
+  have : ¬ (∃ m : Mine, LocatedIn m picuris ∧ Donated m) :=
+    no_tx_with_donated_mine picuris hTX
+  exact this hcontra
+
+lemma picuris_in_NM : InNM picuris :=
+by
+  cases nm_or_tx with
+  | inl hnm => exact hnm
+  | inr htx => cases picuris_not_in_TX htx
+
+-- Q1: Juan visited a mountain range in New Mexico.
+theorem Q1_true : ∃ r : MountainRange, Visited juan r ∧ InNM r :=
+by
+  exact ⟨picuris, And.intro visited_picuris picuris_in_NM⟩
+
+-- Q2: Juan visited a mountain range in Texas.
+-- Not provable from given axioms (could be other visits unknown).
+-- We do not assert a theorem here.
+
+-- Q3: “The Harding Pegmatite Mine is not located in a mountain range in New Mexico.”
+-- That statement is false. We prove its negation by exhibiting Picuris in NM containing the mine.
+theorem Q3_negation_true : ∃ r : MountainRange, LocatedIn harding r ∧ InNM r :=
+by
+  exact ⟨picuris, And.intro located_harding_picuris picuris_in_NM⟩
+
+Unknown
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Juan de Onate visited a mountain range in New Mexico.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q2: Juan de Onate visited a mountain range in Texas.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q3: The Harding Pegmatite Mine is not located in a mountain range in New Mexico.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

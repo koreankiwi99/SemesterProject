@@ -1,0 +1,110 @@
+Story ID: 2
+Premises: Billings is a city in the state of Montana in U.S.
+The state of Montana includes the cities of Butte, Helena, and Missoula.
+White Sulphur Springs and Butte are cities in the same state in U.S.
+The city of St Pierre is not in the state of Montana.
+Any city in Butte is not in St Pierre.
+A city can only be in one state in U.S.  except for Bristol, Texarkana, Texhoma and Union City.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Here is a Lean 4 formalization of the given context and the three questions, along with proofs where they are derivable from the premises.
+
+namespace StatesCities
+
+universe u
+
+-- Basic types
+constant City : Type u
+constant State : Type u
+
+-- Predicates and relations
+constant InState : City → State → Prop
+def SameState (c₁ c₂ : City) : Prop := ∃ s : State, InState c₁ s ∧ InState c₂ s
+
+-- Named states and cities
+constant Montana : State
+
+constant Billings Butte Helena Missoula WhiteSulphurSprings StPierre Bismarck : City
+constant Bristol Texarkana Texhoma UnionCity : City
+
+-- Exceptional cities (allowed to be in more than one state)
+constant Exceptional : City → Prop
+
+-- Axioms extracted from the textual context
+
+-- Billings is in Montana
+axiom H_Billings_Montana : InState Billings Montana
+
+-- Montana includes Butte, Helena, Missoula
+axiom H_Butte_Montana   : InState Butte   Montana
+axiom H_Helena_Montana  : InState Helena  Montana
+axiom H_Missoula_Montana: InState Missoula Montana
+
+-- White Sulphur Springs and Butte are in the same state
+axiom H_WSS_Butte_same : SameState WhiteSulphurSprings Butte
+
+-- St Pierre is not in Montana
+axiom H_StPierre_not_Montana : ¬ InState StPierre Montana
+
+-- Uniqueness of state for non-exceptional cities
+axiom H_unique_state_nonexceptional :
+  ∀ c : City, (¬ Exceptional c) → ∀ s₁ s₂ : State, InState c s₁ → InState c s₂ → s₁ = s₂
+
+-- The cities here (that matter to our proofs) are not exceptional
+axiom H_Butte_not_exceptional : ¬ Exceptional Butte
+axiom H_StPierre_not_exceptional : ¬ Exceptional StPierre
+axiom H_Missoula_not_exceptional : ¬ Exceptional Missoula
+
+-- Question 1: Are Butte and St Pierre in the same state?
+-- Formal target: ¬ SameState Butte StPierre
+theorem Q1_false : ¬ SameState Butte StPierre :=
+by
+  intro h
+  rcases h with ⟨s, hB, hS⟩
+  -- By uniqueness for Butte (non-exceptional), any state Butte is in must be Montana.
+  have huniq := H_unique_state_nonexceptional Butte H_Butte_not_exceptional s Montana hB H_Butte_Montana
+  -- So s = Montana, hence StPierre would be in Montana, contradiction.
+  have : InState StPierre Montana := by simpa [huniq] using hS
+  exact H_StPierre_not_Montana this
+
+-- Question 2: Are St Pierre and Bismarck in the same state?
+-- With the given information, there is no premise about Bismarck's state, so this is not derivable either way.
+-- Hence we do not have a proof of SameState StPierre Bismarck nor of its negation from the provided axioms.
+
+-- Question 3: Is Montana home to the city of Missoula?
+-- Formal target: InState Missoula Montana
+theorem Q3_true : InState Missoula Montana := H_Missoula_Montana
+
+end StatesCities
+
+Answers:
+1) Butte and St Pierre are in the same state. Answer: False
+2) St Pierre and Bismarck are in the same state. Answer: Unknown
+3) Montana is home to the city of Missoula. Answer: True
+
+False
+Unknown
+True
+
+True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Butte and St Pierre are in the same state.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q2: St Pierre and Bismarck are in the same state.
+Ground Truth: Uncertain
+Prediction: True
+Correct: No
+
+Q3: Montana is home to the city of Missoula.
+Ground Truth: True
+Prediction: False
+Correct: No
+

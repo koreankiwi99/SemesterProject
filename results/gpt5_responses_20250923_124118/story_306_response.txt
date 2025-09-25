@@ -1,0 +1,105 @@
+Story ID: 306
+Premises: If a restaurant is listed in Yelp’s recommendations, then the restaurant has not received many negative reviews.
+All restaurants with a rating greater than four are listed in Yelp’s recommendations.
+Some restaurants that do not provide take-out service receive many negative reviews.
+All restaurants that are popular among local residents have ratings greater than four.
+The Hamden Plaza Subway store has a rating greater than four, or it is popular among local residents.
+
+==================================================
+GPT-5 Full Response:
+==================================================
+Here is a Lean 4 formalization of the setting and proofs for Questions 1 and 2. Question 3 cannot be derived (nor can its negation) from the given premises.
+
+-- Lean 4 code
+
+universe u
+
+namespace Restaurants
+
+-- Domain of discourse: restaurants
+constant Restaurant : Type u
+
+-- Predicates
+constant Listed : Restaurant → Prop               -- listed in Yelp’s recommendations
+constant ManyNeg : Restaurant → Prop              -- has received many negative reviews
+constant RatingGT4 : Restaurant → Prop            -- rating greater than four
+constant TakeOut : Restaurant → Prop              -- provides take-out service
+constant Popular : Restaurant → Prop              -- popular among local residents
+
+-- A specific restaurant: the Hamden Plaza Subway store
+constant hps : Restaurant
+
+-- Premises
+axiom listed_no_manyneg : ∀ r : Restaurant, Listed r → ¬ ManyNeg r
+axiom rating_implies_listed : ∀ r : Restaurant, RatingGT4 r → Listed r
+axiom some_no_takeout_manyneg : ∃ r : Restaurant, ¬ TakeOut r ∧ ManyNeg r
+axiom popular_implies_rating : ∀ r : Restaurant, Popular r → RatingGT4 r
+axiom hps_rating_or_pop : RatingGT4 hps ∨ Popular hps
+
+open Classical
+
+-- From the last two axioms, we can deduce hps has rating > 4.
+lemma hps_has_rating : RatingGT4 hps :=
+  Or.elim hps_rating_or_pop
+    (fun hr => hr)
+    (fun hp => popular_implies_rating hps hp)
+
+-- Therefore hps is listed, hence has not received many negative reviews.
+lemma hps_not_manyneg : ¬ ManyNeg hps :=
+  by
+    have hlisted : Listed hps := rating_implies_listed hps hps_has_rating
+    exact listed_no_manyneg hps hlisted
+
+-- Question 1:
+-- If hps provides take-out and receives many negative reviews,
+-- then its rating is greater than 4 and it does not provide take-out.
+theorem Q1 :
+  (TakeOut hps ∧ ManyNeg hps) → (RatingGT4 hps ∧ ¬ TakeOut hps) :=
+by
+  intro h
+  refine And.intro ?left ?right
+  · -- left: RatingGT4 hps
+    exact hps_has_rating
+  · -- right: ¬ TakeOut hps
+    -- show TakeOut hps → False, using the contradiction with ManyNeg hps
+    intro _
+    exact hps_not_manyneg h.right
+
+-- Question 2:
+-- hps provides take-out service or does not receive many negative reviews.
+theorem Q2 : TakeOut hps ∨ ¬ ManyNeg hps :=
+  Or.inr hps_not_manyneg
+
+-- Note on Question 3:
+-- From the given premises we cannot deduce ¬ TakeOut hps, nor can we deduce TakeOut hps.
+-- Hence neither the statement nor its negation is provable from the assumptions.
+
+end Restaurants
+
+Answers:
+- Question 1: True
+- Question 2: True
+- Question 3: Unknown
+
+True
+True
+Unknown
+
+==================================================
+Questions and Results:
+==================================================
+Q1: If the Hamden Plaza Subway store provides take-out service and receives many negative reviews, then its rating is greater than 4 and it does not provide take-out service.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q2: The Hamden Plaza Subway store provides take-out service or does not receive many negative reviews.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: The Hamden Plaza store does not provide take-out service.
+Ground Truth: Uncertain
+Prediction: True
+Correct: No
+

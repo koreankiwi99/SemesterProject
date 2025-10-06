@@ -7,27 +7,130 @@ CRITICAL: Use only Lean 4 syntax. Key differences from Lean 3:
 - No 'open_locale', use 'open' instead
 - Proofs: theorem name : statement := by\n  tactic1\n  tactic2
 
+STRUCTURE RULES - CRITICAL:
+
+1. After declaring an inductive type, you CANNOT immediately use 'def':
+   WRONG:
+   inductive Person : Type
+   | Bonnie : Person
+   def clubMember (p : Person) : Prop := ...  ← SYNTAX ERROR!
+   
+   RIGHT:
+   inductive Person : Type
+   | Bonnie : Person
+   
+   variable (clubMember : Person → Prop)  ← Correct!
+
+2. Use 'variable' for abstract predicates, NOT 'def':
+   - variable (predicate : Person → Prop)  ← for unknown/abstract predicates
+   - def predicate : Person → Prop := ...  ← only if you have a concrete definition
+   
+3. Understanding Type vs Prop:
+   - Use 'variable (pred : Person → Prop)' for predicates about persons
+   - Predicates should return Prop, not Type
+   - Don't create separate inductive types for each property
+
+4. NEVER use 'begin...end' - this is Lean 3 only:
+   - Use 'by' followed by tactics on new lines
+   - Use 'intro' not 'assume'
+
 LEAN 4 AXIOM APPLICATION RULES:
-- When you have an axiom like `axiom a2 : ∀ (p : Person), clubMember p → (performance p ∨ other p)`
-- You CANNOT just write `a2 Bonnie` - this will give a type error
-- You MUST provide the premise: `a2 Bonnie h_clubMember` where h_clubMember is a proof that `clubMember Bonnie`
-- Extract premises from conjunctions first: if you have `axiom a6 : clubMember Bonnie ∧ ...`, use `a6.1` to get `clubMember Bonnie`
+
+When you have an axiom like:
+  axiom a2 : ∀ (p : Person), clubMember p → (performance p ∨ inactive p)
+
+You CANNOT just write: a2 Bonnie ← TYPE ERROR!
+
+You MUST provide the premise:
+  a2 Bonnie h_clubMember
+  
+where h_clubMember is a proof that `clubMember Bonnie`
+
+How to extract premises from conjunctions:
+- If you have: axiom a6 : clubMember Bonnie ∧ ...
+- Use a6.1 to get clubMember Bonnie
+- Use a6.2 to get the second part
+
+Example workflow:
+  have h_club : clubMember Bonnie := a6.1
+  have h_disjunction := a2 Bonnie h_club
+  cases h_disjunction with ...
 
 VALID LEAN 4 TACTICS (use only these):
-- have h : statement := proof
-- cases h with | constructor1 => tactic | constructor2 => tactic
-- intro h
+
+- have h : statement := proof_term
+- intro h  (NOT 'assume')
+- cases h with | inl h1 => tactic | inr h2 => tactic
 - exact proof_term
-- apply theorem
+- apply theorem_name
 - contradiction
-- absurd h1 h2 (when h1 : P and h2 : ¬P)
-- Do NOT use: guess, begin, end, or Lean 3 syntax
+- absurd h1 h2  (when h1 : P and h2 : ¬P)
+- sorry  (for incomplete proofs)
+
+DO NOT USE:
+- guess (doesn't exist)
+- begin, end (Lean 3 only)
+- assume (Lean 3, use 'intro' or 'fun')
+- or.inl, or.inr (use Or.inl, Or.inr or pattern matching)
+- and.intro (use ⟨h1, h2⟩ or And.intro)
+
+CASES SYNTAX - CRITICAL:
+
+WRONG (Lean 3 style):
+  cases h with h1 h2,
+  { tactic1 },
+  { tactic2 }
+
+WRONG (incorrect syntax):
+  cases h with h1 h2;
+  [tactic1, tactic2]
+
+RIGHT (Lean 4):
+  cases h with
+  | inl h1 => 
+    tactic1
+    tactic2
+  | inr h2 =>
+    tactic3
+    tactic4
+
+For Or/disjunction: use | inl | inr
+For And/conjunction: use .1 and .2 to extract
+For custom inductives: use the constructor names
 
 PROOF STRATEGY:
-1. First extract any premises you need from conjunction axioms (using .1, .2)
-2. Apply universal axioms by providing ALL required arguments including premises
-3. Use pattern matching syntax for cases: `cases h with | inl h1 => ... | inr h2 => ...`
-4. Build your proof step by step, ensuring each line type-checks
+
+1. Declare your Person type and predicates using 'variable'
+2. Write axioms that match the premises exactly
+3. Extract any premises you need from conjunction axioms (using .1, .2)
+4. Apply universal axioms by providing ALL required arguments including premises
+5. Use pattern matching syntax for cases
+6. Build your proof step by step, ensuring each line type-checks
+
+COMPLETE EXAMPLE:
+
+inductive Person : Type
+| Bonnie : Person
+
+variable (clubMember : Person → Prop)
+variable (performance : Person → Prop)
+variable (inactive : Person → Prop)
+variable (student : Person → Prop)
+
+axiom a2 : ∀ (p : Person), clubMember p → (performance p ∨ inactive p)
+axiom a6 : clubMember Person.Bonnie ∧ (student Person.Bonnie ∨ ¬student Person.Bonnie)
+
+theorem bonnie_performs : performance Person.Bonnie := by
+  have h_club : clubMember Person.Bonnie := a6.1
+  have h_disj := a2 Person.Bonnie h_club
+  cases h_disj with
+  | inl h_perf => 
+    exact h_perf
+  | inr h_inactive =>
+    -- prove contradiction here
+    sorry
+
+TASK:
 
 There is an additional requirement: I also want you to try to prove the theorem you translated to Lean. If you can prove the theorem, give me True at the end of the answer. If you can prove the negation of the theorem, write False at the end of the answer. If you can neither prove the original theorem nor the negation of the theorem, please give me Unknown at the end of the answer.
 

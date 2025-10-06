@@ -36,8 +36,8 @@ def build_prompt(example, system_template, user_template):
     """Build prompt for a single question using templates"""
     system_prompt = system_template
     
-    user_prompt = user_template.replace("{context}", example['premises'])
-    user_prompt = user_prompt.replace("{question}", example['conclusion'])
+    user_prompt = user_template.replace("{premises}", example['premises'])
+    user_prompt = user_prompt.replace("{questions}", example['conclusion'])
     
     return system_prompt, user_prompt
 
@@ -244,14 +244,14 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
 class IncrementalSaver:
     """Handles incremental saving of results"""
     
-    def __init__(self, output_dir="results_lean"):
+    def __init__(self, output_dir="results"):
         self.output_dir = output_dir
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs(output_dir, exist_ok=True)
         
-        self.detailed_file = f"{output_dir}/lean_folio_results_{self.timestamp}.json"
-        self.responses_dir = f"{output_dir}/lean_responses_{self.timestamp}"
-        self.progress_file = f"{output_dir}/lean_progress_{self.timestamp}.txt"
+        self.detailed_file = f"{output_dir}/leaninteract_folio_results_{self.timestamp}.json"
+        self.responses_dir = f"{output_dir}/leaninteract_responses_{self.timestamp}"
+        self.progress_file = f"{output_dir}/leaninteract_progress_{self.timestamp}.txt"
         
         os.makedirs(self.responses_dir, exist_ok=True)
         self._init_files()
@@ -413,7 +413,7 @@ Example:
                         help='Number of questions to test (0 = all)')
     parser.add_argument('--max_iterations', type=int, default=3,
                         help='Maximum Lean revision iterations per question')
-    parser.add_argument('--output_dir', default='results_lean', help='Directory to save results')
+    parser.add_argument('--output_dir', default='results', help='Directory to save results')
     parser.add_argument('--model', default='gpt-4', help='Model to use')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')

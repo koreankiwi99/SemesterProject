@@ -42,26 +42,17 @@ def build_prompt(example, system_template, user_template):
     return system_prompt, user_prompt
 
 def extract_lean_code(llm_response):
-    """Extract Lean code from LLM response"""
-    code_blocks = re.findall(r'```lean\s*(.*?)```', llm_response, re.DOTALL)
+    """Extract Lean code from XML-style tags"""
+    match = re.search(r'<lean>(.*?)</lean>', llm_response, re.DOTALL | re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    
+    # Fallback: try markdown code blocks in case LLM forgets
+    code_blocks = re.findall(r'```lean\s*(.*?)```', llm_response, re.DOTALL | re.IGNORECASE)
     if code_blocks:
-        return '\n\n'.join(code_blocks)
+        return '\n\n'.join(block.strip() for block in code_blocks)
     
-    # Fallback: look for theorem/axiom/def lines
-    lines = llm_response.split('\n')
-    lean_lines = []
-    in_lean_block = False
-    
-    for line in lines:
-        if re.match(r'^\s*(theorem|axiom|def|variable|example|namespace|open|import)', line):
-            in_lean_block = True
-        if in_lean_block:
-            lean_lines.append(line)
-            if line.strip() and not line.strip().endswith('\\'):
-                if ':=' in line or line.strip().endswith(')'):
-                    in_lean_block = False
-    
-    return '\n'.join(lean_lines) if lean_lines else None
+    return None
 
 def extract_answer(llm_response):
     """Extract the final answer (True/False/Unknown) from LLM response"""
@@ -129,7 +120,7 @@ def verify_with_lean(lean_code, lean_server, verbose=False):
         }
 
 def test_question_with_lean(example, api_key, lean_server, system_template, user_template,
-                            model="gpt-4", max_iterations=3, verbose=False):
+                            model="gpt-5", max_iterations=3, verbose=False):
     """Test a single question with interactive Lean verification"""
     import openai
     openai.api_key = api_key
@@ -194,10 +185,13 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
                     if iteration < max_iterations - 1:  # Don't give feedback on last iteration
                         error_messages = '\n'.join(lean_verification['errors'])
                         feedback = (
-                            f"The Lean code you provided has compilation errors:\n\n"
+                            f"The Lean code has compilation errors:\n\n"
                             f"{error_messages}\n\n"
-                            f"Please revise your Lean code to fix these errors and provide "
-                            f"the corrected version. Remember to end with your answer in the format:\n"
+                            f"Please provide corrected Lean code wrapped in <lean></lean> tags:\n\n"
+                            f"<lean>\n"
+                            f"[your corrected code here]\n"
+                            f"</lean>\n\n"
+                            f"Then provide your answer:\n"
                             f"ANSWER: True/False/Unknown"
                         )
                         conversation_history.append({"role": "user", "content": feedback})
@@ -207,6 +201,21 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
                 # No Lean code found
                 if verbose:
                     print(f"No Lean code found in iteration {iteration + 1}")
+                
+                # Prompt for Lean code if missing
+                if iteration < max_iterations - 1:
+                    feedback = (
+                        f"I didn't find any Lean code in your response. "
+                        f"Please provide your Lean translation wrapped in <lean></lean> tags:\n\n"
+                        f"<lean>\n"
+                        f"[your Lean code here]\n"
+                        f"</lean>\n\n"
+                        f"Then provide your answer:\n"
+                        f"ANSWER: True/False/Unknown"
+                    )
+                    conversation_history.append({"role": "user", "content": feedback})
+                    if verbose:
+                        print(f"Prompting for Lean code...")
             
             iterations.append(iteration_data)
             
@@ -414,7 +423,7 @@ Example:
     parser.add_argument('--max_iterations', type=int, default=3,
                         help='Maximum Lean revision iterations per question')
     parser.add_argument('--output_dir', default='results', help='Directory to save results')
-    parser.add_argument('--model', default='gpt-4', help='Model to use')
+    parser.add_argument('--model', default='gpt-5', help='Model to use')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
     

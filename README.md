@@ -35,7 +35,7 @@ Recent benchmarks (Multi-LogiEval, ProofWriter) reveal that LLMs show dramatic p
 
 ## Implementation Status
 
-Currently in the proposal stage for EPFL NLP Lab semester project. Preliminary experiments show promising results on simplified logical reasoning tasks.
+Currently in the proposal stage for EPFL NLP Lab semester project.
 
 ## References
 

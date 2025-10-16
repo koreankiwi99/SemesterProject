@@ -1,0 +1,296 @@
+Story ID: 386
+Example ID: 1033
+Premises: If something is a deadly disease, then it comes with a low survival rate. 
+Severe cancers are deadly diseases.
+Bile duct cancer is a severe form cancer. 
+All Cholangiocarcinoma is bile duct cancer.
+Mild flu comes with a low survival rate.
+Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+Conclusion: If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma, then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+-- We model individuals (e.g., cases of illness) as elements of a type.
+axiom Thing : Type
+
+-- Predicates over individuals
+axiom DeadlyDisease : Thing → Prop
+axiom LowSurvivalRate : Thing → Prop
+axiom SevereCancer : Thing → Prop
+axiom BileDuctCancer : Thing → Prop
+axiom Cholangiocarcinoma : Thing → Prop
+axiom MildFlu : Thing → Prop
+axiom ColorectalCancer : Thing → Prop
+
+-- Premises from the textual context
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom ax1 : ∀ x : Thing, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom ax2 : ∀ x : Thing, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom ax3 : ∀ x : Thing, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom ax4 : ∀ x : Thing, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom ax5 : ∀ x : Thing, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom ax6 : ∀ x : Thing, ColorectalCancer x → ¬ (BileDuctCancer x ∧ LowSurvivalRate x)
+
+-- A useful derived lemma: bile duct cancer implies low survival (by chaining the premises).
+lemma bileDuct_implies_low (x : Thing) (h : BileDuctCancer x) : LowSurvivalRate x := by
+  have hSevere : SevereCancer x := ax3 x h
+  have hDeadly : DeadlyDisease x := ax2 x hSevere
+  exact ax1 x hDeadly
+
+-- Goal:
+-- If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma,
+-- then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+-- We formalize "is a kind of" / "is a form of" as set inclusion between predicates.
+theorem goal :
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∨ (∀ x : Thing, ColorectalCancer x → Cholangiocarcinoma x)) →
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∧ (∀ x : Thing, ColorectalCancer x → MildFlu x)) := by
+  intro h
+  cases h with
+  | inl hA =>
+    -- Case 1: Colorectal ⊆ BileDuct
+    apply And.intro
+    · -- The first conjunct is immediate
+      exact hA
+    · -- For any colorectal x, derive a contradiction (it would be both bile duct and low survival),
+      -- hence MildFlu x by ex falso.
+      intro x hxC
+      have hxBD : BileDuctCancer x := hA x hxC
+      have hxLS : LowSurvivalRate x := bileDuct_implies_low x hxBD
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      have contra : False := notBoth ⟨hxBD, hxLS⟩
+      exact False.elim contra
+  | inr hB =>
+    -- Case 2: Colorectal ⊆ Cholangiocarcinoma
+    apply And.intro
+    · -- Then Colorectal ⊆ BileDuct via Cholangiocarcinoma ⊆ BileDuct
+      intro x hxC
+      have hxCh : Cholangiocarcinoma x := hB x hxC
+      exact ax4 x hxCh
+    · -- As above, derive contradiction to conclude MildFlu x
+      intro x hxC
+      have hxCh : Cholangiocarcinoma x := hB x hxC
+      have hxBD : BileDuctCancer x := ax4 x hxCh
+      have hxLS : LowSurvivalRate x := bileDuct_implies_low x hxBD
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      have contra : False := notBoth ⟨hxBD, hxLS⟩
+      exact False.elim contra
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+-- We model individuals (e.g., cases of illness) as elements of a type.
+axiom Thing : Type
+
+-- Predicates over individuals
+axiom DeadlyDisease : Thing → Prop
+axiom LowSurvivalRate : Thing → Prop
+axiom SevereCancer : Thing → Prop
+axiom BileDuctCancer : Thing → Prop
+axiom Cholangiocarcinoma : Thing → Prop
+axiom MildFlu : Thing → Prop
+axiom ColorectalCancer : Thing → Prop
+
+-- Premises from the textual context
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom ax1 : ∀ x : Thing, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom ax2 : ∀ x : Thing, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom ax3 : ∀ x : Thing, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom ax4 : ∀ x : Thing, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom ax5 : ∀ x : Thing, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom ax6 : ∀ x : Thing, ColorectalCancer x → ¬ (BileDuctCancer x ∧ LowSurvivalRate x)
+
+-- A useful derived lemma: bile duct cancer implies low survival (by chaining the premises).
+lemma bileDuct_implies_low (x : Thing) (h : BileDuctCancer x) : LowSurvivalRate x := by
+  have hSevere : SevereCancer x := ax3 x h
+  have hDeadly : DeadlyDisease x := ax2 x hSevere
+  exact ax1 x hDeadly
+
+-- Goal:
+-- If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma,
+-- then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+-- We formalize "is a kind of" / "is a form of" as set inclusion between predicates.
+theorem goal :
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∨ (∀ x : Thing, ColorectalCancer x → Cholangiocarcinoma x)) →
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∧ (∀ x : Thing, ColorectalCancer x → MildFlu x)) := by
+  intro h
+  cases h with
+  | inl hA =>
+    -- Case 1: Colorectal ⊆ BileDuct
+    apply And.intro
+    · -- The first conjunct is immediate
+      exact hA
+    · -- For any colorectal x, derive a contradiction (it would be both bile duct and low survival),
+      -- hence MildFlu x by ex falso.
+      intro x hxC
+      have hxBD : BileDuctCancer x := hA x hxC
+      have hxLS : LowSurvivalRate x := bileDuct_implies_low x hxBD
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      have contra : False := notBoth ⟨hxBD, hxLS⟩
+      exact False.elim contra
+  | inr hB =>
+    -- Case 2: Colorectal ⊆ Cholangiocarcinoma
+    apply And.intro
+    · -- Then Colorectal ⊆ BileDuct via Cholangiocarcinoma ⊆ BileDuct
+      intro x hxC
+      have hxCh : Cholangiocarcinoma x := hB x hxC
+      exact ax4 x hxCh
+    · -- As above, derive contradiction to conclude MildFlu x
+      intro x hxC
+      have hxCh : Cholangiocarcinoma x := hB x hxC
+      have hxBD : BileDuctCancer x := ax4 x hxCh
+      have hxLS : LowSurvivalRate x := bileDuct_implies_low x hxBD
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      have contra : False := notBoth ⟨hxBD, hxLS⟩
+      exact False.elim contra
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Function expected at
+  BileDuctCancer x ∧ LowSurvivalRate x
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+  - unexpected token ':'; expected command
+  - Unknown identifier `bileDuct_implies_low`
+  - Unknown identifier `bileDuct_implies_low`
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+-- We model individuals (e.g., cases of illness) as elements of a type.
+axiom Thing : Type
+
+-- Predicates over individuals
+axiom DeadlyDisease : Thing → Prop
+axiom LowSurvivalRate : Thing → Prop
+axiom SevereCancer : Thing → Prop
+axiom BileDuctCancer : Thing → Prop
+axiom Cholangiocarcinoma : Thing → Prop
+axiom MildFlu : Thing → Prop
+axiom ColorectalCancer : Thing → Prop
+
+-- Premises from the textual context
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom ax1 : ∀ x : Thing, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom ax2 : ∀ x : Thing, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom ax3 : ∀ x : Thing, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom ax4 : ∀ x : Thing, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom ax5 : ∀ x : Thing, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom ax6 : ∀ x : Thing, ColorectalCancer x → ¬ (BileDuctCancer x ∧ LowSurvivalRate x)
+
+-- Goal theorem
+theorem goal :
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∨ (∀ x : Thing, ColorectalCancer x → Cholangiocarcinoma x)) →
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∧ (∀ x : Thing, ColorectalCancer x → MildFlu x)) := by
+  intro h
+  cases h with
+  | inl hA =>
+    apply And.intro
+    · -- Colorectal ⊆ BileDuct (given)
+      exact hA
+    · -- From contradiction, derive MildFlu for any colorectal case
+      intro x hxC
+      have hxBD : BileDuctCancer x := hA x hxC
+      have hxLS : LowSurvivalRate x := ax1 x (ax2 x (ax3 x hxBD))
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      exact False.elim (notBoth ⟨hxBD, hxLS⟩)
+  | inr hB =>
+    apply And.intro
+    · -- Colorectal ⊆ BileDuct via Cholangiocarcinoma ⊆ BileDuct
+      intro x hxC
+      exact ax4 x (hB x hxC)
+    · -- From contradiction, derive MildFlu for any colorectal case
+      intro x hxC
+      have hxBD : BileDuctCancer x := ax4 x (hB x hxC)
+      have hxLS : LowSurvivalRate x := ax1 x (ax2 x (ax3 x hxBD))
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      exact False.elim (notBoth ⟨hxBD, hxLS⟩)
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+-- We model individuals (e.g., cases of illness) as elements of a type.
+axiom Thing : Type
+
+-- Predicates over individuals
+axiom DeadlyDisease : Thing → Prop
+axiom LowSurvivalRate : Thing → Prop
+axiom SevereCancer : Thing → Prop
+axiom BileDuctCancer : Thing → Prop
+axiom Cholangiocarcinoma : Thing → Prop
+axiom MildFlu : Thing → Prop
+axiom ColorectalCancer : Thing → Prop
+
+-- Premises from the textual context
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom ax1 : ∀ x : Thing, DeadlyDisease x → LowSurvivalRate x
+-- Severe cancers are deadly diseases.
+axiom ax2 : ∀ x : Thing, SevereCancer x → DeadlyDisease x
+-- Bile duct cancer is a severe form cancer.
+axiom ax3 : ∀ x : Thing, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom ax4 : ∀ x : Thing, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom ax5 : ∀ x : Thing, MildFlu x → LowSurvivalRate x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom ax6 : ∀ x : Thing, ColorectalCancer x → ¬ (BileDuctCancer x ∧ LowSurvivalRate x)
+
+-- Goal theorem
+theorem goal :
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∨ (∀ x : Thing, ColorectalCancer x → Cholangiocarcinoma x)) →
+  ((∀ x : Thing, ColorectalCancer x → BileDuctCancer x) ∧ (∀ x : Thing, ColorectalCancer x → MildFlu x)) := by
+  intro h
+  cases h with
+  | inl hA =>
+    apply And.intro
+    · -- Colorectal ⊆ BileDuct (given)
+      exact hA
+    · -- From contradiction, derive MildFlu for any colorectal case
+      intro x hxC
+      have hxBD : BileDuctCancer x := hA x hxC
+      have hxLS : LowSurvivalRate x := ax1 x (ax2 x (ax3 x hxBD))
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      exact False.elim (notBoth ⟨hxBD, hxLS⟩)
+  | inr hB =>
+    apply And.intro
+    · -- Colorectal ⊆ BileDuct via Cholangiocarcinoma ⊆ BileDuct
+      intro x hxC
+      exact ax4 x (hB x hxC)
+    · -- From contradiction, derive MildFlu for any colorectal case
+      intro x hxC
+      have hxBD : BileDuctCancer x := ax4 x (hB x hxC)
+      have hxLS : LowSurvivalRate x := ax1 x (ax2 x (ax3 x hxBD))
+      have notBoth : ¬ (BileDuctCancer x ∧ LowSurvivalRate x) := ax6 x hxC
+      exact False.elim (notBoth ⟨hxBD, hxLS⟩)
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 2

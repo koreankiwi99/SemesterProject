@@ -1,0 +1,134 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d5 (d5_Data)
+Rule: BD_C_DS_MP_MP
+Source: data/multi_logi_original/data/d5_Data/fol/BD_C_DS_MP_MP.json
+
+Context:
+If someone studies hard for an exam, they will feel confident going into the test. If there is severe weather in the forecast, schools may cancel class that day. Either Alex studied diligently for his biology exam, or class was not canceled due to the weather. If a student feels confident about the material, they will likely do well on the exam. If a student performs well on an exam, they will be satisfied with their hard work.
+
+Question:
+If there was severe weather in the forecast, did Alex feel satisfied with his performance on the history exam?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Exam : Type
+
+axiom Alex : Person
+axiom Biology : Exam
+axiom History : Exam
+
+axiom Studied : Person → Exam → Prop
+axiom Confident : Person → Exam → Prop
+axiom DidWell : Person → Exam → Prop
+axiom Satisfied : Person → Exam → Prop
+
+axiom SevereWeather : Prop
+axiom ClassCanceled : Prop
+
+-- Premises from the text
+axiom P1 : ∀ p e, Studied p e → Confident p e
+axiom P2 : SevereWeather → ClassCanceled
+axiom P3 : Studied Alex Biology ∨ ¬ ClassCanceled
+axiom P4 : ∀ p e, Confident p e → DidWell p e
+axiom P5 : ∀ p e, DidWell p e → Satisfied p e
+
+-- From the premises we can derive that under severe weather,
+-- Alex is satisfied with his Biology exam (but this gives no info about History).
+theorem satisfied_biology_if_severe_weather : SevereWeather → Satisfied Alex Biology := by
+  intro sw
+  have cc : ClassCanceled := P2 sw
+  cases P3 with
+  | inl studiedBio =>
+      have confBio : Confident Alex Biology := P1 Alex Biology studiedBio
+      have wellBio  : DidWell Alex Biology := P4 Alex Biology confBio
+      exact P5 Alex Biology wellBio
+  | inr notCanceled =>
+      -- Contradiction: class is canceled (cc) and not canceled (notCanceled)
+      have : False := notCanceled cc
+      exact this.elim
+
+-- To show the asked conclusion does not follow, we prove the negation of:
+--   SevereWeather → Satisfied Alex History
+-- by providing a consistent counter-assumption: SevereWeather holds but Alex is not satisfied with History.
+axiom SW : SevereWeather
+axiom NotSatHist : ¬ Satisfied Alex History
+
+theorem not_severe_weather_implies_satisfied_history : ¬ (SevereWeather → Satisfied Alex History) := by
+  intro h
+  have satHist : Satisfied Alex History := h SW
+  exact NotSatHist satHist
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Exam : Type
+
+axiom Alex : Person
+axiom Biology : Exam
+axiom History : Exam
+
+axiom Studied : Person → Exam → Prop
+axiom Confident : Person → Exam → Prop
+axiom DidWell : Person → Exam → Prop
+axiom Satisfied : Person → Exam → Prop
+
+axiom SevereWeather : Prop
+axiom ClassCanceled : Prop
+
+-- Premises from the text
+axiom P1 : ∀ p e, Studied p e → Confident p e
+axiom P2 : SevereWeather → ClassCanceled
+axiom P3 : Studied Alex Biology ∨ ¬ ClassCanceled
+axiom P4 : ∀ p e, Confident p e → DidWell p e
+axiom P5 : ∀ p e, DidWell p e → Satisfied p e
+
+-- From the premises we can derive that under severe weather,
+-- Alex is satisfied with his Biology exam (but this gives no info about History).
+theorem satisfied_biology_if_severe_weather : SevereWeather → Satisfied Alex Biology := by
+  intro sw
+  have cc : ClassCanceled := P2 sw
+  cases P3 with
+  | inl studiedBio =>
+      have confBio : Confident Alex Biology := P1 Alex Biology studiedBio
+      have wellBio  : DidWell Alex Biology := P4 Alex Biology confBio
+      exact P5 Alex Biology wellBio
+  | inr notCanceled =>
+      -- Contradiction: class is canceled (cc) and not canceled (notCanceled)
+      have : False := notCanceled cc
+      exact this.elim
+
+-- To show the asked conclusion does not follow, we prove the negation of:
+--   SevereWeather → Satisfied Alex History
+-- by providing a consistent counter-assumption: SevereWeather holds but Alex is not satisfied with History.
+axiom SW : SevereWeather
+axiom NotSatHist : ¬ Satisfied Alex History
+
+theorem not_severe_weather_implies_satisfied_history : ¬ (SevereWeather → Satisfied Alex History) := by
+  intro h
+  have satHist : Satisfied Alex History := h SW
+  exact NotSatHist satHist
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: No
+Correct: ✗ No
+Total Iterations: 1
+Final Lean Verification: ✓ Success

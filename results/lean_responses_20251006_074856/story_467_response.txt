@@ -1,0 +1,94 @@
+Story ID: 467
+Premises: All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+
+==================================================
+Model Response:
+==================================================
+Lean translation and attempt to prove:
+
+-- We formalize the domain, predicates, entity, and premises.
+universe u
+
+constant U : Type u
+constant Pet Mammal Animal Monkey Bird CanFly CanBreathe HasWings : U → Prop
+constant Rock : U
+
+axiom ax1 : ∀ x : U, Pet x ∧ Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x ∧ Bird x → CanFly x
+axiom ax5 : ∀ x : U, Animal x ∧ Pet x → CanBreathe x
+axiom ax6 : ∀ x : U, Pet x ∧ CanFly x → HasWings x
+axiom ax7 : Pet Rock
+axiom ax8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- Q2: Rock has wings.
+-- We prove HasWings Rock unconditionally from the axioms.
+lemma Rock_hasWings : HasWings Rock := by
+  have hPet : Pet Rock := ax7
+  -- Analyze the given disjunction: CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+  exact
+    match ax8 with
+    | Or.inl hFly =>
+      ax6 Rock ⟨hPet, hFly⟩
+    | Or.inr (Or.inl hBird) =>
+      let hFly := ax4 Rock ⟨hPet, hBird⟩
+      ax6 Rock ⟨hPet, hFly⟩
+    | Or.inr (Or.inr hNotBreathe) =>
+      -- From Pet Rock, we know Monkey Rock ∨ Bird Rock.
+      -- If Monkey Rock, then Rock can breathe, contradicting hNotBreathe.
+      -- Hence Bird Rock holds; then Rock can fly; hence Rock has wings.
+      have hMB : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+      have hBird' : Bird Rock :=
+        match hMB with
+        | Or.inl hMonkey =>
+          let hMammal := ax2 Rock hMonkey
+          let hAnimal := ax1 Rock ⟨hPet, hMammal⟩
+          let hBreathe := ax5 Rock ⟨hAnimal, hPet⟩
+          False.elim (hNotBreathe hBreathe)
+        | Or.inr hBird => hBird
+      let hFly := ax4 Rock ⟨hPet, hBird'⟩
+      ax6 Rock ⟨hPet, hFly⟩
+
+-- Q3: Rock does not have wings.
+-- Its negation is exactly HasWings Rock, which we proved above.
+-- Therefore, the statement of Q3 is false.
+lemma Rock_not_hasWings_false : ¬ HasWings Rock → False :=
+  fun h => h Rock_hasWings
+
+-- Q1: Rock is a monkey.
+-- From the given axioms, this is not derivable (nor is its negation),
+-- since Pet Rock only yields Monkey Rock ∨ Bird Rock, and nothing rules out the Bird case
+-- nor forces the Monkey case, and monkeys and birds are not stated to be disjoint.
+
+
+ANSWERS:
+1: Unknown
+2: True
+3: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Rock is a monkey.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q2: Rock has wings.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: Rock does not have wings.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

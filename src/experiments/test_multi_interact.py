@@ -678,7 +678,7 @@ Example usage:
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for sampling (default: 42)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
-    parser.add_argument('--model', default='gpt-5', help='Model to use (default: gpt-4)')
+    parser.add_argument('--model', default='gpt-5', help='Model to use (default: gpt-5)')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
     

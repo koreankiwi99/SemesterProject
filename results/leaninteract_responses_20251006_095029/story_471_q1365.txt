@@ -1,0 +1,189 @@
+Story ID: 471
+Example ID: 1365
+Premises: All rabbits that can be spotted near the campus are cute. 
+Some turtles can be spotted near the campus. 
+The only animals that can be spotted near the campus are rabbits and squirrels.
+If something is skittish, then it is not calm.
+All the squirrels that can be spotted near the campus are skittish.
+Rockie can be spotted near the campus, and it is calm.
+Conclusion: If Rockie is cute and calm, then Rockie is a skittish turtle.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+
+-- Entities and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom NearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- Premises from the text
+axiom rabbits_near_are_cute :
+  ∀ x : Animal, Rabbit x ∧ NearCampus x → Cute x
+
+axiom some_turtle_near :
+  ∃ x : Animal, Turtle x ∧ NearCampus x
+
+axiom only_near_are_rabbits_or_squirrels :
+  ∀ x : Animal, NearCampus x → Rabbit x ∨ Squirrel x
+
+axiom skittish_implies_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+
+axiom squirrels_near_are_skittish :
+  ∀ x : Animal, Squirrel x ∧ NearCampus x → Skittish x
+
+axiom rockie_near_and_calm :
+  NearCampus Rockie ∧ Calm Rockie
+
+-- The statement in question
+def Statement : Prop :=
+  (Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)
+
+-- We prove the negation of the statement
+theorem not_Statement : ¬ Statement := by
+  -- Extract facts about Rockie
+  have hNear : NearCampus Rockie := rockie_near_and_calm.left
+  have hCalm : Calm Rockie := rockie_near_and_calm.right
+
+  -- From Calm and the premises, Rockie cannot be a squirrel
+  have notSquirrel : ¬ Squirrel Rockie := by
+    intro hSq
+    have hSqNear : Squirrel Rockie ∧ NearCampus Rockie := And.intro hSq hNear
+    have hSk : Skittish Rockie := squirrels_near_are_skittish Rockie hSqNear
+    have hNotCalm : ¬ Calm Rockie := skittish_implies_not_calm Rockie hSk
+    exact hNotCalm hCalm
+
+  -- From Near and the "only ... are rabbits or squirrels", deduce Rabbit Rockie
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_near_are_rabbits_or_squirrels Rockie hNear
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq => exact False.elim (notSquirrel hSq)
+
+  -- Therefore Rockie is cute
+  have hCute : Cute Rockie :=
+    rabbits_near_are_cute Rockie (And.intro hRabbit hNear)
+
+  -- Build the antecedent
+  have hAnte : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+
+  -- Show the consequent is impossible (in particular, Skittish Rockie is impossible)
+  have notSkittish : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_implies_not_calm Rockie hSk
+    exact hNotCalm hCalm
+
+  have notConsequent : ¬ (Skittish Rockie ∧ Turtle Rockie) := by
+    intro h
+    exact notSkittish h.left
+
+  -- Conclude the negation of the statement
+  intro hImp
+  have q : Skittish Rockie ∧ Turtle Rockie := hImp hAnte
+  exact notConsequent q
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+-- Entities and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom NearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- Premises from the text
+axiom rabbits_near_are_cute :
+  ∀ x : Animal, Rabbit x ∧ NearCampus x → Cute x
+
+axiom some_turtle_near :
+  ∃ x : Animal, Turtle x ∧ NearCampus x
+
+axiom only_near_are_rabbits_or_squirrels :
+  ∀ x : Animal, NearCampus x → Rabbit x ∨ Squirrel x
+
+axiom skittish_implies_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+
+axiom squirrels_near_are_skittish :
+  ∀ x : Animal, Squirrel x ∧ NearCampus x → Skittish x
+
+axiom rockie_near_and_calm :
+  NearCampus Rockie ∧ Calm Rockie
+
+-- The statement in question
+def Statement : Prop :=
+  (Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)
+
+-- We prove the negation of the statement
+theorem not_Statement : ¬ Statement := by
+  -- Extract facts about Rockie
+  have hNear : NearCampus Rockie := rockie_near_and_calm.left
+  have hCalm : Calm Rockie := rockie_near_and_calm.right
+
+  -- From Calm and the premises, Rockie cannot be a squirrel
+  have notSquirrel : ¬ Squirrel Rockie := by
+    intro hSq
+    have hSqNear : Squirrel Rockie ∧ NearCampus Rockie := And.intro hSq hNear
+    have hSk : Skittish Rockie := squirrels_near_are_skittish Rockie hSqNear
+    have hNotCalm : ¬ Calm Rockie := skittish_implies_not_calm Rockie hSk
+    exact hNotCalm hCalm
+
+  -- From Near and the "only ... are rabbits or squirrels", deduce Rabbit Rockie
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_near_are_rabbits_or_squirrels Rockie hNear
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq => exact False.elim (notSquirrel hSq)
+
+  -- Therefore Rockie is cute
+  have hCute : Cute Rockie :=
+    rabbits_near_are_cute Rockie (And.intro hRabbit hNear)
+
+  -- Build the antecedent
+  have hAnte : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+
+  -- Show the consequent is impossible (in particular, Skittish Rockie is impossible)
+  have notSkittish : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_implies_not_calm Rockie hSk
+    exact hNotCalm hCalm
+
+  have notConsequent : ¬ (Skittish Rockie ∧ Turtle Rockie) := by
+    intro h
+    exact notSkittish h.left
+
+  -- Conclude the negation of the statement
+  intro hImp
+  have q : Skittish Rockie ∧ Turtle Rockie := hImp hAnte
+  exact notConsequent q
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

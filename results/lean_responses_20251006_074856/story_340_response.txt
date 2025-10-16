@@ -1,0 +1,107 @@
+Story ID: 340
+Premises: Everyone at the mixer is a Grand Slam champion or an Oscar-nominated actor.
+Every Grand Slam champion at the mixer is a professional tennis player.
+All Oscar-nominated actors at the mixer are celebrities.
+All professional tennis players at the mixer are athletes.
+If a person at the mixer is a celebrity, then they are well paid.
+If a person at the mixer is an athlete, then they are famous.
+All well-paid people at the mixer live in tax havens.
+Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and proof attempts:
+
+```
+namespace Mixer
+
+universe u
+constant Person : Type u
+
+-- Predicates
+constant At : Person → Prop
+constant GSC : Person → Prop                  -- Grand Slam champion
+constant ONA : Person → Prop                  -- Oscar-nominated actor
+constant ProTennis : Person → Prop
+constant Celebrity : Person → Prop
+constant Athlete : Person → Prop
+constant WellPaid : Person → Prop
+constant Famous : Person → Prop
+constant TaxHaven : Person → Prop
+
+-- Constant individual
+constant djokovic : Person
+
+-- Axioms from the textual context
+axiom H1 : ∀ x, At x → (GSC x ∨ ONA x)
+axiom H2 : ∀ x, At x → (GSC x → ProTennis x)
+axiom H3 : ∀ x, At x → (ONA x → Celebrity x)
+axiom H4 : ∀ x, At x → (ProTennis x → Athlete x)
+axiom H5 : ∀ x, At x → (Celebrity x → WellPaid x)
+axiom H6 : ∀ x, At x → (Athlete x → Famous x)
+axiom H7 : ∀ x, At x → (WellPaid x → TaxHaven x)
+
+-- Djokovic-specific facts
+axiom H8a : At djokovic
+axiom H8b : (Famous djokovic ∧ Athlete djokovic) → WellPaid djokovic
+
+-- Helpful lemmas
+lemma famous_of_athlete_at {x} (hxAt : At x) (hAth : Athlete x) : Famous x :=
+  (H6 x hxAt) hAth
+
+lemma athlete_of_gsc_at {x} (hxAt : At x) (hG : GSC x) : Athlete x :=
+  let hPT := (H2 x hxAt) hG
+  (H4 x hxAt) hPT
+
+-- Djokovic is well-paid (by cases on H1 and using H8b in the GSC branch)
+lemma wellPaid_djokovic : WellPaid djokovic :=
+by
+  have hdisj : GSC djokovic ∨ ONA djokovic := H1 djokovic H8a
+  cases hdisj with
+  | inl hG =>
+      have hA : Athlete djokovic := athlete_of_gsc_at H8a hG
+      have hF : Famous djokovic := famous_of_athlete_at H8a hA
+      exact H8b ⟨hF, hA⟩
+  | inr hO =>
+      have hC : Celebrity djokovic := (H3 djokovic H8a) hO
+      exact (H5 djokovic H8a) hC
+
+-- Q2: Djokovic lives in a tax haven (provable)
+theorem q2 : TaxHaven djokovic :=
+  (H7 djokovic H8a) wellPaid_djokovic
+
+-- Q3: "Djokovic does not live in a tax haven" is false
+theorem q3_false : ¬ (¬ TaxHaven djokovic) :=
+by
+  intro h
+  exact h q2
+
+-- Q1 remains undecided: we have only H1 djokovic H8a : GSC djokovic ∨ ONA djokovic
+
+end Mixer
+```
+
+ANSWERS:
+1: Unknown
+2: True
+3: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Djokovic is a Grand Slam champion.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q2: Djokovic lives in a tax haven.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: Djokovic does not live in a tax haven.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

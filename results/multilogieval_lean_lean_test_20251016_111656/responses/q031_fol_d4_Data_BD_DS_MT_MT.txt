@@ -1,0 +1,366 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d4 (d4_Data)
+Rule: BD_DS_MT_MT
+Source: data/multi_logi_original/data/d4_Data/fol/BD_DS_MT_MT.json
+
+Context:
+Someone was making dinner plans. They knew that if it was close to dinnertime, then they should start cooking. They also needed to go grocery shopping. If they go shopping, then they can make dinner. Either it is close to dinnertime, or they won't make dinner. If the fridge is empty, then they must go shopping. If there are no ingredients in the pantry, then the fridge is empty.
+
+Question:
+If Sam does start cooking, is the pantry empty?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+-- 1) If it is close to dinnertime, then they (Sam) should start cooking.
+axiom h1 : CloseToDinner → StartCooking Sam
+-- 3) If they (Sam) go shopping, then they can make dinner.
+axiom h3 : GoShopping Sam → MakeDinner Sam
+-- 4) Either it is close to dinnertime, or they (Sam) won't make dinner.
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+-- 5) If the fridge is empty, then they (Sam) must go shopping.
+axiom h5 : FridgeEmpty → GoShopping Sam
+-- 6) If there are no ingredients in the pantry, then the fridge is empty.
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- A useful derived fact: ¬(MakeDinner Sam) → ¬(GoShopping Sam)
+lemma not_make_implies_not_shop : ¬ MakeDinner Sam → ¬ GoShopping Sam := by
+  intro hNotMake hShop
+  exact hNotMake (h3 hShop)
+
+-- Another: ¬(GoShopping Sam) → ¬FridgeEmpty
+lemma not_shop_implies_not_fridge_empty : ¬ GoShopping Sam → ¬ FridgeEmpty := by
+  intro hNotShop hFridgeEmpty
+  exact hNotShop (h5 hFridgeEmpty)
+
+-- Another: ¬FridgeEmpty → ¬PantryEmpty
+lemma not_fridge_empty_implies_not_pantry_empty : ¬ FridgeEmpty → ¬ PantryEmpty := by
+  intro hNotFridgeEmpty hPantryEmpty
+  exact hNotFridgeEmpty (h6 hPantryEmpty)
+
+-- Chain them: ¬(MakeDinner Sam) → ¬PantryEmpty
+lemma not_make_implies_not_pantry_empty : ¬ MakeDinner Sam → ¬ PantryEmpty := by
+  intro hNotMake hPantry
+  have hNotShop : ¬ GoShopping Sam := not_make_implies_not_shop hNotMake
+  have hNotFridge : ¬ FridgeEmpty := not_shop_implies_not_fridge_empty hNotShop
+  exact not_fridge_empty_implies_not_pantry_empty hNotFridge hPantry
+
+-- From the disjunction (close or not make), deduce CloseToDinner if PantryEmpty holds,
+-- hence conclude StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := by
+    cases h4 with
+    | inl hc => exact hc
+    | inr hNotMake =>
+        have : ¬ PantryEmpty := not_make_implies_not_pantry_empty hNotMake
+        exact False.elim (this hPantry)
+  exact h1 hClose
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+-- 1) If it is close to dinnertime, then they (Sam) should start cooking.
+axiom h1 : CloseToDinner → StartCooking Sam
+-- 3) If they (Sam) go shopping, then they can make dinner.
+axiom h3 : GoShopping Sam → MakeDinner Sam
+-- 4) Either it is close to dinnertime, or they (Sam) won't make dinner.
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+-- 5) If the fridge is empty, then they (Sam) must go shopping.
+axiom h5 : FridgeEmpty → GoShopping Sam
+-- 6) If there are no ingredients in the pantry, then the fridge is empty.
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- A useful derived fact: ¬(MakeDinner Sam) → ¬(GoShopping Sam)
+lemma not_make_implies_not_shop : ¬ MakeDinner Sam → ¬ GoShopping Sam := by
+  intro hNotMake hShop
+  exact hNotMake (h3 hShop)
+
+-- Another: ¬(GoShopping Sam) → ¬FridgeEmpty
+lemma not_shop_implies_not_fridge_empty : ¬ GoShopping Sam → ¬ FridgeEmpty := by
+  intro hNotShop hFridgeEmpty
+  exact hNotShop (h5 hFridgeEmpty)
+
+-- Another: ¬FridgeEmpty → ¬PantryEmpty
+lemma not_fridge_empty_implies_not_pantry_empty : ¬ FridgeEmpty → ¬ PantryEmpty := by
+  intro hNotFridgeEmpty hPantryEmpty
+  exact hNotFridgeEmpty (h6 hPantryEmpty)
+
+-- Chain them: ¬(MakeDinner Sam) → ¬PantryEmpty
+lemma not_make_implies_not_pantry_empty : ¬ MakeDinner Sam → ¬ PantryEmpty := by
+  intro hNotMake hPantry
+  have hNotShop : ¬ GoShopping Sam := not_make_implies_not_shop hNotMake
+  have hNotFridge : ¬ FridgeEmpty := not_shop_implies_not_fridge_empty hNotShop
+  exact not_fridge_empty_implies_not_pantry_empty hNotFridge hPantry
+
+-- From the disjunction (close or not make), deduce CloseToDinner if PantryEmpty holds,
+-- hence conclude StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := by
+    cases h4 with
+    | inl hc => exact hc
+    | inr hNotMake =>
+        have : ¬ PantryEmpty := not_make_implies_not_pantry_empty hNotMake
+        exact False.elim (this hPantry)
+  exact h1 hClose
+----------------------------------------
+
+Lean Verification:
+  Success: False
+  Errors:
+    - Function expected at
+  FridgeEmpty
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+    - unexpected token ':'; expected command
+    - Unknown identifier `not_make_implies_not_pantry_empty`
+
+--- Iteration 2 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+-- 1) If it is close to dinnertime, then Sam should start cooking.
+axiom h1 : CloseToDinner → StartCooking Sam
+-- 3) If Sam goes shopping, then Sam can make dinner.
+axiom h3 : GoShopping Sam → MakeDinner Sam
+-- 4) Either it is close to dinnertime, or Sam won't make dinner.
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+-- 5) If the fridge is empty, then Sam must go shopping.
+axiom h5 : FridgeEmpty → GoShopping Sam
+-- 6) If there are no ingredients in the pantry, then the fridge is empty.
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- From PantryEmpty, deduce MakeDinner Sam.
+lemma pantry_implies_make : PantryEmpty → MakeDinner Sam := by
+  intro hPantry
+  have hFridge : FridgeEmpty := h6 hPantry
+  have hShop : GoShopping Sam := h5 hFridge
+  exact h3 hShop
+
+-- From PantryEmpty and the disjunction, deduce CloseToDinner.
+lemma pantry_implies_close : PantryEmpty → CloseToDinner := by
+  intro hPantry
+  have hMake : MakeDinner Sam := pantry_implies_make hPantry
+  cases h4 with
+  | inl hClose => exact hClose
+  | inr hNotMake => exact False.elim (hNotMake hMake)
+
+-- Therefore, PantryEmpty implies StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := pantry_implies_close hPantry
+  exact h1 hClose
+
+-- Note: The converse (StartCooking Sam → PantryEmpty) is not derivable from these premises.
+</lean>
+ANSWER: Unknown
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+-- 1) If it is close to dinnertime, then Sam should start cooking.
+axiom h1 : CloseToDinner → StartCooking Sam
+-- 3) If Sam goes shopping, then Sam can make dinner.
+axiom h3 : GoShopping Sam → MakeDinner Sam
+-- 4) Either it is close to dinnertime, or Sam won't make dinner.
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+-- 5) If the fridge is empty, then Sam must go shopping.
+axiom h5 : FridgeEmpty → GoShopping Sam
+-- 6) If there are no ingredients in the pantry, then the fridge is empty.
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- From PantryEmpty, deduce MakeDinner Sam.
+lemma pantry_implies_make : PantryEmpty → MakeDinner Sam := by
+  intro hPantry
+  have hFridge : FridgeEmpty := h6 hPantry
+  have hShop : GoShopping Sam := h5 hFridge
+  exact h3 hShop
+
+-- From PantryEmpty and the disjunction, deduce CloseToDinner.
+lemma pantry_implies_close : PantryEmpty → CloseToDinner := by
+  intro hPantry
+  have hMake : MakeDinner Sam := pantry_implies_make hPantry
+  cases h4 with
+  | inl hClose => exact hClose
+  | inr hNotMake => exact False.elim (hNotMake hMake)
+
+-- Therefore, PantryEmpty implies StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := pantry_implies_close hPantry
+  exact h1 hClose
+
+-- Note: The converse (StartCooking Sam → PantryEmpty) is not derivable from these premises.
+----------------------------------------
+
+Lean Verification:
+  Success: False
+  Errors:
+    - Function expected at
+  FridgeEmpty
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+    - unexpected token ':'; expected command
+    - Unknown identifier `pantry_implies_close`
+
+--- Iteration 3 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+axiom h1 : CloseToDinner → StartCooking Sam
+axiom h3 : GoShopping Sam → MakeDinner Sam
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+axiom h5 : FridgeEmpty → GoShopping Sam
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- From PantryEmpty, deduce MakeDinner Sam.
+lemma pantry_implies_make : PantryEmpty → MakeDinner Sam := by
+  intro hPantry
+  have hFridge : FridgeEmpty := h6 hPantry
+  have hShop : GoShopping Sam := h5 hFridge
+  exact h3 hShop
+
+-- From PantryEmpty and the disjunction, deduce CloseToDinner.
+lemma pantry_implies_close : PantryEmpty → CloseToDinner := by
+  intro hPantry
+  have hMake : MakeDinner Sam := pantry_implies_make hPantry
+  exact Or.elim h4 (fun hc => hc) (fun hNotMake => False.elim (hNotMake hMake))
+
+-- Therefore, PantryEmpty implies StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := pantry_implies_close hPantry
+  exact h1 hClose
+</lean>
+ANSWER: Unknown
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Sam : Person
+
+axiom CloseToDinner : Prop
+axiom StartCooking : Person → Prop
+axiom GoShopping : Person → Prop
+axiom MakeDinner : Person → Prop
+axiom FridgeEmpty : Prop
+axiom PantryEmpty : Prop
+
+-- Premises from the text:
+axiom h1 : CloseToDinner → StartCooking Sam
+axiom h3 : GoShopping Sam → MakeDinner Sam
+axiom h4 : CloseToDinner ∨ ¬ MakeDinner Sam
+axiom h5 : FridgeEmpty → GoShopping Sam
+axiom h6 : PantryEmpty → FridgeEmpty
+
+-- From PantryEmpty, deduce MakeDinner Sam.
+lemma pantry_implies_make : PantryEmpty → MakeDinner Sam := by
+  intro hPantry
+  have hFridge : FridgeEmpty := h6 hPantry
+  have hShop : GoShopping Sam := h5 hFridge
+  exact h3 hShop
+
+-- From PantryEmpty and the disjunction, deduce CloseToDinner.
+lemma pantry_implies_close : PantryEmpty → CloseToDinner := by
+  intro hPantry
+  have hMake : MakeDinner Sam := pantry_implies_make hPantry
+  exact Or.elim h4 (fun hc => hc) (fun hNotMake => False.elim (hNotMake hMake))
+
+-- Therefore, PantryEmpty implies StartCooking Sam.
+theorem pantry_empty_implies_start : PantryEmpty → StartCooking Sam := by
+  intro hPantry
+  have hClose : CloseToDinner := pantry_implies_close hPantry
+  exact h1 hClose
+----------------------------------------
+
+Lean Verification:
+  Success: False
+  Errors:
+    - Function expected at
+  FridgeEmpty
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+    - unexpected token ':'; expected command
+    - Unknown identifier `pantry_implies_close`
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: Unknown
+Correct: ✗ No
+Total Iterations: 3
+Final Lean Verification: ✗ Failed

@@ -1,0 +1,179 @@
+Story ID: 385
+Example ID: 1029
+Premises: If someone is ranked highly by the Women's Tennis Association, then they are one of the most active players in major tennis. 
+Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the Women's Tennis Association.
+All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+All tennis players at Roland Garros 2022 are either female or male.
+All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+If Coco Gauff is ranked highly by the Women's Tennis Association or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+Coco Gauff is at Roland Garros 2022.
+Conclusion: Coco Gauff is among the most active Grand-Slam players.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+axiom Person : Type u
+axiom Coco : Person
+
+axiom RankedHighlyWTA : Person → Prop
+axiom MostActiveGS : Person → Prop
+axiom LostToIgaRG2022 : Person → Prop
+axiom FemaleRG2022 : Person → Prop
+axiom MaleRG2022 : Person → Prop
+axiom LostToNadalRG2022 : Person → Prop
+axiom AtRG2022 : Person → Prop
+
+axiom high_implies_active : ∀ x : Person, RankedHighlyWTA x → MostActiveGS x
+axiom iga_loss_implies_high : ∀ x : Person, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_implies_iga_loss : ∀ x : Person, FemaleRG2022 x → LostToIgaRG2022 x
+axiom at_implies_female_or_male : ∀ x : Person, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_implies_nadal_loss : ∀ x : Person, MaleRG2022 x → LostToNadalRG2022 x
+axiom coco_no_male_if_high_or_nadal : (RankedHighlyWTA Coco ∨ LostToNadalRG2022 Coco) → ¬ MaleRG2022 Coco
+axiom coco_at : AtRG2022 Coco
+
+theorem coco_is_most_active : MostActiveGS Coco := by
+  have hfm : FemaleRG2022 Coco ∨ MaleRG2022 Coco := at_implies_female_or_male Coco coco_at
+  cases hfm with
+  | inl hF =>
+      have hIga : LostToIgaRG2022 Coco := female_implies_iga_loss Coco hF
+      have hHigh : RankedHighlyWTA Coco := iga_loss_implies_high Coco hIga
+      exact high_implies_active Coco hHigh
+  | inr hM =>
+      have hNadal : LostToNadalRG2022 Coco := male_implies_nadal_loss Coco hM
+      have hNotMale : ¬ MaleRG2022 Coco := coco_no_male_if_high_or_nadal (Or.inr hNadal)
+      exact False.elim (hNotMale hM)
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+universe u
+axiom Person : Type u
+axiom Coco : Person
+
+axiom RankedHighlyWTA : Person → Prop
+axiom MostActiveGS : Person → Prop
+axiom LostToIgaRG2022 : Person → Prop
+axiom FemaleRG2022 : Person → Prop
+axiom MaleRG2022 : Person → Prop
+axiom LostToNadalRG2022 : Person → Prop
+axiom AtRG2022 : Person → Prop
+
+axiom high_implies_active : ∀ x : Person, RankedHighlyWTA x → MostActiveGS x
+axiom iga_loss_implies_high : ∀ x : Person, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_implies_iga_loss : ∀ x : Person, FemaleRG2022 x → LostToIgaRG2022 x
+axiom at_implies_female_or_male : ∀ x : Person, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_implies_nadal_loss : ∀ x : Person, MaleRG2022 x → LostToNadalRG2022 x
+axiom coco_no_male_if_high_or_nadal : (RankedHighlyWTA Coco ∨ LostToNadalRG2022 Coco) → ¬ MaleRG2022 Coco
+axiom coco_at : AtRG2022 Coco
+
+theorem coco_is_most_active : MostActiveGS Coco := by
+  have hfm : FemaleRG2022 Coco ∨ MaleRG2022 Coco := at_implies_female_or_male Coco coco_at
+  cases hfm with
+  | inl hF =>
+      have hIga : LostToIgaRG2022 Coco := female_implies_iga_loss Coco hF
+      have hHigh : RankedHighlyWTA Coco := iga_loss_implies_high Coco hIga
+      exact high_implies_active Coco hHigh
+  | inr hM =>
+      have hNadal : LostToNadalRG2022 Coco := male_implies_nadal_loss Coco hM
+      have hNotMale : ¬ MaleRG2022 Coco := coco_no_male_if_high_or_nadal (Or.inr hNadal)
+      exact False.elim (hNotMale hM)
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - declaration `coco_is_most_active` contains universe level metavariables at the expression
+  coco_no_male_if_high_or_nadal.{?u.212, u_1, u_1} (Or.inr hNadal)
+in the declaration body
+  have hfm := at_implies_female_or_male Coco coco_at;
+  Or.casesOn (motive := fun t => hfm = t → MostActiveGS Coco) hfm
+    (fun hF h =>
+      have hIga := female_implies_iga_loss Coco hF;
+      have hHigh := iga_loss_implies_high Coco hIga;
+      high_implies_active Coco hHigh)
+    (fun hM h =>
+      have hNadal := male_implies_nadal_loss Coco hM;
+      have hNotMale := coco_no_male_if_high_or_nadal.{?u.212, u_1, u_1} (Or.inr hNadal);
+      False.elim (hNotMale hM))
+    (Eq.refl hfm)
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+axiom Person : Type
+axiom Coco : Person
+
+axiom RankedHighlyWTA : Person → Prop
+axiom MostActiveGS : Person → Prop
+axiom LostToIgaRG2022 : Person → Prop
+axiom FemaleRG2022 : Person → Prop
+axiom MaleRG2022 : Person → Prop
+axiom LostToNadalRG2022 : Person → Prop
+axiom AtRG2022 : Person → Prop
+
+axiom high_implies_active : ∀ x : Person, RankedHighlyWTA x → MostActiveGS x
+axiom iga_loss_implies_high : ∀ x : Person, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_implies_iga_loss : ∀ x : Person, FemaleRG2022 x → LostToIgaRG2022 x
+axiom at_implies_female_or_male : ∀ x : Person, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_implies_nadal_loss : ∀ x : Person, MaleRG2022 x → LostToNadalRG2022 x
+axiom coco_no_male_if_high_or_nadal : (RankedHighlyWTA Coco ∨ LostToNadalRG2022 Coco) → ¬ MaleRG2022 Coco
+axiom coco_at : AtRG2022 Coco
+
+theorem coco_is_most_active : MostActiveGS Coco := by
+  have hfm : FemaleRG2022 Coco ∨ MaleRG2022 Coco := at_implies_female_or_male Coco coco_at
+  cases hfm with
+  | inl hF =>
+      have hIga : LostToIgaRG2022 Coco := female_implies_iga_loss Coco hF
+      have hHigh : RankedHighlyWTA Coco := iga_loss_implies_high Coco hIga
+      exact high_implies_active Coco hHigh
+  | inr hM =>
+      have hNadal : LostToNadalRG2022 Coco := male_implies_nadal_loss Coco hM
+      have hNotMale : ¬ MaleRG2022 Coco := coco_no_male_if_high_or_nadal (Or.inr hNadal)
+      exact False.elim (hNotMale hM)
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom Coco : Person
+
+axiom RankedHighlyWTA : Person → Prop
+axiom MostActiveGS : Person → Prop
+axiom LostToIgaRG2022 : Person → Prop
+axiom FemaleRG2022 : Person → Prop
+axiom MaleRG2022 : Person → Prop
+axiom LostToNadalRG2022 : Person → Prop
+axiom AtRG2022 : Person → Prop
+
+axiom high_implies_active : ∀ x : Person, RankedHighlyWTA x → MostActiveGS x
+axiom iga_loss_implies_high : ∀ x : Person, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_implies_iga_loss : ∀ x : Person, FemaleRG2022 x → LostToIgaRG2022 x
+axiom at_implies_female_or_male : ∀ x : Person, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_implies_nadal_loss : ∀ x : Person, MaleRG2022 x → LostToNadalRG2022 x
+axiom coco_no_male_if_high_or_nadal : (RankedHighlyWTA Coco ∨ LostToNadalRG2022 Coco) → ¬ MaleRG2022 Coco
+axiom coco_at : AtRG2022 Coco
+
+theorem coco_is_most_active : MostActiveGS Coco := by
+  have hfm : FemaleRG2022 Coco ∨ MaleRG2022 Coco := at_implies_female_or_male Coco coco_at
+  cases hfm with
+  | inl hF =>
+      have hIga : LostToIgaRG2022 Coco := female_implies_iga_loss Coco hF
+      have hHigh : RankedHighlyWTA Coco := iga_loss_implies_high Coco hIga
+      exact high_implies_active Coco hHigh
+  | inr hM =>
+      have hNadal : LostToNadalRG2022 Coco := male_implies_nadal_loss Coco hM
+      have hNotMale : ¬ MaleRG2022 Coco := coco_no_male_if_high_or_nadal (Or.inr hNadal)
+      exact False.elim (hNotMale hM)
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 2

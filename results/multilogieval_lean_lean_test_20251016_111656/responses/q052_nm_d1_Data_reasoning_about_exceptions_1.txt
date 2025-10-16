@@ -1,0 +1,224 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d1 (d1_Data)
+Rule: reasoning_about_exceptions_1
+Source: data/multi_logi_original/data/d1_Data/nm/reasoning_about_exceptions_1.json
+
+Context:
+Mary was out shopping for fruit at the local market. She wanted to buy some apples, oranges and bananas since she knew those were all tasty fruits. As she was picking out some fresh apples and oranges from the produce bins, she noticed one of the oranges seemed to have fallen on the ground. It must have rolled off the table it was displayed on. Even though most fruits grow on trees, this particular orange was sitting on the floor and not on its tree. Mary decided not to get that orange since it was dirty. She collected the rest of her apples, oranges and bananas that were still fresh on their displays. After paying for her fruit, Mary left the market satisfied with her fruity purchases.
+
+Question:
+does this mean that bananas are growing on a tree and exactly one of the apples or oranges is not growing on a tree?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Fruit : Type
+axiom Apple : Fruit → Prop
+axiom Orange : Fruit → Prop
+axiom Banana : Fruit → Prop
+axiom GrowsOnTree : Fruit → Prop
+
+-- From the story: there was an orange not on its tree (on the floor).
+axiom orange_not_on_tree : ∃ o, Orange o ∧ ¬ GrowsOnTree o
+-- From the story context (produce bins/displays in the market), there was also an apple not on its tree.
+axiom apple_not_on_tree  : ∃ a, Apple a ∧ ¬ GrowsOnTree a
+-- Background knowledge: no fruit is both an apple and an orange.
+axiom apple_orange_disjoint : ∀ x, ¬ (Apple x ∧ Orange x)
+
+def AllBananasGrowOnTrees : Prop := ∀ x, Banana x → GrowsOnTree x
+def AO_NotOnTree (x : Fruit) : Prop := (Apple x ∨ Orange x) ∧ ¬ GrowsOnTree x
+
+-- The queried claim: bananas are growing on a tree AND exactly one apple-or-orange is not growing on a tree.
+def QueriedClaim : Prop := AllBananasGrowOnTrees ∧ ∃! x, AO_NotOnTree x
+
+-- We refute the queried claim by showing there are (at least) two distinct apple-or-orange fruits not on a tree.
+theorem queried_claim_false : ¬ QueriedClaim := by
+  intro h
+  rcases h with ⟨_, huniq⟩
+  rcases apple_not_on_tree with ⟨a, hA, ha_nt⟩
+  rcases orange_not_on_tree with ⟨o, hO, ho_nt⟩
+  have Pa : AO_NotOnTree a := And.intro (Or.inl hA) ha_nt
+  have Po : AO_NotOnTree o := And.intro (Or.inr hO) ho_nt
+  rcases huniq with ⟨w, Pw, hunique⟩
+  have ha_eq_w : a = w := hunique a Pa
+  have ho_eq_w : o = w := hunique o Po
+  have w_eq_o : w = o := Eq.symm ho_eq_w
+  have a_eq_o : a = o := Eq.trans ha_eq_w w_eq_o
+  have Apple_o : Apple o := by simpa [a_eq_o] using hA
+  have both : Apple o ∧ Orange o := And.intro Apple_o hO
+  exact (apple_orange_disjoint o) both
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Fruit : Type
+axiom Apple : Fruit → Prop
+axiom Orange : Fruit → Prop
+axiom Banana : Fruit → Prop
+axiom GrowsOnTree : Fruit → Prop
+
+-- From the story: there was an orange not on its tree (on the floor).
+axiom orange_not_on_tree : ∃ o, Orange o ∧ ¬ GrowsOnTree o
+-- From the story context (produce bins/displays in the market), there was also an apple not on its tree.
+axiom apple_not_on_tree  : ∃ a, Apple a ∧ ¬ GrowsOnTree a
+-- Background knowledge: no fruit is both an apple and an orange.
+axiom apple_orange_disjoint : ∀ x, ¬ (Apple x ∧ Orange x)
+
+def AllBananasGrowOnTrees : Prop := ∀ x, Banana x → GrowsOnTree x
+def AO_NotOnTree (x : Fruit) : Prop := (Apple x ∨ Orange x) ∧ ¬ GrowsOnTree x
+
+-- The queried claim: bananas are growing on a tree AND exactly one apple-or-orange is not growing on a tree.
+def QueriedClaim : Prop := AllBananasGrowOnTrees ∧ ∃! x, AO_NotOnTree x
+
+-- We refute the queried claim by showing there are (at least) two distinct apple-or-orange fruits not on a tree.
+theorem queried_claim_false : ¬ QueriedClaim := by
+  intro h
+  rcases h with ⟨_, huniq⟩
+  rcases apple_not_on_tree with ⟨a, hA, ha_nt⟩
+  rcases orange_not_on_tree with ⟨o, hO, ho_nt⟩
+  have Pa : AO_NotOnTree a := And.intro (Or.inl hA) ha_nt
+  have Po : AO_NotOnTree o := And.intro (Or.inr hO) ho_nt
+  rcases huniq with ⟨w, Pw, hunique⟩
+  have ha_eq_w : a = w := hunique a Pa
+  have ho_eq_w : o = w := hunique o Po
+  have w_eq_o : w = o := Eq.symm ho_eq_w
+  have a_eq_o : a = o := Eq.trans ha_eq_w w_eq_o
+  have Apple_o : Apple o := by simpa [a_eq_o] using hA
+  have both : Apple o ∧ Orange o := And.intro Apple_o hO
+  exact (apple_orange_disjoint o) both
+----------------------------------------
+
+Lean Verification:
+  Success: False
+  Errors:
+    - unexpected token '!'; expected '(', '_' or identifier
+  Warnings:
+    - declaration uses 'sorry'
+
+--- Iteration 2 ---
+
+LLM Response:
+<lean>
+axiom Fruit : Type
+axiom Apple : Fruit → Prop
+axiom Orange : Fruit → Prop
+axiom Banana : Fruit → Prop
+axiom GrowsOnTree : Fruit → Prop
+
+-- From the story: there was an orange not on its tree (on the floor).
+axiom orange_not_on_tree : ∃ o, Orange o ∧ ¬ GrowsOnTree o
+-- From the story context (produce bins/displays in the market), there was also an apple not on its tree.
+axiom apple_not_on_tree  : ∃ a, Apple a ∧ ¬ GrowsOnTree a
+-- Background knowledge: no fruit is both an apple and an orange.
+axiom apple_orange_disjoint : ∀ x, ¬ (Apple x ∧ Orange x)
+
+def AllBananasGrowOnTrees : Prop := ∀ x, Banana x → GrowsOnTree x
+def AO_NotOnTree (x : Fruit) : Prop := (Apple x ∨ Orange x) ∧ ¬ GrowsOnTree x
+
+-- Reformulate "there exists exactly one x with AO_NotOnTree x" without using ∃!
+def ExistsUniqueAO : Prop :=
+  ∃ w, AO_NotOnTree w ∧ ∀ y, AO_NotOnTree y → y = w
+
+-- The queried claim: bananas are growing on a tree AND exactly one apple-or-orange is not growing on a tree.
+def QueriedClaim : Prop := AllBananasGrowOnTrees ∧ ExistsUniqueAO
+
+-- We refute the queried claim by showing uniqueness fails (there is an apple and an orange not on a tree).
+theorem queried_claim_false : ¬ QueriedClaim := by
+  intro h
+  cases h with
+  | intro _ huniq =>
+    cases apple_not_on_tree with
+    | intro a ha =>
+      cases ha with
+      | intro hA ha_nt =>
+        cases orange_not_on_tree with
+        | intro o ho =>
+          cases ho with
+          | intro hO ho_nt =>
+            have Pa : AO_NotOnTree a := And.intro (Or.inl hA) ha_nt
+            have Po : AO_NotOnTree o := And.intro (Or.inr hO) ho_nt
+            cases huniq with
+            | intro w hw =>
+              cases hw with
+              | intro Pw hunique =>
+                have ha_eq_w : a = w := hunique a Pa
+                have ho_eq_w : o = w := hunique o Po
+                have a_eq_o : a = o := Eq.trans ha_eq_w (Eq.symm ho_eq_w)
+                have Apple_o : Apple o := by simpa [a_eq_o] using hA
+                have both : Apple o ∧ Orange o := And.intro Apple_o hO
+                exact (apple_orange_disjoint o) both
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Fruit : Type
+axiom Apple : Fruit → Prop
+axiom Orange : Fruit → Prop
+axiom Banana : Fruit → Prop
+axiom GrowsOnTree : Fruit → Prop
+
+-- From the story: there was an orange not on its tree (on the floor).
+axiom orange_not_on_tree : ∃ o, Orange o ∧ ¬ GrowsOnTree o
+-- From the story context (produce bins/displays in the market), there was also an apple not on its tree.
+axiom apple_not_on_tree  : ∃ a, Apple a ∧ ¬ GrowsOnTree a
+-- Background knowledge: no fruit is both an apple and an orange.
+axiom apple_orange_disjoint : ∀ x, ¬ (Apple x ∧ Orange x)
+
+def AllBananasGrowOnTrees : Prop := ∀ x, Banana x → GrowsOnTree x
+def AO_NotOnTree (x : Fruit) : Prop := (Apple x ∨ Orange x) ∧ ¬ GrowsOnTree x
+
+-- Reformulate "there exists exactly one x with AO_NotOnTree x" without using ∃!
+def ExistsUniqueAO : Prop :=
+  ∃ w, AO_NotOnTree w ∧ ∀ y, AO_NotOnTree y → y = w
+
+-- The queried claim: bananas are growing on a tree AND exactly one apple-or-orange is not growing on a tree.
+def QueriedClaim : Prop := AllBananasGrowOnTrees ∧ ExistsUniqueAO
+
+-- We refute the queried claim by showing uniqueness fails (there is an apple and an orange not on a tree).
+theorem queried_claim_false : ¬ QueriedClaim := by
+  intro h
+  cases h with
+  | intro _ huniq =>
+    cases apple_not_on_tree with
+    | intro a ha =>
+      cases ha with
+      | intro hA ha_nt =>
+        cases orange_not_on_tree with
+        | intro o ho =>
+          cases ho with
+          | intro hO ho_nt =>
+            have Pa : AO_NotOnTree a := And.intro (Or.inl hA) ha_nt
+            have Po : AO_NotOnTree o := And.intro (Or.inr hO) ho_nt
+            cases huniq with
+            | intro w hw =>
+              cases hw with
+              | intro Pw hunique =>
+                have ha_eq_w : a = w := hunique a Pa
+                have ho_eq_w : o = w := hunique o Po
+                have a_eq_o : a = o := Eq.trans ha_eq_w (Eq.symm ho_eq_w)
+                have Apple_o : Apple o := by simpa [a_eq_o] using hA
+                have both : Apple o ∧ Orange o := And.intro Apple_o hO
+                exact (apple_orange_disjoint o) both
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: No
+Correct: ✗ No
+Total Iterations: 2
+Final Lean Verification: ✓ Success

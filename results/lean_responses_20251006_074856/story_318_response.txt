@@ -1,0 +1,96 @@
+Story ID: 318
+Premises: Some show airing at 8 pm on Monday gives out roses on TV.
+If a show gives out roses on TV, then the show is an episode of The Bachelor.
+The Bachelor portrays the lives of real people.
+All shows portraying the lives of real people are reality TV shows.
+Breaking Bad is a show.
+Breaking Bad is not a reality TV show.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and attempt:
+
+- Domain: Show
+- Predicates:
+  - Monday8 : Show → Prop  // “airs at 8 pm on Monday”
+  - GivesRoses : Show → Prop  // “gives out roses on TV”
+  - EpisodeOfBachelor : Show → Prop  // “is an episode of The Bachelor”
+  - PortraysReal : Show → Prop  // “portrays the lives of real people”
+  - RealityTV : Show → Prop  // “is a reality TV show”
+- Constants:
+  - BreakingBad : Show
+
+Axioms from the text:
+1) ∃ s, Monday8 s ∧ GivesRoses s
+2) ∀ s, GivesRoses s → EpisodeOfBachelor s
+3) Interpretation of “The Bachelor portrays the lives of real people”: episodes of The Bachelor portray the lives of real people:
+   ∀ s, EpisodeOfBachelor s → PortraysReal s
+4) ∀ s, PortraysReal s → RealityTV s
+5) ¬ RealityTV BreakingBad
+
+Lean 4 code:
+
+universe u
+
+constant Show : Type u
+
+constants
+  Monday8 : Show → Prop
+  GivesRoses : Show → Prop
+  EpisodeOfBachelor : Show → Prop
+  PortraysReal : Show → Prop
+  RealityTV : Show → Prop
+  BreakingBad : Show
+
+axioms
+  exists_mon8_roses : ∃ s : Show, Monday8 s ∧ GivesRoses s
+  gives_implies_episode : ∀ s, GivesRoses s → EpisodeOfBachelor s
+  episode_portrays_real : ∀ s, EpisodeOfBachelor s → PortraysReal s
+  portrays_implies_reality : ∀ s, PortraysReal s → RealityTV s
+  breakingbad_not_reality : ¬ RealityTV BreakingBad
+
+lemma roses_implies_reality (s : Show) : GivesRoses s → RealityTV s :=
+  fun h => (portrays_implies_reality s) ((episode_portrays_real s) ((gives_implies_episode s) h))
+
+theorem no_roses_breakingbad : ¬ GivesRoses BreakingBad :=
+  fun h => breakingbad_not_reality (roses_implies_reality BreakingBad h)
+
+-- Q2: BB is a TV show in which roses are given out on Monday at 8 pm
+-- We show its negation holds, hence the statement is False.
+theorem Q2_neg : ¬ (Monday8 BreakingBad ∧ GivesRoses BreakingBad) :=
+  fun h => no_roses_breakingbad h.right
+
+-- Q3: If roses are given out during BB, then it is on Monday at 8 pm
+-- This is vacuously true since BB cannot give out roses.
+theorem Q3 : GivesRoses BreakingBad → Monday8 BreakingBad :=
+  fun h => False.elim (no_roses_breakingbad h)
+
+Comments on provability:
+- Q1 (“Monday8 BreakingBad”) is neither derivable nor refutable from the axioms: there is no information linking Monday8 to Breaking Bad except through roses, and we proved ¬GivesRoses BreakingBad; but that does not prohibit Monday8 BreakingBad by itself. Thus Unknown.
+- Q2 is False because it entails GivesRoses BreakingBad, which contradicts ¬RealityTV BreakingBad via the given rules.
+- Q3 is True (vacuously), since ¬GivesRoses BreakingBad.
+
+ANSWERS:
+1: Unknown
+2: False
+3: True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Breaking Bad is on Monday at 8 pm.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q2: Breaking Bad is a TV show in which roses are given out on Monday at 8 pm.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q3: If roses are given out during Breaking Bad, then it is on Monday at 8 pm.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+

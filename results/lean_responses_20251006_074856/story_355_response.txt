@@ -1,0 +1,92 @@
+Story ID: 355
+Premises: All people who eat salads regularly are very conscious about their health and eating habits.
+All people who grew up in health-conscious childhood homes eat salads regularly.
+All people who fulfill their daily nutritional intakes grew up in health-conscious childhood homes.
+All people who disregard their physical well-being are not very conscious about their health and eating habits.
+If people visit the gym at least once a day, then they always fulfill their daily nutritional intakes.
+Taylor either grew up in a health-conscious childhood home and disregard her physical well-being, or she did neither.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and attempt:
+
+-- We model the domain and predicates.
+set_option autoImplicit false
+
+universe u
+constant Person : Type u
+constant R C H F D G : Person → Prop  -- eats salads regularly, very conscious, grew up in health-conscious home, fulfills daily nutrition, disregards well-being, visits gym daily
+constant taylor : Person
+
+-- Axioms from the text
+axiom hR_C    : ∀ x, R x → C x
+axiom hH_R    : ∀ x, H x → R x
+axiom hF_H    : ∀ x, F x → H x
+axiom hD_notC : ∀ x, D x → ¬ C x
+axiom hG_F    : ∀ x, G x → F x
+axiom taylor_either : (H taylor ∧ D taylor) ∨ (¬ H taylor ∧ ¬ D taylor)
+
+-- Derivations:
+-- 1) H ∧ D is impossible (it yields C ∧ ¬C)
+lemma not_H_and_D : ¬ (H taylor ∧ D taylor) := by
+  intro h
+  have ht : H taylor := h.left
+  have dt : D taylor := h.right
+  have rt : R taylor := hH_R taylor ht
+  have ct : C taylor := hR_C taylor rt
+  have nct : ¬ C taylor := hD_notC taylor dt
+  exact nct ct
+
+-- 2) Therefore the given disjunction forces the second case: ¬H ∧ ¬D
+lemma notH_and_notD : ¬ H taylor ∧ ¬ D taylor := by
+  cases taylor_either with
+  | inl hhd =>
+      exact False.elim (not_H_and_D hhd)
+  | inr hnn =>
+      exact hnn
+
+-- 3) From G → F → H and ¬H, we get ¬G (modus tollens)
+lemma notG : ¬ G taylor := by
+  intro gt
+  have ft : F taylor := hG_F taylor gt
+  have ht : H taylor := hF_H taylor ft
+  exact (notH_and_notD.left) ht
+
+-- Consequences matching the questions:
+-- Q2 is false (we proved ¬G taylor)
+theorem Q2_neg : ¬ G taylor := notG
+
+-- Q3 is true (we have ¬H taylor and ¬G taylor)
+theorem Q3 : ¬ H taylor ∧ ¬ G taylor := And.intro notH_and_notD.left notG
+
+-- For Q1 (R taylor), neither R taylor nor ¬ R taylor follows from the axioms above.
+
+Reasoning summary:
+- From H → R → C and D → ¬C, H ∧ D is impossible. Thus, Taylor must satisfy ¬H ∧ ¬D.
+- From G → F → H and ¬H, we conclude ¬G. Hence Q2 is false, and Q3 (¬H ∧ ¬G) is true.
+- Nothing in the premises lets us derive R or ¬R from ¬H and the other facts; thus Q1 is undetermined.
+
+ANSWERS:
+1: Unknown
+2: False
+3: True
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Taylor eats salads regularly.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q2: Taylor visits the gym at least once a day.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q3: Taylor neither grew up in a health-conscious childhood home nor does she visit the gym at least once a day.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+

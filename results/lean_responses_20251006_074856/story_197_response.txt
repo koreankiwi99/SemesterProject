@@ -1,0 +1,109 @@
+Story ID: 197
+Premises: It costs $205 to take the GRE test, which is cheaper than $300.
+ETS provides financial aid to those GRE applicants who prove economic hardship.
+Those living in single-parent families or having few resources available to them can prove economic hardship.
+Tom lives in a single-parent family.
+Tom's dad has been out of work, and Tom has few resources available to them. 
+Tom is applying to take the GRE test.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and proof attempt:
+
+We model:
+- Person, Entity types; Tom : Person; ETS : Entity
+- gre_applicant : Person → Prop for “GRE applicant” (used to interpret “taking the GRE test” in the questions)
+- provides : Entity → Person → Prop for “provides financial aid to”
+- proves_econ_hardship, single_parent, few_resources : Person → Prop
+- gre_cost : Nat
+
+Axioms from the text:
+- policy: ∀ p, gre_applicant p ∧ proves_econ_hardship p → provides ETS p
+- econ_rule: ∀ p, single_parent p ∨ few_resources p → proves_econ_hardship p
+- tom_single: single_parent Tom
+- tom_few: few_resources Tom
+- tom_applicant: gre_applicant Tom
+- cost_is_205: gre_cost = 205
+- cost_lt_300: gre_cost < 300
+
+Proofs:
+- From tom_single (or tom_few) and econ_rule, Tom proves economic hardship; with tom_applicant and policy, ETS provides aid to Tom.
+- From cost_lt_300, the GRE cost is below 300.
+- Define Q3_stmt := ∀ p, gre_applicant p → ∀ e, ¬ provides e p. Using Tom and ETS as witnesses together with the first proof, we derive a contradiction; hence ¬ Q3_stmt.
+
+Lean 4 code:
+
+universe u
+
+constant Person : Type u
+constant Entity : Type u
+
+constant Tom : Person
+constant ETS : Entity
+
+constant gre_applicant : Person → Prop
+constant provides : Entity → Person → Prop
+constant proves_econ_hardship : Person → Prop
+constant single_parent : Person → Prop
+constant few_resources : Person → Prop
+
+constant gre_cost : Nat
+
+axiom policy :
+  ∀ p : Person, gre_applicant p ∧ proves_econ_hardship p → provides ETS p
+
+axiom econ_rule :
+  ∀ p : Person, single_parent p ∨ few_resources p → proves_econ_hardship p
+
+axiom tom_single : single_parent Tom
+axiom tom_few : few_resources Tom
+axiom tom_applicant : gre_applicant Tom
+
+axiom cost_is_205 : gre_cost = 205
+axiom cost_lt_300 : gre_cost < 300
+
+theorem Q1_Tom_gets_aid : provides ETS Tom := by
+  have hhard : proves_econ_hardship Tom := by
+    exact econ_rule Tom (Or.inl tom_single)
+  exact policy Tom ⟨tom_applicant, hhard⟩
+
+theorem Q2_cost_below_300 : gre_cost < 300 := cost_lt_300
+
+def Q3_stmt : Prop := ∀ p : Person, gre_applicant p → ∀ e : Entity, ¬ provides e p
+
+theorem not_Q3_stmt : ¬ Q3_stmt := by
+  intro H
+  have hprov : provides ETS Tom := Q1_Tom_gets_aid
+  have hga : gre_applicant Tom := tom_applicant
+  have hno := H Tom hga ETS
+  exact hno hprov
+
+Conclusions:
+- Q1 is provable (True).
+- Q2 is provable (True).
+- Q3’s statement is refutable; we proved its negation (False).
+
+ANSWERS:
+1: True
+2: True
+3: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: ETS provides financial aid to Tom.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q2: It costs below US $300 to take the GRE test.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: No one taking the GRE test has financial aid provided to them by something.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

@@ -1,0 +1,125 @@
+Story ID: 319
+Premises: No baked sweets are spicy.
+All cupcakes are baked sweets.
+All mala hotpots are spicy.
+All products from Baked by Melissa are cupcakes.
+Dried Thai chilies are spicy or mala hotpots or not baked sweets.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and proofs:
+
+We work over a universe U of entities with predicates:
+- BakedSweet, Spicy, Cupcake, MalaHotpot, BBM : U → Prop
+- DTC : U is the entity “Dried Thai chilies”
+
+Assumptions from the context:
+1. h1: ∀ x, BakedSweet x → ¬ Spicy x
+2. h2: ∀ x, Cupcake x → BakedSweet x
+3. h3: ∀ x, MalaHotpot x → Spicy x
+4. h4: ∀ x, BBM x → Cupcake x
+5. h5: Spicy DTC ∨ MalaHotpot DTC ∨ ¬ BakedSweet DTC
+
+Lean code:
+
+section
+
+variable {U : Type}
+variables (BakedSweet Spicy Cupcake MalaHotpot BBM : U → Prop) (DTC : U)
+variable (h1 : ∀ x, BakedSweet x → ¬ Spicy x)
+variable (h2 : ∀ x, Cupcake x → BakedSweet x)
+variable (h3 : ∀ x, MalaHotpot x → Spicy x)
+variable (h4 : ∀ x, BBM x → Cupcake x)
+variable (h5 : Spicy DTC ∨ MalaHotpot DTC ∨ ¬ BakedSweet DTC)
+
+-- Key derived facts
+theorem not_baked_DTC : ¬ BakedSweet DTC := by
+  intro hb
+  have hns : ¬ Spicy DTC := h1 DTC hb
+  apply Or.elim h5
+  · intro hs
+    exact hns hs
+  · intro rest
+    apply Or.elim rest
+    · intro hm
+      exact hns (h3 DTC hm)
+    · intro hnotb
+      exact hnotb hb
+
+theorem not_cupcake_DTC : ¬ Cupcake DTC := by
+  intro hc
+  have hb : BakedSweet DTC := h2 DTC hc
+  exact (not_baked_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5) hb
+
+theorem not_BBM_DTC : ¬ BBM DTC := by
+  intro hbbm
+  have hc : Cupcake DTC := h4 DTC hbbm
+  exact (not_cupcake_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5) hc
+
+-- Q1: DTC are products of Baked by Melissa. (False: we prove ¬ BBM DTC.)
+theorem Q1_false : ¬ BBM DTC :=
+  not_BBM_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5
+
+-- Q2: DTC are not products of Baked by Melissa. (True.)
+theorem Q2_true : ¬ BBM DTC :=
+  not_BBM_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5
+
+-- Q3: DTC are a mala hotpot. (Unknown: neither provable nor refutable from given assumptions.)
+
+-- Q4: DTC are neither products of BBM nor baked sweets. (True.)
+theorem Q4_true : ¬ BBM DTC ∧ ¬ BakedSweet DTC :=
+  And.intro
+    (not_BBM_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5)
+    (not_baked_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5)
+
+-- Q5: DTC are cupcakes and products of BBM. (False: we prove its negation.)
+theorem Q5_false : ¬ (Cupcake DTC ∧ BBM DTC) := by
+  intro h
+  have hbbm : BBM DTC := h.right
+  exact (not_BBM_DTC BakedSweet Spicy Cupcake MalaHotpot BBM DTC h1 h2 h3 h4 h5) hbbm
+
+end
+
+Conclusions from the Lean development:
+- Q1: proved the negation (so False).
+- Q2: proved the statement (so True).
+- Q3: no derivation of either side (so Unknown).
+- Q4: proved the statement (so True).
+- Q5: proved the negation (so False).
+
+ANSWERS:
+1: False
+2: True
+3: Unknown
+4: True
+5: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Dried Thai chilies are products of Baked by Melissa.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q2: Dried Thai chilies are not products of Baked by Melissa.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: Dried Thai chilies are a mala hotpot.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q4: Dried Thai chilies are neither products of Baked by Melissa nor baked sweets.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q5: Dried Thai chilies are cupcakes and products of Baked by Melissa.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

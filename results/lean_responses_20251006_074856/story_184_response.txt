@@ -1,0 +1,92 @@
+Story ID: 184
+Premises: "Stranger Things" is a popular Netflix show.
+If a Netflix show is popular, Karen will binge-watch it.
+If and only if Karen binge-watches a Netflix show, she will download it.
+Karen does not download "Black Mirror."
+"Black Mirror" is a Netflix show.
+If Karen binge-watches a Netflix show, she will share it with Lisa.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and attempt:
+
+-- We model shows, two specific shows, and predicates about them.
+namespace Reasoning
+
+constant Show : Type
+constant ST BM : Show
+
+constant Popular : Show → Prop
+constant NetflixShow : Show → Prop
+constant Binge : Show → Prop          -- Karen binge-watches the show
+constant Download : Show → Prop       -- Karen downloads the show
+constant ShareWithLisa : Show → Prop  -- Karen shares the show with Lisa
+
+-- Axioms extracted from the text
+axiom ST_pop : Popular ST
+axiom ST_nf  : NetflixShow ST
+
+-- If a Netflix show is popular, Karen will binge-watch it.
+axiom ax1 : ∀ s, NetflixShow s ∧ Popular s → Binge s
+
+-- For any Netflix show, Karen downloads it iff she binge-watches it.
+axiom ax2 : ∀ s, NetflixShow s → (Download s ↔ Binge s)
+
+-- Karen does not download Black Mirror.
+axiom BM_not_dl : ¬ Download BM
+
+-- Black Mirror is a Netflix show.
+axiom BM_nf : NetflixShow BM
+
+-- If Karen binge-watches a Netflix show, she will share it with Lisa.
+axiom ax3 : ∀ s, NetflixShow s → Binge s → ShareWithLisa s
+
+-- Q1: Karen will share Stranger Things with Lisa. (Provable: True)
+theorem Q1 : ShareWithLisa ST := by
+  have hb : Binge ST := ax1 ST ⟨ST_nf, ST_pop⟩
+  exact ax3 ST ST_nf hb
+
+-- Q2: Black Mirror is popular. (Provable negation: False)
+theorem Q2 : ¬ Popular BM := by
+  intro hpop
+  have hiff : Download BM ↔ Binge BM := ax2 BM BM_nf
+  have hb2d : Binge BM → Download BM := Iff.mpr hiff
+  exact BM_not_dl (hb2d (ax1 BM ⟨BM_nf, hpop⟩))
+
+-- Helpful derived fact: from ax2 and BM_not_dl we get ¬ Binge BM.
+theorem not_binge_BM : ¬ Binge BM := by
+  have hiff : Download BM ↔ Binge BM := ax2 BM BM_nf
+  have hb2d : Binge BM → Download BM := Iff.mpr hiff
+  intro hb
+  exact BM_not_dl (hb2d hb)
+
+-- Q3: Karen will share Black Mirror with Lisa. (Not derivable; also its negation not derivable from given axioms)
+-- We only have (Netflix ∧ Binge) → Share, and we derived ¬Binge BM, but we have no axiom Share → Binge.
+-- Hence neither ShareWithLisa BM nor ¬ShareWithLisa BM follows from the axioms.
+
+end Reasoning
+
+ANSWERS:
+1: True
+2: False
+3: Unknown
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Karen will share "Stranger Things" with Lisa.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q2: "Black Mirror" is popular.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+
+Q3: Karen will share "Black Mirror" with Lisa.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+

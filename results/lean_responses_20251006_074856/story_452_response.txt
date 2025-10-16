@@ -1,0 +1,90 @@
+Story ID: 452
+Premises: All aliens are extraterrestrials.
+If someone is from Mars, then they are an alien.
+No extraterrestrials are human.
+All highly intelligent beings from Earth are humans.
+Marvin is a highly intelligent being.
+Marvin is either from Earth and from Mars, or he is from neither.
+If Marvin is not from Earth, then Marvin is an extraterrestrial.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and proof attempt:
+
+universe u
+
+constant Being : Type u
+constant Alien Extraterrestrial Human HI FromEarth FromMars : Being → Prop
+constant Marvin : Being
+
+axiom alien_implies_et : ∀ x, Alien x → Extraterrestrial x
+axiom fromMars_implies_alien : ∀ x, FromMars x → Alien x
+axiom no_et_are_human : ∀ x, Extraterrestrial x → ¬ Human x
+axiom hi_earth_human : ∀ x, HI x ∧ FromEarth x → Human x
+axiom hi_Marvin : HI Marvin
+axiom M_both_or_neither :
+  (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom notEarth_implies_et_M : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+lemma M_not_E_and_M : ¬ (FromEarth Marvin ∧ FromMars Marvin) := by
+  intro h
+  have hE : FromEarth Marvin := h.left
+  have hM : FromMars Marvin := h.right
+  have hH : Human Marvin := by
+    have : HI Marvin ∧ FromEarth Marvin := And.intro hi_Marvin hE
+    exact hi_earth_human Marvin this
+  have hET : Extraterrestrial Marvin := by
+    have hA : Alien Marvin := fromMars_implies_alien Marvin hM
+    exact alien_implies_et Marvin hA
+  have hNotH : ¬ Human Marvin := no_et_are_human Marvin hET
+  exact hNotH hH
+
+lemma M_notE_and_notM : ¬ FromEarth Marvin ∧ ¬ FromMars Marvin := by
+  have h := M_both_or_neither
+  cases h with
+  | inl hboth =>
+      exact False.elim (M_not_E_and_M hboth)
+  | inr hneither => exact hneither
+
+lemma M_notMars : ¬ FromMars Marvin := (M_notE_and_notM).right
+lemma M_notEarth : ¬ FromEarth Marvin := (M_notE_and_notM).left
+lemma M_ET : Extraterrestrial Marvin := notEarth_implies_et_M M_notEarth
+lemma M_notHuman : ¬ Human Marvin := no_et_are_human Marvin M_ET
+
+-- Q2: proved true
+theorem Q2 : ¬ Human Marvin ∧ ¬ FromMars Marvin :=
+  And.intro M_notHuman M_notMars
+
+-- Q3: proved false by proving its negation
+theorem Q3_false : ¬ (¬ FromMars Marvin → Human Marvin) := by
+  intro h
+  have : Human Marvin := h M_notMars
+  exact M_notHuman this
+
+-- Q1: Neither provable nor refutable from the given axioms.
+
+
+ANSWERS:
+1: Unknown
+2: True
+3: False
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Marvin is an alien.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+
+Q2: Marvin is neither a human nor from Mars.
+Ground Truth: True
+Prediction: True
+Correct: Yes
+
+Q3: If Marvin is not from Mars, then Marvin is a human.
+Ground Truth: False
+Prediction: False
+Correct: Yes
+

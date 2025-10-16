@@ -1,0 +1,143 @@
+Story ID: 467
+Example ID: 1350
+Premises: All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+Conclusion: Rock does not have wings.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Thing : Type
+axiom Rock : Thing
+
+axiom Pet : Thing → Prop
+axiom Animal : Thing → Prop
+axiom Mammal : Thing → Prop
+axiom Monkey : Thing → Prop
+axiom Bird : Thing → Prop
+axiom CanFly : Thing → Prop
+axiom CanBreathe : Thing → Prop
+axiom HasWings : Thing → Prop
+
+-- Premises
+-- 1. All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x : Thing, Pet x → Mammal x → Animal x
+-- 2. All monkeys are mammals.
+axiom A2 : ∀ x : Thing, Monkey x → Mammal x
+-- 3. Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x : Thing, Pet x → (Monkey x ∨ Bird x)
+-- 4. Peter's birds can fly.
+axiom A4 : ∀ x : Thing, Pet x → Bird x → CanFly x
+-- 5. All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x : Thing, Animal x → Pet x → CanBreathe x
+-- 6. If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x : Thing, Pet x → CanFly x → HasWings x
+-- 7. Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- 8. Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- We prove the negation of the claim "Rock does not have wings" by showing Rock has wings.
+theorem hasWings_Rock : HasWings Rock := by
+  have hPet : Pet Rock := A7
+  have hMonOrBird : Monkey Rock ∨ Bird Rock := A3 Rock hPet
+  cases hMonOrBird with
+  | inr hBird =>
+      -- Bird branch: birds can fly, hence wings.
+      have hFly : CanFly Rock := A4 Rock hPet hBird
+      exact A6 Rock hPet hFly
+  | inl hMonkey =>
+      -- Monkey branch: derive breathing, use A8 to exclude ¬breathe and get fly-or-bird, hence wings.
+      have hMammal : Mammal Rock := A2 Rock hMonkey
+      have hAnimal : Animal Rock := A1 Rock hPet hMammal
+      have hBreathe : CanBreathe Rock := A5 Rock hAnimal hPet
+      have hFlyOrBird : CanFly Rock ∨ Bird Rock := by
+        cases A8 with
+        | inl hFly => exact Or.inl hFly
+        | inr hRest =>
+          cases hRest with
+          | inl hBird2 => exact Or.inr hBird2
+          | inr hNotBreathe => exact False.elim (hNotBreathe hBreathe)
+      cases hFlyOrBird with
+      | inl hFly => exact A6 Rock hPet hFly
+      | inr hBird2 =>
+          have hFly2 : CanFly Rock := A4 Rock hPet hBird2
+          exact A6 Rock hPet hFly2
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+axiom Thing : Type
+axiom Rock : Thing
+
+axiom Pet : Thing → Prop
+axiom Animal : Thing → Prop
+axiom Mammal : Thing → Prop
+axiom Monkey : Thing → Prop
+axiom Bird : Thing → Prop
+axiom CanFly : Thing → Prop
+axiom CanBreathe : Thing → Prop
+axiom HasWings : Thing → Prop
+
+-- Premises
+-- 1. All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x : Thing, Pet x → Mammal x → Animal x
+-- 2. All monkeys are mammals.
+axiom A2 : ∀ x : Thing, Monkey x → Mammal x
+-- 3. Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x : Thing, Pet x → (Monkey x ∨ Bird x)
+-- 4. Peter's birds can fly.
+axiom A4 : ∀ x : Thing, Pet x → Bird x → CanFly x
+-- 5. All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x : Thing, Animal x → Pet x → CanBreathe x
+-- 6. If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x : Thing, Pet x → CanFly x → HasWings x
+-- 7. Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- 8. Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- We prove the negation of the claim "Rock does not have wings" by showing Rock has wings.
+theorem hasWings_Rock : HasWings Rock := by
+  have hPet : Pet Rock := A7
+  have hMonOrBird : Monkey Rock ∨ Bird Rock := A3 Rock hPet
+  cases hMonOrBird with
+  | inr hBird =>
+      -- Bird branch: birds can fly, hence wings.
+      have hFly : CanFly Rock := A4 Rock hPet hBird
+      exact A6 Rock hPet hFly
+  | inl hMonkey =>
+      -- Monkey branch: derive breathing, use A8 to exclude ¬breathe and get fly-or-bird, hence wings.
+      have hMammal : Mammal Rock := A2 Rock hMonkey
+      have hAnimal : Animal Rock := A1 Rock hPet hMammal
+      have hBreathe : CanBreathe Rock := A5 Rock hAnimal hPet
+      have hFlyOrBird : CanFly Rock ∨ Bird Rock := by
+        cases A8 with
+        | inl hFly => exact Or.inl hFly
+        | inr hRest =>
+          cases hRest with
+          | inl hBird2 => exact Or.inr hBird2
+          | inr hNotBreathe => exact False.elim (hNotBreathe hBreathe)
+      cases hFlyOrBird with
+      | inl hFly => exact A6 Rock hPet hFly
+      | inr hBird2 =>
+          have hFly2 : CanFly Rock := A4 Rock hPet hBird2
+          exact A6 Rock hPet hFly2
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

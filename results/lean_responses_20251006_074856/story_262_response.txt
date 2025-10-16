@@ -1,0 +1,102 @@
+Story ID: 262
+Premises: All fir trees are evergreens.
+Some objects of worship are fir trees.
+
+==================================================
+Model Response:
+==================================================
+Lean formalization and analysis:
+
+We model a domain of objects U with predicates:
+- Fir : U → Prop    -- "is a fir tree"
+- Evergreen : U → Prop    -- "is an evergreen"
+- Worship : U → Prop    -- "is an object of worship"
+
+Premises:
+- h1: ∀ x, Fir x → Evergreen x       -- All fir trees are evergreens
+- h2: ∃ x, Worship x ∧ Fir x         -- Some objects of worship are fir trees
+
+Target statement:
+- concl: ∃ x, Evergreen x ∧ ¬ Worship x    -- Some evergreens are not objects of worship
+
+Attempt to derive concl from h1 and h2 fails: from h2 we get some x that is both Worship and Fir, and by h1, that x is Evergreen, yielding ∃ x, Evergreen x ∧ Worship x, not the desired ∃ x, Evergreen x ∧ ¬ Worship x.
+
+To substantiate that the target is not derivable and that its negation is also not derivable from the premises, we provide two concrete models in Lean.
+
+Model A (premises hold, conclusion false):
+- U1 := Unit
+- Fir1 u := True
+- Evergreen1 u := True
+- Worship1 u := True
+Then h1 and h2 hold, but ¬ (∃ x, Evergreen1 x ∧ ¬ Worship1 x).
+
+Model B (premises hold, conclusion true):
+- Define a two-element type:
+  inductive Two | a | b
+- Fir2 a := True, Fir2 b := False
+- Evergreen2 _ := True
+- Worship2 a := True, Worship2 b := False
+Then h1 and h2 hold, and ∃ x, Evergreen2 x ∧ ¬ Worship2 x (take x = b).
+
+Lean code:
+
+namespace Q1
+
+inductive Two : Type
+| a | b
+open Two
+
+-- Model A: all predicates True on Unit
+def U1 := Unit
+def Fir1 : U1 → Prop := fun _ => True
+def Evergreen1 : U1 → Prop := fun _ => True
+def Worship1 : U1 → Prop := fun _ => True
+
+lemma prem1_1 : ∀ x, Fir1 x → Evergreen1 x := by intro x _; trivial
+lemma prem2_1 : ∃ x, Worship1 x ∧ Fir1 x := ⟨(), And.intro trivial trivial⟩
+lemma not_concl_1 : ¬ (∃ x, Evergreen1 x ∧ ¬ Worship1 x) := by
+  intro h; rcases h with ⟨x, _, hxnotW⟩; exact hxnotW trivial
+
+-- Model B: Two with a-only fir and worship
+def Fir2 : Two → Prop
+| a => True
+| b => False
+
+def Evergreen2 : Two → Prop := fun _ => True
+
+def Worship2 : Two → Prop
+| a => True
+| b => False
+
+lemma prem1_2 : ∀ x, Fir2 x → Evergreen2 x := by intro _ _; trivial
+lemma prem2_2 : ∃ x, Worship2 x ∧ Fir2 x := ⟨a, And.intro trivial trivial⟩
+lemma concl_2 : ∃ x, Evergreen2 x ∧ ¬ Worship2 x := ⟨b, And.intro trivial (by intro h; cases h)⟩
+
+-- Therefore the sequent is not valid, and neither is its negation
+example : ¬ (∀ (U : Type) (Fir Evergreen Worship : U → Prop),
+  (∀ x, Fir x → Evergreen x) → (∃ x, Worship x ∧ Fir x) → (∃ x, Evergreen x ∧ ¬ Worship x)) := by
+  intro h
+  have h' := h U1 Fir1 Evergreen1 Worship1 prem1_1 prem2_1
+  exact not_concl_1 h'
+
+example : ¬ (∀ (U : Type) (Fir Evergreen Worship : U → Prop),
+  (∀ x, Fir x → Evergreen x) → (∃ x, Worship x ∧ Fir x) → ¬ (∃ x, Evergreen x ∧ ¬ Worship x)) := by
+  intro h
+  have h' := h Two Fir2 Evergreen2 Worship2 prem1_2 prem2_2
+  exact h' concl_2
+
+end Q1
+
+Conclusion: The statement “Some evergreens are not objects of worship” is not entailed by the premises, nor is its negation; hence its truth is uncertain given the information.
+
+ANSWERS:
+1: Unknown
+
+==================================================
+Questions and Results:
+==================================================
+Q1: Some evergreens are not objects of worship.
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+

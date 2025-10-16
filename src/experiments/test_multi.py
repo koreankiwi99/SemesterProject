@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test GPT-5 on Multi-LogiEval dataset with customizable prompts and incremental saving
-Samples 10 files from each logic type × depth combination
+Test models on Multi-LogiEval dataset using the paper's evaluation approach
+Modified to sample individual questions rather than files
 """
 
 import json
@@ -21,7 +21,7 @@ def load_prompt(prompt_file):
     except FileNotFoundError:
         raise FileNotFoundError(f"Prompt file not found: {prompt_file}")
 
-def load_multilogieval_file(file_path):
+def load_multilogieval_file(file_path, depth_dir):
     """Load a single Multi-LogiEval JSON file"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -39,29 +39,18 @@ def load_multilogieval_file(file_path):
     depth = data.get('depth', 'unknown')
     samples = data.get('samples', [])
     
-    converted_samples = []
+    # Add metadata to each sample, including the depth directory name
     for sample in samples:
-        converted_samples.append({
-            'id': sample.get('id'),
-            'context': sample.get('context', ''),
-            'question': sample.get('question', ''),
-            'answer': sample.get('answer', ''),
-            'logic_type': logic_type,
-            'rule': rule,
-            'depth': depth,
-            'file_path': str(file_path)
-        })
+        sample['logic_type'] = logic_type
+        sample['rule'] = rule
+        sample['depth'] = depth
+        sample['depth_dir'] = depth_dir  # Add the directory name (e.g., 'd1_Data')
+        sample['source_file'] = str(file_path)
     
-    return {
-        'logic_type': logic_type,
-        'rule': rule,
-        'depth': depth,
-        'samples': converted_samples,
-        'file_path': str(file_path)
-    }
+    return samples
 
-def load_multilogieval_dataset(data_dir, logic_types=None, depths=None, sample_per_combination=10, seed=42):
-    """Load Multi-LogiEval dataset from directory structure with sampling"""
+def load_and_sample_multilogieval(data_dir, logic_types=None, depths=None, samples_per_combination=10, seed=42):
+    """Load Multi-LogiEval dataset and sample individual questions"""
     data_path = Path(data_dir)
     
     if logic_types is None:
@@ -73,14 +62,14 @@ def load_multilogieval_dataset(data_dir, logic_types=None, depths=None, sample_p
     print(f"Loading Multi-LogiEval from: {data_dir}")
     print(f"Logic types: {logic_types}")
     print(f"Depths: {depths}")
-    print(f"Sampling {sample_per_combination} files per logic type × depth combination")
+    print(f"Sampling {samples_per_combination} questions per logic type × depth combination")
     print(f"Random seed: {seed}")
     
     # Set random seed for reproducibility
     random.seed(seed)
     
-    # Organize files by logic type and depth
-    files_by_combination = defaultdict(list)
+    # Collect all samples organized by combination
+    samples_by_combination = defaultdict(list)
     
     for depth_dir in depths:
         depth_path = data_path / depth_dir
@@ -97,79 +86,101 @@ def load_multilogieval_dataset(data_dir, logic_types=None, depths=None, sample_p
             json_files = list(logic_path.glob('*.json'))
             print(f"Found {len(json_files)} files in {depth_dir}/{logic_type}")
             
-            # Store files by combination
+            # Load all samples from all files for this combination
             combination_key = (logic_type, depth_dir)
-            files_by_combination[combination_key].extend(json_files)
+            for json_file in json_files:
+                samples = load_multilogieval_file(json_file, depth_dir)
+                samples_by_combination[combination_key].extend(samples)
     
     # Sample from each combination
-    sampled_files = []
+    sampled_questions = []
     print(f"\n{'='*70}")
-    print("Sampling files from each combination:")
+    print("Sampling questions from each combination:")
     print(f"{'='*70}")
     
-    for (logic_type, depth_dir), files in sorted(files_by_combination.items()):
-        num_available = len(files)
-        num_to_sample = min(sample_per_combination, num_available)
+    for (logic_type, depth_dir), samples in sorted(samples_by_combination.items()):
+        num_available = len(samples)
+        num_to_sample = min(samples_per_combination, num_available)
         
-        sampled = random.sample(files, num_to_sample)
-        sampled_files.extend(sampled)
+        sampled = random.sample(samples, num_to_sample)
+        sampled_questions.extend(sampled)
         
-        print(f"{logic_type}/{depth_dir}: sampled {num_to_sample} from {num_available} available files")
+        print(f"{logic_type}/{depth_dir}: sampled {num_to_sample} from {num_available} available questions")
     
-    # Load the sampled files
     print(f"\n{'='*70}")
-    print("Loading sampled files...")
+    print(f"Total questions sampled: {len(sampled_questions)}")
     print(f"{'='*70}")
-    
-    all_files = []
-    for json_file in sampled_files:
-        file_data = load_multilogieval_file(json_file)
-        all_files.append(file_data)
-    
-    print(f"\nTotal files loaded: {len(all_files)}")
-    total_samples = sum(len(f['samples']) for f in all_files)
-    print(f"Total samples: {total_samples}")
     
     # Print distribution
-    print(f"\n{'='*70}")
-    print("Distribution of sampled files:")
-    print(f"{'='*70}")
     distribution = defaultdict(lambda: defaultdict(int))
-    for file_data in all_files:
-        distribution[file_data['logic_type']][file_data['depth']] += 1
+    for sample in sampled_questions:
+        distribution[sample['logic_type']][sample['depth']] += 1
     
+    print("\nDistribution of sampled questions:")
+    print(f"{'='*70}")
     for logic_type in sorted(distribution.keys()):
         print(f"\n{logic_type}:")
         for depth in sorted(distribution[logic_type].keys()):
-            print(f"  {depth}: {distribution[logic_type][depth]} files")
+            print(f"  {depth}: {distribution[logic_type][depth]} questions")
     
-    return all_files
+    return sampled_questions
 
 def build_prompt_single_sample(sample, system_prompt_template, user_prompt_template):
     """Build prompt for a single Multi-LogiEval sample using templates"""
     
     system_msg = system_prompt_template
     
+    # Replace placeholders in user prompt
     user_prompt = user_prompt_template.replace("{premises}", sample['context'])
     user_prompt = user_prompt.replace("{questions}", sample['question'])
     
     return system_msg, user_prompt
 
-def test_gpt5_multilogieval(file_data, api_key, system_prompt_template, user_prompt_template, model="gpt-5"):
-    """Test GPT-5 on Multi-LogiEval file - processing each sample individually"""
+def parse_multilogieval_answer(response):
+    """Extract Yes/No answer from model response following paper's approach"""
+    # Look for explicit Answer: pattern
+    answer_match = re.search(r'Answer:\s*(Yes|No)', response, re.IGNORECASE)
+    if answer_match:
+        return answer_match.group(1).capitalize()
+    
+    # Fallback: Look for standalone Yes/No
+    yes_no_match = re.findall(r'\b(Yes|No)\b', response, re.IGNORECASE)
+    if yes_no_match:
+        # Return the last occurrence
+        return yes_no_match[-1].capitalize()
+    
+    return 'Unknown'
+
+def normalize_answer(answer):
+    """Normalize answer format to Yes/No"""
+    if not answer:
+        return 'Unknown'
+    
+    low = answer.lower().strip()
+    
+    # Multi-LogiEval uses Yes/No format
+    if low in ['yes', 'y', 'true', 't', '1']:
+        return 'Yes'
+    elif low in ['no', 'n', 'false', 'f', '0']:
+        return 'No'
+    
+    return 'Unknown'
+
+def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_template, model="gpt-4"):
+    """Test model on sampled questions"""
     import openai
     openai.api_key = api_key
     
-    samples = file_data['samples']
-    
-    if not samples:
-        return {'error': 'No samples in file'}
-    
     results = []
-    all_responses = []
+    results_by_combination = defaultdict(list)
+    
+    print(f"\nTesting {len(samples)} questions with {model}...")
+    print("=" * 70)
     
     for i, sample in enumerate(samples, 1):
-        print(f"  Processing sample {i}/{len(samples)}...", end=' ')
+        # Use depth_dir for the combination key to match the sampling
+        combination_key = (sample['logic_type'], sample['depth_dir'])
+        print(f"\n[{i}/{len(samples)}] {sample['logic_type']}/{sample['depth_dir']} - {sample['rule']}")
         
         system_msg, user_prompt = build_prompt_single_sample(sample, system_prompt_template, user_prompt_template)
         
@@ -183,79 +194,56 @@ def test_gpt5_multilogieval(file_data, api_key, system_prompt_template, user_pro
             )
             
             gpt_response = response.choices[0].message.content.strip()
-            all_responses.append({
-                'sample_id': sample.get('id'),
-                'response': gpt_response
-            })
             
-            prediction = parse_single_answer(gpt_response)
+            # Parse the answer
+            prediction = parse_multilogieval_answer(gpt_response)
             ground_truth = normalize_answer(sample['answer'])
-            prediction_normalized = normalize_answer(prediction)
             
-            correct = prediction_normalized == ground_truth
+            correct = prediction == ground_truth
             
-            results.append({
+            result = {
                 'question_num': i,
-                'sample_id': sample.get('id'),
+                'logic_type': sample['logic_type'],
+                'depth': sample['depth'],
+                'depth_dir': sample['depth_dir'],
+                'rule': sample['rule'],
                 'context': sample['context'],
                 'question': sample['question'],
                 'ground_truth': ground_truth,
-                'prediction': prediction_normalized,
-                'correct': correct
-            })
+                'prediction': prediction,
+                'correct': correct,
+                'full_response': gpt_response,
+                'source_file': sample['source_file']
+            }
             
-            print(f"{'✓' if correct else '✗'}")
+            results.append(result)
+            results_by_combination[combination_key].append(result)
+            
+            print(f"  Prediction: {prediction} | Ground Truth: {ground_truth} | {'✓' if correct else '✗'}")
             
         except Exception as e:
-            print(f"✗ Error: {str(e)}")
-            results.append({
+            print(f"  ✗ Error: {str(e)}")
+            result = {
                 'question_num': i,
-                'sample_id': sample.get('id'),
+                'logic_type': sample['logic_type'],
+                'depth': sample['depth'],
+                'depth_dir': sample['depth_dir'],
+                'rule': sample['rule'],
                 'context': sample['context'],
                 'question': sample['question'],
                 'ground_truth': normalize_answer(sample['answer']),
                 'prediction': 'Error',
                 'correct': False,
-                'error': str(e)
-            })
+                'error': str(e),
+                'source_file': sample['source_file']
+            }
+            results.append(result)
+            results_by_combination[combination_key].append(result)
     
-    return {
-        'logic_type': file_data['logic_type'],
-        'rule': file_data['rule'],
-        'depth': file_data['depth'],
-        'file_path': file_data['file_path'],
-        'all_responses': all_responses,
-        'results': results,
-        'file_accuracy': sum(r['correct'] for r in results) / len(results) if results else 0
-    }
+    return results, results_by_combination
 
-def parse_single_answer(response):
-    """Extract single answer from GPT response"""
-    answer_match = re.search(r'ANSWER:\s*(True|False|Unknown|Yes|No)', response, re.IGNORECASE)
-    if answer_match:
-        return answer_match.group(1)
-    
-    final_answer = re.findall(r'\b(True|False|Unknown|Yes|No)\b', response, re.IGNORECASE)
-    if final_answer:
-        return final_answer[-1]
-    
-    return 'Unknown'
-
-def normalize_answer(answer):
-    """Normalize answer format"""
-    if not answer:
-        return 'Unknown'
-    low = answer.lower().strip()
-    if low in ['true', 't', 'yes', 'y']:
-        return 'True'
-    elif low in ['false', 'f', 'no', 'n']:
-        return 'False'
-    elif low in ['unknown', 'uncertain', 'u']:
-        return 'Unknown'
-    return answer
-
-class IncrementalSaver:
-    """Handles incremental saving of results with organized structure"""
+class ResultsSaver:
+    """Handles saving of results in organized structure"""
     
     def __init__(self, output_dir="results", prompt_name="test"):
         self.output_dir = output_dir
@@ -263,347 +251,236 @@ class IncrementalSaver:
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs(output_dir, exist_ok=True)
         
-        self.detailed_file = f"{output_dir}/multilogieval_{prompt_name}_responses_{self.timestamp}.json"
-        self.progress_file = f"{output_dir}/multilogieval_{prompt_name}_progress_{self.timestamp}.txt"
+        # Create output directories
+        self.base_dir = f"{output_dir}/multilogieval_{prompt_name}_{self.timestamp}"
+        os.makedirs(self.base_dir, exist_ok=True)
         
-        self.responses_dir = f"{output_dir}/multilogieval_{prompt_name}_responses_{self.timestamp}"
-        self.by_logic_dir = f"{output_dir}/multilogieval_{prompt_name}_by_logic_{self.timestamp}"
-        self.by_depth_dir = f"{output_dir}/multilogieval_{prompt_name}_by_depth_{self.timestamp}"
-        self.summary_dir = f"{output_dir}/multilogieval_{prompt_name}_summaries_{self.timestamp}"
-        
-        os.makedirs(self.responses_dir, exist_ok=True)
-        os.makedirs(self.by_logic_dir, exist_ok=True)
-        os.makedirs(self.by_depth_dir, exist_ok=True)
-        os.makedirs(self.summary_dir, exist_ok=True)
-        
-        self.results_by_logic = defaultdict(list)
-        self.results_by_depth = defaultdict(list)
-        self.results_by_logic_depth = defaultdict(lambda: defaultdict(list))
-        
-        self._init_files()
+        self.responses_file = f"{self.base_dir}/all_responses.json"
+        self.summary_file = f"{self.base_dir}/summary.txt"
+        self.detailed_file = f"{self.base_dir}/detailed_results.txt"
+        self.accuracy_table_file = f"{self.base_dir}/accuracy_table.txt"
     
-    def _init_files(self):
-        """Initialize output files"""
-        with open(self.detailed_file, 'w') as f:
-            json.dump([], f)
+    def save_results(self, results, results_by_combination):
+        """Save all results in various formats"""
+        # Save JSON results
+        with open(self.responses_file, 'w') as f:
+            json.dump(results, f, indent=2)
         
-        with open(self.progress_file, 'w') as f:
-            f.write(f"Multi-LogiEval Testing Progress - Started at {self.timestamp}\n")
-            f.write("=" * 70 + "\n\n")
-    
-    def save_result(self, result, file_index, total_files):
-        """Save a single result incrementally"""
-        self._append_to_json(result)
+        # Save detailed results with reasoning chains
+        self._save_detailed_results(results)
         
-        if 'error' not in result:
-            self._save_individual_response(result)
-            self._track_for_aggregation(result)
+        # Save summary
+        self._save_summary(results, results_by_combination)
         
-        self._update_progress(result, file_index, total_files)
-        
-        print(f"✓ Saved result for {result.get('logic_type', 'unknown')}/{result.get('rule', 'unknown')}")
-    
-    def _append_to_json(self, result):
-        """Append result to main JSON file"""
-        try:
-            with open(self.detailed_file, 'r') as f:
-                data = json.load(f)
-            
-            data.append(result)
-            
-            with open(self.detailed_file, 'w') as f:
-                json.dump(data, f, indent=2)
-        except Exception as e:
-            print(f"Warning: Could not update JSON file: {e}")
-    
-    def _save_individual_response(self, result):
-        """Save individual response file"""
-        logic_type = result['logic_type']
-        rule = result['rule']
-        depth = result['depth']
-        
-        safe_rule = re.sub(r'[^\w\-_]', '_', rule)
-        response_file = f"{self.responses_dir}/{logic_type}_{depth}_{safe_rule}.txt"
-        
-        try:
-            with open(response_file, 'w', encoding='utf-8') as f:
-                f.write("=" * 70 + "\n")
-                f.write(f"Logic Type: {logic_type}\n")
-                f.write(f"Rule: {rule}\n")
-                f.write(f"Depth: {depth}\n")
-                f.write(f"File: {result['file_path']}\n")
-                f.write(f"Accuracy: {result['file_accuracy']:.2%}\n")
-                f.write("=" * 70 + "\n\n")
-                
-                f.write("=" * 70 + "\n")
-                f.write("Individual Sample Results:\n")
-                f.write("=" * 70 + "\n\n")
-                
-                for q_result in result['results']:
-                    f.write(f"Sample {q_result['question_num']} (ID: {q_result.get('sample_id', 'N/A')}):\n")
-                    f.write("-" * 70 + "\n")
-                    f.write(f"Context: {q_result.get('context', 'N/A')}\n\n")
-                    f.write(f"Question: {q_result['question']}\n\n")
-                    
-                    if 'all_responses' in result:
-                        matching_response = next(
-                            (r for r in result['all_responses'] if r['sample_id'] == q_result.get('sample_id')),
-                            None
-                        )
-                        if matching_response:
-                            f.write(f"GPT Response:\n{matching_response['response']}\n\n")
-                    
-                    f.write(f"Ground Truth: {q_result['ground_truth']}\n")
-                    f.write(f"Prediction:   {q_result['prediction']}\n")
-                    f.write(f"Correct:      {'✓ Yes' if q_result['correct'] else '✗ No'}\n")
-                    
-                    if 'error' in q_result:
-                        f.write(f"Error: {q_result['error']}\n")
-                    
-                    f.write("\n" + "=" * 70 + "\n\n")
-        except Exception as e:
-            print(f"Warning: Could not save individual response: {e}")
-    
-    def _track_for_aggregation(self, result):
-        """Track results for later aggregation"""
-        logic_type = result['logic_type']
-        depth = result['depth']
-        
-        self.results_by_logic[logic_type].append(result)
-        self.results_by_depth[depth].append(result)
-        self.results_by_logic_depth[logic_type][depth].append(result)
-    
-    def _update_progress(self, result, file_index, total_files):
-        """Update progress file"""
-        try:
-            with open(self.progress_file, 'a') as f:
-                f.write(f"[{file_index+1}/{total_files}] {result.get('logic_type')}/{result.get('depth')}/{result.get('rule')}\n")
-                
-                if 'error' in result:
-                    f.write(f"  ERROR: {result['error']}\n")
-                else:
-                    accuracy = result['file_accuracy']
-                    num_questions = len(result['results'])
-                    correct_count = sum(r['correct'] for r in result['results'])
-                    f.write(f"  Accuracy: {correct_count}/{num_questions} ({accuracy:.2%})\n")
-                
-                f.write(f"  Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-        except Exception as e:
-            print(f"Warning: Could not update progress: {e}")
-    
-    def _save_aggregated_results(self):
-        """Save aggregated results by logic type and depth"""
-        print("\nGenerating aggregated summaries...")
-        
-        self._save_logic_summaries()
-        self._save_depth_summaries()
-        self._save_logic_depth_summaries()
-        self._save_overall_summary()
-    
-    def _save_logic_summaries(self):
-        """Save summaries organized by logic type"""
-        for logic_type, results in self.results_by_logic.items():
-            safe_logic = re.sub(r'[^\w\-_]', '_', logic_type)
-            
-            json_file = f"{self.by_logic_dir}/{safe_logic}_results.json"
-            with open(json_file, 'w') as f:
-                json.dump(results, f, indent=2)
-            
-            summary_file = f"{self.by_logic_dir}/{safe_logic}_summary.txt"
-            with open(summary_file, 'w') as f:
-                f.write(f"Summary for Logic Type: {logic_type}\n")
-                f.write("=" * 70 + "\n\n")
-                
-                total_questions = sum(len(r['results']) for r in results)
-                total_correct = sum(sum(q['correct'] for q in r['results']) for r in results)
-                
-                f.write(f"Total Files: {len(results)}\n")
-                f.write(f"Total Questions: {total_questions}\n")
-                f.write(f"Total Correct: {total_correct}\n")
-                f.write(f"Overall Accuracy: {total_correct/total_questions:.2%}\n\n")
-                
-                f.write("Breakdown by Depth:\n")
-                f.write("-" * 70 + "\n")
-                depth_stats = defaultdict(lambda: {'correct': 0, 'total': 0})
-                for r in results:
-                    depth = r['depth']
-                    for q in r['results']:
-                        depth_stats[depth]['total'] += 1
-                        if q['correct']:
-                            depth_stats[depth]['correct'] += 1
-                
-                for depth in sorted(depth_stats.keys()):
-                    stats = depth_stats[depth]
-                    acc = stats['correct'] / stats['total'] if stats['total'] > 0 else 0
-                    f.write(f"  {depth}: {stats['correct']}/{stats['total']} ({acc:.2%})\n")
-    
-    def _save_depth_summaries(self):
-        """Save summaries organized by depth"""
-        for depth, results in self.results_by_depth.items():
-            safe_depth = re.sub(r'[^\w\-_]', '_', depth)
-            
-            json_file = f"{self.by_depth_dir}/{safe_depth}_results.json"
-            with open(json_file, 'w') as f:
-                json.dump(results, f, indent=2)
-            
-            summary_file = f"{self.by_depth_dir}/{safe_depth}_summary.txt"
-            with open(summary_file, 'w') as f:
-                f.write(f"Summary for Depth: {depth}\n")
-                f.write("=" * 70 + "\n\n")
-                
-                total_questions = sum(len(r['results']) for r in results)
-                total_correct = sum(sum(q['correct'] for q in r['results']) for r in results)
-                
-                f.write(f"Total Files: {len(results)}\n")
-                f.write(f"Total Questions: {total_questions}\n")
-                f.write(f"Total Correct: {total_correct}\n")
-                f.write(f"Overall Accuracy: {total_correct/total_questions:.2%}\n\n")
-                
-                f.write("Breakdown by Logic Type:\n")
-                f.write("-" * 70 + "\n")
-                logic_stats = defaultdict(lambda: {'correct': 0, 'total': 0})
-                for r in results:
-                    logic = r['logic_type']
-                    for q in r['results']:
-                        logic_stats[logic]['total'] += 1
-                        if q['correct']:
-                            logic_stats[logic]['correct'] += 1
-                
-                for logic in sorted(logic_stats.keys()):
-                    stats = logic_stats[logic]
-                    acc = stats['correct'] / stats['total'] if stats['total'] > 0 else 0
-                    f.write(f"  {logic}: {stats['correct']}/{stats['total']} ({acc:.2%})\n")
-    
-    def _save_logic_depth_summaries(self):
-        """Save detailed breakdown by logic type AND depth"""
-        summary_file = f"{self.summary_dir}/logic_depth_matrix.txt"
-        
-        with open(summary_file, 'w') as f:
-            f.write("Accuracy Matrix: Logic Type × Depth\n")
-            f.write("=" * 70 + "\n\n")
-            
-            all_logics = sorted(self.results_by_logic_depth.keys())
-            all_depths = set()
-            for logic_results in self.results_by_logic_depth.values():
-                all_depths.update(logic_results.keys())
-            all_depths = sorted(all_depths)
-            
-            f.write(f"{'Logic Type':<30}")
-            for depth in all_depths:
-                f.write(f"{depth:>12}")
-            f.write("\n")
-            f.write("-" * 70 + "\n")
-            
-            for logic in all_logics:
-                f.write(f"{logic:<30}")
-                for depth in all_depths:
-                    results = self.results_by_logic_depth[logic].get(depth, [])
-                    if results:
-                        total = sum(len(r['results']) for r in results)
-                        correct = sum(sum(q['correct'] for q in r['results']) for r in results)
-                        acc = correct / total if total > 0 else 0
-                        f.write(f"{acc:>11.1%} ")
-                    else:
-                        f.write(f"{'N/A':>12}")
-                f.write("\n")
-    
-    def _save_overall_summary(self):
-        """Save overall summary statistics"""
-        summary_file = f"{self.summary_dir}/overall_summary.txt"
-        
-        with open(summary_file, 'w') as f:
-            f.write("Overall Multi-LogiEval Test Summary\n")
-            f.write("=" * 70 + "\n")
-            f.write(f"Test completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
-            
-            with open(self.detailed_file, 'r') as df:
-                all_results = json.load(df)
-            
-            total_files = len(all_results)
-            total_questions = sum(len(r.get('results', [])) for r in all_results)
-            total_correct = sum(sum(q['correct'] for q in r.get('results', [])) for r in all_results)
-            
-            f.write(f"Total Files Tested: {total_files}\n")
-            f.write(f"Total Questions: {total_questions}\n")
-            f.write(f"Total Correct: {total_correct}\n")
-            if total_questions > 0:
-                f.write(f"Overall Accuracy: {total_correct/total_questions:.2%}\n\n")
-            
-            f.write("\nAccuracy by Logic Type:\n")
-            f.write("-" * 70 + "\n")
-            for logic_type in sorted(self.results_by_logic.keys()):
-                results = self.results_by_logic[logic_type]
-                total_q = sum(len(r['results']) for r in results)
-                correct_q = sum(sum(q['correct'] for q in r['results']) for r in results)
-                acc = correct_q / total_q if total_q > 0 else 0
-                f.write(f"{logic_type:<30} {correct_q:>4}/{total_q:<4} ({acc:.2%})\n")
-            
-            f.write("\nAccuracy by Depth:\n")
-            f.write("-" * 70 + "\n")
-            for depth in sorted(self.results_by_depth.keys()):
-                results = self.results_by_depth[depth]
-                total_q = sum(len(r['results']) for r in results)
-                correct_q = sum(sum(q['correct'] for q in r['results']) for r in results)
-                acc = correct_q / total_q if total_q > 0 else 0
-                f.write(f"{depth:<30} {correct_q:>4}/{total_q:<4} ({acc:.2%})\n")
-    
-    def finalize(self, total_questions, total_correct):
-        """Write final summary and save all aggregated results"""
-        try:
-            self._save_aggregated_results()
-            
-            with open(self.progress_file, 'a') as f:
-                f.write("\n" + "=" * 70 + "\n")
-                f.write("FINAL RESULTS\n")
-                f.write("=" * 70 + "\n")
-                if total_questions > 0:
-                    overall_accuracy = total_correct / total_questions
-                    f.write(f"Overall accuracy: {total_correct}/{total_questions} ({overall_accuracy:.2%})\n")
-                else:
-                    f.write("No questions completed successfully.\n")
-                f.write(f"Completed at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        except Exception as e:
-            print(f"Warning: Could not finalize results: {e}")
+        # Save accuracy table like paper's Table 6
+        self._save_accuracy_table(results_by_combination)
         
         print(f"\n{'='*70}")
-        print("All results saved!")
+        print("Results saved:")
         print(f"{'='*70}")
-        print(f"Main results:        {self.detailed_file}")
-        print(f"Progress log:        {self.progress_file}")
-        print(f"Individual responses: {self.responses_dir}/")
-        print(f"By logic type:       {self.by_logic_dir}/")
-        print(f"By depth:            {self.by_depth_dir}/")
-        print(f"Summaries:           {self.summary_dir}/")
+        print(f"All responses (JSON): {self.responses_file}")
+        print(f"Detailed results:     {self.detailed_file}")
+        print(f"Summary:              {self.summary_file}")
+        print(f"Accuracy table:       {self.accuracy_table_file}")
         print(f"{'='*70}")
+    
+    def _save_detailed_results(self, results):
+        """Save detailed results with full reasoning chains"""
+        with open(self.detailed_file, 'w') as f:
+            f.write("Multi-LogiEval Detailed Results\n")
+            f.write("=" * 100 + "\n\n")
+            
+            for result in results:
+                f.write(f"Question {result['question_num']}/{len(results)}\n")
+                f.write("-" * 100 + "\n")
+                f.write(f"Logic Type: {result['logic_type']}\n")
+                f.write(f"Depth: {result['depth']}\n")
+                f.write(f"Rule: {result['rule']}\n")
+                f.write(f"Source: {result['source_file']}\n\n")
+                
+                f.write("Context:\n")
+                f.write(result['context'] + "\n\n")
+                
+                f.write("Question:\n")
+                f.write(result['question'] + "\n\n")
+                
+                if 'full_response' in result:
+                    f.write("Model Response:\n")
+                    f.write("-" * 50 + "\n")
+                    f.write(result['full_response'])
+                    f.write("\n" + "-" * 50 + "\n\n")
+                
+                f.write(f"Ground Truth: {result['ground_truth']}\n")
+                f.write(f"Prediction:   {result['prediction']}\n")
+                f.write(f"Correct:      {'✓ Yes' if result['correct'] else '✗ No'}\n")
+                
+                if 'error' in result:
+                    f.write(f"Error: {result['error']}\n")
+                
+                f.write("\n" + "=" * 100 + "\n\n")
+    
+    def _save_summary(self, results, results_by_combination):
+        """Save overall summary"""
+        with open(self.summary_file, 'w') as f:
+            f.write("Multi-LogiEval Evaluation Summary\n")
+            f.write("=" * 70 + "\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+            
+            total_correct = sum(r['correct'] for r in results)
+            total_questions = len(results)
+            overall_accuracy = total_correct / total_questions if total_questions > 0 else 0
+            
+            f.write(f"Total Questions: {total_questions}\n")
+            f.write(f"Total Correct: {total_correct}\n")
+            f.write(f"Overall Accuracy: {overall_accuracy:.2%}\n\n")
+            
+            # Accuracy by logic type
+            f.write("Accuracy by Logic Type:\n")
+            f.write("-" * 70 + "\n")
+            logic_stats = defaultdict(lambda: {'correct': 0, 'total': 0})
+            for r in results:
+                logic_stats[r['logic_type']]['total'] += 1
+                if r['correct']:
+                    logic_stats[r['logic_type']]['correct'] += 1
+            
+            for logic_type in sorted(logic_stats.keys()):
+                stats = logic_stats[logic_type]
+                acc = stats['correct'] / stats['total'] if stats['total'] > 0 else 0
+                f.write(f"{logic_type.upper():<10} {stats['correct']:>3}/{stats['total']:<3} ({acc:.2%})\n")
+            
+            # Accuracy by depth
+            f.write("\nAccuracy by Depth:\n")
+            f.write("-" * 70 + "\n")
+            depth_stats = defaultdict(lambda: {'correct': 0, 'total': 0})
+            for r in results:
+                depth_stats[r['depth']]['total'] += 1
+                if r['correct']:
+                    depth_stats[r['depth']]['correct'] += 1
+            
+            for depth in sorted(depth_stats.keys()):
+                stats = depth_stats[depth]
+                acc = stats['correct'] / stats['total'] if stats['total'] > 0 else 0
+                depth_label = depth.replace('_Data', '')
+                f.write(f"{depth_label:<10} {stats['correct']:>3}/{stats['total']:<3} ({acc:.2%})\n")
+    
+    def _save_accuracy_table(self, results_by_combination):
+        """Save accuracy table in paper's Table 6 format"""
+        with open(self.accuracy_table_file, 'w') as f:
+            f.write("Accuracy Table (Format similar to paper's Table 6)\n")
+            f.write("=" * 70 + "\n\n")
+            
+            # Calculate accuracies
+            accuracies = {}
+            logic_types = ['pl', 'fol', 'nm']
+            depths = ['d1_Data', 'd2_Data', 'd3_Data', 'd4_Data', 'd5_Data']
+            
+            for logic_type in logic_types:
+                accuracies[logic_type] = {}
+                for depth in depths:
+                    key = (logic_type, depth)
+                    if key in results_by_combination:
+                        results = results_by_combination[key]
+                        correct = sum(r['correct'] for r in results)
+                        total = len(results)
+                        if total > 0:
+                            accuracies[logic_type][depth] = correct / total * 100
+                        else:
+                            accuracies[logic_type][depth] = None
+                    else:
+                        accuracies[logic_type][depth] = None
+            
+            # Print table header
+            f.write(f"{'Logic':<15}")
+            for depth in depths:
+                f.write(f"{depth.replace('_Data', ''):>10}")
+            f.write(f"{'Average':>12}\n")
+            f.write("-" * 70 + "\n")
+            
+            # Print rows
+            for logic_type in logic_types:
+                f.write(f"{logic_type.upper():<15}")
+                valid_accs = []
+                for depth in depths:
+                    acc = accuracies[logic_type][depth]
+                    if acc is not None:
+                        f.write(f"{acc:>9.2f}%")
+                        valid_accs.append(acc)
+                    else:
+                        f.write(f"{'N/A':>10}")
+                
+                # Calculate average
+                if valid_accs:
+                    avg = sum(valid_accs) / len(valid_accs)
+                    f.write(f"{avg:>11.2f}%")
+                else:
+                    f.write(f"{'N/A':>12}")
+                f.write("\n")
+            
+            # Overall average row
+            f.write("-" * 70 + "\n")
+            f.write(f"{'Average':<15}")
+            for depth in depths:
+                depth_accs = []
+                for logic_type in logic_types:
+                    if accuracies[logic_type][depth] is not None:
+                        depth_accs.append(accuracies[logic_type][depth])
+                if depth_accs:
+                    avg = sum(depth_accs) / len(depth_accs)
+                    f.write(f"{avg:>9.2f}%")
+                else:
+                    f.write(f"{'N/A':>10}")
+            
+            # Overall average
+            all_accs = []
+            for logic_type in logic_types:
+                for depth in depths:
+                    if accuracies[logic_type][depth] is not None:
+                        all_accs.append(accuracies[logic_type][depth])
+            if all_accs:
+                overall_avg = sum(all_accs) / len(all_accs)
+                f.write(f"{overall_avg:>11.2f}%")
+            f.write("\n")
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Test GPT-5 on Multi-LogiEval dataset with customizable prompts (samples 10 from each logic×depth)',
+        description='Test models on Multi-LogiEval dataset (sampling individual questions)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-Example:
-  python test_multilogieval.py \\
+Example usage:
+  # Zero-shot CoT (paper's main approach) - 10 questions per combination
+  python test_multilogieval_sampling.py \\
       --api_key YOUR_KEY \\
       --data_dir data/MultiLogicEval \\
-      --system_prompt prompts/multilogieval/lean_system.txt \\
-      --user_prompt prompts/multilogieval/lean_user.txt \\
-      --prompt_name lean \\
-      --sample_per_combination 10
+      --system_prompt prompts/multilogieval/zero_shot_cot_system.txt \\
+      --user_prompt prompts/multilogieval/zero_shot_cot_user.txt \\
+      --prompt_name zero_shot_cot \\
+      --samples_per_combination 10 \\
+      --model gpt-4
+      
+  # Test with 50 questions per combination
+  python test_multilogieval_sampling.py \\
+      --api_key YOUR_KEY \\
+      --data_dir data/MultiLogicEval \\
+      --system_prompt prompts/multilogieval/zero_shot_cot_system.txt \\
+      --user_prompt prompts/multilogieval/zero_shot_cot_user.txt \\
+      --prompt_name zero_shot_cot_large \\
+      --samples_per_combination 50 \\
+      --model gpt-4
         """
     )
     parser.add_argument('--api_key', required=True, help='OpenAI API key')
     parser.add_argument('--data_dir', required=True, help='Path to Multi-LogiEval data directory')
     parser.add_argument('--system_prompt', required=True, help='Path to system prompt file')
     parser.add_argument('--user_prompt', required=True, help='Path to user prompt template file')
-    parser.add_argument('--prompt_name', default='test', help='Name for output files (e.g., "lean", "cot")')
+    parser.add_argument('--prompt_name', default='test', help='Name for output files')
     parser.add_argument('--logic_types', nargs='+', 
                         default=['fol', 'nm', 'pl'],
-                        help='Logic types to test')
+                        help='Logic types to test (default: all)')
     parser.add_argument('--depths', nargs='+',
                         default=['d1_Data', 'd2_Data', 'd3_Data', 'd4_Data', 'd5_Data'],
-                        help='Depths to test')
-    parser.add_argument('--sample_per_combination', type=int, default=10,
-                        help='Number of files to sample per logic type × depth combination (default: 10)')
+                        help='Depths to test (default: all)')
+    parser.add_argument('--samples_per_combination', type=int, default=10,
+                        help='Number of questions to sample per logic type × depth combination (default: 10)')
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for sampling (default: 42)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
@@ -611,76 +488,53 @@ Example:
     args = parser.parse_args()
     
     # Load prompts
-    print(f"Loading prompts...")
+    print("Loading prompts...")
     system_prompt_template = load_prompt(args.system_prompt)
     user_prompt_template = load_prompt(args.user_prompt)
     print(f"✓ Loaded system prompt from {args.system_prompt}")
     print(f"✓ Loaded user prompt from {args.user_prompt}")
     
-    # Load dataset with sampling
-    all_files = load_multilogieval_dataset(
+    # Load and sample dataset
+    sampled_questions = load_and_sample_multilogieval(
         args.data_dir, 
         args.logic_types, 
         args.depths,
-        args.sample_per_combination,
+        args.samples_per_combination,
         args.seed
     )
     
-    if not all_files:
-        print("No files found! Check your data directory and filters.")
+    if not sampled_questions:
+        print("No questions found! Check your data directory and filters.")
         return
     
-    print(f"\nTesting {len(all_files)} files with {args.model}")
-    print(f"Results will be saved to: {args.output_dir}")
-    
-    saver = IncrementalSaver(args.output_dir, args.prompt_name)
-    
-    total_questions = 0
-    total_correct = 0
-    
+    # Test model on sampled questions
     try:
-        for i, file_data in enumerate(all_files):
+        results, results_by_combination = test_model_on_samples(
+            sampled_questions,
+            args.api_key,
+            system_prompt_template,
+            user_prompt_template,
+            args.model
+        )
+        
+        # Save results
+        saver = ResultsSaver(args.output_dir, args.prompt_name)
+        saver.save_results(results, results_by_combination)
+        
+        # Print final summary
+        total_correct = sum(r['correct'] for r in results)
+        total_questions = len(results)
+        if total_questions > 0:
+            overall_accuracy = total_correct / total_questions
             print(f"\n{'='*70}")
-            print(f"File {i+1}/{len(all_files)}")
-            print(f"Logic: {file_data['logic_type']}, Rule: {file_data['rule']}, Depth: {file_data['depth']}")
-            print(f"Samples: {len(file_data['samples'])}")
+            print(f"OVERALL ACCURACY: {total_correct}/{total_questions} ({overall_accuracy:.2%})")
             print(f"{'='*70}")
-            
-            result = test_gpt5_multilogieval(file_data, args.api_key, 
-                                            system_prompt_template, user_prompt_template,
-                                            args.model)
-            
-            saver.save_result(result, i, len(all_files))
-            
-            if 'error' in result:
-                print(f"❌ Error: {result['error']}")
-                continue
-            
-            print(f"\n✅ File accuracy: {result['file_accuracy']:.2%}")
-            for q_result in result['results']:
-                status = '✓' if q_result['correct'] else '✗'
-                print(f"  Q{q_result['question_num']}: {q_result['ground_truth']} → {q_result['prediction']} {status}")
-                total_questions += 1
-                if q_result['correct']:
-                    total_correct += 1
     
     except KeyboardInterrupt:
-        print("\n\n⚠️  Interrupted by user. Saving final results...")
+        print("\n\n⚠️  Interrupted by user.")
     except Exception as e:
-        print(f"\n\n❌ Unexpected error: {e}. Saving results so far...")
-    
-    print("\n" + "="*70)
-    print("Finalizing results and generating summaries...")
-    print("="*70)
-    saver.finalize(total_questions, total_correct)
-    
-    if total_questions > 0:
-        overall_accuracy = total_correct / total_questions
-        print(f"\n{'='*70}")
-        print(f"OVERALL ACCURACY: {total_correct}/{total_questions} ({overall_accuracy:.2%})")
-        print(f"{'='*70}")
-    else:
-        print("\n⚠️  No questions were completed successfully.")
+        print(f"\n\n❌ Unexpected error: {e}")
+        raise
 
 if __name__ == "__main__":
     main()

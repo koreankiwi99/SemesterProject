@@ -13,7 +13,8 @@ from utils.savers import MultiLogiEvalSaver
 from datasets.multilogieval import load_and_sample_multilogieval, build_multilogieval_prompt
 
 
-def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_template, model="gpt-4"):
+def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_template,
+                          model="gpt-5", model_config=None):
     """Test model on sampled questions.
 
     Args:
@@ -22,6 +23,7 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
         system_prompt_template: System prompt template
         user_prompt_template: User prompt template
         model: Model name to use
+        model_config: Optional model configuration dict (temperature, reasoning_effort, etc.)
 
     Returns:
         tuple: (results, results_by_combination)
@@ -41,14 +43,21 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
 
         system_msg, user_prompt = build_multilogieval_prompt(sample, system_prompt_template, user_prompt_template)
 
+        # Build API call parameters
+        api_params = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_prompt}
+            ]
+        }
+
+        # Add model config if provided
+        if model_config:
+            api_params.update(model_config)
+
         try:
-            response = openai.chat.completions.create(
-                model=model,
-                messages=[
-                    {"role": "system", "content": system_msg},
-                    {"role": "user", "content": user_prompt}
-                ],
-            )
+            response = openai.chat.completions.create(**api_params)
 
             gpt_response = response.choices[0].message.content.strip()
 
@@ -69,6 +78,10 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
                 'ground_truth': ground_truth,
                 'prediction': prediction,
                 'correct': correct,
+                'system_prompt': system_msg,
+                'user_prompt': user_prompt,
+                'model': model,
+                'model_config': model_config or {},
                 'full_response': gpt_response,
                 'source_file': sample['source_file']
             }
@@ -133,8 +146,27 @@ Example usage:
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for sampling (default: 42)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
-    parser.add_argument('--model', default='gpt-4', help='Model to use')
+    parser.add_argument('--model', default='gpt-5', help='Model to use')
+
+    # Model configuration options
+    parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
+    parser.add_argument('--reasoning_effort', type=str, choices=['low', 'medium', 'high'],
+                        help='Reasoning effort (for models like o1/o3)')
+    parser.add_argument('--max_tokens', type=int, help='Maximum tokens in response')
+    parser.add_argument('--top_p', type=float, help='Nucleus sampling parameter')
+
     args = parser.parse_args()
+
+    # Build model config from args
+    model_config = {}
+    if args.temperature is not None:
+        model_config['temperature'] = args.temperature
+    if args.reasoning_effort is not None:
+        model_config['reasoning_effort'] = args.reasoning_effort
+    if args.max_tokens is not None:
+        model_config['max_tokens'] = args.max_tokens
+    if args.top_p is not None:
+        model_config['top_p'] = args.top_p
 
     # Load prompts
     print("Loading prompts...")
@@ -163,7 +195,8 @@ Example usage:
             args.api_key,
             system_prompt_template,
             user_prompt_template,
-            args.model
+            args.model,
+            model_config
         )
 
         # Save results

@@ -14,7 +14,7 @@ from datasets.folio import load_folio, build_folio_prompt_single
 
 
 def test_question_with_lean(example, api_key, lean_server, system_template, user_template,
-                            model="gpt-4", max_iterations=3, verbose=False):
+                            model="gpt-5", model_config=None, max_iterations=3, verbose=False):
     """Test a single question with interactive Lean verification.
 
     Args:
@@ -24,6 +24,7 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
         system_template: System prompt template
         user_template: User prompt template
         model: Model name to use
+        model_config: Optional model configuration dict (temperature, reasoning_effort, etc.)
         max_iterations: Maximum number of refinement iterations
         verbose: Whether to print verbose output
 
@@ -45,16 +46,19 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
     final_lean_code = None
     final_verification = None
 
+    # Build API call parameters base
+    api_params_base = {"model": model}
+    if model_config:
+        api_params_base.update(model_config)
+
     try:
         for iteration in range(max_iterations):
             if verbose:
                 print(f"\n--- Iteration {iteration + 1}/{max_iterations} ---")
 
             # Get LLM response
-            response = openai.chat.completions.create(
-                model=model,
-                messages=conversation_history,
-            )
+            api_params = {**api_params_base, "messages": conversation_history}
+            response = openai.chat.completions.create(**api_params)
 
             llm_response = response.choices[0].message.content.strip()
             conversation_history.append({"role": "assistant", "content": llm_response})
@@ -143,6 +147,8 @@ def test_question_with_lean(example, api_key, lean_server, system_template, user
             'ground_truth': example['label'],
             'prediction': final_prediction,
             'correct': correct,
+            'model': model,
+            'model_config': model_config or {},
             'iterations': iterations,
             'num_iterations': len(iterations),
             'lean_code': final_lean_code,
@@ -185,11 +191,29 @@ Example:
     parser.add_argument('--max_iterations', type=int, default=3,
                         help='Maximum Lean revision iterations per question')
     parser.add_argument('--output_dir', default='results', help='Directory to save results')
-    parser.add_argument('--model', default='gpt-4', help='Model to use')
+    parser.add_argument('--model', default='gpt-5', help='Model to use')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
 
+    # Model configuration options
+    parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
+    parser.add_argument('--reasoning_effort', type=str, choices=['low', 'medium', 'high'],
+                        help='Reasoning effort (for models like o1/o3)')
+    parser.add_argument('--max_tokens', type=int, help='Maximum tokens in response')
+    parser.add_argument('--top_p', type=float, help='Nucleus sampling parameter')
+
     args = parser.parse_args()
+
+    # Build model config from args
+    model_config = {}
+    if args.temperature is not None:
+        model_config['temperature'] = args.temperature
+    if args.reasoning_effort is not None:
+        model_config['reasoning_effort'] = args.reasoning_effort
+    if args.max_tokens is not None:
+        model_config['max_tokens'] = args.max_tokens
+    if args.top_p is not None:
+        model_config['top_p'] = args.top_p
 
     # Load prompts
     print(f"Loading prompts...")
@@ -230,7 +254,7 @@ Example:
 
             result = test_question_with_lean(example, args.api_key, lean_server,
                                             system_template, user_template,
-                                            args.model, args.max_iterations, args.verbose)
+                                            args.model, model_config, args.max_iterations, args.verbose)
 
             saver.save_result(result, i, len(questions_to_test))
 

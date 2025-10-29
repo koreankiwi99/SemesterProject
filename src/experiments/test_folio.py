@@ -12,7 +12,8 @@ from utils.savers import FOLIOSaver
 from datasets.folio import load_and_group_folio, build_folio_prompt_grouped
 
 
-def test_model_grouped(story_examples, api_key, system_prompt_template, user_prompt_template, model="gpt-4"):
+def test_model_grouped(story_examples, api_key, system_prompt_template, user_prompt_template,
+                       model="gpt-5", model_config=None):
     """Test model on grouped questions from a single story.
 
     Args:
@@ -21,6 +22,7 @@ def test_model_grouped(story_examples, api_key, system_prompt_template, user_pro
         system_prompt_template: System prompt template
         user_prompt_template: User prompt template
         model: Model name to use
+        model_config: Optional model configuration dict (temperature, reasoning_level, etc.)
 
     Returns:
         dict: Results for this story including all questions
@@ -30,14 +32,21 @@ def test_model_grouped(story_examples, api_key, system_prompt_template, user_pro
 
     system_msg, user_prompt = build_folio_prompt_grouped(story_examples, system_prompt_template, user_prompt_template)
 
+    # Build API call parameters
+    api_params = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_prompt}
+        ]
+    }
+
+    # Add model config if provided
+    if model_config:
+        api_params.update(model_config)
+
     try:
-        response = openai.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_prompt}
-            ],
-        )
+        response = openai.chat.completions.create(**api_params)
 
         model_response = response.choices[0].message.content.strip()
         answers = parse_folio_multiple_answers(model_response, len(story_examples))
@@ -57,6 +66,10 @@ def test_model_grouped(story_examples, api_key, system_prompt_template, user_pro
         return {
             'story_id': story_examples[0].get('story_id'),
             'premises': story_examples[0]['premises'],
+            'system_prompt': system_msg,
+            'user_prompt': user_prompt,
+            'model': model,
+            'model_config': model_config or {},
             'model_response': model_response,
             'results': results,
             'story_accuracy': sum(r['correct'] for r in results) / len(results)
@@ -89,9 +102,27 @@ Example:
     parser.add_argument('--num_stories', type=int, default=5,
                         help='Number of stories to test (0 or negative = all)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
-    parser.add_argument('--model', default='gpt-4', help='Model to use')
+    parser.add_argument('--model', default='gpt-5', help='Model to use')
+
+    # Model configuration options
+    parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
+    parser.add_argument('--reasoning_effort', type=str, choices=['low', 'medium', 'high'],
+                        help='Reasoning effort (for models like o1/o3)')
+    parser.add_argument('--max_tokens', type=int, help='Maximum tokens in response')
+    parser.add_argument('--top_p', type=float, help='Nucleus sampling parameter')
 
     args = parser.parse_args()
+
+    # Build model config from args
+    model_config = {}
+    if args.temperature is not None:
+        model_config['temperature'] = args.temperature
+    if args.reasoning_effort is not None:
+        model_config['reasoning_effort'] = args.reasoning_effort
+    if args.max_tokens is not None:
+        model_config['max_tokens'] = args.max_tokens
+    if args.top_p is not None:
+        model_config['top_p'] = args.top_p
 
     # Load prompts
     print(f"Loading prompts...")
@@ -122,7 +153,7 @@ Example:
 
             result = test_model_grouped(story_examples, args.api_key,
                                        system_prompt_template, user_prompt_template,
-                                       args.model)
+                                       args.model, model_config)
 
             saver.save_result(result, i, len(story_ids))
 

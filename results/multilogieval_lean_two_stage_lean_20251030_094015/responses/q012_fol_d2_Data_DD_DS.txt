@@ -1,0 +1,124 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d2 (d2_Data)
+Rule: DD_DS
+
+Context:
+When people drive safely, they avoid accidents. Also, if people follow directions, they don't get lost. But either someone did not avoid an accident or someone got lost, or both.
+
+Question:
+Jane drove safely. Is it true that she followed directions?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+STAGE 1: Reasoning in natural language
+
+- Let Persons be the domain, with predicates:
+  - DrivesSafely(x): x drives safely
+  - AvoidsAccident(x): x avoids accidents
+  - FollowsDirections(x): x follows directions
+  - GetsLost(x): x gets lost
+
+- Premises:
+  1) ∀x, DrivesSafely(x) → AvoidsAccident(x).
+  2) ∀x, FollowsDirections(x) → ¬GetsLost(x).
+  3) (∃x, ¬AvoidsAccident(x)) ∨ (∃x, GetsLost(x)).
+  4) DrivesSafely(Jane).
+
+- Deductions:
+  - From (1) and (4), Jane avoids accidents: AvoidsAccident(Jane).
+  - From (2), by a simple reasoning step (no classical axioms needed), if someone gets lost then they did not follow directions: GetsLost(x) → ¬FollowsDirections(x). Proof idea: if FollowsDirections(x) held while GetsLost(x) holds, (2) would yield ¬GetsLost(x), a contradiction.
+  - Premise (3) only says something bad happened to someone (either a non-avoided accident or getting lost). It does not specify Jane. Therefore, (3) gives no information about whether Jane followed directions.
+  - In particular, there is a scenario consistent with all premises in which the right disjunct of (3) holds with witness Jane (i.e., GetsLost(Jane)). In that scenario, by the previous point, ¬FollowsDirections(Jane). Hence, it is not logically entailed that Jane followed directions.
+
+Conclusion: We cannot conclude that Jane followed directions; it is not necessarily true. So the answer to the question “Is it true that she followed directions?” is No.
+
+STAGE 2: Lean 4 formalization and proof attempts
+
+<lean>
+axiom Person : Type
+axiom Jane : Person
+
+axiom DrivesSafely : Person → Prop
+axiom AvoidsAccident : Person → Prop
+axiom FollowsDirections : Person → Prop
+axiom GetsLost : Person → Prop
+
+-- Premises
+axiom safe_implies_avoid : ∀ x : Person, DrivesSafely x → AvoidsAccident x
+axiom follow_implies_not_lost : ∀ x : Person, FollowsDirections x → ¬ GetsLost x
+axiom either_bad : (∃ x : Person, ¬ AvoidsAccident x) ∨ (∃ x : Person, GetsLost x)
+axiom jane_safe : DrivesSafely Jane
+
+-- What we can derive: Jane avoided an accident.
+theorem jane_avoids : AvoidsAccident Jane := by
+  exact safe_implies_avoid Jane jane_safe
+
+-- From "following directions implies not lost", we can deduce that
+-- if someone is lost, then they did not follow directions.
+theorem lost_implies_not_follow (x : Person) : GetsLost x → ¬ FollowsDirections x := by
+  intro hxLost
+  intro hxFollow
+  have : ¬ GetsLost x := follow_implies_not_lost x hxFollow
+  exact this hxLost
+
+-- In particular, if Jane got lost (a scenario consistent with the premises),
+-- then she did not follow directions.
+theorem not_follow_if_jane_lost : GetsLost Jane → ¬ FollowsDirections Jane := by
+  exact lost_implies_not_follow Jane
+</lean>
+
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Jane : Person
+
+axiom DrivesSafely : Person → Prop
+axiom AvoidsAccident : Person → Prop
+axiom FollowsDirections : Person → Prop
+axiom GetsLost : Person → Prop
+
+-- Premises
+axiom safe_implies_avoid : ∀ x : Person, DrivesSafely x → AvoidsAccident x
+axiom follow_implies_not_lost : ∀ x : Person, FollowsDirections x → ¬ GetsLost x
+axiom either_bad : (∃ x : Person, ¬ AvoidsAccident x) ∨ (∃ x : Person, GetsLost x)
+axiom jane_safe : DrivesSafely Jane
+
+-- What we can derive: Jane avoided an accident.
+theorem jane_avoids : AvoidsAccident Jane := by
+  exact safe_implies_avoid Jane jane_safe
+
+-- From "following directions implies not lost", we can deduce that
+-- if someone is lost, then they did not follow directions.
+theorem lost_implies_not_follow (x : Person) : GetsLost x → ¬ FollowsDirections x := by
+  intro hxLost
+  intro hxFollow
+  have : ¬ GetsLost x := follow_implies_not_lost x hxFollow
+  exact this hxLost
+
+-- In particular, if Jane got lost (a scenario consistent with the premises),
+-- then she did not follow directions.
+theorem not_follow_if_jane_lost : GetsLost Jane → ¬ FollowsDirections Jane := by
+  exact lost_implies_not_follow Jane
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: No
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

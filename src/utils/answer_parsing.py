@@ -64,6 +64,39 @@ def parse_multilogieval_answer(response):
     return 'Unknown'
 
 
+def parse_two_stage_answers(response):
+    """Extract both Stage 1 and Stage 2 answers from two-stage model response.
+
+    Args:
+        response: The model's text response
+
+    Returns:
+        dict: Dictionary with 'stage1_answer' and 'stage2_answer' keys
+    """
+    result = {
+        'stage1_answer': 'Unknown',
+        'stage2_answer': 'Unknown'
+    }
+
+    # Look for STAGE 1 ANSWER:
+    stage1_match = re.search(r'STAGE\s*1\s*ANSWER:\s*(Yes|No|Unknown)', response, re.IGNORECASE)
+    if stage1_match:
+        result['stage1_answer'] = stage1_match.group(1).capitalize()
+
+    # Look for STAGE 2 ANSWER:
+    stage2_match = re.search(r'STAGE\s*2\s*ANSWER:\s*(Yes|No|Unknown)', response, re.IGNORECASE)
+    if stage2_match:
+        result['stage2_answer'] = stage2_match.group(1).capitalize()
+
+    # Fallback: if no stage-specific answers found, use old ANSWER: pattern for stage2
+    if result['stage2_answer'] == 'Unknown':
+        answer_match = re.search(r'ANSWER:\s*(Yes|No|Unknown)', response, re.IGNORECASE)
+        if answer_match:
+            result['stage2_answer'] = answer_match.group(1).capitalize()
+
+    return result
+
+
 def parse_folio_answer(response):
     """Extract True/False/Unknown answer from FOLIO model response.
 

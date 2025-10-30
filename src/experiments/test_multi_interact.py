@@ -10,7 +10,7 @@ import os
 from collections import defaultdict
 
 from utils.prompts import load_prompt
-from utils.answer_parsing import parse_multilogieval_answer, normalize_answer
+from utils.answer_parsing import parse_multilogieval_answer, parse_two_stage_answers, normalize_answer
 from utils.lean_utils import extract_lean_code, verify_with_lean, create_lean_server
 from utils.savers import MultiLogiEvalLeanSaver
 from datasets.multilogieval import load_and_sample_multilogieval, build_multilogieval_prompt
@@ -67,13 +67,27 @@ def test_question_with_lean(sample, api_key, lean_server, system_template, user_
             conversation_history.append({"role": "assistant", "content": llm_response})
 
             # Extract answer and Lean code
-            prediction = parse_multilogieval_answer(llm_response)
+            # Try two-stage parsing first (for two_stage_lean prompt)
+            two_stage_answers = parse_two_stage_answers(llm_response)
+            if two_stage_answers['stage1_answer'] != 'Unknown' or two_stage_answers['stage2_answer'] != 'Unknown':
+                # Two-stage format detected
+                prediction = two_stage_answers['stage2_answer']  # Use stage 2 as final
+                stage1_answer = two_stage_answers['stage1_answer']
+                stage2_answer = two_stage_answers['stage2_answer']
+            else:
+                # Fallback to single answer parsing
+                prediction = parse_multilogieval_answer(llm_response)
+                stage1_answer = None
+                stage2_answer = None
+
             lean_code = extract_lean_code(llm_response)
 
             iteration_data = {
                 'iteration': iteration + 1,
                 'llm_response': llm_response,
                 'prediction': prediction,
+                'stage1_answer': stage1_answer,
+                'stage2_answer': stage2_answer,
                 'lean_code': lean_code,
                 'lean_verification': None
             }
@@ -102,12 +116,12 @@ def test_question_with_lean(sample, api_key, lean_server, system_template, user_
                         feedback = (
                             f"The Lean code has compilation errors:\n\n"
                             f"{error_messages}\n\n"
-                            f"Please provide corrected Lean code wrapped in <lean></lean> tags:\n\n"
-                            f"<lean>\n"
-                            f"[your corrected code here]\n"
-                            f"</lean>\n\n"
-                            f"Then provide your answer:\n"
-                            f"ANSWER: Yes/No/Unknown"
+                            f"Please reconsider your reasoning from STAGE 1 in light of these errors. "
+                            f"Then provide both stages again:\n\n"
+                            f"STAGE 1: [natural language reasoning]\n"
+                            f"STAGE 1 ANSWER: Yes/No\n\n"
+                            f"STAGE 2: [Lean code in <lean></lean> tags]\n"
+                            f"STAGE 2 ANSWER: Yes/No"
                         )
                         conversation_history.append({"role": "user", "content": feedback})
                         if verbose:
@@ -121,12 +135,11 @@ def test_question_with_lean(sample, api_key, lean_server, system_template, user_
                 if iteration < max_iterations - 1:
                     feedback = (
                         f"I didn't find any Lean code in your response. "
-                        f"Please provide your Lean translation wrapped in <lean></lean> tags:\n\n"
-                        f"<lean>\n"
-                        f"[your Lean code here]\n"
-                        f"</lean>\n\n"
-                        f"Then provide your answer:\n"
-                        f"ANSWER: Yes/No/Unknown"
+                        f"Please provide both stages:\n\n"
+                        f"STAGE 1: [natural language reasoning]\n"
+                        f"STAGE 1 ANSWER: Yes/No\n\n"
+                        f"STAGE 2: [Lean code in <lean></lean> tags]\n"
+                        f"STAGE 2 ANSWER: Yes/No"
                     )
                     conversation_history.append({"role": "user", "content": feedback})
                     if verbose:

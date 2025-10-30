@@ -5,6 +5,8 @@ Each question is processed individually with iterative Lean refinement.
 """
 
 import argparse
+import json
+import os
 from collections import defaultdict
 
 from utils.prompts import load_prompt
@@ -212,6 +214,7 @@ Example usage:
     parser.add_argument('--model', default='gpt-5', help='Model to use (default: gpt-5)')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--resume', type=str, help='Path to existing results directory to resume from')
 
     # Model configuration options
     parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
@@ -258,20 +261,56 @@ Example usage:
         print("No questions found! Check your data directory and filters.")
         return
 
-    print(f"\nTesting {len(sampled_questions)} questions with {args.model}")
+    # Handle resume functionality
+    processed_keys = set()
+    if args.resume:
+        all_results_file = os.path.join(args.resume, 'all_results.json')
+        if os.path.exists(all_results_file):
+            print(f"\nResuming from: {args.resume}")
+            with open(all_results_file, 'r') as f:
+                previous_results = json.load(f)
+            # Track by (logic_type, depth_dir, rule, context, question) to identify unique questions
+            processed_keys = {
+                (r['logic_type'], r['depth_dir'], r['rule'], r['context'], r['question'])
+                for r in previous_results if 'logic_type' in r
+            }
+            print(f"Found {len(processed_keys)} already processed questions")
+        else:
+            print(f"Warning: Resume directory exists but no all_results.json found: {all_results_file}")
+
+    # Filter out already processed questions
+    remaining_questions = [
+        q for q in sampled_questions
+        if (q['logic_type'], q['depth_dir'], q['rule'], q['context'], q['question']) not in processed_keys
+    ]
+
+    print(f"\nTotal questions to test: {len(sampled_questions)}")
+    if processed_keys:
+        print(f"Already completed: {len(processed_keys)}")
+        print(f"Remaining: {len(remaining_questions)}")
     print(f"Max iterations per question: {args.max_iterations}")
     print(f"Interactive Lean verification: ENABLED\n")
 
-    saver = MultiLogiEvalLeanSaver(args.output_dir, args.prompt_name)
+    if not remaining_questions:
+        print("\nAll questions already completed!")
+        return
+
+    # Initialize saver (will resume if --resume provided)
+    if args.resume:
+        saver = MultiLogiEvalLeanSaver(args.output_dir, args.prompt_name, resume_dir=args.resume)
+    else:
+        saver = MultiLogiEvalLeanSaver(args.output_dir, args.prompt_name)
 
     results = []
     results_by_combination = defaultdict(list)
 
     try:
-        for i, sample in enumerate(sampled_questions):
+        for i, sample in enumerate(remaining_questions):
             combination_key = (sample['logic_type'], sample['depth_dir'])
+            total_index = len(processed_keys) + i + 1
+            total_count = len(sampled_questions)
 
-            print(f"\n[{i+1}/{len(sampled_questions)}] {sample['logic_type']}/{sample['depth_dir']} - {sample['rule']}")
+            print(f"\n[{total_index}/{total_count}] {sample['logic_type']}/{sample['depth_dir']} - {sample['rule']}")
 
             result = test_question_with_lean(sample, args.api_key, lean_server,
                                            system_template, user_template,
@@ -280,7 +319,7 @@ Example usage:
             results.append(result)
             results_by_combination[combination_key].append(result)
 
-            saver.save_result(result, i, len(sampled_questions))
+            saver.save_result(result, total_index - 1, total_count)
 
             if 'error' in result:
                 print(f"  ✗ Error: {result['error']}")
@@ -304,18 +343,28 @@ Example usage:
         traceback.print_exc()
 
     # Finalize and save all results
-    saver.finalize(results, results_by_combination)
+    # Load all results (including previous ones if resuming)
+    with open(saver.all_results_file, 'r') as f:
+        all_results = json.load(f)
+
+    # Rebuild results_by_combination from all results
+    all_results_by_combination = defaultdict(list)
+    for r in all_results:
+        key = (r['logic_type'], r['depth_dir'])
+        all_results_by_combination[key].append(r)
+
+    saver.finalize(all_results, all_results_by_combination)
 
     # Print final summary
-    total_questions = len([r for r in results if 'error' not in r])
+    total_questions = len([r for r in all_results if 'error' not in r])
     if total_questions > 0:
-        total_correct = sum(r['correct'] for r in results if 'error' not in r)
+        total_correct = sum(r['correct'] for r in all_results if 'error' not in r)
         overall_accuracy = total_correct / total_questions
 
         # Lean stats
-        questions_with_code = len([r for r in results if 'error' not in r and r.get('lean_code')])
-        successful_verifications = len([r for r in results if 'error' not in r and r.get('lean_verification', {}).get('success', False)])
-        total_iterations = sum(r['num_iterations'] for r in results if 'error' not in r)
+        questions_with_code = len([r for r in all_results if 'error' not in r and r.get('lean_code')])
+        successful_verifications = len([r for r in all_results if 'error' not in r and r.get('lean_verification', {}).get('success', False)])
+        total_iterations = sum(r['num_iterations'] for r in all_results if 'error' not in r)
         avg_iterations = total_iterations / total_questions
 
         print(f"\n{'='*70}")

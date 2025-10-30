@@ -5,6 +5,8 @@ Tests multiple questions per story in a single LLM call.
 """
 
 import argparse
+import json
+import os
 
 from utils.prompts import load_prompt
 from utils.answer_parsing import parse_folio_multiple_answers, normalize_answer
@@ -103,6 +105,7 @@ Example:
                         help='Number of stories to test (0 or negative = all)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
     parser.add_argument('--model', default='gpt-5', help='Model to use')
+    parser.add_argument('--resume', type=str, help='Path to existing results directory to resume from')
 
     # Model configuration options
     parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
@@ -139,23 +142,48 @@ Example:
     else:
         story_ids = list(grouped_data.keys())
 
-    print(f"\nTesting {len(story_ids)} stories with {args.model}")
+    # Handle resume functionality
+    processed_story_ids = set()
+    if args.resume:
+        all_results_file = os.path.join(args.resume, 'all_results.json')
+        if os.path.exists(all_results_file):
+            print(f"\nResuming from: {args.resume}")
+            with open(all_results_file, 'r') as f:
+                previous_results = json.load(f)
+            processed_story_ids = {r['story_id'] for r in previous_results if 'error' not in r or r.get('story_id')}
+            print(f"Found {len(processed_story_ids)} already processed stories")
+            print(f"Skipping: {sorted(processed_story_ids)}")
+        else:
+            print(f"Warning: Resume directory exists but no all_results.json found: {all_results_file}")
 
-    saver = FOLIOSaver(args.output_dir, args.prompt_name)
+    # Filter out already processed stories
+    remaining_story_ids = [sid for sid in story_ids if sid not in processed_story_ids]
+
+    print(f"\nTesting {len(remaining_story_ids)} stories with {args.model}")
+    if processed_story_ids:
+        print(f"(Skipping {len(processed_story_ids)} already completed stories)")
+
+    # Initialize saver (will resume if --resume provided)
+    if args.resume:
+        saver = FOLIOSaver(args.output_dir, args.prompt_name, resume_dir=args.resume)
+    else:
+        saver = FOLIOSaver(args.output_dir, args.prompt_name)
 
     total_questions = 0
     total_correct = 0
 
     try:
-        for i, story_id in enumerate(story_ids):
+        for i, story_id in enumerate(remaining_story_ids):
             story_examples = grouped_data[story_id]
-            print(f"\nStory {i+1}/{len(story_ids)} (ID: {story_id}): {len(story_examples)} questions")
+            total_index = len(processed_story_ids) + i + 1
+            total_stories = len(story_ids)
+            print(f"\nStory {total_index}/{total_stories} (ID: {story_id}): {len(story_examples)} questions")
 
             result = test_model_grouped(story_examples, args.api_key,
                                        system_prompt_template, user_prompt_template,
                                        args.model, model_config)
 
-            saver.save_result(result, i, len(story_ids))
+            saver.save_result(result, total_index - 1, total_stories)
 
             if 'error' in result:
                 print(f"Error: {result['error']}")

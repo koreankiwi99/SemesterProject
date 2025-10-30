@@ -5,6 +5,8 @@ Samples individual questions rather than files for balanced evaluation.
 """
 
 import argparse
+import json
+import os
 from collections import defaultdict
 
 from utils.prompts import load_prompt
@@ -14,7 +16,7 @@ from datasets.multilogieval import load_and_sample_multilogieval, build_multilog
 
 
 def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_template,
-                          model="gpt-5", model_config=None):
+                          model="gpt-5", model_config=None, saver=None):
     """Test model on sampled questions.
 
     Args:
@@ -24,6 +26,7 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
         user_prompt_template: User prompt template
         model: Model name to use
         model_config: Optional model configuration dict (temperature, reasoning_effort, etc.)
+        saver: MultiLogiEvalSaver instance for incremental saving
 
     Returns:
         tuple: (results, results_by_combination)
@@ -89,6 +92,10 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
             results.append(result)
             results_by_combination[combination_key].append(result)
 
+            # Save incrementally if saver provided
+            if saver:
+                saver.save_result(result, i - 1, len(samples))
+
             print(f"  Prediction: {prediction} | Ground Truth: {ground_truth} | {'✓' if correct else '✗'}")
 
         except Exception as e:
@@ -109,6 +116,10 @@ def test_model_on_samples(samples, api_key, system_prompt_template, user_prompt_
             }
             results.append(result)
             results_by_combination[combination_key].append(result)
+
+            # Save error incrementally if saver provided
+            if saver:
+                saver.save_result(result, i - 1, len(samples))
 
     return results, results_by_combination
 
@@ -147,6 +158,7 @@ Example usage:
                         help='Random seed for sampling (default: 42)')
     parser.add_argument('--output_dir', default='results', help='Directory to save responses')
     parser.add_argument('--model', default='gpt-5', help='Model to use')
+    parser.add_argument('--resume', type=str, help='Path to existing results directory to resume from')
 
     # Model configuration options
     parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
@@ -188,30 +200,72 @@ Example usage:
         print("No questions found! Check your data directory and filters.")
         return
 
-    # Test model on sampled questions
+    # Handle resume functionality
+    processed_keys = set()
+    if args.resume:
+        all_results_file = os.path.join(args.resume, 'all_results.json')
+        if os.path.exists(all_results_file):
+            print(f"\nResuming from: {args.resume}")
+            with open(all_results_file, 'r') as f:
+                previous_results = json.load(f)
+            # Track by (logic_type, depth_dir, rule, context, question) to identify unique questions
+            processed_keys = {
+                (r['logic_type'], r['depth_dir'], r['rule'], r['context'], r['question'])
+                for r in previous_results if 'logic_type' in r
+            }
+            print(f"Found {len(processed_keys)} already processed questions")
+        else:
+            print(f"Warning: Resume directory exists but no all_results.json found: {all_results_file}")
+
+    # Filter out already processed questions
+    remaining_questions = [
+        q for q in sampled_questions
+        if (q['logic_type'], q['depth_dir'], q['rule'], q['context'], q['question']) not in processed_keys
+    ]
+
+    print(f"\nTotal questions to test: {len(sampled_questions)}")
+    if processed_keys:
+        print(f"Already completed: {len(processed_keys)}")
+        print(f"Remaining: {len(remaining_questions)}")
+
+    if not remaining_questions:
+        print("\nAll questions already completed!")
+        return
+
+    # Initialize saver (will resume if --resume provided)
+    if args.resume:
+        saver = MultiLogiEvalSaver(args.output_dir, args.prompt_name, resume_dir=args.resume)
+    else:
+        saver = MultiLogiEvalSaver(args.output_dir, args.prompt_name)
+
+    # Test model on remaining questions
     try:
         results, results_by_combination = test_model_on_samples(
-            sampled_questions,
+            remaining_questions,
             args.api_key,
             system_prompt_template,
             user_prompt_template,
             args.model,
-            model_config
+            model_config,
+            saver  # Pass saver for incremental saving
         )
 
-        # Save results
-        saver = MultiLogiEvalSaver(args.output_dir, args.prompt_name)
-
-        # Save incremental progress
-        for i, result in enumerate(results):
-            saver.save_result(result, i, len(results))
-
         # Finalize and save summaries
-        saver.finalize(results, results_by_combination)
+        # Load all results (including previous ones if resuming)
+        with open(saver.all_results_file, 'r') as f:
+            all_results = json.load(f)
+
+        # Rebuild results_by_combination from all results
+        all_results_by_combination = defaultdict(list)
+        for r in all_results:
+            key = (r['logic_type'], r['depth_dir'])
+            all_results_by_combination[key].append(r)
+
+        saver.finalize(all_results, all_results_by_combination)
 
         # Print final summary
-        total_correct = sum(r['correct'] for r in results)
-        total_questions = len(results)
+        total_correct = sum(r['correct'] for r in all_results)
+        total_questions = len(all_results)
         if total_questions > 0:
             overall_accuracy = total_correct / total_questions
             print(f"\n{'='*70}")

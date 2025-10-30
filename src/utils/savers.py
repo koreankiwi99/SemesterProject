@@ -41,18 +41,31 @@ class BaseSaver:
 class MultiLogiEvalSaver(BaseSaver):
     """Saver for Multi-LogiEval experiment results."""
 
-    def __init__(self, output_dir="results", prompt_name="test"):
+    def __init__(self, output_dir="results", prompt_name="test", resume_dir=None):
         super().__init__(output_dir, prompt_name)
 
-        self.base_dir = f"{output_dir}/multilogieval_{prompt_name}_{self.timestamp}"
-        os.makedirs(self.base_dir, exist_ok=True)
+        if resume_dir:
+            # Resume from existing directory
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            # Create new directory
+            self.base_dir = f"{output_dir}/multilogieval_{prompt_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
 
         self.all_results_file = f"{self.base_dir}/all_results.json"
         self.summary_file = f"{self.base_dir}/summary.txt"
         self.accuracy_table_file = f"{self.base_dir}/accuracy_table.txt"
         self.progress_file = f"{self.base_dir}/progress.txt"
 
-        self._init_files()
+        if not resume_dir:
+            self._init_files()
+        else:
+            # Append resume marker to progress file
+            with open(self.progress_file, 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
 
     def _init_files(self):
         """Initialize output files."""
@@ -189,13 +202,18 @@ class MultiLogiEvalSaver(BaseSaver):
 class MultiLogiEvalLeanSaver(MultiLogiEvalSaver):
     """Saver for Multi-LogiEval experiments with Lean verification."""
 
-    def __init__(self, output_dir="results", prompt_name="lean_test"):
+    def __init__(self, output_dir="results", prompt_name="lean_test", resume_dir=None):
         # Initialize base class but don't create parent directories/files
         BaseSaver.__init__(self, output_dir, prompt_name)
 
-        # Create Lean-specific directory structure
-        self.base_dir = f"{output_dir}/multilogieval_lean_{prompt_name}_{self.timestamp}"
-        os.makedirs(self.base_dir, exist_ok=True)
+        if resume_dir:
+            # Resume from existing directory
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            # Create Lean-specific directory structure
+            self.base_dir = f"{output_dir}/multilogieval_lean_{prompt_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
 
         self.responses_dir = f"{self.base_dir}/responses"
         os.makedirs(self.responses_dir, exist_ok=True)
@@ -206,7 +224,14 @@ class MultiLogiEvalLeanSaver(MultiLogiEvalSaver):
         self.lean_stats_file = f"{self.base_dir}/lean_verification_stats.txt"
         self.progress_file = f"{self.base_dir}/progress.txt"
 
-        self._init_files()
+        if not resume_dir:
+            self._init_files()
+        else:
+            # Append resume marker to progress file
+            with open(self.progress_file, 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
 
     def _init_files(self):
         """Initialize output files."""
@@ -379,11 +404,17 @@ class MultiLogiEvalLeanSaver(MultiLogiEvalSaver):
 class FOLIOSaver(BaseSaver):
     """Saver for FOLIO experiment results."""
 
-    def __init__(self, output_dir="results", prompt_name="test"):
+    def __init__(self, output_dir="results", prompt_name="test", resume_dir=None):
         super().__init__(output_dir, prompt_name)
 
-        self.base_dir = f"{output_dir}/folio_{prompt_name}_{self.timestamp}"
-        os.makedirs(self.base_dir, exist_ok=True)
+        if resume_dir:
+            # Resume from existing directory
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            # Create new directory
+            self.base_dir = f"{output_dir}/folio_{prompt_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
 
         self.all_results_file = f"{self.base_dir}/all_results.json"
         self.responses_dir = f"{self.base_dir}/responses"
@@ -391,7 +422,15 @@ class FOLIOSaver(BaseSaver):
         self.summary_file = f"{self.base_dir}/summary.txt"
 
         os.makedirs(self.responses_dir, exist_ok=True)
-        self._init_files()
+
+        if not resume_dir:
+            self._init_files()
+        else:
+            # Append resume marker to progress file
+            with open(self.progress_file, 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
 
     def _init_files(self):
         """Initialize output files."""
@@ -496,11 +535,17 @@ class FOLIOSaver(BaseSaver):
 class FOLIOLeanSaver(BaseSaver):
     """Saver for FOLIO experiments with Lean verification."""
 
-    def __init__(self, output_dir="results", prompt_name="lean_test"):
+    def __init__(self, output_dir="results", prompt_name="lean_test", resume_dir=None):
         super().__init__(output_dir, prompt_name)
 
-        self.base_dir = f"{output_dir}/folio_lean_{prompt_name}_{self.timestamp}"
-        os.makedirs(self.base_dir, exist_ok=True)
+        if resume_dir:
+            # Resume from existing directory
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            # Create new directory
+            self.base_dir = f"{output_dir}/folio_lean_{prompt_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
 
         self.all_results_file = f"{self.base_dir}/all_results.json"
         self.responses_dir = f"{self.base_dir}/responses"
@@ -509,7 +554,15 @@ class FOLIOLeanSaver(BaseSaver):
         self.lean_stats_file = f"{self.base_dir}/lean_verification_stats.txt"
 
         os.makedirs(self.responses_dir, exist_ok=True)
-        self._init_files()
+
+        if not resume_dir:
+            self._init_files()
+        else:
+            # Append resume marker to progress file
+            with open(self.progress_file, 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
 
     def _init_files(self):
         """Initialize output files."""

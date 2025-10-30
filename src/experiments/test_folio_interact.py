@@ -5,6 +5,8 @@ Each question is processed individually with interactive Lean verification.
 """
 
 import argparse
+import json
+import os
 
 from utils.prompts import load_prompt
 from utils.answer_parsing import parse_folio_answer, normalize_answer
@@ -194,6 +196,7 @@ Example:
     parser.add_argument('--model', default='gpt-5', help='Model to use')
     parser.add_argument('--lean_version', default=None, help='Lean version (default: latest)')
     parser.add_argument('--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--resume', type=str, help='Path to existing results directory to resume from')
 
     # Model configuration options
     parser.add_argument('--temperature', type=float, help='Sampling temperature (0.0-2.0)')
@@ -236,11 +239,36 @@ Example:
     else:
         questions_to_test = all_questions
 
-    print(f"\nTesting {len(questions_to_test)} questions with {args.model}")
+    # Handle resume functionality
+    processed_questions = set()
+    if args.resume:
+        all_results_file = os.path.join(args.resume, 'all_results.json')
+        if os.path.exists(all_results_file):
+            print(f"\nResuming from: {args.resume}")
+            with open(all_results_file, 'r') as f:
+                previous_results = json.load(f)
+            # Track by (story_id, example_id) tuple
+            processed_questions = {(r['story_id'], r['example_id']) for r in previous_results
+                                  if 'story_id' in r and 'example_id' in r}
+            print(f"Found {len(processed_questions)} already processed questions")
+        else:
+            print(f"Warning: Resume directory exists but no all_results.json found: {all_results_file}")
+
+    # Filter out already processed questions
+    remaining_questions = [q for q in questions_to_test
+                          if (q.get('story_id'), q.get('example_id')) not in processed_questions]
+
+    print(f"\nTesting {len(remaining_questions)} questions with {args.model}")
+    if processed_questions:
+        print(f"(Skipping {len(processed_questions)} already completed questions)")
     print(f"Max iterations per question: {args.max_iterations}")
     print(f"Interactive Lean verification: ENABLED\n")
 
-    saver = FOLIOLeanSaver(args.output_dir, args.prompt_name)
+    # Initialize saver (will resume if --resume provided)
+    if args.resume:
+        saver = FOLIOLeanSaver(args.output_dir, args.prompt_name, resume_dir=args.resume)
+    else:
+        saver = FOLIOLeanSaver(args.output_dir, args.prompt_name)
 
     total_questions = 0
     total_correct = 0
@@ -248,15 +276,17 @@ Example:
     lean_stats = {'with_code': 0, 'successful': 0, 'failed': 0, 'avg_iterations': 0}
 
     try:
-        for i, example in enumerate(questions_to_test):
-            print(f"\nQuestion {i+1}/{len(questions_to_test)} "
+        for i, example in enumerate(remaining_questions):
+            total_index = len(processed_questions) + i + 1
+            total_count = len(questions_to_test)
+            print(f"\nQuestion {total_index}/{total_count} "
                   f"(Story: {example.get('story_id')}, ID: {example.get('example_id')})")
 
             result = test_question_with_lean(example, args.api_key, lean_server,
                                             system_template, user_template,
                                             args.model, model_config, args.max_iterations, args.verbose)
 
-            saver.save_result(result, i, len(questions_to_test))
+            saver.save_result(result, total_index - 1, total_count)
 
             if 'error' in result:
                 print(f"Error: {result['error']}")

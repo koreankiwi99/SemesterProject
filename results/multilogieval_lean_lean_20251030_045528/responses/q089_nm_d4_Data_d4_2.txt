@@ -1,0 +1,157 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d4 (d4_Data)
+Rule: d4_2
+
+Context:
+Assume books and pens are items of category Q and they both are used for writing. Usually, items of category Q used for writing are stationery. If a movie is a comedy, then it makes people laugh. If a city has good public transport, then it is convenient. Either the comedy movie does not make people laugh or the city with good public transport is not convenient. If book is stationery, then the city has good public transport.
+
+Question:
+Can we conclude if the comedy movie makes people laugh then the pen is not used for writing?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Item : Type
+axiom Movie : Type
+axiom City : Type
+
+axiom book : Item
+axiom pen : Item
+axiom movie : Movie
+axiom city : City
+
+axiom Q : Item → Prop
+axiom UsedForWriting : Item → Prop
+axiom Stationery : Item → Prop
+
+axiom Comedy : Movie → Prop
+axiom Laughs : Movie → Prop
+
+axiom GoodTransport : City → Prop
+axiom Convenient : City → Prop
+
+-- Premises: books and pens are Q and used for writing
+axiom book_Q : Q book
+axiom pen_Q : Q pen
+axiom book_used : UsedForWriting book
+axiom pen_used : UsedForWriting pen
+
+-- Usually: Q and used for writing implies stationery
+axiom usually_stationery : ∀ x : Item, Q x → UsedForWriting x → Stationery x
+
+-- If a city has good public transport, then it is convenient
+axiom city_convenient : ∀ c : City, GoodTransport c → Convenient c
+
+-- Either the comedy movie does not make people laugh or the city is not convenient
+axiom disj : (¬ Laughs movie) ∨ (¬ Convenient city)
+
+-- If book is stationery, then the city has good public transport
+axiom book_stationery_implies_GT : Stationery book → GoodTransport city
+
+-- If a movie is a comedy, then it makes people laugh (not needed for the proof)
+axiom comedy_impl_laughs : ∀ m : Movie, Comedy m → Laughs m
+
+theorem goal : (Laughs movie) → (¬ UsedForWriting pen) := by
+  intro hL
+  -- From "usually", book is stationery
+  have hStatBook : Stationery book := usually_stationery book book_Q book_used
+  -- Thus the city has good public transport
+  have hGT : GoodTransport city := book_stationery_implies_GT hStatBook
+  -- Hence the city is convenient
+  have hConv : Convenient city := city_convenient city hGT
+  -- From the disjunction and convenience, derive ¬ Laughs movie
+  have hNotLaughs : ¬ Laughs movie := by
+    intro hl
+    cases disj with
+    | inl hnL => exact hnL hl
+    | inr hnC => exact hnC hConv
+  -- Contradiction from assuming Laughs movie
+  have hFalse : False := hNotLaughs hL
+  -- Conclude ¬ UsedForWriting pen
+  intro _hPenUsed
+  exact False.elim hFalse
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Item : Type
+axiom Movie : Type
+axiom City : Type
+
+axiom book : Item
+axiom pen : Item
+axiom movie : Movie
+axiom city : City
+
+axiom Q : Item → Prop
+axiom UsedForWriting : Item → Prop
+axiom Stationery : Item → Prop
+
+axiom Comedy : Movie → Prop
+axiom Laughs : Movie → Prop
+
+axiom GoodTransport : City → Prop
+axiom Convenient : City → Prop
+
+-- Premises: books and pens are Q and used for writing
+axiom book_Q : Q book
+axiom pen_Q : Q pen
+axiom book_used : UsedForWriting book
+axiom pen_used : UsedForWriting pen
+
+-- Usually: Q and used for writing implies stationery
+axiom usually_stationery : ∀ x : Item, Q x → UsedForWriting x → Stationery x
+
+-- If a city has good public transport, then it is convenient
+axiom city_convenient : ∀ c : City, GoodTransport c → Convenient c
+
+-- Either the comedy movie does not make people laugh or the city is not convenient
+axiom disj : (¬ Laughs movie) ∨ (¬ Convenient city)
+
+-- If book is stationery, then the city has good public transport
+axiom book_stationery_implies_GT : Stationery book → GoodTransport city
+
+-- If a movie is a comedy, then it makes people laugh (not needed for the proof)
+axiom comedy_impl_laughs : ∀ m : Movie, Comedy m → Laughs m
+
+theorem goal : (Laughs movie) → (¬ UsedForWriting pen) := by
+  intro hL
+  -- From "usually", book is stationery
+  have hStatBook : Stationery book := usually_stationery book book_Q book_used
+  -- Thus the city has good public transport
+  have hGT : GoodTransport city := book_stationery_implies_GT hStatBook
+  -- Hence the city is convenient
+  have hConv : Convenient city := city_convenient city hGT
+  -- From the disjunction and convenience, derive ¬ Laughs movie
+  have hNotLaughs : ¬ Laughs movie := by
+    intro hl
+    cases disj with
+    | inl hnL => exact hnL hl
+    | inr hnC => exact hnC hConv
+  -- Contradiction from assuming Laughs movie
+  have hFalse : False := hNotLaughs hL
+  -- Conclude ¬ UsedForWriting pen
+  intro _hPenUsed
+  exact False.elim hFalse
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: Yes
+Correct: ✗ No
+Total Iterations: 1
+Final Lean: ✓ Success

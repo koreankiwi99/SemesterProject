@@ -1,0 +1,157 @@
+Story ID: 422
+Example ID: 1195
+Premises: All customers in James' family who subscribe to AMC A-List are eligible to watch three movies every week without any additional fees. 
+Some of the customers in James' family go to the cinema every week.
+Customers in James' family subscribe to AMC A-List or HBO service. 
+Customers in James' family who prefer TV series will not watch TV series in cinemas.
+All customers in James' family who subscribe to HBO services prefer TV series to movies. 
+Lily is in James' family; she watches TV series in cinemas. 
+Conclusion: If Lily does not both go to cinemas every week and subscribe to HBO service, then Lily is either available to watch 3 movies every week without any additional fees or she prefers TV more.
+
+==================================================
+Iteration 1
+==================================================
+STAGE 1: Reasoning in natural language
+
+Let’s formalize the statements with predicates over persons:
+- InFamily(x): x is in James’ family.
+- SubAMC(x): x subscribes to AMC A-List.
+- SubHBO(x): x subscribes to HBO.
+- Eligible3(x): x is eligible to watch three movies every week without additional fees.
+- GoWeekly(x): x goes to the cinema every week.
+- PreferTV(x): x prefers TV series to movies.
+- WatchTVCinema(x): x watches TV series in cinemas.
+- Lily: a specific person.
+
+Premises:
+1) ∀x, InFamily(x) ∧ SubAMC(x) → Eligible3(x).
+2) ∃x, InFamily(x) ∧ GoWeekly(x).
+3) ∀x, InFamily(x) → SubAMC(x) ∨ SubHBO(x).
+4) ∀x, InFamily(x) ∧ PreferTV(x) → ¬WatchTVCinema(x).
+5) ∀x, InFamily(x) ∧ SubHBO(x) → PreferTV(x).
+6) InFamily(Lily) and WatchTVCinema(Lily).
+
+Goal:
+¬(GoWeekly(Lily) ∧ SubHBO(Lily)) → (Eligible3(Lily) ∨ PreferTV(Lily)).
+
+Reasoning:
+
+- From (4) with x = Lily and using InFamily(Lily) from (6), we have:
+  InFamily(Lily) ∧ PreferTV(Lily) → ¬WatchTVCinema(Lily).
+  Since WatchTVCinema(Lily) holds (from (6)), by contrapositive form (WatchTVCinema → ¬(InFamily ∧ PreferTV)) and given InFamily(Lily), we get ¬PreferTV(Lily).
+
+- From (5) with x = Lily, InFamily(Lily) ∧ SubHBO(Lily) → PreferTV(Lily). But we have just shown ¬PreferTV(Lily). Therefore, we conclude ¬SubHBO(Lily) (otherwise we would derive a contradiction).
+
+- From (3) with x = Lily and InFamily(Lily), we have SubAMC(Lily) ∨ SubHBO(Lily). Together with ¬SubHBO(Lily), it follows that SubAMC(Lily).
+
+- From (1) with x = Lily and InFamily(Lily) ∧ SubAMC(Lily), we conclude Eligible3(Lily).
+
+- Hence Eligible3(Lily) ∨ PreferTV(Lily) is true regardless of the antecedent. Therefore the implication ¬(GoWeekly(Lily) ∧ SubHBO(Lily)) → (Eligible3(Lily) ∨ PreferTV(Lily)) is true.
+
+STAGE 2: Lean 4 formalization and proof
+
+<lean>
+axiom Person : Type
+axiom Lily : Person
+
+axiom InFamily : Person → Prop
+axiom SubAMC : Person → Prop
+axiom SubHBO : Person → Prop
+axiom Eligible3 : Person → Prop
+axiom GoWeekly : Person → Prop
+axiom PreferTV : Person → Prop
+axiom WatchTVCinema : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InFamily x ∧ SubAMC x → Eligible3 x
+axiom p2 : ∃ x, InFamily x ∧ GoWeekly x
+axiom p3 : ∀ x, InFamily x → SubAMC x ∨ SubHBO x
+axiom p4 : ∀ x, InFamily x ∧ PreferTV x → ¬ WatchTVCinema x
+axiom p5 : ∀ x, InFamily x ∧ SubHBO x → PreferTV x
+axiom p6a : InFamily Lily
+axiom p6b : WatchTVCinema Lily
+
+theorem goal :
+  ¬ (GoWeekly Lily ∧ SubHBO Lily) → (Eligible3 Lily ∨ PreferTV Lily) := by
+  -- Derive ¬PreferTV Lily from watching TV series in cinema and premise p4
+  have h_not_pref : ¬ PreferTV Lily := by
+    intro hpref
+    have h_not_watch : ¬ WatchTVCinema Lily := by
+      have hconj : InFamily Lily ∧ PreferTV Lily := And.intro p6a hpref
+      exact p4 Lily hconj
+    exact h_not_watch p6b
+  -- From p5 and ¬PreferTV Lily, derive ¬SubHBO Lily
+  have h_not_hbo : ¬ SubHBO Lily := by
+    intro hHBO
+    have hpref : PreferTV Lily := p5 Lily (And.intro p6a hHBO)
+    exact h_not_pref hpref
+  -- From p3 and ¬SubHBO Lily, get SubAMC Lily
+  have h_amc : SubAMC Lily := by
+    have disj : SubAMC Lily ∨ SubHBO Lily := p3 Lily p6a
+    cases disj with
+    | inl hA => exact hA
+    | inr hH => exact False.elim (h_not_hbo hH)
+  -- From p1, conclude Eligible3 Lily
+  have h_eligible : Eligible3 Lily := p1 Lily (And.intro p6a h_amc)
+  intro _
+  exact Or.inl h_eligible
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom Lily : Person
+
+axiom InFamily : Person → Prop
+axiom SubAMC : Person → Prop
+axiom SubHBO : Person → Prop
+axiom Eligible3 : Person → Prop
+axiom GoWeekly : Person → Prop
+axiom PreferTV : Person → Prop
+axiom WatchTVCinema : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InFamily x ∧ SubAMC x → Eligible3 x
+axiom p2 : ∃ x, InFamily x ∧ GoWeekly x
+axiom p3 : ∀ x, InFamily x → SubAMC x ∨ SubHBO x
+axiom p4 : ∀ x, InFamily x ∧ PreferTV x → ¬ WatchTVCinema x
+axiom p5 : ∀ x, InFamily x ∧ SubHBO x → PreferTV x
+axiom p6a : InFamily Lily
+axiom p6b : WatchTVCinema Lily
+
+theorem goal :
+  ¬ (GoWeekly Lily ∧ SubHBO Lily) → (Eligible3 Lily ∨ PreferTV Lily) := by
+  -- Derive ¬PreferTV Lily from watching TV series in cinema and premise p4
+  have h_not_pref : ¬ PreferTV Lily := by
+    intro hpref
+    have h_not_watch : ¬ WatchTVCinema Lily := by
+      have hconj : InFamily Lily ∧ PreferTV Lily := And.intro p6a hpref
+      exact p4 Lily hconj
+    exact h_not_watch p6b
+  -- From p5 and ¬PreferTV Lily, derive ¬SubHBO Lily
+  have h_not_hbo : ¬ SubHBO Lily := by
+    intro hHBO
+    have hpref : PreferTV Lily := p5 Lily (And.intro p6a hHBO)
+    exact h_not_pref hpref
+  -- From p3 and ¬SubHBO Lily, get SubAMC Lily
+  have h_amc : SubAMC Lily := by
+    have disj : SubAMC Lily ∨ SubHBO Lily := p3 Lily p6a
+    cases disj with
+    | inl hA => exact hA
+    | inr hH => exact False.elim (h_not_hbo hH)
+  -- From p1, conclude Eligible3 Lily
+  have h_eligible : Eligible3 Lily := p1 Lily (And.intro p6a h_amc)
+  intro _
+  exact Or.inl h_eligible
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

@@ -1,0 +1,149 @@
+Story ID: 406
+Example ID: 1126
+Premises: All people who regularly drink coffee are dependent on caffeine.
+People regularly drink coffee, or they don't want to be addicted to caffeine, or both.
+No one who doesn't want to be addicted to caffeine is unaware that caffeine is a drug.
+Rina is either a student who is unaware that caffeine is a drug, or she is not a student and is she aware that caffeine is a drug.
+Rina  is either a student who is dependent on caffeine, or she is not a student and not dependent on caffeine.
+Conclusion: Rina doesn't want to be addicted to caffeine or is unaware that caffeine is a drug.
+
+==================================================
+Iteration 1
+==================================================
+STAGE 1: Natural language reasoning
+
+Let the predicates be:
+- Drinks(x): x regularly drinks coffee.
+- Dep(x): x is dependent on caffeine.
+- WantsAvoid(x): x doesn't want to be addicted to caffeine.
+- Unaware(x): x is unaware that caffeine is a drug.
+- Aware(x): x is aware that caffeine is a drug.
+- Student(x): x is a student.
+
+Premises:
+1) ∀x, Drinks(x) → Dep(x).
+2) ∀x, Drinks(x) ∨ WantsAvoid(x).
+3) ∀x, WantsAvoid(x) → ¬Unaware(x).
+4) (Student(Rina) ∧ Unaware(Rina)) ∨ (¬Student(Rina) ∧ Aware(Rina)).
+5) (Student(Rina) ∧ Dep(Rina)) ∨ (¬Student(Rina) ∧ ¬Dep(Rina)).
+
+Goal: WantsAvoid(Rina) ∨ Unaware(Rina).
+
+Reasoning:
+- From premise (2) instantiated at Rina, we have Drinks(Rina) ∨ WantsAvoid(Rina).
+  - If WantsAvoid(Rina), then the goal WantsAvoid(Rina) ∨ Unaware(Rina) holds by left introduction of ∨.
+  - If Drinks(Rina), then by (1) we get Dep(Rina).
+    Using (5):
+    - Case (Student(Rina) ∧ Dep(Rina)): we get Student(Rina).
+    - Case (¬Student(Rina) ∧ ¬Dep(Rina)): this contradicts Dep(Rina), so this case is impossible.
+    Hence Student(Rina) holds.
+    Now use (4):
+    - Case (Student(Rina) ∧ Unaware(Rina)): then Unaware(Rina) holds, and thus the disjunction goal holds by right introduction of ∨.
+    - Case (¬Student(Rina) ∧ Aware(Rina)): this contradicts Student(Rina), so this case is impossible; from contradiction we can infer Unaware(Rina).
+- Therefore, in all cases, WantsAvoid(Rina) ∨ Unaware(Rina) holds.
+
+Note: We did not need premise (3) for this conclusion.
+
+STAGE 2: Lean 4 formalization and proof
+
+<lean>
+axiom Person : Type
+axiom Rina : Person
+
+axiom Drinks : Person → Prop
+axiom Dep : Person → Prop
+axiom WantsAvoid : Person → Prop
+axiom Unaware : Person → Prop
+axiom Aware : Person → Prop
+axiom Student : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, Drinks x → Dep x
+axiom P2 : ∀ x : Person, Drinks x ∨ WantsAvoid x
+axiom P3 : ∀ x : Person, WantsAvoid x → ¬ Unaware x
+axiom P4 : (Student Rina ∧ Unaware Rina) ∨ (¬ Student Rina ∧ Aware Rina)
+axiom P5 : (Student Rina ∧ Dep Rina) ∨ (¬ Student Rina ∧ ¬ Dep Rina)
+
+-- Goal: Rina doesn't want to be addicted to caffeine or is unaware that caffeine is a drug.
+theorem goal : WantsAvoid Rina ∨ Unaware Rina := by
+  have h := P2 Rina
+  cases h with
+  | inr hWants =>
+      exact Or.inl hWants
+  | inl hDrinks =>
+      have hDep : Dep Rina := P1 Rina hDrinks
+      -- Derive Student Rina from P5 and hDep
+      have hStu : Student Rina := by
+        cases P5 with
+        | inl hSD =>
+            exact hSD.left
+        | inr hNotSNotD =>
+            have : False := hNotSNotD.right hDep
+            exact False.elim this
+      -- From P4 and hStu, derive Unaware Rina
+      have hUnaware : Unaware Rina := by
+        cases P4 with
+        | inl hSU =>
+            exact hSU.right
+        | inr hNotSAware =>
+            have : False := hNotSAware.left hStu
+            exact False.elim this
+      exact Or.inr hUnaware
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom Rina : Person
+
+axiom Drinks : Person → Prop
+axiom Dep : Person → Prop
+axiom WantsAvoid : Person → Prop
+axiom Unaware : Person → Prop
+axiom Aware : Person → Prop
+axiom Student : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, Drinks x → Dep x
+axiom P2 : ∀ x : Person, Drinks x ∨ WantsAvoid x
+axiom P3 : ∀ x : Person, WantsAvoid x → ¬ Unaware x
+axiom P4 : (Student Rina ∧ Unaware Rina) ∨ (¬ Student Rina ∧ Aware Rina)
+axiom P5 : (Student Rina ∧ Dep Rina) ∨ (¬ Student Rina ∧ ¬ Dep Rina)
+
+-- Goal: Rina doesn't want to be addicted to caffeine or is unaware that caffeine is a drug.
+theorem goal : WantsAvoid Rina ∨ Unaware Rina := by
+  have h := P2 Rina
+  cases h with
+  | inr hWants =>
+      exact Or.inl hWants
+  | inl hDrinks =>
+      have hDep : Dep Rina := P1 Rina hDrinks
+      -- Derive Student Rina from P5 and hDep
+      have hStu : Student Rina := by
+        cases P5 with
+        | inl hSD =>
+            exact hSD.left
+        | inr hNotSNotD =>
+            have : False := hNotSNotD.right hDep
+            exact False.elim this
+      -- From P4 and hStu, derive Unaware Rina
+      have hUnaware : Unaware Rina := by
+        cases P4 with
+        | inl hSU =>
+            exact hSU.right
+        | inr hNotSAware =>
+            have : False := hNotSAware.left hStu
+            exact False.elim this
+      exact Or.inr hUnaware
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

@@ -1,0 +1,118 @@
+Story ID: 406
+Example ID: 1126
+Premises: All people who regularly drink coffee are dependent on caffeine.
+People regularly drink coffee, or they don't want to be addicted to caffeine, or both.
+No one who doesn't want to be addicted to caffeine is unaware that caffeine is a drug.
+Rina is either a student who is unaware that caffeine is a drug, or she is not a student and is she aware that caffeine is a drug.
+Rina  is either a student who is dependent on caffeine, or she is not a student and not dependent on caffeine.
+Conclusion: Rina doesn't want to be addicted to caffeine or is unaware that caffeine is a drug.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Person : Type
+axiom RegularlyDrinksCoffee : Person → Prop
+axiom DependentOnCaffeine : Person → Prop
+axiom AvoidsAddiction : Person → Prop
+axiom AwareCaffeineDrug : Person → Prop
+axiom Student : Person → Prop
+axiom Rina : Person
+
+-- Premises
+axiom all_coffee_dependent :
+  ∀ x : Person, RegularlyDrinksCoffee x → DependentOnCaffeine x
+axiom coffee_or_avoid :
+  ∀ x : Person, RegularlyDrinksCoffee x ∨ AvoidsAddiction x
+axiom avoid_implies_aware :
+  ∀ x : Person, AvoidsAddiction x → AwareCaffeineDrug x
+axiom rina_student_unaware_or_notstudent_aware :
+  (Student Rina ∧ ¬ AwareCaffeineDrug Rina) ∨ (¬ Student Rina ∧ AwareCaffeineDrug Rina)
+axiom rina_student_dependent_or_notstudent_notdependent :
+  (Student Rina ∧ DependentOnCaffeine Rina) ∨ (¬ Student Rina ∧ ¬ DependentOnCaffeine Rina)
+
+-- Conclusion
+theorem goal : AvoidsAddiction Rina ∨ ¬ AwareCaffeineDrug Rina := by
+  have h := coffee_or_avoid Rina
+  cases h with
+  | inl hdrink =>
+      have hdep : DependentOnCaffeine Rina := all_coffee_dependent Rina hdrink
+      -- From dependency and the Rina dichotomy, deduce Student Rina
+      have hstu : Student Rina := by
+        cases rina_student_dependent_or_notstudent_notdependent with
+        | inl hs =>
+            exact hs.left
+        | inr hns =>
+            have : False := hns.right hdep
+            exact False.elim this
+      -- Use the awareness dichotomy for Rina
+      cases rina_student_unaware_or_notstudent_aware with
+      | inl hs_unaw =>
+          exact Or.inr hs_unaw.right
+      | inr hns_aw =>
+          have hnaware : ¬ AwareCaffeineDrug Rina := by
+            intro _
+            exact hns_aw.left hstu
+          exact Or.inr hnaware
+  | inr hav =>
+      exact Or.inl hav
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom RegularlyDrinksCoffee : Person → Prop
+axiom DependentOnCaffeine : Person → Prop
+axiom AvoidsAddiction : Person → Prop
+axiom AwareCaffeineDrug : Person → Prop
+axiom Student : Person → Prop
+axiom Rina : Person
+
+-- Premises
+axiom all_coffee_dependent :
+  ∀ x : Person, RegularlyDrinksCoffee x → DependentOnCaffeine x
+axiom coffee_or_avoid :
+  ∀ x : Person, RegularlyDrinksCoffee x ∨ AvoidsAddiction x
+axiom avoid_implies_aware :
+  ∀ x : Person, AvoidsAddiction x → AwareCaffeineDrug x
+axiom rina_student_unaware_or_notstudent_aware :
+  (Student Rina ∧ ¬ AwareCaffeineDrug Rina) ∨ (¬ Student Rina ∧ AwareCaffeineDrug Rina)
+axiom rina_student_dependent_or_notstudent_notdependent :
+  (Student Rina ∧ DependentOnCaffeine Rina) ∨ (¬ Student Rina ∧ ¬ DependentOnCaffeine Rina)
+
+-- Conclusion
+theorem goal : AvoidsAddiction Rina ∨ ¬ AwareCaffeineDrug Rina := by
+  have h := coffee_or_avoid Rina
+  cases h with
+  | inl hdrink =>
+      have hdep : DependentOnCaffeine Rina := all_coffee_dependent Rina hdrink
+      -- From dependency and the Rina dichotomy, deduce Student Rina
+      have hstu : Student Rina := by
+        cases rina_student_dependent_or_notstudent_notdependent with
+        | inl hs =>
+            exact hs.left
+        | inr hns =>
+            have : False := hns.right hdep
+            exact False.elim this
+      -- Use the awareness dichotomy for Rina
+      cases rina_student_unaware_or_notstudent_aware with
+      | inl hs_unaw =>
+          exact Or.inr hs_unaw.right
+      | inr hns_aw =>
+          have hnaware : ¬ AwareCaffeineDrug Rina := by
+            intro _
+            exact hns_aw.left hstu
+          exact Or.inr hnaware
+  | inr hav =>
+      exact Or.inl hav
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

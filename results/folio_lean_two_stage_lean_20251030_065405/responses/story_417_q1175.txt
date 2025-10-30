@@ -1,0 +1,113 @@
+Story ID: 417
+Example ID: 1175
+Premises: Some monitors made by LG have a type-c port.
+Monitors that have a type-c port were not made before 2010.
+All monitors in the library are made before 2010. 
+The L-2021 monitor is either used in the library or has a type-c port.
+The L-2021 monitor is either both produced before 2010 and made by LG, or neither is true.
+Conclusion: The L-2021 monitor either has a type-c port or is produced by LG.
+
+==================================================
+Iteration 1
+==================================================
+STAGE 1: Reasoning in natural language
+
+- Domain and predicates:
+  - Domain: monitors.
+  - Predicates: LGMade(x) = x is made by LG; TypeC(x) = x has a type-c port; Before2010(x) = x was produced before 2010; InLibrary(x) = x is in the library.
+  - Constant: L = L-2021.
+
+- Premises:
+  1) ∃x, LGMade(x) ∧ TypeC(x).
+  2) ∀x, TypeC(x) → ¬Before2010(x).
+  3) ∀x, InLibrary(x) → Before2010(x).
+  4) InLibrary(L) ∨ TypeC(L).
+  5) (Before2010(L) ∧ LGMade(L)) ∨ (¬Before2010(L) ∧ ¬LGMade(L)). This says L has Before2010 and LGMade either both true or both false.
+
+- Goal: TypeC(L) ∨ LGMade(L).
+
+- Proof by cases on premise (4):
+  - Case A: InLibrary(L).
+    - By (3), Before2010(L).
+    - Consider (5). If the right disjunct held, we would have ¬Before2010(L), contradicting Before2010(L). Hence the left disjunct must hold, giving LGMade(L).
+    - Therefore TypeC(L) ∨ LGMade(L) holds by right introduction.
+  - Case B: TypeC(L).
+    - Then TypeC(L) ∨ LGMade(L) holds by left introduction.
+
+Thus, in all cases, the desired disjunction holds.
+
+STAGE 2: Lean 4 translation and proof
+
+<lean>
+axiom Monitor : Type
+axiom LGMade : Monitor → Prop
+axiom TypeC : Monitor → Prop
+axiom Before2010 : Monitor → Prop
+axiom InLibrary : Monitor → Prop
+axiom L2021 : Monitor
+
+-- Premises
+axiom someLGHasTypeC : ∃ m : Monitor, LGMade m ∧ TypeC m
+axiom typeC_not_before : ∀ m : Monitor, TypeC m → ¬ Before2010 m
+axiom library_before : ∀ m : Monitor, InLibrary m → Before2010 m
+axiom L_in_or_typeC : InLibrary L2021 ∨ TypeC L2021
+axiom L_both_or_neither :
+  (Before2010 L2021 ∧ LGMade L2021) ∨ (¬ Before2010 L2021 ∧ ¬ LGMade L2021)
+
+-- Goal: The L-2021 monitor either has a type-c port or is produced by LG.
+theorem goal : TypeC L2021 ∨ LGMade L2021 := by
+  cases L_in_or_typeC with
+  | inl hIn =>
+    have hB : Before2010 L2021 := library_before _ hIn
+    cases L_both_or_neither with
+    | inl hBoth =>
+      exact Or.inr hBoth.right
+    | inr hNeither =>
+      have contra : False := hNeither.left hB
+      exact False.elim contra
+  | inr hType =>
+    exact Or.inl hType
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+axiom Monitor : Type
+axiom LGMade : Monitor → Prop
+axiom TypeC : Monitor → Prop
+axiom Before2010 : Monitor → Prop
+axiom InLibrary : Monitor → Prop
+axiom L2021 : Monitor
+
+-- Premises
+axiom someLGHasTypeC : ∃ m : Monitor, LGMade m ∧ TypeC m
+axiom typeC_not_before : ∀ m : Monitor, TypeC m → ¬ Before2010 m
+axiom library_before : ∀ m : Monitor, InLibrary m → Before2010 m
+axiom L_in_or_typeC : InLibrary L2021 ∨ TypeC L2021
+axiom L_both_or_neither :
+  (Before2010 L2021 ∧ LGMade L2021) ∨ (¬ Before2010 L2021 ∧ ¬ LGMade L2021)
+
+-- Goal: The L-2021 monitor either has a type-c port or is produced by LG.
+theorem goal : TypeC L2021 ∨ LGMade L2021 := by
+  cases L_in_or_typeC with
+  | inl hIn =>
+    have hB : Before2010 L2021 := library_before _ hIn
+    cases L_both_or_neither with
+    | inl hBoth =>
+      exact Or.inr hBoth.right
+    | inr hNeither =>
+      have contra : False := hNeither.left hB
+      exact False.elim contra
+  | inr hType =>
+    exact Or.inl hType
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

@@ -1,0 +1,215 @@
+Story ID: 180
+Example ID: 519
+Premises: Sam is doing a project.
+A project is written either in C++ or Python.
+If Sam does a project written in Python, he will not use a Mac.
+Sam is using a Mac.
+If Sam uses a Mac, he will play a song.
+If a song is not titled "Perfect," Sam will never play it.
+Conclusion: The song Sam is playing is titled "Perfect".
+
+==================================================
+Iteration 1
+==================================================
+STAGE 1: Natural language reasoning
+
+- Let Sam be a person, projects be entities with properties “written in C++” or “written in Python,” and songs be entities with properties “Perfect” or not, and a relation “Sam plays this song.”
+- Premises:
+  1) A project is written either in C++ or Python. (forall projects p, Cpp(p) or Python(p))
+  2) If Sam does a project written in Python, he will not use a Mac. (for all p, (Does(Sam, p) and Python(p)) → ¬UsesMac(Sam))
+  3) Sam is using a Mac. (UsesMac(Sam))
+  4) If Sam uses a Mac, he will play a song. (UsesMac(Sam) → exists s, Play(Sam, s))
+  5) If a song is not titled “Perfect,” Sam will never play it. (for all s, ¬Perfect(s) → ¬Play(Sam, s))
+
+- From 3 and 4 by modus ponens, Sam plays some song s0: there exists s0 such that Play(Sam, s0).
+- From 5 instantiated at s0, if ¬Perfect(s0) then ¬Play(Sam, s0).
+- Since we have Play(Sam, s0), assuming ¬Perfect(s0) would contradict 5. By contradiction (or contrapositive), Perfect(s0) holds.
+- Therefore, there exists a song that Sam is playing and that song is titled “Perfect.” In symbols: ∃ s, Play(Sam, s) ∧ Perfect(s).
+
+- (Irrelevant but consistent extra reasoning using the programming premises: From 2 and 3, Sam cannot be doing a project in Python; with 1 and the fact he’s doing a project, his project must be in C++. This does not affect the song conclusion.)
+
+STAGE 2: Lean 4 formalization and proof
+
+<lean>
+open Classical
+
+axiom Person : Type
+axiom Project : Type
+axiom Song : Type
+
+axiom Sam : Person
+
+-- Predicates and relations
+axiom Does : Person → Project → Prop
+axiom WrittenInCpp : Project → Prop
+axiom WrittenInPython : Project → Prop
+axiom UsesMac : Person → Prop
+axiom Play : Person → Song → Prop
+axiom Perfect : Song → Prop
+
+-- Premises
+axiom Sam_does_project : ∃ p : Project, Does Sam p
+axiom project_language_either : ∀ p : Project, WrittenInCpp p ∨ WrittenInPython p
+axiom python_project_implies_not_mac : ∀ p : Project, (Does Sam p ∧ WrittenInPython p) → ¬ UsesMac Sam
+axiom sam_uses_mac : UsesMac Sam
+axiom mac_implies_plays_song : UsesMac Sam → ∃ s : Song, Play Sam s
+axiom not_perfect_never_played : ∀ s : Song, ¬ Perfect s → ¬ Play Sam s
+
+-- Target theorem: There exists a song Sam is playing that is titled "Perfect".
+theorem the_song_Sam_is_playing_is_titled_Perfect : ∃ s : Song, Play Sam s ∧ Perfect s := by
+  -- From using a Mac, Sam plays some song
+  obtain ⟨s, hs_play⟩ := mac_implies_plays_song sam_uses_mac
+  -- Show that song is Perfect
+  have hs_perf : Perfect s := by
+    by_contra hnot
+    have hnotplay : ¬ Play Sam s := not_perfect_never_played s hnot
+    exact hnotplay hs_play
+  exact ⟨s, ⟨hs_play, hs_perf⟩⟩
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+open Classical
+
+axiom Person : Type
+axiom Project : Type
+axiom Song : Type
+
+axiom Sam : Person
+
+-- Predicates and relations
+axiom Does : Person → Project → Prop
+axiom WrittenInCpp : Project → Prop
+axiom WrittenInPython : Project → Prop
+axiom UsesMac : Person → Prop
+axiom Play : Person → Song → Prop
+axiom Perfect : Song → Prop
+
+-- Premises
+axiom Sam_does_project : ∃ p : Project, Does Sam p
+axiom project_language_either : ∀ p : Project, WrittenInCpp p ∨ WrittenInPython p
+axiom python_project_implies_not_mac : ∀ p : Project, (Does Sam p ∧ WrittenInPython p) → ¬ UsesMac Sam
+axiom sam_uses_mac : UsesMac Sam
+axiom mac_implies_plays_song : UsesMac Sam → ∃ s : Song, Play Sam s
+axiom not_perfect_never_played : ∀ s : Song, ¬ Perfect s → ¬ Play Sam s
+
+-- Target theorem: There exists a song Sam is playing that is titled "Perfect".
+theorem the_song_Sam_is_playing_is_titled_Perfect : ∃ s : Song, Play Sam s ∧ Perfect s := by
+  -- From using a Mac, Sam plays some song
+  obtain ⟨s, hs_play⟩ := mac_implies_plays_song sam_uses_mac
+  -- Show that song is Perfect
+  have hs_perf : Perfect s := by
+    by_contra hnot
+    have hnotplay : ¬ Play Sam s := not_perfect_never_played s hnot
+    exact hnotplay hs_play
+  exact ⟨s, ⟨hs_play, hs_perf⟩⟩
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - unknown tactic
+  - unsolved goals
+s : Song
+hs_play : Play Sam s
+⊢ Perfect s
+  - unsolved goals
+s : Song
+hs_play : Play Sam s
+hs_perf : Perfect s
+⊢ ∃ s, Play Sam s ∧ Perfect s
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+open Classical
+
+axiom Person : Type
+axiom Project : Type
+axiom Song : Type
+
+axiom Sam : Person
+
+-- Predicates and relations
+axiom Does : Person → Project → Prop
+axiom WrittenInCpp : Project → Prop
+axiom WrittenInPython : Project → Prop
+axiom UsesMac : Person → Prop
+axiom Play : Person → Song → Prop
+axiom Perfect : Song → Prop
+
+-- Premises
+axiom Sam_does_project : ∃ p : Project, Does Sam p
+axiom project_language_either : ∀ p : Project, WrittenInCpp p ∨ WrittenInPython p
+axiom python_project_implies_not_mac : ∀ p : Project, (Does Sam p ∧ WrittenInPython p) → ¬ UsesMac Sam
+axiom sam_uses_mac : UsesMac Sam
+axiom mac_implies_plays_song : UsesMac Sam → ∃ s : Song, Play Sam s
+axiom not_perfect_never_played : ∀ s : Song, ¬ Perfect s → ¬ Play Sam s
+
+-- Target theorem: There exists a song Sam is playing that is titled "Perfect".
+theorem the_song_Sam_is_playing_is_titled_Perfect : ∃ s : Song, Play Sam s ∧ Perfect s := by
+  have hplays : ∃ s : Song, Play Sam s := mac_implies_plays_song sam_uses_mac
+  cases hplays with
+  | intro s hs_play =>
+    have hs_perf : Perfect s := by
+      classical
+      by_cases h : Perfect s
+      · exact h
+      ·
+        have hnotplay : ¬ Play Sam s := not_perfect_never_played s h
+        exact (hnotplay hs_play).elim
+    exact ⟨s, And.intro hs_play hs_perf⟩
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+open Classical
+
+axiom Person : Type
+axiom Project : Type
+axiom Song : Type
+
+axiom Sam : Person
+
+-- Predicates and relations
+axiom Does : Person → Project → Prop
+axiom WrittenInCpp : Project → Prop
+axiom WrittenInPython : Project → Prop
+axiom UsesMac : Person → Prop
+axiom Play : Person → Song → Prop
+axiom Perfect : Song → Prop
+
+-- Premises
+axiom Sam_does_project : ∃ p : Project, Does Sam p
+axiom project_language_either : ∀ p : Project, WrittenInCpp p ∨ WrittenInPython p
+axiom python_project_implies_not_mac : ∀ p : Project, (Does Sam p ∧ WrittenInPython p) → ¬ UsesMac Sam
+axiom sam_uses_mac : UsesMac Sam
+axiom mac_implies_plays_song : UsesMac Sam → ∃ s : Song, Play Sam s
+axiom not_perfect_never_played : ∀ s : Song, ¬ Perfect s → ¬ Play Sam s
+
+-- Target theorem: There exists a song Sam is playing that is titled "Perfect".
+theorem the_song_Sam_is_playing_is_titled_Perfect : ∃ s : Song, Play Sam s ∧ Perfect s := by
+  have hplays : ∃ s : Song, Play Sam s := mac_implies_plays_song sam_uses_mac
+  cases hplays with
+  | intro s hs_play =>
+    have hs_perf : Perfect s := by
+      classical
+      by_cases h : Perfect s
+      · exact h
+      ·
+        have hnotplay : ¬ Play Sam s := not_perfect_never_played s h
+        exact (hnotplay hs_play).elim
+    exact ⟨s, And.intro hs_play hs_perf⟩
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: True
+Correct: No
+Total Iterations: 2

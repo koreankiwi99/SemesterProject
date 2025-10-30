@@ -190,8 +190,10 @@ class MultiLogiEvalLeanSaver(MultiLogiEvalSaver):
     """Saver for Multi-LogiEval experiments with Lean verification."""
 
     def __init__(self, output_dir="results", prompt_name="lean_test"):
-        super().__init__(output_dir, prompt_name)
+        # Initialize base class but don't create parent directories/files
+        BaseSaver.__init__(self, output_dir, prompt_name)
 
+        # Create Lean-specific directory structure
         self.base_dir = f"{output_dir}/multilogieval_lean_{prompt_name}_{self.timestamp}"
         os.makedirs(self.base_dir, exist_ok=True)
 
@@ -380,25 +382,29 @@ class FOLIOSaver(BaseSaver):
     def __init__(self, output_dir="results", prompt_name="test"):
         super().__init__(output_dir, prompt_name)
 
-        self.detailed_file = f"{output_dir}/{prompt_name}_folio_responses_{self.timestamp}.json"
-        self.responses_dir = f"{output_dir}/{prompt_name}_responses_{self.timestamp}"
-        self.progress_file = f"{output_dir}/{prompt_name}_progress_{self.timestamp}.txt"
+        self.base_dir = f"{output_dir}/folio_{prompt_name}_{self.timestamp}"
+        os.makedirs(self.base_dir, exist_ok=True)
+
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.responses_dir = f"{self.base_dir}/responses"
+        self.progress_file = f"{self.base_dir}/progress.txt"
+        self.summary_file = f"{self.base_dir}/summary.txt"
 
         os.makedirs(self.responses_dir, exist_ok=True)
         self._init_files()
 
     def _init_files(self):
         """Initialize output files."""
-        with open(self.detailed_file, 'w') as f:
+        with open(self.all_results_file, 'w') as f:
             json.dump([], f)
 
         with open(self.progress_file, 'w') as f:
             f.write(f"FOLIO Testing - Started at {self.timestamp}\n")
-            f.write("=" * 50 + "\n")
+            f.write("=" * 70 + "\n\n")
 
     def save_result(self, result, story_index, total_stories):
         """Save a single story result."""
-        self._append_to_json(self.detailed_file, result)
+        self._append_to_json(self.all_results_file, result)
 
         if 'error' not in result:
             self._save_individual_response(result)
@@ -434,25 +440,40 @@ class FOLIOSaver(BaseSaver):
         """Update progress file."""
         try:
             with open(self.progress_file, 'a') as f:
-                f.write(f"\nStory {story_index+1}/{total_stories}: {result.get('story_id', 'unknown')}\n")
+                f.write(f"Story {story_index+1}/{total_stories}: {result.get('story_id', 'unknown')}\n")
                 if 'error' in result:
-                    f.write(f"ERROR: {result['error']}\n")
+                    f.write(f"  ERROR: {result['error']}\n")
                 else:
                     accuracy = result['story_accuracy']
                     num_questions = len(result['results'])
                     correct_count = sum(r['correct'] for r in result['results'])
-                    f.write(f"Accuracy: {correct_count}/{num_questions} ({accuracy:.2%})\n")
-                f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                    f.write(f"  Accuracy: {correct_count}/{num_questions} ({accuracy:.2%})\n")
+                f.write(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         except Exception as e:
             print(f"Warning: Could not update progress: {e}")
 
     def finalize(self, total_questions, total_correct):
         """Write final summary."""
+        # Save to summary file
+        with open(self.summary_file, 'w') as f:
+            f.write("FOLIO Evaluation Summary\n")
+            f.write("=" * 70 + "\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            if total_questions > 0:
+                overall_accuracy = total_correct / total_questions
+                f.write(f"Total Questions: {total_questions}\n")
+                f.write(f"Total Correct: {total_correct}\n")
+                f.write(f"Overall Accuracy: {overall_accuracy:.2%}\n")
+            else:
+                f.write("No questions completed successfully.\n")
+
+        # Also update progress file
         try:
             with open(self.progress_file, 'a') as f:
-                f.write("\n" + "=" * 50 + "\n")
+                f.write("=" * 70 + "\n")
                 f.write("FINAL RESULTS\n")
-                f.write("=" * 50 + "\n")
+                f.write("=" * 70 + "\n")
                 if total_questions > 0:
                     overall_accuracy = total_correct / total_questions
                     f.write(f"Overall accuracy: {total_correct}/{total_questions} ({overall_accuracy:.2%})\n")
@@ -462,9 +483,14 @@ class FOLIOSaver(BaseSaver):
         except Exception as e:
             print(f"Warning: Could not finalize progress: {e}")
 
-        print(f"\nAll results saved to: {self.detailed_file}")
-        print(f"Individual responses in: {self.responses_dir}/")
-        print(f"Progress log: {self.progress_file}")
+        print(f"\n{'='*70}")
+        print("Results saved:")
+        print(f"{'='*70}")
+        print(f"All results:    {self.all_results_file}")
+        print(f"Summary:        {self.summary_file}")
+        print(f"Progress log:   {self.progress_file}")
+        print(f"Responses:      {self.responses_dir}/")
+        print(f"{'='*70}")
 
 
 class FOLIOLeanSaver(BaseSaver):
@@ -473,26 +499,30 @@ class FOLIOLeanSaver(BaseSaver):
     def __init__(self, output_dir="results", prompt_name="lean_test"):
         super().__init__(output_dir, prompt_name)
 
-        self.detailed_file = f"{output_dir}/{prompt_name}_folio_lean_{self.timestamp}.json"
-        self.responses_dir = f"{output_dir}/{prompt_name}_lean_responses_{self.timestamp}"
-        self.progress_file = f"{output_dir}/{prompt_name}_lean_progress_{self.timestamp}.txt"
-        self.lean_stats_file = f"{output_dir}/{prompt_name}_lean_stats_{self.timestamp}.txt"
+        self.base_dir = f"{output_dir}/folio_lean_{prompt_name}_{self.timestamp}"
+        os.makedirs(self.base_dir, exist_ok=True)
+
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.responses_dir = f"{self.base_dir}/responses"
+        self.progress_file = f"{self.base_dir}/progress.txt"
+        self.summary_file = f"{self.base_dir}/summary.txt"
+        self.lean_stats_file = f"{self.base_dir}/lean_verification_stats.txt"
 
         os.makedirs(self.responses_dir, exist_ok=True)
         self._init_files()
 
     def _init_files(self):
         """Initialize output files."""
-        with open(self.detailed_file, 'w') as f:
+        with open(self.all_results_file, 'w') as f:
             json.dump([], f)
 
         with open(self.progress_file, 'w') as f:
             f.write(f"FOLIO + Lean - Started at {self.timestamp}\n")
-            f.write("=" * 50 + "\n")
+            f.write("=" * 70 + "\n\n")
 
     def save_result(self, result, question_index, total_questions):
         """Save a single question result."""
-        self._append_to_json(self.detailed_file, result)
+        self._append_to_json(self.all_results_file, result)
 
         if 'error' not in result:
             self._save_individual_response(result)
@@ -553,33 +583,57 @@ class FOLIOLeanSaver(BaseSaver):
         """Update progress file."""
         try:
             with open(self.progress_file, 'a') as f:
-                f.write(f"\nQuestion {question_index+1}/{total_questions}\n")
-                f.write(f"Story: {result.get('story_id')}, Example: {result.get('example_id')}\n")
+                f.write(f"Question {question_index+1}/{total_questions}\n")
+                f.write(f"  Story: {result.get('story_id')}, Example: {result.get('example_id')}\n")
 
                 if 'error' in result:
-                    f.write(f"ERROR: {result['error']}\n")
+                    f.write(f"  ERROR: {result['error']}\n")
                 else:
-                    f.write(f"Result: {result['ground_truth']} → {result['prediction']} "
+                    f.write(f"  Result: {result['ground_truth']} → {result['prediction']} "
                            f"{'✓' if result['correct'] else '✗'}\n")
-                    f.write(f"Iterations: {result['num_iterations']}\n")
+                    f.write(f"  Iterations: {result['num_iterations']}\n")
 
                     if result.get('lean_verification'):
                         lean_success = result['lean_verification']['success']
-                        f.write(f"Lean: {'Success' if lean_success else 'Failed'}\n")
+                        f.write(f"  Lean: {'Success' if lean_success else 'Failed'}\n")
                     elif result.get('lean_code') is None:
-                        f.write("Lean: No code found\n")
+                        f.write("  Lean: No code found\n")
 
-                f.write(f"Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+                f.write(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
         except Exception as e:
             print(f"Warning: Could not update progress: {e}")
 
     def finalize(self, total_questions, total_correct, lean_stats):
         """Write final summary."""
+        # Save to summary file
+        with open(self.summary_file, 'w') as f:
+            f.write("FOLIO + Lean Evaluation Summary\n")
+            f.write("=" * 70 + "\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            if total_questions > 0:
+                overall_accuracy = total_correct / total_questions
+                f.write(f"Total Questions: {total_questions}\n")
+                f.write(f"Total Correct: {total_correct}\n")
+                f.write(f"Overall Accuracy: {overall_accuracy:.2%}\n\n")
+            else:
+                f.write("No questions completed successfully.\n\n")
+
+            f.write("Lean Verification Stats:\n")
+            f.write(f"  Questions with Lean code: {lean_stats['with_code']}\n")
+            f.write(f"  Successful verifications: {lean_stats['successful']}\n")
+            f.write(f"  Failed verifications: {lean_stats['failed']}\n")
+            f.write(f"  Average iterations: {lean_stats['avg_iterations']:.2f}\n")
+            if lean_stats['with_code'] > 0:
+                verification_rate = lean_stats['successful'] / lean_stats['with_code']
+                f.write(f"  Verification success rate: {verification_rate:.2%}\n")
+
+        # Also update progress file
         try:
             with open(self.progress_file, 'a') as f:
-                f.write("\n" + "=" * 50 + "\n")
+                f.write("=" * 70 + "\n")
                 f.write("FINAL RESULTS\n")
-                f.write("=" * 50 + "\n")
+                f.write("=" * 70 + "\n")
                 if total_questions > 0:
                     overall_accuracy = total_correct / total_questions
                     f.write(f"Overall accuracy: {total_correct}/{total_questions} ({overall_accuracy:.2%})\n")
@@ -602,16 +656,21 @@ class FOLIOLeanSaver(BaseSaver):
         # Save detailed Lean stats
         self._save_lean_stats(lean_stats)
 
-        print(f"\nAll results saved to: {self.detailed_file}")
-        print(f"Individual responses in: {self.responses_dir}/")
-        print(f"Progress log: {self.progress_file}")
-        print(f"Lean stats: {self.lean_stats_file}")
+        print(f"\n{'='*70}")
+        print("Results saved:")
+        print(f"{'='*70}")
+        print(f"All results:    {self.all_results_file}")
+        print(f"Summary:        {self.summary_file}")
+        print(f"Lean stats:     {self.lean_stats_file}")
+        print(f"Progress log:   {self.progress_file}")
+        print(f"Responses:      {self.responses_dir}/")
+        print(f"{'='*70}")
 
     def _save_lean_stats(self, lean_stats):
         """Save detailed Lean statistics."""
         with open(self.lean_stats_file, 'w') as f:
             f.write("Lean Verification Statistics\n")
-            f.write("=" * 50 + "\n\n")
+            f.write("=" * 70 + "\n\n")
 
             f.write(f"Questions with Lean code: {lean_stats['with_code']}\n")
             f.write(f"Successful verifications: {lean_stats['successful']}\n")

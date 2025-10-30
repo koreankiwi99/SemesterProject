@@ -1,0 +1,322 @@
+Story ID: 422
+Example ID: 1193
+Premises: All customers in James' family who subscribe to AMC A-List are eligible to watch three movies every week without any additional fees. 
+Some of the customers in James' family go to the cinema every week.
+Customers in James' family subscribe to AMC A-List or HBO service. 
+Customers in James' family who prefer TV series will not watch TV series in cinemas.
+All customers in James' family who subscribe to HBO services prefer TV series to movies. 
+Lily is in James' family; she watches TV series in cinemas. 
+Conclusion: Lily does not go to cinemas every week.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+
+-- Entities
+axiom Customer : Type u
+axiom Lily : Customer
+
+-- Predicates
+axiom InFamily : Customer → Prop
+axiom SubAMC : Customer → Prop
+axiom SubHBO : Customer → Prop
+axiom PreferTV : Customer → Prop
+axiom WatchTVInCinema : Customer → Prop
+axiom GoEveryWeek : Customer → Prop
+axiom Eligible3MoviesWeekly : Customer → Prop
+
+-- Premises translated from the text
+-- 1. Family ∧ AMC ⇒ eligible to watch three movies every week without additional fees
+axiom all_amc_eligible :
+  ∀ x : Customer, InFamily x ∧ SubAMC x → Eligible3MoviesWeekly x
+
+-- 2. Some family customer goes to the cinema every week
+axiom some_go_every_week :
+  ∃ x : Customer, InFamily x ∧ GoEveryWeek x
+
+-- 3. Every family customer subscribes to AMC or HBO
+axiom all_family_amc_or_hbo :
+  ∀ x : Customer, InFamily x → SubAMC x ∨ SubHBO x
+
+-- 4. Family ∧ Prefer TV ⇒ does not watch TV series in cinemas
+axiom prefer_tv_not_watch_in_cinema :
+  ∀ x : Customer, InFamily x ∧ PreferTV x → ¬ WatchTVInCinema x
+
+-- 5. Family ∧ HBO ⇒ Prefer TV
+axiom hbo_implies_prefer_tv :
+  ∀ x : Customer, InFamily x ∧ SubHBO x → PreferTV x
+
+-- 6. Lily is in the family and she watches TV series in cinemas
+axiom Lily_facts :
+  InFamily Lily ∧ WatchTVInCinema Lily
+
+-- Useful derived consequences
+
+theorem Lily_not_prefer_tv : ¬ PreferTV Lily := by
+  intro hpref
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hnotwatch : ¬ WatchTVInCinema Lily :=
+    prefer_tv_not_watch_in_cinema Lily ⟨hfam, hpref⟩
+  exact hnotwatch (And.right Lily_facts)
+
+theorem Lily_not_HBO : ¬ SubHBO Lily := by
+  intro hHBO
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hpref : PreferTV Lily := hbo_implies_prefer_tv Lily ⟨hfam, hHBO⟩
+  exact Lily_not_prefer_tv hpref
+
+theorem Lily_AMC : SubAMC Lily := by
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hdisj : SubAMC Lily ∨ SubHBO Lily := all_family_amc_or_hbo Lily hfam
+  have nhbo : ¬ SubHBO Lily := Lily_not_HBO
+  cases hdisj with
+  | inl h => exact h
+  | inr h => exact False.elim (nhbo h)
+
+/-
+Target claim to try to prove:
+Lily does not go to cinemas every week: ¬ GoEveryWeek Lily.
+
+From the given premises, there is no information linking SubAMC or the other facts
+to Lily's weekly cinema attendance, so this statement (and its negation) is not derivable.
+-/
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+universe u
+
+-- Entities
+axiom Customer : Type u
+axiom Lily : Customer
+
+-- Predicates
+axiom InFamily : Customer → Prop
+axiom SubAMC : Customer → Prop
+axiom SubHBO : Customer → Prop
+axiom PreferTV : Customer → Prop
+axiom WatchTVInCinema : Customer → Prop
+axiom GoEveryWeek : Customer → Prop
+axiom Eligible3MoviesWeekly : Customer → Prop
+
+-- Premises translated from the text
+-- 1. Family ∧ AMC ⇒ eligible to watch three movies every week without additional fees
+axiom all_amc_eligible :
+  ∀ x : Customer, InFamily x ∧ SubAMC x → Eligible3MoviesWeekly x
+
+-- 2. Some family customer goes to the cinema every week
+axiom some_go_every_week :
+  ∃ x : Customer, InFamily x ∧ GoEveryWeek x
+
+-- 3. Every family customer subscribes to AMC or HBO
+axiom all_family_amc_or_hbo :
+  ∀ x : Customer, InFamily x → SubAMC x ∨ SubHBO x
+
+-- 4. Family ∧ Prefer TV ⇒ does not watch TV series in cinemas
+axiom prefer_tv_not_watch_in_cinema :
+  ∀ x : Customer, InFamily x ∧ PreferTV x → ¬ WatchTVInCinema x
+
+-- 5. Family ∧ HBO ⇒ Prefer TV
+axiom hbo_implies_prefer_tv :
+  ∀ x : Customer, InFamily x ∧ SubHBO x → PreferTV x
+
+-- 6. Lily is in the family and she watches TV series in cinemas
+axiom Lily_facts :
+  InFamily Lily ∧ WatchTVInCinema Lily
+
+-- Useful derived consequences
+
+theorem Lily_not_prefer_tv : ¬ PreferTV Lily := by
+  intro hpref
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hnotwatch : ¬ WatchTVInCinema Lily :=
+    prefer_tv_not_watch_in_cinema Lily ⟨hfam, hpref⟩
+  exact hnotwatch (And.right Lily_facts)
+
+theorem Lily_not_HBO : ¬ SubHBO Lily := by
+  intro hHBO
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hpref : PreferTV Lily := hbo_implies_prefer_tv Lily ⟨hfam, hHBO⟩
+  exact Lily_not_prefer_tv hpref
+
+theorem Lily_AMC : SubAMC Lily := by
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hdisj : SubAMC Lily ∨ SubHBO Lily := all_family_amc_or_hbo Lily hfam
+  have nhbo : ¬ SubHBO Lily := Lily_not_HBO
+  cases hdisj with
+  | inl h => exact h
+  | inr h => exact False.elim (nhbo h)
+
+/-
+Target claim to try to prove:
+Lily does not go to cinemas every week: ¬ GoEveryWeek Lily.
+
+From the given premises, there is no information linking SubAMC or the other facts
+to Lily's weekly cinema attendance, so this statement (and its negation) is not derivable.
+-/
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - declaration `Lily_not_prefer_tv` contains universe level metavariables at the expression
+  WatchTVInCinema.{?u.100} Lily.{?u.100}
+in the declaration body
+  fun hpref =>
+    have hfam := Lily_facts.{u_1, ?u.100}.left;
+    have hnotwatch := prefer_tv_not_watch_in_cinema Lily ⟨hfam, hpref⟩;
+    hnotwatch Lily_facts.{?u.131, u_1}.right
+  - declaration `Lily_not_HBO` contains universe level metavariables at the expression
+  WatchTVInCinema.{?u.147} Lily.{?u.147}
+in the declaration body
+  fun hHBO =>
+    have hfam := Lily_facts.{u_1, ?u.147}.left;
+    have hpref := hbo_implies_prefer_tv Lily ⟨hfam, hHBO⟩;
+    Lily_not_prefer_tv hpref
+  - declaration `Lily_AMC` contains universe level metavariables at the expression
+  WatchTVInCinema.{?u.187} Lily.{?u.187}
+in the declaration body
+  have hfam := Lily_facts.{u_1, ?u.187}.left;
+  have hdisj := all_family_amc_or_hbo Lily hfam;
+  have nhbo := Lily_not_HBO;
+  Or.casesOn (motive := fun t => hdisj = t → SubAMC Lily) hdisj (fun h h_1 => h) (fun h h_1 => False.elim (nhbo h))
+    (Eq.refl hdisj)
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+-- Entities
+axiom Customer : Type
+axiom Lily : Customer
+
+-- Predicates
+axiom InFamily : Customer → Prop
+axiom SubAMC : Customer → Prop
+axiom SubHBO : Customer → Prop
+axiom PreferTV : Customer → Prop
+axiom WatchTVInCinema : Customer → Prop
+axiom GoEveryWeek : Customer → Prop
+axiom Eligible3MoviesWeekly : Customer → Prop
+
+-- Premises translated from the text
+-- 1. Family ∧ AMC ⇒ eligible to watch three movies every week without additional fees
+axiom all_amc_eligible :
+  ∀ x : Customer, InFamily x ∧ SubAMC x → Eligible3MoviesWeekly x
+
+-- 2. Some family customer goes to the cinema every week
+axiom some_go_every_week :
+  ∃ x : Customer, InFamily x ∧ GoEveryWeek x
+
+-- 3. Every family customer subscribes to AMC or HBO
+axiom all_family_amc_or_hbo :
+  ∀ x : Customer, InFamily x → SubAMC x ∨ SubHBO x
+
+-- 4. Family ∧ Prefer TV ⇒ does not watch TV series in cinemas
+axiom prefer_tv_not_watch_in_cinema :
+  ∀ x : Customer, InFamily x ∧ PreferTV x → ¬ WatchTVInCinema x
+
+-- 5. Family ∧ HBO ⇒ Prefer TV
+axiom hbo_implies_prefer_tv :
+  ∀ x : Customer, InFamily x ∧ SubHBO x → PreferTV x
+
+-- 6. Lily is in the family and she watches TV series in cinemas
+axiom Lily_facts :
+  InFamily Lily ∧ WatchTVInCinema Lily
+
+-- Derived consequences
+theorem Lily_not_prefer_tv : ¬ PreferTV Lily := by
+  intro hpref
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hnotwatch : ¬ WatchTVInCinema Lily :=
+    prefer_tv_not_watch_in_cinema Lily ⟨hfam, hpref⟩
+  exact hnotwatch (And.right Lily_facts)
+
+theorem Lily_not_HBO : ¬ SubHBO Lily := by
+  intro hHBO
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hpref : PreferTV Lily := hbo_implies_prefer_tv Lily ⟨hfam, hHBO⟩
+  exact Lily_not_prefer_tv hpref
+
+theorem Lily_AMC : SubAMC Lily := by
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hdisj : SubAMC Lily ∨ SubHBO Lily := all_family_amc_or_hbo Lily hfam
+  exact hdisj.elim (fun h => h) (fun h => False.elim (Lily_not_HBO h))
+
+-- There is no information connecting these premises to whether Lily goes every week,
+-- so ¬ GoEveryWeek Lily is not derivable here.
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+-- Entities
+axiom Customer : Type
+axiom Lily : Customer
+
+-- Predicates
+axiom InFamily : Customer → Prop
+axiom SubAMC : Customer → Prop
+axiom SubHBO : Customer → Prop
+axiom PreferTV : Customer → Prop
+axiom WatchTVInCinema : Customer → Prop
+axiom GoEveryWeek : Customer → Prop
+axiom Eligible3MoviesWeekly : Customer → Prop
+
+-- Premises translated from the text
+-- 1. Family ∧ AMC ⇒ eligible to watch three movies every week without additional fees
+axiom all_amc_eligible :
+  ∀ x : Customer, InFamily x ∧ SubAMC x → Eligible3MoviesWeekly x
+
+-- 2. Some family customer goes to the cinema every week
+axiom some_go_every_week :
+  ∃ x : Customer, InFamily x ∧ GoEveryWeek x
+
+-- 3. Every family customer subscribes to AMC or HBO
+axiom all_family_amc_or_hbo :
+  ∀ x : Customer, InFamily x → SubAMC x ∨ SubHBO x
+
+-- 4. Family ∧ Prefer TV ⇒ does not watch TV series in cinemas
+axiom prefer_tv_not_watch_in_cinema :
+  ∀ x : Customer, InFamily x ∧ PreferTV x → ¬ WatchTVInCinema x
+
+-- 5. Family ∧ HBO ⇒ Prefer TV
+axiom hbo_implies_prefer_tv :
+  ∀ x : Customer, InFamily x ∧ SubHBO x → PreferTV x
+
+-- 6. Lily is in the family and she watches TV series in cinemas
+axiom Lily_facts :
+  InFamily Lily ∧ WatchTVInCinema Lily
+
+-- Derived consequences
+theorem Lily_not_prefer_tv : ¬ PreferTV Lily := by
+  intro hpref
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hnotwatch : ¬ WatchTVInCinema Lily :=
+    prefer_tv_not_watch_in_cinema Lily ⟨hfam, hpref⟩
+  exact hnotwatch (And.right Lily_facts)
+
+theorem Lily_not_HBO : ¬ SubHBO Lily := by
+  intro hHBO
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hpref : PreferTV Lily := hbo_implies_prefer_tv Lily ⟨hfam, hHBO⟩
+  exact Lily_not_prefer_tv hpref
+
+theorem Lily_AMC : SubAMC Lily := by
+  have hfam : InFamily Lily := And.left Lily_facts
+  have hdisj : SubAMC Lily ∨ SubHBO Lily := all_family_amc_or_hbo Lily hfam
+  exact hdisj.elim (fun h => h) (fun h => False.elim (Lily_not_HBO h))
+
+-- There is no information connecting these premises to whether Lily goes every week,
+-- so ¬ GoEveryWeek Lily is not derivable here.
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+Total Iterations: 2

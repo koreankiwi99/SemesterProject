@@ -1,0 +1,117 @@
+Story ID: 377
+Example ID: 1006
+Premises: Everything is either outside the solar system or in the solar system. 
+Nothing outside the solar system has the Sun as its star.
+Everything in the solar system is gravitationally bound by the Sun.
+No planets gravitationally bound by the Sun are rogue planets. 
+All orphan planets are rogue planets.
+If PSO J318.5−22 is not both a rogue planet and a planet gravitationally bound by the Sun, then it is a rogue planet.
+Conclusion: PSO J318.5−22 is an orphan planet or it does not have the Sun as its star, or both.
+
+==================================================
+Iteration 1
+==================================================
+STAGE 1: Natural language reasoning
+
+Let PSO denote PSO J318.5−22.
+
+Premises:
+- For any x, either x is outside the solar system or x is in the solar system. (Exhaustivity)
+- For any x, if x is outside the solar system, then x does not have the Sun as its star.
+- For any x, if x is in the solar system, then x is gravitationally bound by the Sun.
+- For any x, if x is a planet gravitationally bound by the Sun, then x is not a rogue planet. (No bound planets are rogue)
+- For any x, if x is an orphan planet, then x is a rogue planet.
+- If PSO is not both a rogue planet and a planet gravitationally bound by the Sun, then PSO is a rogue planet.
+- PSO is an orphan planet or PSO does not have the Sun as its star (or both).
+
+Goal: Show PSO is a rogue planet.
+
+Reasoning:
+1) From the universal premise “no planets gravitationally bound by the Sun are rogue,” instantiate at PSO: if Planet(PSO) ∧ BoundBySun(PSO), then ¬Rogue(PSO).
+2) Suppose for contradiction that Rogue(PSO) ∧ (Planet(PSO) ∧ BoundBySun(PSO)) holds. From the right conjunct we get Planet(PSO) ∧ BoundBySun(PSO), which by step (1) implies ¬Rogue(PSO). This contradicts Rogue(PSO) from the left conjunct. Hence ¬(Rogue(PSO) ∧ (Planet(PSO) ∧ BoundBySun(PSO))) holds. (Proof by contradiction, deriving a negated conjunction.)
+3) Apply modus ponens to the conditional “If PSO is not both a rogue planet and a planet gravitationally bound by the Sun, then PSO is a rogue planet” using the antecedent established in (2). Conclude Rogue(PSO).
+4) Note: The disjunction “PSO is an orphan planet or it does not have the Sun as its star” is not needed for this conclusion. Even without it, steps (1)–(3) suffice to prove PSO is a rogue planet. Alternatively, if PSO is an orphan planet, we also get Rogue(PSO) directly from the “all orphan planets are rogue planets” premise.
+
+Conclusion: PSO J318.5−22 is a rogue planet.
+
+STAGE 2: Lean 4 translation and proof
+
+<lean>
+axiom Obj : Type
+axiom PSO : Obj
+
+axiom Outside : Obj → Prop
+axiom InSS : Obj → Prop
+axiom HasSunAsStar : Obj → Prop
+axiom BoundBySun : Obj → Prop
+axiom Planet : Obj → Prop
+axiom Rogue : Obj → Prop
+axiom Orphan : Obj → Prop
+
+-- Premises
+axiom all_outside_or_in : ∀ x : Obj, Outside x ∨ InSS x
+axiom nothing_outside_has_sun : ∀ x : Obj, Outside x → ¬ HasSunAsStar x
+axiom all_in_bound_by_sun : ∀ x : Obj, InSS x → BoundBySun x
+axiom no_bound_planets_are_rogue : ∀ x : Obj, (Planet x ∧ BoundBySun x) → ¬ Rogue x
+axiom all_orphans_rogue : ∀ x : Obj, Orphan x → Rogue x
+axiom if_not_both_then_rogue :
+  ¬ (Rogue PSO ∧ (Planet PSO ∧ BoundBySun PSO)) → Rogue PSO
+axiom pso_orphan_or_not_has_sun : Orphan PSO ∨ ¬ HasSunAsStar PSO
+
+theorem goal : Rogue PSO := by
+  -- Show the antecedent of the conditional
+  have h_not_both : ¬ (Rogue PSO ∧ (Planet PSO ∧ BoundBySun PSO)) := by
+    intro h
+    have hR : Rogue PSO := h.left
+    have hPB : Planet PSO ∧ BoundBySun PSO := h.right
+    have hNotR : ¬ Rogue PSO := no_bound_planets_are_rogue PSO hPB
+    exact hNotR hR
+  -- Apply the given conditional
+  exact if_not_both_then_rogue h_not_both
+</lean>
+
+ANSWER: True
+
+--- Lean Code ---
+axiom Obj : Type
+axiom PSO : Obj
+
+axiom Outside : Obj → Prop
+axiom InSS : Obj → Prop
+axiom HasSunAsStar : Obj → Prop
+axiom BoundBySun : Obj → Prop
+axiom Planet : Obj → Prop
+axiom Rogue : Obj → Prop
+axiom Orphan : Obj → Prop
+
+-- Premises
+axiom all_outside_or_in : ∀ x : Obj, Outside x ∨ InSS x
+axiom nothing_outside_has_sun : ∀ x : Obj, Outside x → ¬ HasSunAsStar x
+axiom all_in_bound_by_sun : ∀ x : Obj, InSS x → BoundBySun x
+axiom no_bound_planets_are_rogue : ∀ x : Obj, (Planet x ∧ BoundBySun x) → ¬ Rogue x
+axiom all_orphans_rogue : ∀ x : Obj, Orphan x → Rogue x
+axiom if_not_both_then_rogue :
+  ¬ (Rogue PSO ∧ (Planet PSO ∧ BoundBySun PSO)) → Rogue PSO
+axiom pso_orphan_or_not_has_sun : Orphan PSO ∨ ¬ HasSunAsStar PSO
+
+theorem goal : Rogue PSO := by
+  -- Show the antecedent of the conditional
+  have h_not_both : ¬ (Rogue PSO ∧ (Planet PSO ∧ BoundBySun PSO)) := by
+    intro h
+    have hR : Rogue PSO := h.left
+    have hPB : Planet PSO ∧ BoundBySun PSO := h.right
+    have hNotR : ¬ Rogue PSO := no_bound_planets_are_rogue PSO hPB
+    exact hNotR hR
+  -- Apply the given conditional
+  exact if_not_both_then_rogue h_not_both
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

@@ -1,5 +1,7 @@
 # Reverse Curriculum Learning for Multi-Step Logical Reasoning with Lean 4
 
+- https://alexzhang13.github.io/blog/2025/rlm/
+
 ## Project Overview
 
 This project applies reverse curriculum learning to logical reasoning training, starting with complex multi-step problems and progressively simplifying, using Lean 4 verification as objective gating criteria. This approach addresses the fundamental problem of performance degradation in LLMs as reasoning depth increases.

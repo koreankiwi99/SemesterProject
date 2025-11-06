@@ -1,0 +1,121 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d5 (d5_Data)
+Rule: CD_C_DS_MP_MP
+
+Context:
+If the farmer's market has ripe, juicy peaches, someone will bake a peach pie. Also, if someone won a baking contest, they'll celebrate with friends and family. Either peaches are in season, or someone won a contest, or perhaps both. If someone bakes a pie, the house will smell amazing. And if the house smells amazing, it feels like a homey, cozy place to relax.
+
+Question:
+If James did not celebrate with friends and family, then did the house feel homey and cozy?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom RipePeaches : Prop
+axiom BakesPie : Person → Prop
+axiom WonContest : Person → Prop
+axiom Celebrate : Person → Prop
+axiom HouseSmellsAmazing : Prop
+axiom Cozy : Prop
+
+-- Premises
+axiom P1 : RipePeaches → ∃ p : Person, BakesPie p
+axiom P2 : ∀ p : Person, WonContest p → Celebrate p
+axiom P3 : RipePeaches ∨ ∃ p : Person, WonContest p
+axiom P4 : ∀ p : Person, BakesPie p → HouseSmellsAmazing
+axiom P5 : HouseSmellsAmazing → Cozy
+
+-- Derived results
+theorem ripe_peaches_imply_cozy : RipePeaches → Cozy := by
+  intro rp
+  have exb : ∃ p, BakesPie p := P1 rp
+  have hsmell : HouseSmellsAmazing := by
+    cases exb with
+    | intro b hb =>
+      exact P4 b hb
+  exact P5 hsmell
+
+theorem cozy_if_no_one_won : (¬ ∃ p : Person, WonContest p) → Cozy := by
+  intro hnone
+  have rp : RipePeaches := by
+    cases P3 with
+    | inl rp => exact rp
+    | inr hex =>
+      have : False := hnone hex
+      exact False.elim this
+  exact ripe_peaches_imply_cozy rp
+
+theorem not_won_of_not_celebrate : ¬ Celebrate James → ¬ WonContest James := by
+  intro nc wj
+  have cj : Celebrate James := P2 James wj
+  exact nc cj
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom James : Person
+
+axiom RipePeaches : Prop
+axiom BakesPie : Person → Prop
+axiom WonContest : Person → Prop
+axiom Celebrate : Person → Prop
+axiom HouseSmellsAmazing : Prop
+axiom Cozy : Prop
+
+-- Premises
+axiom P1 : RipePeaches → ∃ p : Person, BakesPie p
+axiom P2 : ∀ p : Person, WonContest p → Celebrate p
+axiom P3 : RipePeaches ∨ ∃ p : Person, WonContest p
+axiom P4 : ∀ p : Person, BakesPie p → HouseSmellsAmazing
+axiom P5 : HouseSmellsAmazing → Cozy
+
+-- Derived results
+theorem ripe_peaches_imply_cozy : RipePeaches → Cozy := by
+  intro rp
+  have exb : ∃ p, BakesPie p := P1 rp
+  have hsmell : HouseSmellsAmazing := by
+    cases exb with
+    | intro b hb =>
+      exact P4 b hb
+  exact P5 hsmell
+
+theorem cozy_if_no_one_won : (¬ ∃ p : Person, WonContest p) → Cozy := by
+  intro hnone
+  have rp : RipePeaches := by
+    cases P3 with
+    | inl rp => exact rp
+    | inr hex =>
+      have : False := hnone hex
+      exact False.elim this
+  exact ripe_peaches_imply_cozy rp
+
+theorem not_won_of_not_celebrate : ¬ Celebrate James → ¬ WonContest James := by
+  intro nc wj
+  have cj : Celebrate James := P2 James wj
+  exact nc cj
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: No
+Correct: ✗ No
+Total Iterations: 1
+Final Lean: ✓ Success

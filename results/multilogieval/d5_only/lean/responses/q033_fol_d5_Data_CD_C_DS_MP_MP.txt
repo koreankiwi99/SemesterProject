@@ -1,0 +1,127 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d5 (d5_Data)
+Rule: CD_C_DS_MP_MP
+
+Context:
+With school being closed for summer, the kids look forward to the break. If their parents plan a trip, the family will travel somewhere fun. Also, if the community pool opens, the kids will swim daily with their friends. It seems either their parents will plan a trip, or the pool will open, or maybe both will happen. If the family gets to travel somewhere fun, the kids will learn new things and make new memories. And if they make great summer memories, the kids will have amazing stories to share when school reopens.
+
+Question:
+If Sam did not swim daily with his friends, did he have amazing stories to share when school reopened?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Sam : Person
+axiom Kid : Person → Prop
+axiom kidSam : Kid Sam
+
+axiom PlanTrip : Prop
+axiom PoolOpens : Prop
+axiom TravelFun : Prop
+
+axiom SwimDaily : Person → Prop
+axiom Learn : Person → Prop
+axiom MakeMemories : Person → Prop
+axiom AmazingStories : Person → Prop
+
+-- If their parents plan a trip, the family will travel somewhere fun.
+axiom ax1 : PlanTrip → TravelFun
+-- If the community pool opens, the kids will swim daily with their friends.
+axiom ax2 : PoolOpens → ∀ x, Kid x → SwimDaily x
+-- Either their parents will plan a trip, or the pool will open (or both).
+axiom ax3 : PlanTrip ∨ PoolOpens
+-- If the family travels somewhere fun, then each kid learns and makes memories.
+axiom ax4 : TravelFun → ∀ x, Kid x → (Learn x ∧ MakeMemories x)
+-- If a kid makes great summer memories, they will have amazing stories to share.
+axiom ax5 : ∀ x, Kid x → MakeMemories x → AmazingStories x
+
+theorem Sam_has_amazing_stories_if_not_swimming :
+  (¬ SwimDaily Sam) → AmazingStories Sam := by
+  intro hNotSwim
+  -- Derive TravelFun using the disjunction and the fact Sam did not swim daily.
+  have hTravel : TravelFun :=
+    Or.elim ax3
+      (fun hTrip => ax1 hTrip)
+      (fun hPool =>
+        have hAllSwim : ∀ x, Kid x → SwimDaily x := ax2 hPool
+        have hSamSwim : SwimDaily Sam := hAllSwim Sam kidSam
+        have : False := hNotSwim hSamSwim
+        False.elim this
+      )
+  -- From TravelFun, Sam (a kid) makes memories.
+  have hLearnMem : ∀ x, Kid x → (Learn x ∧ MakeMemories x) := ax4 hTravel
+  have hSamMemPair : Learn Sam ∧ MakeMemories Sam := hLearnMem Sam kidSam
+  have hSamMem : MakeMemories Sam := And.right hSamMemPair
+  -- From making memories, Sam has amazing stories.
+  exact ax5 Sam kidSam hSamMem
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Sam : Person
+axiom Kid : Person → Prop
+axiom kidSam : Kid Sam
+
+axiom PlanTrip : Prop
+axiom PoolOpens : Prop
+axiom TravelFun : Prop
+
+axiom SwimDaily : Person → Prop
+axiom Learn : Person → Prop
+axiom MakeMemories : Person → Prop
+axiom AmazingStories : Person → Prop
+
+-- If their parents plan a trip, the family will travel somewhere fun.
+axiom ax1 : PlanTrip → TravelFun
+-- If the community pool opens, the kids will swim daily with their friends.
+axiom ax2 : PoolOpens → ∀ x, Kid x → SwimDaily x
+-- Either their parents will plan a trip, or the pool will open (or both).
+axiom ax3 : PlanTrip ∨ PoolOpens
+-- If the family travels somewhere fun, then each kid learns and makes memories.
+axiom ax4 : TravelFun → ∀ x, Kid x → (Learn x ∧ MakeMemories x)
+-- If a kid makes great summer memories, they will have amazing stories to share.
+axiom ax5 : ∀ x, Kid x → MakeMemories x → AmazingStories x
+
+theorem Sam_has_amazing_stories_if_not_swimming :
+  (¬ SwimDaily Sam) → AmazingStories Sam := by
+  intro hNotSwim
+  -- Derive TravelFun using the disjunction and the fact Sam did not swim daily.
+  have hTravel : TravelFun :=
+    Or.elim ax3
+      (fun hTrip => ax1 hTrip)
+      (fun hPool =>
+        have hAllSwim : ∀ x, Kid x → SwimDaily x := ax2 hPool
+        have hSamSwim : SwimDaily Sam := hAllSwim Sam kidSam
+        have : False := hNotSwim hSamSwim
+        False.elim this
+      )
+  -- From TravelFun, Sam (a kid) makes memories.
+  have hLearnMem : ∀ x, Kid x → (Learn x ∧ MakeMemories x) := ax4 hTravel
+  have hSamMemPair : Learn Sam ∧ MakeMemories Sam := hLearnMem Sam kidSam
+  have hSamMem : MakeMemories Sam := And.right hSamMemPair
+  -- From making memories, Sam has amazing stories.
+  exact ax5 Sam kidSam hSamMem
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: Yes
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

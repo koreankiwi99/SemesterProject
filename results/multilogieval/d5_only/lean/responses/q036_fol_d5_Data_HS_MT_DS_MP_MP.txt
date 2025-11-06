@@ -1,0 +1,133 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: fol
+Depth: d5 (d5_Data)
+Rule: HS_MT_DS_MP_MP
+
+Context:
+Someone wanted to become an artist. They learned that if they practiced drawing techniques consistently, they would improve their artistic skills. With improved artistic skills, they could sell their artworks. Either someone practices drawing techniques consistently, or someone studies art history and famous artists, or they do both. If someone studies art history and famous artists, then they gain inspiration for their own art. If they gain inspiration, then they can develop their own creative style.
+
+Question:
+If Emma cannot sell her artworks yet, then has she developed her own creative style?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Emma : Person
+
+axiom Practices : Person → Prop
+axiom Improves : Person → Prop
+axiom Sells : Person → Prop
+axiom Studies : Person → Prop
+axiom Inspired : Person → Prop
+axiom DevelopsStyle : Person → Prop
+
+-- If someone practices drawing techniques consistently, they improve their artistic skills.
+axiom practice_improves : ∀ x : Person, Practices x → Improves x
+-- With improved artistic skills, they can sell their artworks.
+axiom improves_sells : ∀ x : Person, Improves x → Sells x
+-- Either someone practices, or studies art history, or both.
+axiom practice_or_study_or_both : ∀ x : Person, Practices x ∨ Studies x ∨ (Practices x ∧ Studies x)
+-- If someone studies art history and famous artists, then they gain inspiration.
+axiom study_inspires : ∀ x : Person, Studies x → Inspired x
+-- If they gain inspiration, then they can develop their own creative style.
+axiom inspiration_creative : ∀ x : Person, Inspired x → DevelopsStyle x
+
+theorem emma_style_from_not_selling : (¬ Sells Emma) → DevelopsStyle Emma := by
+  intro hNotSell
+  -- From not selling and (Improves → Sells), get ¬ Improves
+  have hImpToSell : Improves Emma → Sells Emma := improves_sells Emma
+  have hNotImprove : ¬ Improves Emma := by
+    intro hImp
+    exact hNotSell (hImpToSell hImp)
+  -- From (Practices → Improves), get ¬ Practices
+  have hPracToImp : Practices Emma → Improves Emma := practice_improves Emma
+  have hNotPractice : ¬ Practices Emma := by
+    intro hPrac
+    exact hNotImprove (hPracToImp hPrac)
+  -- Use the disjunction: Practices ∨ Studies ∨ (Practices ∧ Studies)
+  have hDisj := practice_or_study_or_both Emma
+  cases hDisj with
+  | inl hPrac =>
+      exact False.elim (hNotPractice hPrac)
+  | inr rest =>
+      cases rest with
+      | inl hStudy =>
+          have hInsp : Inspired Emma := study_inspires Emma hStudy
+          exact inspiration_creative Emma hInsp
+      | inr hBoth =>
+          have hStudy : Studies Emma := hBoth.right
+          have hInsp : Inspired Emma := study_inspires Emma hStudy
+          exact inspiration_creative Emma hInsp
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Emma : Person
+
+axiom Practices : Person → Prop
+axiom Improves : Person → Prop
+axiom Sells : Person → Prop
+axiom Studies : Person → Prop
+axiom Inspired : Person → Prop
+axiom DevelopsStyle : Person → Prop
+
+-- If someone practices drawing techniques consistently, they improve their artistic skills.
+axiom practice_improves : ∀ x : Person, Practices x → Improves x
+-- With improved artistic skills, they can sell their artworks.
+axiom improves_sells : ∀ x : Person, Improves x → Sells x
+-- Either someone practices, or studies art history, or both.
+axiom practice_or_study_or_both : ∀ x : Person, Practices x ∨ Studies x ∨ (Practices x ∧ Studies x)
+-- If someone studies art history and famous artists, then they gain inspiration.
+axiom study_inspires : ∀ x : Person, Studies x → Inspired x
+-- If they gain inspiration, then they can develop their own creative style.
+axiom inspiration_creative : ∀ x : Person, Inspired x → DevelopsStyle x
+
+theorem emma_style_from_not_selling : (¬ Sells Emma) → DevelopsStyle Emma := by
+  intro hNotSell
+  -- From not selling and (Improves → Sells), get ¬ Improves
+  have hImpToSell : Improves Emma → Sells Emma := improves_sells Emma
+  have hNotImprove : ¬ Improves Emma := by
+    intro hImp
+    exact hNotSell (hImpToSell hImp)
+  -- From (Practices → Improves), get ¬ Practices
+  have hPracToImp : Practices Emma → Improves Emma := practice_improves Emma
+  have hNotPractice : ¬ Practices Emma := by
+    intro hPrac
+    exact hNotImprove (hPracToImp hPrac)
+  -- Use the disjunction: Practices ∨ Studies ∨ (Practices ∧ Studies)
+  have hDisj := practice_or_study_or_both Emma
+  cases hDisj with
+  | inl hPrac =>
+      exact False.elim (hNotPractice hPrac)
+  | inr rest =>
+      cases rest with
+      | inl hStudy =>
+          have hInsp : Inspired Emma := study_inspires Emma hStudy
+          exact inspiration_creative Emma hInsp
+      | inr hBoth =>
+          have hStudy : Studies Emma := hBoth.right
+          have hInsp : Inspired Emma := study_inspires Emma hStudy
+          exact inspiration_creative Emma hInsp
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: Yes
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

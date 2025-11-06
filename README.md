@@ -88,9 +88,47 @@ This project investigates curriculum learning approaches for multi-step logical 
 
 Python 3.10+, `openai`, `lean-interact`, Lean 4 (via `elan`)
 
+## Related Work
+
+### Logical Reasoning Benchmarks
+
+**FOLIO** (Han et al., 2022): First-order logic reasoning dataset with 1,435 examples (203 validation). Each problem consists of premises in natural language and conclusion statements requiring logical deduction. Supports True/False/Unknown labels to handle unprovable statements.
+
+**ProofWriter** (Tafjord et al., 2021): Synthetic dataset for multi-step deductive reasoning with depths 0-5. Generated using rule-based templates and formal reasoning chains. Near-perfect solvability by symbolic reasoners, but challenging for neural models at higher depths.
+
+**Multi-LogiEval** (Patel et al., 2024): Multi-step logical reasoning benchmark covering three logic types (FOL, non-monotonic, propositional) across depths 1-5. 150 examples total, designed to test systematic degradation as reasoning depth increases. Our baseline: 76.7% CoT, 84.0% with Lean verification.
+
+### Lean-Based Reasoning
+
+**LeanReasoner** (Jiang et al., NAACL 2024): First work to apply Lean theorem proving to natural language logical reasoning. Key methodology:
+- **Formalizer**: LLM (GPT-3.5/4) translates NL problems → Lean theorems
+- **Proof Search**: ReProver model generates tactics, constructs proof trees
+- **Minimal fine-tuning**: <100 examples per dataset (40 FOLIO, 100 ProofWriter)
+- **Results**: State-of-the-art on FOLIO, near-perfect on ProofWriter
+
+**Our extension**: Unlike LeanReasoner's proof-search approach with ReProver, we use:
+1. Interactive Lean verification via `lean-interact` (no separate proof model)
+2. Iterative refinement (max 3 iterations) for error correction
+3. Two-stage reasoning: NL reasoning → Lean verification (tracks answer drift)
+4. Focus on curriculum learning rather than fine-tuning minimal examples
+
+### Curriculum Learning for Reasoning
+
+**R³** (Xi et al., ICML 2024): Reverse curriculum reinforcement learning. Key finding: training from complex→simple (reverse) outperforms simple→complex (forward). Hypothesis: starting near complete solutions provides stronger supervision signal.
+
+**Our hypothesis**: Reverse curriculum (depth 5→1) with Lean-gated progression will outperform forward curriculum for logical reasoning, validated through empirical comparison.
+
+### Robustness and Difficulty
+
+**GSM-Symbolic** (arXiv 2410.05229v2, 2024): Shows LLMs pattern-match rather than truly reason. Surface perturbations (name changes, symbolic abstraction, template variations) cause significant accuracy drops, revealing brittleness.
+
+**Our planned extension**: Apply GSM-Symbolic perturbation techniques + depth extension (6-10) to create harder benchmarks, testing whether Lean verification maintains robustness under surface-form changes.
+
 ## References
 
+- Han, S., et al. (2022). FOLIO: Natural Language Reasoning with First-Order Logic. arXiv:2209.00840.
+- Tafjord, O., et al. (2021). ProofWriter: Generating Implications, Proofs, and Abductive Statements over Natural Language. ACL Findings.
+- Patel, N., et al. (2024). Multi-LogiEval: Towards evaluating multi-step logical reasoning ability of large language models.
+- Jiang, D., et al. (2024). LeanReasoner: Boosting complex logical reasoning with Lean. NAACL.
 - Xi, Z., et al. (2024). Training large language models for reasoning through reverse curriculum reinforcement learning. ICML.
 - Zhang, A. (2025). Recursive Language Models. https://alexzhang13.github.io/blog/2025/rlm/
-- Jiang, D., et al. (2024). LeanReasoner: Boosting complex logical reasoning with Lean. NAACL.
-- Patel, N., et al. (2024). Multi-LogiEval: Towards evaluating multi-step logical reasoning ability of large language models.

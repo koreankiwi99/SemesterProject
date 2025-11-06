@@ -1,0 +1,544 @@
+Story ID: 380
+Example ID: 1016
+Premises: People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+Conclusion: If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+set_option autoImplicit true
+open Classical
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Useful derived lemmas
+lemma bonnie_in_club : InClub Bonnie := by
+  exact p6.left
+
+lemma performs_implies_attends : PerformsOften Bonnie → AttendsEventsEngaged Bonnie := by
+  intro hPerf
+  have h := p1 Bonnie
+  have : InClub Bonnie ∧ PerformsOften Bonnie := And.intro bonnie_in_club hPerf
+  exact h this
+
+lemma performs_implies_student : PerformsOften Bonnie → Student Bonnie := by
+  intro hPerf
+  have hAE : AttendsEventsEngaged Bonnie := performs_implies_attends hPerf
+  have hDisj := p6.right
+  cases hDisj with
+  | inl hpos =>
+      exact hpos.right
+  | inr hneg =>
+      -- hneg : ¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie
+      have hContra : False := by exact hneg.left hAE
+      exact False.elim hContra
+
+lemma inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have hc := p4 Bonnie
+  have : InClub Bonnie ∧ InactiveDisinterested Bonnie := And.intro bonnie_in_club hInact
+  exact hc this
+
+lemma inactive_implies_not_student : InactiveDisinterested Bonnie → ¬ Student Bonnie := by
+  intro hInact
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have h := p3 Bonnie
+  have : InClub Bonnie ∧ ChaperonesDances Bonnie := And.intro bonnie_in_club hCh
+  exact h this
+
+lemma antecedent_simplify :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) ↔
+  (ChaperonesDances Bonnie ∨ PerformsOften Bonnie) := by
+  constructor
+  · intro h
+    cases h with
+    | inl hC => exact Or.inl hC
+    | inr hImp =>
+        -- have: (¬C → P), so either C or P
+        by_cases hC : ChaperonesDances Bonnie
+        · exact Or.inl hC
+        · have hP : PerformsOften Bonnie := hImp hC
+          exact Or.inr hP
+  · intro h
+    cases h with
+    | inl hC => exact Or.inl hC
+    | inr hP =>
+        apply Or.inr
+        intro hNotC
+        exact hP
+
+lemma antecedent_holds : ChaperonesDances Bonnie ∨ PerformsOften Bonnie := by
+  -- From club membership, either performs often or inactive; if inactive then chaperones
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf => exact Or.inr hPerf
+  | inr hInact =>
+      have hCh := inactive_implies_chaperones hInact
+      exact Or.inl hCh
+
+-- The target statement from the problem
+theorem desired :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) →
+  ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie) := by
+  intro hAnte
+  -- simplify antecedent and note it is already true from premises
+  have hAnte' : ChaperonesDances Bonnie ∨ PerformsOften Bonnie :=
+    (antecedent_simplify.mp hAnte)
+  -- From the premises we can also derive antecedent without assuming it:
+  have _hAlways : ChaperonesDances Bonnie ∨ PerformsOften Bonnie := antecedent_holds
+  -- Attempting to derive the conclusion seems not possible from given premises.
+  admit
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+set_option autoImplicit true
+open Classical
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Useful derived lemmas
+lemma bonnie_in_club : InClub Bonnie := by
+  exact p6.left
+
+lemma performs_implies_attends : PerformsOften Bonnie → AttendsEventsEngaged Bonnie := by
+  intro hPerf
+  have h := p1 Bonnie
+  have : InClub Bonnie ∧ PerformsOften Bonnie := And.intro bonnie_in_club hPerf
+  exact h this
+
+lemma performs_implies_student : PerformsOften Bonnie → Student Bonnie := by
+  intro hPerf
+  have hAE : AttendsEventsEngaged Bonnie := performs_implies_attends hPerf
+  have hDisj := p6.right
+  cases hDisj with
+  | inl hpos =>
+      exact hpos.right
+  | inr hneg =>
+      -- hneg : ¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie
+      have hContra : False := by exact hneg.left hAE
+      exact False.elim hContra
+
+lemma inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have hc := p4 Bonnie
+  have : InClub Bonnie ∧ InactiveDisinterested Bonnie := And.intro bonnie_in_club hInact
+  exact hc this
+
+lemma inactive_implies_not_student : InactiveDisinterested Bonnie → ¬ Student Bonnie := by
+  intro hInact
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have h := p3 Bonnie
+  have : InClub Bonnie ∧ ChaperonesDances Bonnie := And.intro bonnie_in_club hCh
+  exact h this
+
+lemma antecedent_simplify :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) ↔
+  (ChaperonesDances Bonnie ∨ PerformsOften Bonnie) := by
+  constructor
+  · intro h
+    cases h with
+    | inl hC => exact Or.inl hC
+    | inr hImp =>
+        -- have: (¬C → P), so either C or P
+        by_cases hC : ChaperonesDances Bonnie
+        · exact Or.inl hC
+        · have hP : PerformsOften Bonnie := hImp hC
+          exact Or.inr hP
+  · intro h
+    cases h with
+    | inl hC => exact Or.inl hC
+    | inr hP =>
+        apply Or.inr
+        intro hNotC
+        exact hP
+
+lemma antecedent_holds : ChaperonesDances Bonnie ∨ PerformsOften Bonnie := by
+  -- From club membership, either performs often or inactive; if inactive then chaperones
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf => exact Or.inr hPerf
+  | inr hInact =>
+      have hCh := inactive_implies_chaperones hInact
+      exact Or.inl hCh
+
+-- The target statement from the problem
+theorem desired :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) →
+  ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie) := by
+  intro hAnte
+  -- simplify antecedent and note it is already true from premises
+  have hAnte' : ChaperonesDances Bonnie ∨ PerformsOften Bonnie :=
+    (antecedent_simplify.mp hAnte)
+  -- From the premises we can also derive antecedent without assuming it:
+  have _hAlways : ChaperonesDances Bonnie ∨ PerformsOften Bonnie := antecedent_holds
+  -- Attempting to derive the conclusion seems not possible from given premises.
+  admit
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Function expected at
+  AttendsEventsEngaged Bonnie ∧ Student Bonnie ∨ ¬AttendsEventsEngaged Bonnie ∧ ¬Student Bonnie
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+  - unexpected token ':'; expected command
+  - Unknown identifier `antecedent_simplify.mp`
+  - Unknown identifier `antecedent_holds`
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+set_option autoImplicit true
+set_option sorryEnabled true
+open Classical
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises from the text
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Derived facts about Bonnie
+lemma bonnie_in_club : InClub Bonnie := p6.left
+
+lemma performs_implies_attends : PerformsOften Bonnie → AttendsEventsEngaged Bonnie := by
+  intro hPerf
+  have h := p1 Bonnie
+  exact h ⟨bonnie_in_club, hPerf⟩
+
+lemma attends_implies_student : AttendsEventsEngaged Bonnie → Student Bonnie := by
+  intro hAE
+  have hDisj := p6.right
+  cases hDisj with
+  | inl hpos =>
+      exact hpos.right
+  | inr hneg =>
+      exact False.elim (hneg.left hAE)
+
+lemma performs_implies_student : PerformsOften Bonnie → Student Bonnie := by
+  intro hPerf
+  exact attends_implies_student (performs_implies_attends hPerf)
+
+lemma inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have hc := p4 Bonnie
+  exact hc ⟨bonnie_in_club, hInact⟩
+
+lemma inactive_implies_not_student : InactiveDisinterested Bonnie → ¬ Student Bonnie := by
+  intro hInact
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have h := p3 Bonnie
+  exact h ⟨bonnie_in_club, hCh⟩
+
+lemma antecedent_true :
+  ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie) := by
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf =>
+      exact Or.inr (fun _ => hPerf)
+  | inr hInact =>
+      exact Or.inl (inactive_implies_chaperones hInact)
+
+-- Target statement from the problem
+theorem desired :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) →
+  ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie) := by
+  intro _hAnte
+  -- From the given premises, the conclusion does not follow; proof not derivable.
+  sorry
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+set_option autoImplicit true
+set_option sorryEnabled true
+open Classical
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises from the text
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Derived facts about Bonnie
+lemma bonnie_in_club : InClub Bonnie := p6.left
+
+lemma performs_implies_attends : PerformsOften Bonnie → AttendsEventsEngaged Bonnie := by
+  intro hPerf
+  have h := p1 Bonnie
+  exact h ⟨bonnie_in_club, hPerf⟩
+
+lemma attends_implies_student : AttendsEventsEngaged Bonnie → Student Bonnie := by
+  intro hAE
+  have hDisj := p6.right
+  cases hDisj with
+  | inl hpos =>
+      exact hpos.right
+  | inr hneg =>
+      exact False.elim (hneg.left hAE)
+
+lemma performs_implies_student : PerformsOften Bonnie → Student Bonnie := by
+  intro hPerf
+  exact attends_implies_student (performs_implies_attends hPerf)
+
+lemma inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have hc := p4 Bonnie
+  exact hc ⟨bonnie_in_club, hInact⟩
+
+lemma inactive_implies_not_student : InactiveDisinterested Bonnie → ¬ Student Bonnie := by
+  intro hInact
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have h := p3 Bonnie
+  exact h ⟨bonnie_in_club, hCh⟩
+
+lemma antecedent_true :
+  ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie) := by
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf =>
+      exact Or.inr (fun _ => hPerf)
+  | inr hInact =>
+      exact Or.inl (inactive_implies_chaperones hInact)
+
+-- Target statement from the problem
+theorem desired :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) →
+  ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie) := by
+  intro _hAnte
+  -- From the given premises, the conclusion does not follow; proof not derivable.
+  sorry
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Unknown option `sorryEnabled`
+  - Function expected at
+  AttendsEventsEngaged Bonnie ∧ Student Bonnie ∨ ¬AttendsEventsEngaged Bonnie ∧ ¬Student Bonnie
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+  - unexpected token ':'; expected command
+Warnings:
+  - declaration uses 'sorry'
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+set_option autoImplicit true
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Basic facts about Bonnie
+theorem bonnie_in_club : InClub Bonnie := p6.left
+
+theorem inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have h := p4 Bonnie
+  exact h ⟨bonnie_in_club, hInact⟩
+
+-- Define the antecedent and conclusion of the target implication
+def Antecedent : Prop :=
+  ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)
+
+def Conclusion : Prop :=
+  (YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie
+
+-- The antecedent is derivable from the premises
+theorem antecedent_true : Antecedent := by
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf =>
+      exact Or.inr (fun _ => hPerf)
+  | inr hInact =>
+      exact Or.inl (inactive_implies_chaperones hInact)
+
+-- The conclusion leads to a contradiction with the premises
+theorem not_conclusion : ¬ Conclusion := by
+  intro hC
+  have hYW : YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie := hC.left
+  have hInact : InactiveDisinterested Bonnie := hC.right
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have hNotStu : ¬ Student Bonnie := p3 Bonnie ⟨bonnie_in_club, hCh⟩
+  have hStu : Student Bonnie := p5 Bonnie ⟨bonnie_in_club, hYW.left, hYW.right⟩
+  exact hNotStu hStu
+
+-- Therefore, the negation of the target implication is provable
+theorem not_desired : ¬ (Antecedent → Conclusion) := by
+  intro hImp
+  have hA : Antecedent := antecedent_true
+  have hB : Conclusion := hImp hA
+  exact not_conclusion hB
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+set_option autoImplicit true
+
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEventsEngaged : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom Student : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, InClub x ∧ PerformsOften x → AttendsEventsEngaged x
+axiom p2 : ∀ x, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+axiom p3 : ∀ x, InClub x ∧ ChaperonesDances x → ¬ Student x
+axiom p4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom p5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom p6 : InClub Bonnie ∧ ((AttendsEventsEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendsEventsEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Basic facts about Bonnie
+theorem bonnie_in_club : InClub Bonnie := p6.left
+
+theorem inactive_implies_chaperones : InactiveDisinterested Bonnie → ChaperonesDances Bonnie := by
+  intro hInact
+  have h := p4 Bonnie
+  exact h ⟨bonnie_in_club, hInact⟩
+
+-- Define the antecedent and conclusion of the target implication
+def Antecedent : Prop :=
+  ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)
+
+def Conclusion : Prop :=
+  (YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie
+
+-- The antecedent is derivable from the premises
+theorem antecedent_true : Antecedent := by
+  have h := p2 Bonnie bonnie_in_club
+  cases h with
+  | inl hPerf =>
+      exact Or.inr (fun _ => hPerf)
+  | inr hInact =>
+      exact Or.inl (inactive_implies_chaperones hInact)
+
+-- The conclusion leads to a contradiction with the premises
+theorem not_conclusion : ¬ Conclusion := by
+  intro hC
+  have hYW : YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie := hC.left
+  have hInact : InactiveDisinterested Bonnie := hC.right
+  have hCh : ChaperonesDances Bonnie := inactive_implies_chaperones hInact
+  have hNotStu : ¬ Student Bonnie := p3 Bonnie ⟨bonnie_in_club, hCh⟩
+  have hStu : Student Bonnie := p5 Bonnie ⟨bonnie_in_club, hYW.left, hYW.right⟩
+  exact hNotStu hStu
+
+-- Therefore, the negation of the target implication is provable
+theorem not_desired : ¬ (Antecedent → Conclusion) := by
+  intro hImp
+  have hA : Antecedent := antecedent_true
+  have hB : Conclusion := hImp hA
+  exact not_conclusion hB
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

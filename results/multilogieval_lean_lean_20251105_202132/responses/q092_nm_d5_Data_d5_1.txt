@@ -1,0 +1,201 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d5 (d5_Data)
+Rule: d5_1
+
+Context:
+Coffee and Tea are beverages served in a cafe. Usually, beverages served in a cafe are hot. If Coffee is brewed, then it is aromatic. If Tea is steeped, then it can be sweetened. Either Coffee is brewed or Tea can be sweetened, or both. If Hot Chocolate can be sweetened, then Tea is steeped. If Espresso is hot, then Coffee is brewed.
+
+Question:
+Can we conclude if Hot Chocolate is not aromatic then Tea can be sweetened?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+inductive Drink
+| Coffee
+| Tea
+| HotChocolate
+| Espresso
+open Drink
+
+def ServedInCafe : Drink → Prop
+| Coffee => True
+| Tea => True
+| HotChocolate => False
+| Espresso => False
+
+def Hot : Drink → Prop
+| Coffee => True
+| Tea => True
+| HotChocolate => False
+| Espresso => False
+
+def Brewed : Drink → Prop
+| Coffee => True
+| _ => False
+
+def Steeped : Drink → Prop
+| Tea => False
+| _ => False
+
+def Aromatic : Drink → Prop
+| Coffee => True
+| HotChocolate => False
+| Tea => False
+| Espresso => False
+
+def Sweetenable : Drink → Prop
+| Tea => False
+| HotChocolate => False
+| _ => False
+
+-- Premises (all hold in this model)
+theorem premise1_coffee_served : ServedInCafe Coffee := by
+  change True
+  exact True.intro
+
+theorem premise1_tea_served : ServedInCafe Tea := by
+  change True
+  exact True.intro
+
+theorem premise2_served_are_hot : ∀ x, ServedInCafe x → Hot x := by
+  intro x
+  cases x <;> intro hx
+  · exact True.intro
+  · exact True.intro
+  · exact False.elim hx
+  · exact False.elim hx
+
+theorem premise3_brewed_coffee_aromatic : Brewed Coffee → Aromatic Coffee := by
+  intro _; exact True.intro
+
+theorem premise4_steeped_tea_sweetenable : Steeped Tea → Sweetenable Tea := by
+  intro h; exact h
+
+theorem premise5_brewed_or_tea_sweetenable : Brewed Coffee ∨ Sweetenable Tea := by
+  exact Or.inl True.intro
+
+theorem premise6_hotchoc_sweetenable_implies_tea_steeped : Sweetenable HotChocolate → Steeped Tea := by
+  intro h; exact h
+
+theorem premise7_espresso_hot_implies_coffee_brewed : Hot Espresso → Brewed Coffee := by
+  intro _; exact True.intro
+
+-- The queried conclusion is NOT entailed by the premises (countermodel)
+theorem not_conclusion : ¬ (¬ Aromatic HotChocolate → Sweetenable Tea) := by
+  intro h
+  have hnotAromHC : ¬ Aromatic HotChocolate := by
+    intro a
+    exact a
+  have hnotSweetTea : ¬ Sweetenable Tea := by
+    intro st
+    exact st
+  have st : Sweetenable Tea := h hnotAromHC
+  exact hnotSweetTea st
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+inductive Drink
+| Coffee
+| Tea
+| HotChocolate
+| Espresso
+open Drink
+
+def ServedInCafe : Drink → Prop
+| Coffee => True
+| Tea => True
+| HotChocolate => False
+| Espresso => False
+
+def Hot : Drink → Prop
+| Coffee => True
+| Tea => True
+| HotChocolate => False
+| Espresso => False
+
+def Brewed : Drink → Prop
+| Coffee => True
+| _ => False
+
+def Steeped : Drink → Prop
+| Tea => False
+| _ => False
+
+def Aromatic : Drink → Prop
+| Coffee => True
+| HotChocolate => False
+| Tea => False
+| Espresso => False
+
+def Sweetenable : Drink → Prop
+| Tea => False
+| HotChocolate => False
+| _ => False
+
+-- Premises (all hold in this model)
+theorem premise1_coffee_served : ServedInCafe Coffee := by
+  change True
+  exact True.intro
+
+theorem premise1_tea_served : ServedInCafe Tea := by
+  change True
+  exact True.intro
+
+theorem premise2_served_are_hot : ∀ x, ServedInCafe x → Hot x := by
+  intro x
+  cases x <;> intro hx
+  · exact True.intro
+  · exact True.intro
+  · exact False.elim hx
+  · exact False.elim hx
+
+theorem premise3_brewed_coffee_aromatic : Brewed Coffee → Aromatic Coffee := by
+  intro _; exact True.intro
+
+theorem premise4_steeped_tea_sweetenable : Steeped Tea → Sweetenable Tea := by
+  intro h; exact h
+
+theorem premise5_brewed_or_tea_sweetenable : Brewed Coffee ∨ Sweetenable Tea := by
+  exact Or.inl True.intro
+
+theorem premise6_hotchoc_sweetenable_implies_tea_steeped : Sweetenable HotChocolate → Steeped Tea := by
+  intro h; exact h
+
+theorem premise7_espresso_hot_implies_coffee_brewed : Hot Espresso → Brewed Coffee := by
+  intro _; exact True.intro
+
+-- The queried conclusion is NOT entailed by the premises (countermodel)
+theorem not_conclusion : ¬ (¬ Aromatic HotChocolate → Sweetenable Tea) := by
+  intro h
+  have hnotAromHC : ¬ Aromatic HotChocolate := by
+    intro a
+    exact a
+  have hnotSweetTea : ¬ Sweetenable Tea := by
+    intro st
+    exact st
+  have st : Sweetenable Tea := h hnotAromHC
+  exact hnotSweetTea st
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: No
+Correct: ✗ No
+Total Iterations: 1
+Final Lean: ✓ Success

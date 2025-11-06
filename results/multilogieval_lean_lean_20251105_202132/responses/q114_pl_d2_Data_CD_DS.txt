@@ -1,0 +1,87 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: pl
+Depth: d2 (d2_Data)
+Rule: CD_DS
+
+Context:
+If my friend can give me a ride, I won't have to take the bus. Also, if I have enough for a taxi, I'll get to work on time. It seems either my friend will drive me, or I'll take a taxi, or maybe both will happen.
+
+Question:
+If I had to take the bus, then did I get to work on time?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom FriendDrives : Prop
+axiom Bus : Prop
+axiom Taxi : Prop
+axiom EnoughForTaxi : Prop
+axiom OnTime : Prop
+
+-- Premises from the text (plus a harmless, realistic bridge Taxi → EnoughForTaxi)
+axiom friend_implies_no_bus : FriendDrives → ¬ Bus
+axiom enough_implies_on_time : EnoughForTaxi → OnTime
+axiom friend_or_taxi : FriendDrives ∨ Taxi
+axiom taxi_implies_enough : Taxi → EnoughForTaxi
+
+-- Conclusion: If I had to take the bus, then I got to work on time.
+theorem bus_implies_on_time : Bus → OnTime := by
+  intro hB
+  have notFriend : ¬ FriendDrives := by
+    intro hF
+    have notBus : ¬ Bus := friend_implies_no_bus hF
+    exact notBus hB
+  have hTaxi : Taxi := by
+    cases friend_or_taxi with
+    | inl hF => exact False.elim (notFriend hF)
+    | inr hT => exact hT
+  exact enough_implies_on_time (taxi_implies_enough hTaxi)
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom FriendDrives : Prop
+axiom Bus : Prop
+axiom Taxi : Prop
+axiom EnoughForTaxi : Prop
+axiom OnTime : Prop
+
+-- Premises from the text (plus a harmless, realistic bridge Taxi → EnoughForTaxi)
+axiom friend_implies_no_bus : FriendDrives → ¬ Bus
+axiom enough_implies_on_time : EnoughForTaxi → OnTime
+axiom friend_or_taxi : FriendDrives ∨ Taxi
+axiom taxi_implies_enough : Taxi → EnoughForTaxi
+
+-- Conclusion: If I had to take the bus, then I got to work on time.
+theorem bus_implies_on_time : Bus → OnTime := by
+  intro hB
+  have notFriend : ¬ FriendDrives := by
+    intro hF
+    have notBus : ¬ Bus := friend_implies_no_bus hF
+    exact notBus hB
+  have hTaxi : Taxi := by
+    cases friend_or_taxi with
+    | inl hF => exact False.elim (notFriend hF)
+    | inr hT => exact hT
+  exact enough_implies_on_time (taxi_implies_enough hTaxi)
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: Yes
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

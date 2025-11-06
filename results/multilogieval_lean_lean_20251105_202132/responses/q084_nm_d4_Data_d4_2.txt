@@ -1,0 +1,191 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d4 (d4_Data)
+Rule: d4_2
+
+Context:
+Assume X and Y are ingredients known to enhance flavor in dishes. Normally, ingredients that enhance flavor also add aroma. If ingredient Z is spicy, then ingredient Z adds heat to the dish. If ingredient W is a preservative, then ingredient W prolongs the shelf life of food. Either ingredient Z does not add heat or ingredient V is not aromatic. If ingredient X adds aroma, then ingredient V is also aromatic.
+
+Question:
+Can we conclude if ingredient Z adds heat to the dish, then ingredient Y does not add aroma?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Ingredient : Type
+axiom X Y Z W V : Ingredient
+
+axiom EnhanceFlavor : Ingredient → Prop
+axiom AddsAroma : Ingredient → Prop
+axiom Spicy : Ingredient → Prop
+axiom AddsHeat : Ingredient → Prop
+axiom Preservative : Ingredient → Prop
+axiom ProlongsShelfLife : Ingredient → Prop
+axiom Aromatic : Ingredient → Prop
+
+axiom X_enh : EnhanceFlavor X
+axiom Y_enh : EnhanceFlavor Y
+axiom enhance_implies_aroma : ∀ i, EnhanceFlavor i → AddsAroma i
+axiom spicy_implies_heat : Spicy Z → AddsHeat Z
+axiom preservative_implies_shelf : Preservative W → ProlongsShelfLife W
+axiom heat_or_not_aromatic_V : ¬AddsHeat Z ∨ ¬Aromatic V
+axiom aromaX_implies_aromaticV : AddsAroma X → Aromatic V
+
+theorem conclusion : AddsHeat Z → ¬AddsAroma Y := by
+  have hAX : AddsAroma X := enhance_implies_aroma X X_enh
+  have hAV : Aromatic V := aromaX_implies_aromaticV hAX
+  have nhZ : ¬AddsHeat Z := by
+    cases heat_or_not_aromatic_V with
+    | inl nh => exact nh
+    | inr nAV =>
+      exact False.elim (nAV hAV)
+  intro hHZ
+  have f : False := nhZ hHZ
+  intro _hAY
+  exact f
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Ingredient : Type
+axiom X Y Z W V : Ingredient
+
+axiom EnhanceFlavor : Ingredient → Prop
+axiom AddsAroma : Ingredient → Prop
+axiom Spicy : Ingredient → Prop
+axiom AddsHeat : Ingredient → Prop
+axiom Preservative : Ingredient → Prop
+axiom ProlongsShelfLife : Ingredient → Prop
+axiom Aromatic : Ingredient → Prop
+
+axiom X_enh : EnhanceFlavor X
+axiom Y_enh : EnhanceFlavor Y
+axiom enhance_implies_aroma : ∀ i, EnhanceFlavor i → AddsAroma i
+axiom spicy_implies_heat : Spicy Z → AddsHeat Z
+axiom preservative_implies_shelf : Preservative W → ProlongsShelfLife W
+axiom heat_or_not_aromatic_V : ¬AddsHeat Z ∨ ¬Aromatic V
+axiom aromaX_implies_aromaticV : AddsAroma X → Aromatic V
+
+theorem conclusion : AddsHeat Z → ¬AddsAroma Y := by
+  have hAX : AddsAroma X := enhance_implies_aroma X X_enh
+  have hAV : Aromatic V := aromaX_implies_aromaticV hAX
+  have nhZ : ¬AddsHeat Z := by
+    cases heat_or_not_aromatic_V with
+    | inl nh => exact nh
+    | inr nAV =>
+      exact False.elim (nAV hAV)
+  intro hHZ
+  have f : False := nhZ hHZ
+  intro _hAY
+  exact f
+----------------------------------------
+
+Lean Verification:
+  Success: False
+  Errors:
+    - Failed to infer type of binder `V`
+    - Failed to infer type of binder `W`
+    - Failed to infer type of binder `Z`
+    - Failed to infer type of binder `Y`
+    - Unknown identifier `X`
+    - Unknown identifier `X`
+    - Unknown identifier `V`
+
+--- Iteration 2 ---
+
+LLM Response:
+STAGE 1: From X enhances flavor and “enhance flavor → adds aroma,” X adds aroma. Given “if X adds aroma then V is aromatic,” V is aromatic. Assume Z adds heat. From “¬(Z adds heat) or ¬(V aromatic),” the left disjunct contradicts the assumption, so we get ¬(V aromatic). Hence we derive a contradiction (V aromatic and not aromatic), from which anything follows, in particular ¬(Y adds aroma). Therefore, if Z adds heat, then Y does not add aroma.
+STAGE 1 ANSWER: Yes
+
+STAGE 2:
+<lean>
+axiom Ingredient : Type
+axiom X : Ingredient
+axiom Y : Ingredient
+axiom Z : Ingredient
+axiom W : Ingredient
+axiom V : Ingredient
+
+axiom EnhanceFlavor : Ingredient → Prop
+axiom AddsAroma : Ingredient → Prop
+axiom Spicy : Ingredient → Prop
+axiom AddsHeat : Ingredient → Prop
+axiom Preservative : Ingredient → Prop
+axiom ProlongsShelfLife : Ingredient → Prop
+axiom Aromatic : Ingredient → Prop
+
+axiom X_enh : EnhanceFlavor X
+axiom Y_enh : EnhanceFlavor Y
+axiom enhance_implies_aroma : ∀ i : Ingredient, EnhanceFlavor i → AddsAroma i
+axiom spicy_implies_heat : Spicy Z → AddsHeat Z
+axiom preservative_implies_shelf : Preservative W → ProlongsShelfLife W
+axiom heat_or_not_aromatic_V : ¬AddsHeat Z ∨ ¬Aromatic V
+axiom aromaX_implies_aromaticV : AddsAroma X → Aromatic V
+
+theorem conclusion : AddsHeat Z → ¬AddsAroma Y := by
+  intro hHZ
+  have hAV : Aromatic V := aromaX_implies_aromaticV (enhance_implies_aroma X X_enh)
+  have nAV : ¬Aromatic V :=
+    match heat_or_not_aromatic_V with
+    | Or.inl nHZ => False.elim (nHZ hHZ)
+    | Or.inr nA => nA
+  have contra : False := nAV hAV
+  exact fun _ => False.elim contra
+</lean>
+STAGE 2 ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Ingredient : Type
+axiom X : Ingredient
+axiom Y : Ingredient
+axiom Z : Ingredient
+axiom W : Ingredient
+axiom V : Ingredient
+
+axiom EnhanceFlavor : Ingredient → Prop
+axiom AddsAroma : Ingredient → Prop
+axiom Spicy : Ingredient → Prop
+axiom AddsHeat : Ingredient → Prop
+axiom Preservative : Ingredient → Prop
+axiom ProlongsShelfLife : Ingredient → Prop
+axiom Aromatic : Ingredient → Prop
+
+axiom X_enh : EnhanceFlavor X
+axiom Y_enh : EnhanceFlavor Y
+axiom enhance_implies_aroma : ∀ i : Ingredient, EnhanceFlavor i → AddsAroma i
+axiom spicy_implies_heat : Spicy Z → AddsHeat Z
+axiom preservative_implies_shelf : Preservative W → ProlongsShelfLife W
+axiom heat_or_not_aromatic_V : ¬AddsHeat Z ∨ ¬Aromatic V
+axiom aromaX_implies_aromaticV : AddsAroma X → Aromatic V
+
+theorem conclusion : AddsHeat Z → ¬AddsAroma Y := by
+  intro hHZ
+  have hAV : Aromatic V := aromaX_implies_aromaticV (enhance_implies_aroma X X_enh)
+  have nAV : ¬Aromatic V :=
+    match heat_or_not_aromatic_V with
+    | Or.inl nHZ => False.elim (nHZ hHZ)
+    | Or.inr nA => nA
+  have contra : False := nAV hAV
+  exact fun _ => False.elim contra
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: Yes
+Correct: ✗ No
+Total Iterations: 2
+Final Lean: ✓ Success

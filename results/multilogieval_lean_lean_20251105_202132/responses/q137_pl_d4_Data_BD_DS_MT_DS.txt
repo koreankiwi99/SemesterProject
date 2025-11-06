@@ -1,0 +1,117 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: pl
+Depth: d4 (d4_Data)
+Rule: BD_DS_MT_DS
+
+Context:
+Emma checked the pet store hours. She knew if they're open, she buys treats for her dog. Emma was also taking her dog on a long hike. If they go on a long hike, the dog gets well-exercised. Either the store is open or the dog isn't exercised, or the store is open and the dog isn't exercised. Emma also knows if she finished work early, they're going on a hike. Her friend wondered if either Emma finished work early or she's meeting a friend for dinner, or both.
+
+Question:
+If Emma did not buy treats, is she meeting a friend for dinner?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Open : Prop
+axiom Buy : Prop
+axiom Hike : Prop
+axiom Exercised : Prop
+axiom FinishedEarly : Prop
+axiom MeetingFriend : Prop
+
+-- If the store is open, Emma buys treats.
+axiom h1 : Open → Buy
+-- Emma is taking her dog on a long hike.
+axiom h2 : Hike
+-- If they go on a long hike, the dog gets well-exercised.
+axiom h3 : Hike → Exercised
+-- Either the store is open or the dog isn't exercised, or the store is open and the dog isn't exercised.
+axiom h4 : (Open ∨ ¬ Exercised) ∨ (Open ∧ ¬ Exercised)
+-- If Emma finished work early, they're going on a hike.
+axiom h5 : FinishedEarly → Hike
+-- Either Emma finished work early or she's meeting a friend for dinner, or both.
+axiom h6 : (FinishedEarly ∨ MeetingFriend) ∨ (FinishedEarly ∧ MeetingFriend)
+
+theorem goal : (¬ Buy) → MeetingFriend := by
+  intro hNotBuy
+  -- From the hike fact and implication, the dog is exercised.
+  have hEx : Exercised := h3 h2
+  -- Simplify the given disjunction to Open ∨ ¬Exercised.
+  have hOr : Open ∨ ¬ Exercised := by
+    cases h4 with
+    | inl hor => exact hor
+    | inr hand =>
+      exact Or.inl hand.left
+  -- From Open ∨ ¬Exercised and Exercised, deduce Open.
+  have hOpen : Open := by
+    cases hOr with
+    | inl hop => exact hop
+    | inr hnotEx =>
+      exact False.elim (hnotEx hEx)
+  -- Then Emma buys treats, contradicting ¬Buy; derive False and conclude MeetingFriend.
+  have hBuy : Buy := h1 hOpen
+  exact False.elim (hNotBuy hBuy)
+</lean>
+ANSWER: Yes
+
+Extracted Lean Code:
+----------------------------------------
+axiom Open : Prop
+axiom Buy : Prop
+axiom Hike : Prop
+axiom Exercised : Prop
+axiom FinishedEarly : Prop
+axiom MeetingFriend : Prop
+
+-- If the store is open, Emma buys treats.
+axiom h1 : Open → Buy
+-- Emma is taking her dog on a long hike.
+axiom h2 : Hike
+-- If they go on a long hike, the dog gets well-exercised.
+axiom h3 : Hike → Exercised
+-- Either the store is open or the dog isn't exercised, or the store is open and the dog isn't exercised.
+axiom h4 : (Open ∨ ¬ Exercised) ∨ (Open ∧ ¬ Exercised)
+-- If Emma finished work early, they're going on a hike.
+axiom h5 : FinishedEarly → Hike
+-- Either Emma finished work early or she's meeting a friend for dinner, or both.
+axiom h6 : (FinishedEarly ∨ MeetingFriend) ∨ (FinishedEarly ∧ MeetingFriend)
+
+theorem goal : (¬ Buy) → MeetingFriend := by
+  intro hNotBuy
+  -- From the hike fact and implication, the dog is exercised.
+  have hEx : Exercised := h3 h2
+  -- Simplify the given disjunction to Open ∨ ¬Exercised.
+  have hOr : Open ∨ ¬ Exercised := by
+    cases h4 with
+    | inl hor => exact hor
+    | inr hand =>
+      exact Or.inl hand.left
+  -- From Open ∨ ¬Exercised and Exercised, deduce Open.
+  have hOpen : Open := by
+    cases hOr with
+    | inl hop => exact hop
+    | inr hnotEx =>
+      exact False.elim (hnotEx hEx)
+  -- Then Emma buys treats, contradicting ¬Buy; derive False and conclude MeetingFriend.
+  have hBuy : Buy := h1 hOpen
+  exact False.elim (hNotBuy hBuy)
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: Yes
+Prediction: Yes
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

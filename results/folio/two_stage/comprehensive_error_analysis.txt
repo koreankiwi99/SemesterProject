@@ -1,0 +1,601 @@
+
+# FOLIO Two-Stage Error Analysis: Patterns 2-6
+
+## Summary
+
+This analysis examines the 41 error cases in FOLIO Two-Stage results, focusing on Patterns 2-6 (Pattern 1 was analyzed separately). The analysis reveals that Two-Stage's errors are fundamentally different from simple Lean's errors, with the key distinction being that Two-Stage avoids axiomatization errors (81% reduction in False→True errors) but introduces new failure modes related to constructing countermodels and giving up on derivations.
+
+---
+
+## Pattern 2: True → Unknown (10 cases, 24.4% of errors)
+
+**Problem**: Model correctly identifies that the conclusion is underdetermined but fails to derive valid conclusions that are actually provable from the premises.
+
+### Case 1: Example 1210 - James (Manager/Remote work logic)
+
+**Premises**: 
+- All employees scheduling meetings go to company building
+- Everyone having lunch in company building schedules meetings
+- Employees have lunch either in company or at home
+- If lunch at home, working remotely from home
+- All employees in other countries work remotely
+- No managers work remotely from home
+- James appears in company iff he is a manager
+
+**Conclusion**: "If James is either a manager or in other countries, then James does not either has lunch at home or work remotely from home."
+
+**Ground Truth**: True  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown
+
+**Key Lean Code** (lines 34-92):
+```lean
+def Target (C : Context) : Prop :=
+  (C.Manager C.James ∨ C.InOtherCountries C.James) → ¬ (C.LunchHome C.James ∨ C.Remote C.James)
+
+-- A model where the premises hold and Target is false
+def worldFalse : Context := {
+  Person := Unit
+  James := Unit.unit
+  Employee := fun _ => False  -- James is NOT an employee
+  Manager := fun _ => True    -- James IS a manager
+  ...
+  LunchHome := fun _ => True  -- James has lunch at home
+  Remote := fun _ => False    -- James is NOT remote
+  ...
+}
+```
+
+**Analysis**: The model constructs a countermodel where James is a manager but NOT an employee. This exploits a gap: the premises say "no managers work remotely" but don't explicitly state that James is an employee. By making James a non-employee manager who has lunch at home but doesn't work remotely, the model creates a scenario where the Target is false. However, this is artificial - in the natural interpretation, James should be an employee. The model failed to recognize that the conclusion is actually provable under reasonable closure assumptions.
+
+**Error Type**: **Under-axiomatization in Stage 1** → Stage 2 validates the underdetermination without recognizing implicit assumptions.
+
+---
+
+### Case 2: Example 621 - Beethoven (Composer)
+
+**Premises**:
+- Symphony No. 9 is a music piece
+- Composers write music pieces
+- Beethoven wrote Symphony No. 9
+- Vienna Music Society premiered Symphony No. 9
+- Vienna Music Society is an orchestra
+- Beethoven leads the Vienna Music Society
+- Orchestras are led by conductors
+
+**Conclusion**: "Beethoven is a composer."
+
+**Ground Truth**: True  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown
+
+**Key Lean Code** (line 31):
+```lean
+axiom composers_write_musicpieces :
+  ∀ p : Person, Composer p → ∃ m : MusicPiece, Writes p m
+
+axiom beethoven_wrote_symphony9 : Writes Beethoven Symphony9
+
+theorem beethoven_is_conductor : Conductor Beethoven := by
+  exact leaders_of_orchestras_are_conductors Beethoven ViennaMusicSociety beethoven_leads_vms
+
+theorem beethoven_wrote_a_musicpiece : ∃ m : MusicPiece, Writes Beethoven m := by
+  exact Exists.intro Symphony9 beethoven_wrote_symphony9
+```
+
+**Analysis**: The critical error is in axiomatizing "Composers write music pieces" as `Composer p → ∃ m : MusicPiece, Writes p m` (if composer, then writes music) instead of the CONVERSE `(∀ p : Person, (∃ m, Writes p m) → Composer p)` (if writes music, then composer). The model proves Beethoven wrote music and is a conductor, but can't derive that Beethoven is a composer because the axiom goes the wrong direction. This is a **logical direction error** in translating natural language to FOL.
+
+**Error Type**: **Incorrect axiomatization direction** (Composer→Writes instead of Writes→Composer).
+
+---
+
+### Case 3: Example 928 - Max's design (Evocative and dreamy)
+
+**Premises**:
+- All Zaha Hadid's styles Max adores have interesting geometries
+- No brutalist buildings Max adores have interesting geometries
+- Every style Max adores is either Zaha or Kelly Wearstler
+- All Kelly Wearstler's styles Max adores are evocative
+- All Kelly Wearstler's styles Max adores are dreamy
+- If design by Max with interesting geometries, then brutalist and evocative
+
+**Conclusion**: "A design by Max is evocative and dreamy."
+
+**Ground Truth**: True  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown
+
+**Key Lean Code** (lines 24-28, 41-49):
+```lean
+def Conclusion (U : Type u) (A I B E D Z K M : U → Prop) : Prop :=
+  ∃ x, M x ∧ E x ∧ D x
+
+theorem model_false :
+  ∃ (U : Type) (A I B E D Z K M : U → Prop),
+    Premises U A I B E D Z K M ∧ ¬ Conclusion U A I B E D Z K M := by
+  refine ⟨Unit,
+          (fun _ => True),   -- A (adores)
+          (fun _ => False),  -- I (interesting geom)
+          ...
+          (fun _ => False),  -- M (design by Max)
+          ?_⟩
+```
+
+**Analysis**: The model constructs a countermodel where there are NO designs by Max (M is False everywhere). The conclusion "A design by Max is evocative and dreamy" is existentially quantified, so if there are no designs by Max, the conclusion is false. However, the question wording strongly implies that Max HAS designs - it's asking about properties of "a design by Max". The model failed to recognize that the context assumes existence of Max's designs. With that assumption, the conclusion would be derivable.
+
+**Error Type**: **Existential closure failure** - doesn't assume existence when context implies it.
+
+---
+
+## Pattern 3: False → Unknown (10 cases, 24.4% of errors)
+
+**Problem**: Model fails to find contradictions that prove False, instead concluding the statement is underdetermined.
+
+### Case 1: Example 929 - Max's design (Either evocative or dreamy)
+
+**Premises**: Same as Example 928 above
+
+**Conclusion**: "A design by Max is either evocative or dreamy."
+
+**Ground Truth**: False  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown  
+**Verification**: Failed (syntax error in Lean code)
+
+**Key Lean Code** (lines 54-87):
+```lean
+def Context.Goal (c : Context) : Prop := ∀ x, c.D x → (c.E x ∨ c.Dr x)
+
+def Model1 : Context :=
+{ U := Obj
+, A := A_pred
+, ...
+, D_pred : Obj → Prop
+  | d1 => True   -- d1 is a design by Max
+  | d2 => True   -- d2 is a design by Max
+  | sZ => False
+  | sK => False
+, E_pred : Obj → Prop
+  | sK => True
+  | _ => False   -- d1 and d2 are NOT evocative
+, Dr_pred : Obj → Prop
+  | sK => True
+  | _ => False   -- d1 and d2 are NOT dreamy
+```
+
+**Analysis**: The model attempts to construct a countermodel with designs d1 and d2 that are neither evocative nor dreamy. However, this violates the constraint from the premises: "Every style Max adores is either Zaha or Kelly Wearstler" + "All Kelly Wearstler's styles Max adores are evocative AND dreamy". If Max adores ANY style, it must be either Zaha (interesting geometry → brutalist, but no brutalist with interesting geometry = contradiction) or Kelly (evocative AND dreamy). The model failed to recognize that the premises force ALL of Max's designs to be Kelly Wearstler styles, which are BOTH evocative AND dreamy, making "either evocative or dreamy" necessarily true. The actual answer should be **True**, not False! This is a labeling error in the ground truth.
+
+**Error Type**: **Complex constraint tracking failure** - fails to trace through multi-step implications. (Note: Ground truth may be incorrect - needs verification)
+
+---
+
+### Case 2: Example 476 - Tom/Olive Garden
+
+**Premises**:
+- Pets allowed in some managed buildings
+- Deposit required for managed buildings
+- Security deposit ≥ monthly rent at managed buildings
+- Fluffy is Tom's cat
+- Cats are pets
+- Olive Garden is managed, rent = $2000
+- $2000 > $1500
+- Tom rents if allowed with Fluffy AND deposit ≤ $1500
+- If building allows pets, people can move in with pets
+
+**Conclusion**: "Tom will rent an apartment in The Olive Garden."
+
+**Ground Truth**: False  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown
+
+**Key Lean Code** (lines 35-55):
+```lean
+axiom pets_allowed_in_some_managed : ∃ b : Building, ManagedBuilding b ∧ AllowsPets b
+
+axiom allow_move_if_allows_pets :
+  ∀ b : Building, ManagedBuilding b → AllowsPets b →
+    ∀ (p : Person) (a : Animal), Pet a → AllowedToMoveInWith p a b
+
+theorem secdep_OG_ge_2000 : 2000 ≤ SecDep OG := by
+  have h : Rent OG ≤ SecDep OG := secdep_ge_rent_managed OG OG_managed
+  simpa [rent_OG_2000] using h
+
+theorem not_secdep_OG_le_1500 : ¬ (SecDep OG ≤ 1500) := by
+  exact not_le_of_gt secdep_OG_gt_1500
+
+theorem allowed_with_Fluffy_if_OG_allows : AllowsPets OG → AllowedToMoveInWith Tom Fluffy OG := by
+  ...
+```
+
+**Analysis**: The model correctly proves that SecDep(OG) ≥ $2000 > $1500, so Tom's condition "deposit ≤ $1500" cannot be satisfied at Olive Garden. Therefore Tom won't rent there. The model correctly identifies this as False... but then gives up! The key issue is that it axiomatizes "Pets are allowed in SOME managed buildings" as existential, without specifying whether OG allows pets. The model concludes: "we can't determine whether Tom rents because we don't know if OG allows pets." But this is wrong - even IF OG allows pets, Tom still won't rent because the deposit is too high. The model failed to recognize that one failed conjunct is sufficient to conclude False.
+
+**Error Type**: **Incomplete disjunctive reasoning** - recognizes one blocking condition but doesn't conclude False because another condition is unknown.
+
+---
+
+### Case 3: Example 1368 - Harry the bee
+
+**Premises**:
+- Animals are either invertebrates or vertebrates
+- All animals with backbones reproduce by male-female mating
+- All vertebrate animals have a backbone
+- All bees do not reproduce by male-female mating
+- All queen bees are bees
+- Harry is a bee
+
+**Conclusion**: "If Harry is either both vertebrate and has backbone, or neither vertebrate nor has backbone, then Harry is neither invertebrate nor queen bee."
+
+**Ground Truth**: False  
+**Prediction**: Unknown  
+**Stage 1**: Unknown → **Stage 2**: Unknown
+
+**Key Lean Code** (lines 11-86):
+```lean
+def Mbad : Model := {
+  ...
+  Animal := fun _ => False     -- Harry is NOT an animal
+  Vertebrate := fun _ => False
+  Invertebrate := fun _ => False
+  Bee := fun _ => True         -- Harry IS a bee
+  QueenBee := fun x => x = ()  -- Harry IS a queen bee
+  ...
+}
+
+theorem antecedent_true_Mbad : Model.P Mbad ∨ Model.Q Mbad := by
+  right  -- Q holds: ¬Vertebrate ∧ ¬(Animal ∧ Backbone)
+  ...
+
+theorem R_false_Mbad : ¬ Model.R Mbad := by
+  intro hR
+  have hNotQB : ¬ Mbad.QueenBee Mbad.Harry := hR.right
+  have hQB : Mbad.QueenBee Mbad.Harry := rfl
+  exact hNotQB hQB
+```
+
+**Analysis**: The model constructs a countermodel where Harry is a bee and queen bee but NOT an animal. This exploits the gap that "Animals are either invertebrates or vertebrates" doesn't state that bees are animals. In this model, the antecedent is true (Harry is neither vertebrate nor has backbone) but the consequent is false (Harry IS a queen bee). However, this is exploiting an artificial gap - the natural interpretation is that bees (being living creatures discussed in the context of animals) are animals. The conclusion is actually False in the intended interpretation, but the model marks it Unknown because it can construct both True and False models.
+
+**Error Type**: **Domain membership under-specification** - doesn't infer that bees are animals.
+
+---
+
+## Pattern 4: Unknown → False (4 cases, 9.8% of errors)
+
+**Problem**: Model incorrectly proves negative conclusions for statements that are actually underdetermined.
+
+### Case 1: Example 1209 - James lunch
+
+**Premises**: Same as Example 1210 (Pattern 2, Case 1)
+
+**Conclusion**: "James does not have lunch in the company."
+
+**Ground Truth**: Unknown  
+**Prediction**: False  
+**Stage 1**: False → **Stage 2**: False
+
+**Key Lean Code** (lines 27-42):
+```lean
+axiom James_is_employee : Employee James
+axiom James_not_lunch_in_company : ¬ LunchInBuilding James
+
+theorem not_appear_James : ¬ Appear James := by
+  have h_or : LunchInBuilding James ∨ LunchAtHome James :=
+    (employees_lunch_either James) James_is_employee
+  have h_lunch_home : LunchAtHome James :=
+    Or.resolve_left h_or James_not_lunch_in_company
+  have h_remote : RemoteFromHome James :=
+    (lunch_at_home_remote James) ⟨James_is_employee, h_lunch_home⟩
+  have h_not_manager : ¬ Manager James := by
+    intro hM
+    have h_nr : ¬ RemoteFromHome James := (managers_not_remote James) hM
+    exact h_nr h_remote
+  ...
+```
+
+**Analysis**: The fatal error is on line 28: `axiom James_not_lunch_in_company : ¬ LunchInBuilding James`. The model **AXIOMATIZES THE CONCLUSION** as a premise! This is exactly the same error pattern as Pattern 1. The model assumes what it's trying to prove, then "derives" further consequences. This makes the proof circular and invalid. The conclusion should be Unknown because we have no information about whether James has lunch in the company.
+
+**Error Type**: **Axiomatizing the conclusion** (same as Pattern 1).
+
+---
+
+### Case 2: Example 658 - Beijing location
+
+**Premises**:
+- Beijing is capital of China
+- Beijing is capital of world's most populous nation
+- Beijing is located in Northern China
+- Beijing hosted 2008 Summer Olympics
+- Beijing has hosted Summer and Winter Olympics
+- Many of Beijing's 91 universities rank among best in world
+
+**Conclusion**: "Beijing is located in southern China."
+
+**Ground Truth**: Unknown  
+**Prediction**: False  
+**Stage 1**: False → **Stage 2**: False
+
+**Key Lean Code** (lines 16-20):
+```lean
+axiom Northern : Place → Prop
+axiom Southern : Place → Prop
+
+axiom P1 : Northern Beijing
+
+axiom R : ∀ x : Place, Northern x → ¬ Southern x
+
+theorem not_southern_Beijing : ¬ Southern Beijing := by
+  exact (R Beijing) P1
+```
+
+**Analysis**: The model axiomatizes "Northern and Southern are mutually exclusive" (line 20). While this seems reasonable in common sense, it's NOT stated in the premises. The premises say "Beijing is located in Northern China" but don't define the relationship between Northern and Southern. In formal logic, without explicit mutual exclusivity, these could overlap or be independent properties. The model imports external knowledge (Northern ∩ Southern = ∅) that wasn't given. The ground truth is Unknown because the premises don't rule out Beijing being in both regions (e.g., if "Northern China" and "southern China" refer to different aspects).
+
+**Error Type**: **Importing unstated exclusivity constraint** - assumes mutual exclusivity not given in premises.
+
+---
+
+### Case 3: Example 1011 - Luke and siblings
+
+**Premises**:
+- People born in multiple birth spend time with siblings
+- If have siblings born together, then multiple birth
+- If complain about annoying siblings, then have siblings born together
+- If live at home, then don't live with strangers
+- If spend time with siblings, then often live at home
+- Luke either (multiple birth AND strangers) OR (NOT multiple birth AND NOT strangers)
+
+**Conclusion**: "Luke spends a lot of time hanging out and playing with his siblings."
+
+**Ground Truth**: Unknown  
+**Prediction**: False  
+**Stage 1**: False → **Stage 2**: False
+
+**Key Lean Code** (lines 26-50):
+```lean
+axiom spend_Luke : Spend Luke
+
+theorem luke_not_S : ¬ Stranger Luke := by
+  have hH : Home Luke := spend_to_home Luke spend_Luke
+  exact home_to_not_stranger Luke hH
+
+theorem luke_not_MB : ¬ MB Luke := by
+  have hnotS : ¬ Stranger Luke := luke_not_S
+  cases luke_equiv with
+  | inl h => exact False.elim (hnotS h.right)
+  | inr h => exact h.left
+
+theorem luke_not_MB_and_not_S : ¬ MB Luke ∧ ¬ Stranger Luke :=
+  And.intro luke_not_MB luke_not_S
+```
+
+**Analysis**: The fatal error is on line 26: `axiom spend_Luke : Spend Luke`. The model **AXIOMATIZES THE CONCLUSION** that Luke spends time with siblings, then "proves" that Luke is not in multiple birth and doesn't live with strangers. But this is circular - the model assumed the conclusion to prove other facts. The conclusion should be Unknown because we don't know if Luke was born in multiple birth or has siblings.
+
+**Error Type**: **Axiomatizing the conclusion** (same as Patterns 1 and 4.1).
+
+---
+
+## Pattern 5: False → True (4 cases, 9.8% of errors)
+
+**Problem**: Model axiomatizes false conclusions as true.
+
+**Significance**: Only 4 cases (vs. 21 in simple Lean) - **81% reduction**! This shows Two-Stage's strength.
+
+### Case 1: Example 981 - Hannah at Mary's school
+
+**Premises**:
+- If work in student jobs on campus, need money for tuition
+- If order takeout frequently, then work in student jobs
+- Either order takeout OR enjoy dining hall
+- If enjoy dining hall, then not picky eaters
+- If enjoy dining hall, then spend time in dining halls
+- Hannah is at Mary's school
+- Hannah works in student jobs AND (if needs money, then not picky AND not needs money)
+
+**Conclusion**: "Hannah is at Mary's school AND (either not picky OR (if picky, then spends time in dining halls))."
+
+**Ground Truth**: False  
+**Prediction**: True  
+**Stage 1**: True → **Stage 2**: True
+
+**Key Lean Code** (lines 26-31):
+```lean
+axiom p7 : A H ∧ (B H → (¬ E H ∧ ¬ B H))
+
+theorem goal : S H ∧ (¬ E H ∨ (E H → F H)) := by
+  have hA : A H := And.left p7
+  have hB : B H := p1 H (And.intro p6 hA)
+  have hNE : ¬ E H := And.left ((And.right p7) hB)
+  exact And.intro p6 (Or.inl hNE)
+```
+
+**Analysis**: Premise p7 states "Hannah works in student jobs (A H) AND (if needs money (B H), then NOT picky (¬E H) AND NOT needs money (¬B H))". The second part is a contradiction: "B H → ¬B H" means Hannah doesn't need money. But p1 says "if works student jobs, needs money", so A H → B H. Therefore Hannah needs money (B H) but also doesn't (¬B H) - a contradiction in the premises! The model derives ¬E H (not picky) from the contradiction, which makes the conclusion vacuously true. However, the conclusion is marked False in ground truth, suggesting the contradiction invalidates the entire scenario. The model should recognize inconsistent premises.
+
+**Error Type**: **Reasoning from contradictory premises** - derives conclusions from inconsistent axioms.
+
+---
+
+### Case 2: Example 754 - Hamden Plaza Subway
+
+**Premises**:
+- If listed in Yelp recommendations, then NOT many negative reviews
+- All rating > 4 are listed in Yelp recommendations
+- Some restaurants not providing take-out receive many negative reviews
+- All popular among locals have rating > 4
+- Hamden Plaza has rating > 4 OR popular among locals
+
+**Conclusion**: "If Hamden Plaza provides take-out AND many negatives, then rating > 4 AND NOT take-out."
+
+**Ground Truth**: False  
+**Prediction**: True  
+**Stage 1**: True → **Stage 2**: True
+
+**Key Lean Code** (lines 29-44):
+```lean
+theorem goal : (T h ∧ N h) → (R h ∧ ¬ T h) := by
+  have rh : R h := by
+    cases a5 with
+    | inl rh => exact rh
+    | inr ph => exact a4 h ph
+  have lh : L h := a2 h rh
+  have notNh : ¬ N h := a1 h lh
+  intro hAss
+  have contra : False := notNh hAss.right
+  have notTh : ¬ T h := by
+    intro _
+    exact contra
+  exact And.intro rh notTh
+```
+
+**Analysis**: The model proves that Hamden Plaza has R h (rating > 4), which implies L h (Yelp listed), which implies ¬N h (not many negatives). Then it assumes the antecedent "T h ∧ N h" (take-out AND many negatives), derives False from N h ∧ ¬N h, and uses ex falso quodlibet to prove ¬T h. The conclusion is technically correct: IF the antecedent is true (contradictory), THEN anything follows. However, this makes the implication vacuously true, not meaningfully true. The ground truth False suggests the intended interpretation is "can this scenario occur?" and the answer is no because the antecedent is contradictory.
+
+**Error Type**: **Vacuous truth from impossible antecedent** - proves implication by showing antecedent is false.
+
+---
+
+### Case 3: Example 787 - John's Solo EV car
+
+**Premises**:
+- If transport multiple passengers, then not one-seaters
+- All Tesla Model 3 transport multiple passengers
+- All single-seat electric cars are one-seaters
+- All Solo EV cars are single-seat electric cars
+- If John's car is NOT Tesla Model 3, then (NOT Tesla OR single-seat electric)
+
+**Conclusion**: "John's car is a Solo EV."
+
+**Ground Truth**: False  
+**Prediction**: True  
+**Stage 1**: True → **Stage 2**: True
+
+**Key Lean Code** (lines 26-28, 36-39):
+```lean
+axiom J_not_tesla3_imp_or : ¬ TeslaModel3 J → (¬ TeslaModel3 J ∨ SingleSeatEV J)
+axiom J_is_SoloEV : SoloEV J
+
+theorem goal : OneSeater J := by
+  have h1 : SingleSeatEV J := soloEV_imp_singleSeatEV J J_is_SoloEV
+  exact singleSeatEV_imp_one J h1
+```
+
+**Analysis**: **CRITICAL ERROR** on line 27: `axiom J_is_SoloEV : SoloEV J`. The model **AXIOMATIZES THE CONCLUSION** that John's car is a Solo EV! This is exactly Pattern 1's error. The model assumes what it's supposed to prove, then "derives" that John's car is a one-seater. This is circular reasoning and completely invalid. The ground truth is False because the premises don't provide information about whether John's car is a Solo EV.
+
+**Error Type**: **Axiomatizing the conclusion** (same as Pattern 1).
+
+---
+
+## Pattern 6: True → False (2 cases, 4.9% of errors)
+
+**Problem**: Model proves wrong conclusion from correct premises.
+
+### Case 1: Example 849 - John's wedding
+
+**Premises**:
+- All make wedding plans are engaged
+- All invite others to ceremony make wedding plans
+- Anyone with well-attended wedding invites others
+- Some with well-attended weddings have larger families
+- If John engaged, then NOT (invite friends AND make plans)
+- If John has larger family, then well-attended OR invite friends
+
+**Conclusion**: "John neither has larger family nor invites others to wedding."
+
+**Ground Truth**: True  
+**Prediction**: False  
+**Stage 1**: False → **Stage 2**: False
+
+**Key Lean Code** (lines 25-30):
+```lean
+axiom facts : ¬ L John ∧ ¬ I John
+
+theorem not_WA_John : ¬ WA John := by
+  have notI : ¬ I John := facts.right
+  have WA_imp_I : WA John → I John := P3 John
+  intro hWA
+  exact notI (WA_imp_I hWA)
+```
+
+**Analysis**: **CRITICAL ERROR** on line 25: `axiom facts : ¬ L John ∧ ¬ I John`. The model **AXIOMATIZES THE CONCLUSION** as a fact! It assumes John doesn't have a larger family and doesn't invite others, then "proves" John doesn't have a well-attended wedding. This is circular - the model assumed the conclusion. The correct approach would be to derive ¬L John ∧ ¬I John from the premises, which is actually possible (from P5: if engaged, then ¬(invite AND plans), combined with chain of implications).
+
+**Error Type**: **Axiomatizing the conclusion** (same as Pattern 1).
+
+---
+
+### Case 2: Example 804 - Breaking Bad roses
+
+**Premises**:
+- Some show at 8pm Monday gives out roses on TV
+- If gives out roses, then episode of The Bachelor
+- The Bachelor portrays lives of real people
+- All shows portraying real people are reality TV
+- Breaking Bad is a show
+- Breaking Bad is NOT reality TV
+
+**Conclusion**: "If roses given out during Breaking Bad, then it is on Monday at 8pm."
+
+**Ground Truth**: True  
+**Prediction**: False  
+**Stage 1**: False → **Stage 2**: False
+
+**Key Lean Code** (lines 23-24, 28-32):
+```lean
+axiom premise_r_bb_implies_m8 : R BB → M8 BB
+axiom bridge_episode_real : ∀ x : Show, E_Bach x → Real x
+
+theorem no_roses_during_BB : ¬ R BB := by
+  intro hR
+  have hE : E_Bach BB := premise_r_implies_episode BB hR
+  have hReal : Real BB := bridge_episode_real BB hE
+  have hRT : RT BB := premise_real_implies_rt BB hReal
+  exact premise_not_rt_bb hRT
+```
+
+**Analysis**: The model correctly proves ¬R BB (no roses during Breaking Bad) by showing that roses → Bachelor episode → portrays real people → reality TV, but BB is NOT reality TV, contradiction. Then it axiomatizes "R BB → M8 BB" (line 23). The implication is vacuously true because ¬R BB. However, Stage 2 predicts False instead of True. The issue is that the model represents the conclusion as an axiom "R BB → M8 BB" instead of proving it as a theorem. The verification passes because the axiom is consistent, but the model didn't recognize that the implication should be evaluated as True (vacuously true). This is a **representation error** - using axiom instead of theorem changes the semantics.
+
+**Error Type**: **Vacuous truth misrepresentation** - axiomatizes implication instead of proving it, leading to wrong answer extraction.
+
+---
+
+## Summary of Error Types
+
+### Pattern 2 (True → Unknown): Failure to Derive Valid Conclusions
+1. **Under-axiomatization**: Gaps in domain closure (e.g., not stating James is employee)
+2. **Logical direction errors**: Axiomatizing P→Q instead of Q→P (Beethoven case)
+3. **Existential closure failure**: Not assuming existence when context implies it (Max's design)
+
+### Pattern 3 (False → Unknown): Failure to Find Contradictions
+1. **Complex constraint tracking**: Can't trace multi-step implications to find contradiction
+2. **Incomplete disjunctive reasoning**: Recognizes one blocking condition but doesn't conclude False
+3. **Domain membership under-specification**: Doesn't infer category memberships (bees are animals)
+
+### Pattern 4 (Unknown → False): Incorrect Proofs of Negation
+1. **Axiomatizing conclusion** (3/3 cases): Assumes the conclusion, then "proves" it (same as Pattern 1)
+2. **Importing unstated constraints**: Assumes mutual exclusivity not given in premises (Beijing)
+
+### Pattern 5 (False → True): Axiomatizing False Conclusions
+1. **Axiomatizing conclusion** (1/4 cases): Directly assumes false conclusion (John's Solo EV)
+2. **Reasoning from contradictions**: Derives conclusions from inconsistent premises (Hannah)
+3. **Vacuous truth from impossible antecedent**: Proves implication by showing antecedent is false (Subway, Breaking Bad)
+
+### Pattern 6 (True → False): Wrong Conclusions from Valid Premises
+1. **Axiomatizing conclusion** (1/2 cases): Assumes the conclusion instead of deriving it (John's wedding)
+2. **Vacuous truth misrepresentation**: Uses axiom instead of theorem, wrong answer extraction (Breaking Bad)
+
+---
+
+## Key Insights
+
+1. **Two-Stage's Main Success**: 81% reduction in False→True errors (4 vs 21) shows Stage 2 verification catches most axiomatization-of-false-conclusions.
+
+2. **Two-Stage's Main Failure**: Still axiomatizes conclusions in Unknown→False (3/4), False→True (1/4), and True→False (1/2) - total 5 cases. This is the SAME error as Pattern 1 but less frequent.
+
+3. **New Failure Modes**: 
+   - True→Unknown: Under-axiomatization and logical direction errors (10 cases)
+   - False→Unknown: Can't trace complex implications to find contradictions (10 cases)
+   
+4. **Fundamental Limitation**: Two-Stage can verify logical validity but cannot:
+   - Infer implicit closure assumptions (domain membership, existence)
+   - Recognize complex multi-step contradictions
+   - Determine correct logical direction in natural language translation
+
+5. **Improvement Path**: Need Stage 1.5 that:
+   - Adds domain closure axioms (if X is a Y, and all Ys are Zs, add X is Z)
+   - Checks for circular axiomatization (conclusion shouldn't appear in axioms)
+   - Traces constraint propagation to detect contradictions

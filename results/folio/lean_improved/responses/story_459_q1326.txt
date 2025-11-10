@@ -1,0 +1,429 @@
+Story ID: 459
+Example ID: 1326
+Premises: Jane does not like any animals that bark.
+All dogs are animals that bark.
+Jane likes all animals that jump.
+If an animal has legs, then it jumps.
+If an animal is terricolous, then it has legs. 
+KiKi is an animal.
+If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+Conclusion: KiKi does not bark and he is not a dog.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+open Classical
+
+-- Domain of discourse
+constant Ind : Type
+
+-- Predicates
+constant Animal : Ind → Prop
+constant Dog : Ind → Prop
+constant Barks : Ind → Prop
+constant Jumps : Ind → Prop
+constant HasLegs : Ind → Prop
+constant Terricolous : Ind → Prop
+constant Likes : Ind → Prop
+
+-- Constant individual
+constant Kiki : Ind
+
+-- Premises
+axiom h1 : ∀ x : Ind, Animal x ∧ Barks x → ¬ Likes x
+axiom h2 : ∀ x : Ind, Dog x → Animal x ∧ Barks x
+axiom h3 : ∀ x : Ind, Animal x ∧ Jumps x → Likes x
+axiom h4 : ∀ x : Ind, Animal x ∧ HasLegs x → Jumps x
+axiom h5 : ∀ x : Ind, Animal x ∧ Terricolous x → HasLegs x
+axiom h6 : Animal Kiki
+axiom h7 : (¬ Jumps Kiki ∧ ¬ HasLegs Kiki) → (Terricolous Kiki ∨ HasLegs Kiki)
+
+-- Conclusion to verify: "Kiki does not bark and he is not a dog."
+theorem concl : ¬ Barks Kiki ∧ ¬ Dog Kiki := by
+  -- First, show that Kiki jumps
+  have hJ : Jumps Kiki := by
+    by_contra hNotJ
+    -- From ¬Jumps Kiki, deduce ¬HasLegs Kiki (otherwise we'd get Jumps from h4)
+    have hNotL : ¬ HasLegs Kiki := by
+      intro hL
+      have : Jumps Kiki := h4 Kiki ⟨h6, hL⟩
+      exact hNotJ this
+    -- Use the special premise about Kiki to derive a contradiction
+    have both : ¬ Jumps Kiki ∧ ¬ HasLegs Kiki := ⟨hNotJ, hNotL⟩
+    have terrOrLegs : Terricolous Kiki ∨ HasLegs Kiki := h7 both
+    cases terrOrLegs with
+    | inl terr =>
+        have legs : HasLegs Kiki := h5 Kiki ⟨h6, terr⟩
+        exact hNotL legs
+    | inr legs =>
+        exact hNotL legs
+  -- From jumping and being an animal, Jane likes Kiki
+  have hLike : Likes Kiki := h3 Kiki ⟨h6, hJ⟩
+  -- Therefore, Kiki cannot bark (else Jane would not like him)
+  have nbark : ¬ Barks Kiki := by
+    intro hb
+    have : ¬ Likes Kiki := h1 Kiki ⟨h6, hb⟩
+    exact this hLike
+  -- And hence Kiki is not a dog (since all dogs bark)
+  have ndog : ¬ Dog Kiki := by
+    intro hd
+    have : Animal Kiki ∧ Barks Kiki := h2 Kiki hd
+    exact nbark this.right
+  exact ⟨nbark, ndog⟩
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 3

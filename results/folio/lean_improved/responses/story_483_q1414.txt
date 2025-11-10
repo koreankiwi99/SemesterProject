@@ -1,0 +1,388 @@
+Story ID: 483
+Example ID: 1414
+Premises: Everyone who can register to vote in the United States can participate in the 2024 United States presidential election.
+If someone has United States citizenship, then they can register to vote in the United States.
+A person either has United States citizenship or Taiwanese citizenship.
+No Russian Federation officials hold Taiwanese citizenship. 
+Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom. 
+Ekaterina she can register to vote in the United States, or she is a Russian federation official.
+Conclusion: It is not true that Ekaterina can register to vote in the United States and Vladimir can participate in the 2024 United States presidential election.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+-- We formalize the premises.
+
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises:
+-- 1. Everyone who can register to vote in the United States can participate in the 2024 United States presidential election.
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+-- 2. If someone has United States citizenship, then they can register to vote in the United States.
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+-- 3. A person either has United States citizenship or Taiwanese citizenship.
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+-- 4. No Russian Federation officials hold Taiwanese citizenship.
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+-- 5. Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom.
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+-- 6. Ekaterina can register to vote in the United States, or she is a Russian Federation official.
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From the premises, we derive that Vladimir can participate and Ekaterina can register.
+
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- Therefore, (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir) holds.
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Hence, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false.
+theorem neg_claim_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+-- We formalize the premises.
+
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises:
+-- 1. Everyone who can register to vote in the United States can participate in the 2024 United States presidential election.
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+-- 2. If someone has United States citizenship, then they can register to vote in the United States.
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+-- 3. A person either has United States citizenship or Taiwanese citizenship.
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+-- 4. No Russian Federation officials hold Taiwanese citizenship.
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+-- 5. Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom.
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+-- 6. Ekaterina can register to vote in the United States, or she is a Russian Federation official.
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From the premises, we derive that Vladimir can participate and Ekaterina can register.
+
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- Therefore, (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir) holds.
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Hence, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false.
+theorem neg_claim_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From ¬ TaiwaneseCitizen x and (USCitizen x ∨ TaiwaneseCitizen x), derive USCitizen x
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+-- Ekaterina can register to vote in the US
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+-- Vladimir can participate in the 2024 US presidential election
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- The conjunction holds
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Therefore, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false
+theorem claim_is_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From ¬ TaiwaneseCitizen x and (USCitizen x ∨ TaiwaneseCitizen x), derive USCitizen x
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+-- Ekaterina can register to vote in the US
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+-- Vladimir can participate in the 2024 US presidential election
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- The conjunction holds
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Therefore, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false
+theorem claim_is_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From ¬ TaiwaneseCitizen x and (USCitizen x ∨ TaiwaneseCitizen x), derive USCitizen x
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+-- Ekaterina can register to vote in the US
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+-- Vladimir can participate in the 2024 US presidential election
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- The conjunction holds
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Therefore, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false
+theorem neg_claim_is_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+constant Person : Type
+constant CanRegisterUS : Person → Prop
+constant CanParticipate2024 : Person → Prop
+constant USCitizen : Person → Prop
+constant TaiwaneseCitizen : Person → Prop
+constant RfOfficial : Person → Prop
+constant ManagerGazprom : Person → Prop
+
+constant Vladimir Ekaterina : Person
+
+-- Premises
+axiom ax1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom ax2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom ax3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom ax4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+axiom ax5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom ax6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+-- From ¬ TaiwaneseCitizen x and (USCitizen x ∨ TaiwaneseCitizen x), derive USCitizen x
+lemma US_of_not_TW (x : Person) (hnot : ¬ TaiwaneseCitizen x) : USCitizen x := by
+  have hdisj := ax3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnot hTW)
+
+-- Ekaterina can register to vote in the US
+lemma reg_Ekaterina : CanRegisterUS Ekaterina := by
+  cases ax6 with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := ax4 Ekaterina hRFO
+      have hUS : USCitizen Ekaterina := US_of_not_TW Ekaterina hNotTW
+      exact ax2 Ekaterina hUS
+
+-- Vladimir can participate in the 2024 US presidential election
+lemma part_Vladimir : CanParticipate2024 Vladimir := by
+  have hNotTW : ¬ TaiwaneseCitizen Vladimir := And.left ax5
+  have hUS : USCitizen Vladimir := US_of_not_TW Vladimir hNotTW
+  have hReg : CanRegisterUS Vladimir := ax2 Vladimir hUS
+  exact ax1 Vladimir hReg
+
+-- The conjunction holds
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro reg_Ekaterina part_Vladimir
+
+-- Therefore, the claim "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false
+theorem neg_claim_is_false : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro hneg
+  exact hneg conj_true
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

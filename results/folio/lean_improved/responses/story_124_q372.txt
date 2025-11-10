@@ -1,0 +1,324 @@
+Story ID: 124
+Example ID: 372
+Premises: The Picuris Mountains are a mountain range in New Mexico or Texas.
+Juan de Onate visited the Picuris Mountains.
+The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+There are no mountain ranges in texas that have mines that have been donated.
+Conclusion: The Harding Pegmatite Mine is not located in a mountain range in New Mexico.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- Claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+-- Interpreted as: the mountain range it is located in (PM) is not in New Mexico.
+def Claim : Prop := ¬ InNM PM
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- Claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+-- Interpreted as: the mountain range it is located in (PM) is not in New Mexico.
+def Claim : Prop := ¬ InNM PM
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : IsMine HPM ∧ LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- The claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+def Claim : Prop := ¬ ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r
+
+-- From the premises, PM must be in NM (it cannot be in TX, since HPM is a donated mine located in PM).
+theorem inNM_PM : InNM PM :=
+by
+  have hMR : MountainRange PM := And.left A1
+  have hAlt : InNM PM ∨ InTX PM := And.right A1
+  have hMine : IsMine HPM := And.left A3
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hDon : Donated HPM := And.right (And.right A3)
+  cases hAlt with
+  | inl hNM => exact hNM
+  | inr hTX =>
+      have hNo : ¬ ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := A4 PM (And.intro hMR hTX)
+      have hEx : ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := ⟨HPM, And.intro hMine (And.intro hLoc hDon)⟩
+      exact False.elim (hNo hEx)
+
+-- Therefore, HPM is located in a mountain range (PM) that is in NM, contradicting the claim.
+theorem not_Claim : ¬ Claim :=
+by
+  intro h
+  have hMR : MountainRange PM := And.left A1
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hEx : ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r :=
+    ⟨PM, And.intro hMR (And.intro inNM_PM hLoc)⟩
+  exact h hEx
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : IsMine HPM ∧ LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- The claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+def Claim : Prop := ¬ ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r
+
+-- From the premises, PM must be in NM (it cannot be in TX, since HPM is a donated mine located in PM).
+theorem inNM_PM : InNM PM :=
+by
+  have hMR : MountainRange PM := And.left A1
+  have hAlt : InNM PM ∨ InTX PM := And.right A1
+  have hMine : IsMine HPM := And.left A3
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hDon : Donated HPM := And.right (And.right A3)
+  cases hAlt with
+  | inl hNM => exact hNM
+  | inr hTX =>
+      have hNo : ¬ ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := A4 PM (And.intro hMR hTX)
+      have hEx : ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := ⟨HPM, And.intro hMine (And.intro hLoc hDon)⟩
+      exact False.elim (hNo hEx)
+
+-- Therefore, HPM is located in a mountain range (PM) that is in NM, contradicting the claim.
+theorem not_Claim : ¬ Claim :=
+by
+  intro h
+  have hMR : MountainRange PM := And.left A1
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hEx : ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r :=
+    ⟨PM, And.intro hMR (And.intro inNM_PM hLoc)⟩
+  exact h hEx
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : IsMine HPM ∧ LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- The claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+def Claim : Prop := ¬ ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r
+
+-- From the premises, PM must be in NM (it cannot be in TX, since HPM is a donated mine located in PM).
+theorem inNM_PM : InNM PM :=
+by
+  have hMR : MountainRange PM := And.left A1
+  have hAlt : InNM PM ∨ InTX PM := And.right A1
+  have hMine : IsMine HPM := And.left A3
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hDon : Donated HPM := And.right (And.right A3)
+  cases hAlt with
+  | inl hNM => exact hNM
+  | inr hTX =>
+      have hNo : ¬ ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := A4 PM (And.intro hMR hTX)
+      have hEx : ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := ⟨HPM, And.intro hMine (And.intro hLoc hDon)⟩
+      exact False.elim (hNo hEx)
+
+-- Therefore, HPM is located in a mountain range (PM) that is in NM, contradicting the claim.
+theorem not_Claim : ¬ Claim :=
+by
+  intro h
+  have hMR : MountainRange PM := And.left A1
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hEx : ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r :=
+    ⟨PM, And.intro hMR (And.intro inNM_PM hLoc)⟩
+  exact h hEx
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant Entity : Type u
+
+constant MountainRange : Entity → Prop
+constant InNM : Entity → Prop
+constant InTX : Entity → Prop
+constant LocatedIn : Entity → Entity → Prop
+constant Donated : Entity → Prop
+constant Visited : Entity → Entity → Prop
+constant IsMine : Entity → Prop
+
+constant PM : Entity        -- Picuris Mountains
+constant HPM : Entity       -- Harding Pegmatite Mine
+constant JDO : Entity       -- Juan de Onate
+
+-- Premises:
+axiom A1 : MountainRange PM ∧ (InNM PM ∨ InTX PM)
+axiom A2 : Visited JDO PM
+axiom A3 : IsMine HPM ∧ LocatedIn HPM PM ∧ Donated HPM
+axiom A4 : ∀ r : Entity, MountainRange r ∧ InTX r → ¬ ∃ m : Entity, IsMine m ∧ LocatedIn m r ∧ Donated m
+
+-- The claim to assess: "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+def Claim : Prop := ¬ ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r
+
+-- From the premises, PM must be in NM (it cannot be in TX, since HPM is a donated mine located in PM).
+theorem inNM_PM : InNM PM :=
+by
+  have hMR : MountainRange PM := And.left A1
+  have hAlt : InNM PM ∨ InTX PM := And.right A1
+  have hMine : IsMine HPM := And.left A3
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hDon : Donated HPM := And.right (And.right A3)
+  cases hAlt with
+  | inl hNM => exact hNM
+  | inr hTX =>
+      have hNo : ¬ ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := A4 PM (And.intro hMR hTX)
+      have hEx : ∃ m, IsMine m ∧ LocatedIn m PM ∧ Donated m := ⟨HPM, And.intro hMine (And.intro hLoc hDon)⟩
+      exact False.elim (hNo hEx)
+
+-- Therefore, HPM is located in a mountain range (PM) that is in NM, contradicting the claim.
+theorem not_Claim : ¬ Claim :=
+by
+  intro h
+  have hMR : MountainRange PM := And.left A1
+  have hLoc : LocatedIn HPM PM := And.left (And.right A3)
+  have hEx : ∃ r : Entity, MountainRange r ∧ InNM r ∧ LocatedIn HPM r :=
+    ⟨PM, And.intro hMR (And.intro inNM_PM hLoc)⟩
+  exact h hEx
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

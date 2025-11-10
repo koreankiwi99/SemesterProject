@@ -1,0 +1,436 @@
+Story ID: 467
+Example ID: 1350
+Premises: All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+Conclusion: Rock does not have wings.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  have hDisj := ax8
+  apply Or.elim hDisj
+  · intro hFly
+    exact ax6 Rock hPet hFly
+  · intro hRest
+    apply Or.elim hRest
+    · intro hBird
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+    · intro hNotBreathe
+      -- From Pet and ¬Breathe, get ¬Animal
+      have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+      have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+      -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+      have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+      have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+      -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+      have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+      have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+      -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+      have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+      have hBird : Bird Rock := by
+        apply Or.elim hMonOrBird
+        · intro hMon
+          exact False.elim (hNotMonkey hMon)
+        · intro hBird
+          exact hBird
+      -- Then Fly and thus Wings
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  have hDisj := ax8
+  apply Or.elim hDisj
+  · intro hFly
+    exact ax6 Rock hPet hFly
+  · intro hRest
+    apply Or.elim hRest
+    · intro hBird
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+    · intro hNotBreathe
+      -- From Pet and ¬Breathe, get ¬Animal
+      have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+      have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+      -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+      have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+      have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+      -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+      have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+      have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+      -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+      have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+      have hBird : Bird Rock := by
+        apply Or.elim hMonOrBird
+        · intro hMon
+          exact False.elim (hNotMonkey hMon)
+        · intro hBird
+          exact hBird
+      -- Then Fly and thus Wings
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  have hDisj := ax8
+  apply Or.elim hDisj
+  · intro hFly
+    exact ax6 Rock hPet hFly
+  · intro hRest
+    apply Or.elim hRest
+    · intro hBird
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+    · intro hNotBreathe
+      -- From Pet and ¬Breathe, get ¬Animal
+      have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+      have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+      -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+      have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+      have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+      -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+      have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+      have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+      -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+      have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+      have hBird : Bird Rock := by
+        apply Or.elim hMonOrBird
+        · intro hMon
+          exact False.elim (hNotMonkey hMon)
+        · intro hBird
+          exact hBird
+      -- Then Fly and thus Wings
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  have hDisj := ax8
+  apply Or.elim hDisj
+  · intro hFly
+    exact ax6 Rock hPet hFly
+  · intro hRest
+    apply Or.elim hRest
+    · intro hBird
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+    · intro hNotBreathe
+      -- From Pet and ¬Breathe, get ¬Animal
+      have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+      have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+      -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+      have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+      have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+      -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+      have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+      have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+      -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+      have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+      have hBird : Bird Rock := by
+        apply Or.elim hMonOrBird
+        · intro hMon
+          exact False.elim (hNotMonkey hMon)
+        · intro hBird
+          exact hBird
+      -- Then Fly and thus Wings
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : (Fly Rock ∨ Bird Rock) ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  cases ax8 with
+  | inl hFB =>
+    cases hFB with
+    | inl hFly =>
+      exact ax6 Rock hPet hFly
+    | inr hBird =>
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+  | inr hNotBreathe =>
+    -- From Pet and ¬Breathe, get ¬Animal
+    have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+    have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+    -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+    have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+    have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+    -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+    have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+    have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+    -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+    have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+    have hBird : Bird Rock :=
+      Or.elim hMonOrBird
+        (fun hMon => False.elim (hNotMonkey hMon))
+        (fun hBird => hBird)
+    -- Then Fly and thus Wings
+    have hFly : Fly Rock := ax4 Rock hPet hBird
+    exact ax6 Rock hPet hFly
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant U : Type u
+
+-- Predicates
+constant Pet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant Fly : U → Prop
+constant Breathe : U → Prop
+constant Wings : U → Prop
+
+-- Constant individual
+constant Rock : U
+
+-- Premises
+axiom ax1 : ∀ x : U, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x : U, Monkey x → Mammal x
+axiom ax3 : ∀ x : U, Pet x → (Monkey x ∨ Bird x)
+axiom ax4 : ∀ x : U, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x : U, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x : U, Pet x → Fly x → Wings x
+axiom ax7 : Pet Rock
+axiom ax8 : (Fly Rock ∨ Bird Rock) ∨ ¬ Breathe Rock
+
+-- From the premises we can derive that Rock has wings.
+theorem Rock_has_wings : Wings Rock := by
+  have hPet : Pet Rock := ax7
+  cases ax8 with
+  | inl hFB =>
+    cases hFB with
+    | inl hFly =>
+      exact ax6 Rock hPet hFly
+    | inr hBird =>
+      have hFly : Fly Rock := ax4 Rock hPet hBird
+      exact ax6 Rock hPet hFly
+  | inr hNotBreathe =>
+    -- From Pet and ¬Breathe, get ¬Animal
+    have hAimpB : Animal Rock → Breathe Rock := ax5 Rock hPet
+    have hNotAnimal : ¬ Animal Rock := fun hA => hNotBreathe (hAimpB hA)
+    -- From Pet and (Mammal → Animal) and ¬Animal, get ¬Mammal
+    have hMammalImpAnimal : Mammal Rock → Animal Rock := ax1 Rock hPet
+    have hNotMammal : ¬ Mammal Rock := fun hM => hNotAnimal (hMammalImpAnimal hM)
+    -- From (Monkey → Mammal) and ¬Mammal, get ¬Monkey
+    have hMonkeyImpMammal : Monkey Rock → Mammal Rock := ax2 Rock
+    have hNotMonkey : ¬ Monkey Rock := fun hMon => hNotMammal (hMonkeyImpMammal hMon)
+    -- From Pet ⇒ (Monkey ∨ Bird) and ¬Monkey, get Bird
+    have hMonOrBird : Monkey Rock ∨ Bird Rock := ax3 Rock hPet
+    have hBird : Bird Rock :=
+      Or.elim hMonOrBird
+        (fun hMon => False.elim (hNotMonkey hMon))
+        (fun hBird => hBird)
+    -- Then Fly and thus Wings
+    have hFly : Fly Rock := ax4 Rock hPet hBird
+    exact ax6 Rock hPet hFly
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - The Lean server is not running.
+--------------------------------------------------
+stdout:
+
+--------------------------------------------------
+stderr:
+
+--------------------------------------------------
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

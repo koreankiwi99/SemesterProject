@@ -1,0 +1,141 @@
+Story ID: 467
+Example ID: 1350
+Premises: Not true is false. False or not false is true. True and not false is true. Not false and true is true. All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+Conclusion: Rock does not have wings.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+-- Domains and predicates
+axiom Thing : Type
+axiom PeterPet : Thing → Prop
+axiom Mammal : Thing → Prop
+axiom Animal : Thing → Prop
+axiom Monkey : Thing → Prop
+axiom Bird : Thing → Prop
+axiom CanFly : Thing → Prop
+axiom HasWings : Thing → Prop
+axiom CanBreathe : Thing → Prop
+
+-- Constants
+axiom Rock : Thing
+
+-- Premises
+axiom pets_mammals_are_animals : ∀ x, PeterPet x → Mammal x → Animal x
+axiom monkeys_are_mammals : ∀ x, Monkey x → Mammal x
+axiom pets_are_monkeys_or_birds : ∀ x, PeterPet x → (Monkey x ∨ Bird x)
+axiom peters_birds_can_fly : ∀ x, PeterPet x → Bird x → CanFly x
+axiom pets_animals_can_breathe : ∀ x, PeterPet x → Animal x → CanBreathe x
+axiom flying_pets_have_wings : ∀ x, PeterPet x → CanFly x → HasWings x
+axiom rock_is_pet : PeterPet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- From the premises, Rock has wings.
+theorem rock_has_wings : HasWings Rock := by
+  have ppet : PeterPet Rock := rock_is_pet
+  have disj := rock_fly_or_bird_or_not_breathe
+  cases disj with
+  | inl hfly =>
+      exact flying_pets_have_wings Rock ppet hfly
+  | inr rest =>
+      cases rest with
+      | inl hbird =>
+          have fly : CanFly Rock := peters_birds_can_fly Rock ppet hbird
+          exact flying_pets_have_wings Rock ppet fly
+      | inr hnotb =>
+          -- Use that Rock is either a monkey or a bird (since it's Peter's pet)
+          have pet_either : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock ppet
+          cases pet_either with
+          | inl hmonkey =>
+              have hmammal : Mammal Rock := monkeys_are_mammals Rock hmonkey
+              have hanimal : Animal Rock := pets_mammals_are_animals Rock ppet hmammal
+              have hbreathes : CanBreathe Rock := pets_animals_can_breathe Rock ppet hanimal
+              have contra : False := hnotb hbreathes
+              exact False.elim contra
+          | inr hbird2 =>
+              have fly : CanFly Rock := peters_birds_can_fly Rock ppet hbird2
+              exact flying_pets_have_wings Rock ppet fly
+
+-- The natural language claim was "Rock does not have wings."
+-- We can show its negation holds: ¬¬HasWings Rock
+theorem not_not_rock_has_wings : ¬ ¬ HasWings Rock := by
+  intro nh
+  exact nh rock_has_wings
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+-- Domains and predicates
+axiom Thing : Type
+axiom PeterPet : Thing → Prop
+axiom Mammal : Thing → Prop
+axiom Animal : Thing → Prop
+axiom Monkey : Thing → Prop
+axiom Bird : Thing → Prop
+axiom CanFly : Thing → Prop
+axiom HasWings : Thing → Prop
+axiom CanBreathe : Thing → Prop
+
+-- Constants
+axiom Rock : Thing
+
+-- Premises
+axiom pets_mammals_are_animals : ∀ x, PeterPet x → Mammal x → Animal x
+axiom monkeys_are_mammals : ∀ x, Monkey x → Mammal x
+axiom pets_are_monkeys_or_birds : ∀ x, PeterPet x → (Monkey x ∨ Bird x)
+axiom peters_birds_can_fly : ∀ x, PeterPet x → Bird x → CanFly x
+axiom pets_animals_can_breathe : ∀ x, PeterPet x → Animal x → CanBreathe x
+axiom flying_pets_have_wings : ∀ x, PeterPet x → CanFly x → HasWings x
+axiom rock_is_pet : PeterPet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- From the premises, Rock has wings.
+theorem rock_has_wings : HasWings Rock := by
+  have ppet : PeterPet Rock := rock_is_pet
+  have disj := rock_fly_or_bird_or_not_breathe
+  cases disj with
+  | inl hfly =>
+      exact flying_pets_have_wings Rock ppet hfly
+  | inr rest =>
+      cases rest with
+      | inl hbird =>
+          have fly : CanFly Rock := peters_birds_can_fly Rock ppet hbird
+          exact flying_pets_have_wings Rock ppet fly
+      | inr hnotb =>
+          -- Use that Rock is either a monkey or a bird (since it's Peter's pet)
+          have pet_either : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock ppet
+          cases pet_either with
+          | inl hmonkey =>
+              have hmammal : Mammal Rock := monkeys_are_mammals Rock hmonkey
+              have hanimal : Animal Rock := pets_mammals_are_animals Rock ppet hmammal
+              have hbreathes : CanBreathe Rock := pets_animals_can_breathe Rock ppet hanimal
+              have contra : False := hnotb hbreathes
+              exact False.elim contra
+          | inr hbird2 =>
+              have fly : CanFly Rock := peters_birds_can_fly Rock ppet hbird2
+              exact flying_pets_have_wings Rock ppet fly
+
+-- The natural language claim was "Rock does not have wings."
+-- We can show its negation holds: ¬¬HasWings Rock
+theorem not_not_rock_has_wings : ¬ ¬ HasWings Rock := by
+  intro nh
+  exact nh rock_has_wings
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

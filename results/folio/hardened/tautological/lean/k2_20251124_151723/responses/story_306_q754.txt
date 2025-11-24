@@ -1,0 +1,102 @@
+Story ID: 306
+Example ID: 754
+Premises: Not true and true is false. Not true or true is true. If a restaurant is listed in Yelp’s recommendations, then the restaurant has not received many negative reviews.
+All restaurants with a rating greater than four are listed in Yelp’s recommendations.
+Some restaurants that do not provide take-out service receive many negative reviews.
+All restaurants that are popular among local residents have ratings greater than four.
+The Hamden Plaza Subway store has a rating greater than four, or it is popular among local residents.
+Conclusion: If the Hamden Plaza Subway store provides take-out service and receives many negative reviews, then its rating is greater than 4 and it does not provide take-out service.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Restaurant : Type
+
+axiom Listed : Restaurant → Prop
+axiom ManyNegativeReviews : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom ProvidesTakeOut : Restaurant → Prop
+axiom PopularAmongLocals : Restaurant → Prop
+
+axiom HPS : Restaurant  -- Hamden Plaza Subway store
+
+-- Premises
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNegativeReviews r
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+axiom premise3 : ∃ r : Restaurant, ¬ ProvidesTakeOut r ∧ ManyNegativeReviews r
+axiom premise4 : ∀ r : Restaurant, PopularAmongLocals r → RatingGT4 r
+axiom premise5 : RatingGT4 HPS ∨ PopularAmongLocals HPS
+
+-- Goal: If the Hamden Plaza Subway store provides take-out service and receives many negative reviews,
+-- then its rating is greater than 4 and it does not provide take-out service.
+theorem goal :
+  (ProvidesTakeOut HPS ∧ ManyNegativeReviews HPS) →
+  (RatingGT4 HPS ∧ ¬ ProvidesTakeOut HPS) := by
+  intro h
+  -- Derive RatingGT4 HPS from the disjunction (rating > 4) or (popular ⇒ rating > 4)
+  have R_hps : RatingGT4 HPS :=
+    Or.elim premise5
+      (fun rh => rh)
+      (fun ph => premise4 HPS ph)
+  -- From rating > 4, get listed
+  have L_hps : Listed HPS := premise2 HPS R_hps
+  -- From listed, get not many negative reviews
+  have notM : ¬ ManyNegativeReviews HPS := premise1 HPS L_hps
+  -- Contradiction from assumed many negative reviews
+  have F : False := notM h.2
+  -- From contradiction, obtain not provides take-out
+  have notT : ¬ ProvidesTakeOut HPS := fun _ => False.elim F
+  exact And.intro R_hps notT
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Restaurant : Type
+
+axiom Listed : Restaurant → Prop
+axiom ManyNegativeReviews : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom ProvidesTakeOut : Restaurant → Prop
+axiom PopularAmongLocals : Restaurant → Prop
+
+axiom HPS : Restaurant  -- Hamden Plaza Subway store
+
+-- Premises
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNegativeReviews r
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+axiom premise3 : ∃ r : Restaurant, ¬ ProvidesTakeOut r ∧ ManyNegativeReviews r
+axiom premise4 : ∀ r : Restaurant, PopularAmongLocals r → RatingGT4 r
+axiom premise5 : RatingGT4 HPS ∨ PopularAmongLocals HPS
+
+-- Goal: If the Hamden Plaza Subway store provides take-out service and receives many negative reviews,
+-- then its rating is greater than 4 and it does not provide take-out service.
+theorem goal :
+  (ProvidesTakeOut HPS ∧ ManyNegativeReviews HPS) →
+  (RatingGT4 HPS ∧ ¬ ProvidesTakeOut HPS) := by
+  intro h
+  -- Derive RatingGT4 HPS from the disjunction (rating > 4) or (popular ⇒ rating > 4)
+  have R_hps : RatingGT4 HPS :=
+    Or.elim premise5
+      (fun rh => rh)
+      (fun ph => premise4 HPS ph)
+  -- From rating > 4, get listed
+  have L_hps : Listed HPS := premise2 HPS R_hps
+  -- From listed, get not many negative reviews
+  have notM : ¬ ManyNegativeReviews HPS := premise1 HPS L_hps
+  -- Contradiction from assumed many negative reviews
+  have F : False := notM h.2
+  -- From contradiction, obtain not provides take-out
+  have notT : ¬ ProvidesTakeOut HPS := fun _ => False.elim F
+  exact And.intro R_hps notT
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: True
+Correct: No
+Total Iterations: 1

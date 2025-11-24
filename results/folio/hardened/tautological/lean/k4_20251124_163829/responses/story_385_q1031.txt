@@ -1,0 +1,134 @@
+Story ID: 385
+Example ID: 1031
+Premises: False is not true. False or not true is false. True and true is not false. Not false is true. If someone is ranked highly by the Women's Tennis Association, then they are one of the most active players in major tennis. 
+Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the Women's Tennis Association.
+All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+All tennis players at Roland Garros 2022 are either female or male.
+All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+If Coco Gauff is ranked highly by the Women's Tennis Association or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+Coco Gauff is at Roland Garros 2022.
+Conclusion: Coco Gauff is not both a player who lost to Iga Świątek at Roland Garros 2022 and one of the most active players in major tennis.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Player : Type
+axiom CocoGauff : Player
+
+axiom AtRG2022 : Player → Prop
+axiom FemaleRG2022 : Player → Prop
+axiom MaleRG2022 : Player → Prop
+axiom LostToIgaRG2022 : Player → Prop
+axiom LostToRafaelRG2022 : Player → Prop
+axiom RankedHighlyWTA : Player → Prop
+axiom MostActiveMajor : Player → Prop
+
+-- Premises
+axiom ranked_to_active : ∀ x : Player, RankedHighlyWTA x → MostActiveMajor x
+axiom iga_to_wta : ∀ x : Player, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_lost_iga : ∀ x : Player, FemaleRG2022 x → LostToIgaRG2022 x
+axiom atRG_female_or_male : ∀ x : Player, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_lost_rafa : ∀ x : Player, MaleRG2022 x → LostToRafaelRG2022 x
+axiom coco_wta_or_rafa_implies_not_male :
+  (RankedHighlyWTA CocoGauff ∨ LostToRafaelRG2022 CocoGauff) → ¬ MaleRG2022 CocoGauff
+axiom coco_atRG : AtRG2022 CocoGauff
+
+-- Target claim from the problem statement
+def Claim : Prop := ¬ (LostToIgaRG2022 CocoGauff ∧ MostActiveMajor CocoGauff)
+
+-- We derive the negation of the Claim by showing both conjuncts hold.
+theorem coco_lost_iga_and_active : LostToIgaRG2022 CocoGauff ∧ MostActiveMajor CocoGauff := by
+  -- First, Coco is not male at RG2022
+  have not_male : ¬ MaleRG2022 CocoGauff := by
+    intro hm
+    have hRafa : LostToRafaelRG2022 CocoGauff := male_lost_rafa _ hm
+    have disj : RankedHighlyWTA CocoGauff ∨ LostToRafaelRG2022 CocoGauff := Or.inr hRafa
+    have hNotMale : ¬ MaleRG2022 CocoGauff := coco_wta_or_rafa_implies_not_male disj
+    exact hNotMale hm
+  -- From being at RG and not male, deduce female
+  have fem_or_male : FemaleRG2022 CocoGauff ∨ MaleRG2022 CocoGauff :=
+    atRG_female_or_male _ coco_atRG
+  have hFemale : FemaleRG2022 CocoGauff := by
+    cases fem_or_male with
+    | inl hf => exact hf
+    | inr hm => exact False.elim (not_male hm)
+  -- Hence she lost to Iga
+  have hIga : LostToIgaRG2022 CocoGauff := female_lost_iga _ hFemale
+  -- Therefore ranked highly WTA
+  have hWTA : RankedHighlyWTA CocoGauff := iga_to_wta _ hIga
+  -- Hence one of the most active players in major tennis
+  have hActive : MostActiveMajor CocoGauff := ranked_to_active _ hWTA
+  exact And.intro hIga hActive
+
+-- Therefore, the original Claim is false.
+theorem not_Claim : ¬ Claim := by
+  intro h
+  exact h coco_lost_iga_and_active
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+axiom Player : Type
+axiom CocoGauff : Player
+
+axiom AtRG2022 : Player → Prop
+axiom FemaleRG2022 : Player → Prop
+axiom MaleRG2022 : Player → Prop
+axiom LostToIgaRG2022 : Player → Prop
+axiom LostToRafaelRG2022 : Player → Prop
+axiom RankedHighlyWTA : Player → Prop
+axiom MostActiveMajor : Player → Prop
+
+-- Premises
+axiom ranked_to_active : ∀ x : Player, RankedHighlyWTA x → MostActiveMajor x
+axiom iga_to_wta : ∀ x : Player, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom female_lost_iga : ∀ x : Player, FemaleRG2022 x → LostToIgaRG2022 x
+axiom atRG_female_or_male : ∀ x : Player, AtRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom male_lost_rafa : ∀ x : Player, MaleRG2022 x → LostToRafaelRG2022 x
+axiom coco_wta_or_rafa_implies_not_male :
+  (RankedHighlyWTA CocoGauff ∨ LostToRafaelRG2022 CocoGauff) → ¬ MaleRG2022 CocoGauff
+axiom coco_atRG : AtRG2022 CocoGauff
+
+-- Target claim from the problem statement
+def Claim : Prop := ¬ (LostToIgaRG2022 CocoGauff ∧ MostActiveMajor CocoGauff)
+
+-- We derive the negation of the Claim by showing both conjuncts hold.
+theorem coco_lost_iga_and_active : LostToIgaRG2022 CocoGauff ∧ MostActiveMajor CocoGauff := by
+  -- First, Coco is not male at RG2022
+  have not_male : ¬ MaleRG2022 CocoGauff := by
+    intro hm
+    have hRafa : LostToRafaelRG2022 CocoGauff := male_lost_rafa _ hm
+    have disj : RankedHighlyWTA CocoGauff ∨ LostToRafaelRG2022 CocoGauff := Or.inr hRafa
+    have hNotMale : ¬ MaleRG2022 CocoGauff := coco_wta_or_rafa_implies_not_male disj
+    exact hNotMale hm
+  -- From being at RG and not male, deduce female
+  have fem_or_male : FemaleRG2022 CocoGauff ∨ MaleRG2022 CocoGauff :=
+    atRG_female_or_male _ coco_atRG
+  have hFemale : FemaleRG2022 CocoGauff := by
+    cases fem_or_male with
+    | inl hf => exact hf
+    | inr hm => exact False.elim (not_male hm)
+  -- Hence she lost to Iga
+  have hIga : LostToIgaRG2022 CocoGauff := female_lost_iga _ hFemale
+  -- Therefore ranked highly WTA
+  have hWTA : RankedHighlyWTA CocoGauff := iga_to_wta _ hIga
+  -- Hence one of the most active players in major tennis
+  have hActive : MostActiveMajor CocoGauff := ranked_to_active _ hWTA
+  exact And.intro hIga hActive
+
+-- Therefore, the original Claim is false.
+theorem not_Claim : ¬ Claim := by
+  intro h
+  exact h coco_lost_iga_and_active
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

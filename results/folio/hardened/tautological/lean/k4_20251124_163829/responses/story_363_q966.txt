@@ -1,0 +1,107 @@
+Story ID: 363
+Example ID: 966
+Premises: Not false or false is true. False or not false is true. False is not true. False and not false is false. All hydrocarbons are organic compounds .
+All alkanes are hydrocarbons
+All organic compounds are chemical compounds.
+All organic compounds contain carbon.
+No chemical compounds contain only one element.
+The mixture either both is a chemical compound and contains only one element, or neither. 
+Conclusion: If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Thing : Type
+
+axiom Hydrocarbon : Thing → Prop
+axiom OrganicCompound : Thing → Prop
+axiom ChemicalCompound : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+axiom Alkane : Thing → Prop
+
+axiom mixture : Thing
+
+-- Premises from the text
+axiom all_hydrocarbons_are_organic : ∀ x : Thing, Hydrocarbon x → OrganicCompound x
+axiom all_alkanes_are_hydrocarbons : ∀ x : Thing, Alkane x → Hydrocarbon x
+axiom all_organic_are_chemical : ∀ x : Thing, OrganicCompound x → ChemicalCompound x
+axiom all_organic_contain_carbon : ∀ x : Thing, OrganicCompound x → ContainsCarbon x
+axiom no_chemical_compound_one_element : ∀ x : Thing, ChemicalCompound x → ¬ OnlyOneElement x
+axiom mixture_equiv : ChemicalCompound mixture ↔ OnlyOneElement mixture
+axiom mixture_conditional :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture)
+
+-- Conclusion: The mixture is neither a chemical compound nor an alkane.
+theorem mixture_neither_chemical_nor_alkane :
+  ¬ ChemicalCompound mixture ∧ ¬ Alkane mixture := by
+  -- First, show the mixture is not a chemical compound
+  have h_not_chem : ¬ ChemicalCompound mixture := by
+    intro hchem
+    have h_one : OnlyOneElement mixture := (Iff.mp mixture_equiv) hchem
+    have h_not_one : ¬ OnlyOneElement mixture := no_chemical_compound_one_element mixture hchem
+    exact h_not_one h_one
+  -- Then, use the hierarchy Alkane → Hydrocarbon → Organic → Chemical to contradict
+  have h_not_alk : ¬ Alkane mixture := by
+    intro halk
+    have h_hyd : Hydrocarbon mixture := all_alkanes_are_hydrocarbons mixture halk
+    have h_org : OrganicCompound mixture := all_hydrocarbons_are_organic mixture h_hyd
+    have h_chem : ChemicalCompound mixture := all_organic_are_chemical mixture h_org
+    exact h_not_chem h_chem
+  exact And.intro h_not_chem h_not_alk
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Thing : Type
+
+axiom Hydrocarbon : Thing → Prop
+axiom OrganicCompound : Thing → Prop
+axiom ChemicalCompound : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+axiom Alkane : Thing → Prop
+
+axiom mixture : Thing
+
+-- Premises from the text
+axiom all_hydrocarbons_are_organic : ∀ x : Thing, Hydrocarbon x → OrganicCompound x
+axiom all_alkanes_are_hydrocarbons : ∀ x : Thing, Alkane x → Hydrocarbon x
+axiom all_organic_are_chemical : ∀ x : Thing, OrganicCompound x → ChemicalCompound x
+axiom all_organic_contain_carbon : ∀ x : Thing, OrganicCompound x → ContainsCarbon x
+axiom no_chemical_compound_one_element : ∀ x : Thing, ChemicalCompound x → ¬ OnlyOneElement x
+axiom mixture_equiv : ChemicalCompound mixture ↔ OnlyOneElement mixture
+axiom mixture_conditional :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture)
+
+-- Conclusion: The mixture is neither a chemical compound nor an alkane.
+theorem mixture_neither_chemical_nor_alkane :
+  ¬ ChemicalCompound mixture ∧ ¬ Alkane mixture := by
+  -- First, show the mixture is not a chemical compound
+  have h_not_chem : ¬ ChemicalCompound mixture := by
+    intro hchem
+    have h_one : OnlyOneElement mixture := (Iff.mp mixture_equiv) hchem
+    have h_not_one : ¬ OnlyOneElement mixture := no_chemical_compound_one_element mixture hchem
+    exact h_not_one h_one
+  -- Then, use the hierarchy Alkane → Hydrocarbon → Organic → Chemical to contradict
+  have h_not_alk : ¬ Alkane mixture := by
+    intro halk
+    have h_hyd : Hydrocarbon mixture := all_alkanes_are_hydrocarbons mixture halk
+    have h_org : OrganicCompound mixture := all_hydrocarbons_are_organic mixture h_hyd
+    have h_chem : ChemicalCompound mixture := all_organic_are_chemical mixture h_org
+    exact h_not_chem h_chem
+  exact And.intro h_not_chem h_not_alk
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

@@ -1,0 +1,134 @@
+Story ID: 467
+Example ID: 1350
+Premises: Not true is false. All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+Conclusion: Rock does not have wings.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+axiom Entity : Type u
+
+axiom Rock : Entity
+
+axiom Pet : Entity → Prop
+axiom Mammal : Entity → Prop
+axiom Animal : Entity → Prop
+axiom Monkey : Entity → Prop
+axiom Bird : Entity → Prop
+axiom CanFly : Entity → Prop
+axiom CanBreathe : Entity → Prop
+axiom HasWings : Entity → Prop
+
+axiom pets_mammals_are_animals : ∀ x : Entity, Pet x ∧ Mammal x → Animal x
+axiom monkeys_are_mammals : ∀ x : Entity, Monkey x → Mammal x
+axiom pets_are_monkeys_or_birds : ∀ x : Entity, Pet x → Monkey x ∨ Bird x
+axiom peters_birds_can_fly : ∀ x : Entity, Pet x ∧ Bird x → CanFly x
+axiom animals_pets_can_breathe : ∀ x : Entity, Pet x ∧ Animal x → CanBreathe x
+axiom pet_fly_implies_wings : ∀ x : Entity, Pet x ∧ CanFly x → HasWings x
+axiom rock_is_pet : Pet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- We show Rock has wings from the premises
+theorem Rock_has_wings : HasWings Rock := by
+  have hPet : Pet Rock := rock_is_pet
+  have hCF : CanFly Rock := by
+    have disj : CanFly Rock ∨ (Bird Rock ∨ ¬ CanBreathe Rock) := rock_fly_or_bird_or_not_breathe
+    cases disj with
+    | inl hFly =>
+        exact hFly
+    | inr h =>
+        cases h with
+        | inl hBird =>
+            exact peters_birds_can_fly Rock ⟨hPet, hBird⟩
+        | inr hNotBreathe =>
+            have hb : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock hPet
+            cases hb with
+            | inl hMonkey =>
+                have hMammal : Mammal Rock := monkeys_are_mammals Rock hMonkey
+                have hAnimal : Animal Rock := pets_mammals_are_animals Rock ⟨hPet, hMammal⟩
+                have hBreathe : CanBreathe Rock := animals_pets_can_breathe Rock ⟨hPet, hAnimal⟩
+                exact False.elim (hNotBreathe hBreathe)
+            | inr hBird' =>
+                exact peters_birds_can_fly Rock ⟨hPet, hBird'⟩
+  exact pet_fly_implies_wings Rock ⟨hPet, hCF⟩
+
+-- Therefore the claim "Rock does not have wings" is false.
+theorem claim_is_false : (¬ HasWings Rock) → False := by
+  intro h
+  exact h Rock_has_wings
+</lean>
+
+ANSWER: False
+
+--- Lean Code ---
+universe u
+axiom Entity : Type u
+
+axiom Rock : Entity
+
+axiom Pet : Entity → Prop
+axiom Mammal : Entity → Prop
+axiom Animal : Entity → Prop
+axiom Monkey : Entity → Prop
+axiom Bird : Entity → Prop
+axiom CanFly : Entity → Prop
+axiom CanBreathe : Entity → Prop
+axiom HasWings : Entity → Prop
+
+axiom pets_mammals_are_animals : ∀ x : Entity, Pet x ∧ Mammal x → Animal x
+axiom monkeys_are_mammals : ∀ x : Entity, Monkey x → Mammal x
+axiom pets_are_monkeys_or_birds : ∀ x : Entity, Pet x → Monkey x ∨ Bird x
+axiom peters_birds_can_fly : ∀ x : Entity, Pet x ∧ Bird x → CanFly x
+axiom animals_pets_can_breathe : ∀ x : Entity, Pet x ∧ Animal x → CanBreathe x
+axiom pet_fly_implies_wings : ∀ x : Entity, Pet x ∧ CanFly x → HasWings x
+axiom rock_is_pet : Pet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- We show Rock has wings from the premises
+theorem Rock_has_wings : HasWings Rock := by
+  have hPet : Pet Rock := rock_is_pet
+  have hCF : CanFly Rock := by
+    have disj : CanFly Rock ∨ (Bird Rock ∨ ¬ CanBreathe Rock) := rock_fly_or_bird_or_not_breathe
+    cases disj with
+    | inl hFly =>
+        exact hFly
+    | inr h =>
+        cases h with
+        | inl hBird =>
+            exact peters_birds_can_fly Rock ⟨hPet, hBird⟩
+        | inr hNotBreathe =>
+            have hb : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock hPet
+            cases hb with
+            | inl hMonkey =>
+                have hMammal : Mammal Rock := monkeys_are_mammals Rock hMonkey
+                have hAnimal : Animal Rock := pets_mammals_are_animals Rock ⟨hPet, hMammal⟩
+                have hBreathe : CanBreathe Rock := animals_pets_can_breathe Rock ⟨hPet, hAnimal⟩
+                exact False.elim (hNotBreathe hBreathe)
+            | inr hBird' =>
+                exact peters_birds_can_fly Rock ⟨hPet, hBird'⟩
+  exact pet_fly_implies_wings Rock ⟨hPet, hCF⟩
+
+-- Therefore the claim "Rock does not have wings" is false.
+theorem claim_is_false : (¬ HasWings Rock) → False := by
+  intro h
+  exact h Rock_has_wings
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

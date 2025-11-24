@@ -1,0 +1,115 @@
+Story ID: 386
+Example ID: 1033
+Premises: Not false and true is true. Not true or true is true. If something is a deadly disease, then it comes with a low survival rate. 
+Severe cancers are deadly diseases.
+Bile duct cancer is a severe form cancer. 
+All Cholangiocarcinoma is bile duct cancer.
+Mild flu comes with a low survival rate.
+Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+Conclusion: If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma, then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Disease : Type
+
+axiom BileDuct : Disease → Prop
+axiom Cholangio : Disease → Prop
+axiom MildFlu : Disease → Prop
+axiom Severe : Disease → Prop
+axiom Deadly : Disease → Prop
+axiom LowSurvival : Disease → Prop
+
+axiom colorectal : Disease
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom deadly_implies_low : ∀ x : Disease, Deadly x → LowSurvival x
+-- Severe cancers are deadly diseases.
+axiom severe_implies_deadly : ∀ x : Disease, Severe x → Deadly x
+-- Bile duct cancer is a severe form cancer.
+axiom bileduct_implies_severe : ∀ x : Disease, BileDuct x → Severe x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom cholangio_implies_bileduct : ∀ x : Disease, Cholangio x → BileDuct x
+-- Mild flu comes with a low survival rate.
+axiom mildflu_implies_low : ∀ x : Disease, MildFlu x → LowSurvival x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom colorectal_not_both : ¬ (BileDuct colorectal ∧ LowSurvival colorectal)
+
+theorem goal :
+  (BileDuct colorectal ∨ Cholangio colorectal) →
+  (BileDuct colorectal ∧ MildFlu colorectal) := by
+  intro h
+  -- From the disjunction, obtain that colorectal is a bile duct cancer.
+  have hb : BileDuct colorectal := by
+    cases h with
+    | inl hb => exact hb
+    | inr hc => exact cholangio_implies_bileduct colorectal hc
+  -- From bile duct -> severe -> deadly -> low survival.
+  have hl : LowSurvival colorectal :=
+    deadly_implies_low colorectal
+      (severe_implies_deadly colorectal
+        (bileduct_implies_severe colorectal hb))
+  -- This contradicts the given "not both" statement.
+  have contra : False := colorectal_not_both ⟨hb, hl⟩
+  -- From contradiction, derive MildFlu colorectal.
+  have hm : MildFlu colorectal := False.elim contra
+  exact And.intro hb hm
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Disease : Type
+
+axiom BileDuct : Disease → Prop
+axiom Cholangio : Disease → Prop
+axiom MildFlu : Disease → Prop
+axiom Severe : Disease → Prop
+axiom Deadly : Disease → Prop
+axiom LowSurvival : Disease → Prop
+
+axiom colorectal : Disease
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom deadly_implies_low : ∀ x : Disease, Deadly x → LowSurvival x
+-- Severe cancers are deadly diseases.
+axiom severe_implies_deadly : ∀ x : Disease, Severe x → Deadly x
+-- Bile duct cancer is a severe form cancer.
+axiom bileduct_implies_severe : ∀ x : Disease, BileDuct x → Severe x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom cholangio_implies_bileduct : ∀ x : Disease, Cholangio x → BileDuct x
+-- Mild flu comes with a low survival rate.
+axiom mildflu_implies_low : ∀ x : Disease, MildFlu x → LowSurvival x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom colorectal_not_both : ¬ (BileDuct colorectal ∧ LowSurvival colorectal)
+
+theorem goal :
+  (BileDuct colorectal ∨ Cholangio colorectal) →
+  (BileDuct colorectal ∧ MildFlu colorectal) := by
+  intro h
+  -- From the disjunction, obtain that colorectal is a bile duct cancer.
+  have hb : BileDuct colorectal := by
+    cases h with
+    | inl hb => exact hb
+    | inr hc => exact cholangio_implies_bileduct colorectal hc
+  -- From bile duct -> severe -> deadly -> low survival.
+  have hl : LowSurvival colorectal :=
+    deadly_implies_low colorectal
+      (severe_implies_deadly colorectal
+        (bileduct_implies_severe colorectal hb))
+  -- This contradicts the given "not both" statement.
+  have contra : False := colorectal_not_both ⟨hb, hl⟩
+  -- From contradiction, derive MildFlu colorectal.
+  have hm : MildFlu colorectal := False.elim contra
+  exact And.intro hb hm
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

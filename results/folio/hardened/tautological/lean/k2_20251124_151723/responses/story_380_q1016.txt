@@ -1,0 +1,233 @@
+Story ID: 380
+Example ID: 1016
+Premises: Not false and false is false. False or not false is true. People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+Conclusion: If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Person : Type
+
+-- Individuals
+axiom Bonnie : Person
+
+-- Predicates
+axiom InClub : Person → Prop
+axiom PerformsTalentShowsOften : Person → Prop
+axiom AttendsAndIsVeryEngagedWithSchoolEvents : Person → Prop
+axiom StudentWhoAttendsTheSchool : Person → Prop
+axiom ChaperonesHighSchoolDances : Person → Prop
+axiom InactiveAndDisinterestedCommunityMember : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishesToFurtherAcademicCareersAndEducationalOpportunities : Person → Prop
+
+-- Given general premises
+axiom club_performers_attend_and_engage :
+  ∀ x : Person, InClub x ∧ PerformsTalentShowsOften x → AttendsAndIsVeryEngagedWithSchoolEvents x
+
+axiom club_members_perform_or_inactive :
+  ∀ x : Person, InClub x → (PerformsTalentShowsOften x ∨ InactiveAndDisinterestedCommunityMember x)
+
+axiom club_chaperones_are_not_students :
+  ∀ x : Person, InClub x ∧ ChaperonesHighSchoolDances x → ¬ StudentWhoAttendsTheSchool x
+
+axiom club_inactive_chaperone :
+  ∀ x : Person, InClub x ∧ InactiveAndDisinterestedCommunityMember x → ChaperonesHighSchoolDances x
+
+axiom club_young_and_wishing_are_students :
+  ∀ x : Person,
+    InClub x ∧ YoungChildOrTeenager x ∧ WishesToFurtherAcademicCareersAndEducationalOpportunities x
+      → StudentWhoAttendsTheSchool x
+
+-- Bonnie-specific information
+axiom bonnie_info :
+  InClub Bonnie ∧
+    ( (AttendsAndIsVeryEngagedWithSchoolEvents Bonnie ∧ StudentWhoAttendsTheSchool Bonnie)
+    ∨ (¬ AttendsAndIsVeryEngagedWithSchoolEvents Bonnie ∧ ¬ StudentWhoAttendsTheSchool Bonnie) )
+
+-- Irrelevant propositional facts included in the text
+theorem not_false_and_false_is_false : ¬(¬False ∧ False) := by
+  intro h
+  exact h.right
+
+theorem false_or_not_false_is_true : False ∨ ¬False := by
+  exact Or.inr (fun h => h)
+
+-- Some useful derived facts about Bonnie
+
+-- Bonnie is in the club
+def BonnieInClub : Prop := InClub Bonnie
+theorem bonnie_in_club : InClub Bonnie := by
+  exact bonnie_info.left
+
+-- If Bonnie chaperones, then she is inactive and disinterested.
+theorem bonnie_chaperone_implies_inactive :
+  ChaperonesHighSchoolDances Bonnie → InactiveAndDisinterestedCommunityMember Bonnie := by
+  intro hChap
+  have hClub : InClub Bonnie := bonnie_in_club
+  have hNotStudent : ¬ StudentWhoAttendsTheSchool Bonnie :=
+    club_chaperones_are_not_students Bonnie ⟨hClub, hChap⟩
+  -- From Bonnie's info, deduce ¬(Attends and Engaged)
+  have hDisj := bonnie_info.right
+  have hNotAttendEngaged : ¬ AttendsAndIsVeryEngagedWithSchoolEvents Bonnie := by
+    cases hDisj with
+    | inl hAEStu =>
+        -- hAEStu.right : Student, contradicts hNotStudent
+        exact False.elim (hNotStudent hAEStu.right)
+    | inr hNotAENotStu =>
+        exact hNotAENotStu.left
+  -- From club membership, she either performs often or is inactive
+  have hPOorI := club_members_perform_or_inactive Bonnie hClub
+  cases hPOorI with
+  | inl hPerf =>
+      -- Then she attends and is very engaged, contradiction
+      have hAE := club_performers_attend_and_engage Bonnie ⟨hClub, hPerf⟩
+      exact False.elim (hNotAttendEngaged hAE)
+  | inr hInactive =>
+      exact hInactive
+
+-- The antecedent in the query is always satisfied for Bonnie given the premises.
+def Antecedent : Prop :=
+  ChaperonesHighSchoolDances Bonnie ∨ (¬ ChaperonesHighSchoolDances Bonnie → PerformsTalentShowsOften Bonnie)
+
+def Consequent : Prop :=
+  (YoungChildOrTeenager Bonnie ∧ WishesToFurtherAcademicCareersAndEducationalOpportunities Bonnie)
+  ∧ InactiveAndDisinterestedCommunityMember Bonnie
+
+theorem bonnie_antecedent_holds : Antecedent := by
+  have hClub : InClub Bonnie := bonnie_in_club
+  have hPOorI := club_members_perform_or_inactive Bonnie hClub
+  cases hPOorI with
+  | inl hPerf =>
+      -- If she performs often, then the implication (¬chaperone → performs) holds
+      exact Or.inr (fun _ => hPerf)
+  | inr hInactive =>
+      -- Inactive club members chaperone
+      have hChap := club_inactive_chaperone Bonnie ⟨hClub, hInactive⟩
+      exact Or.inl hChap
+
+-- The target statement from the problem text
+def TargetStatement : Prop := Antecedent → Consequent
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+axiom Person : Type
+
+-- Individuals
+axiom Bonnie : Person
+
+-- Predicates
+axiom InClub : Person → Prop
+axiom PerformsTalentShowsOften : Person → Prop
+axiom AttendsAndIsVeryEngagedWithSchoolEvents : Person → Prop
+axiom StudentWhoAttendsTheSchool : Person → Prop
+axiom ChaperonesHighSchoolDances : Person → Prop
+axiom InactiveAndDisinterestedCommunityMember : Person → Prop
+axiom YoungChildOrTeenager : Person → Prop
+axiom WishesToFurtherAcademicCareersAndEducationalOpportunities : Person → Prop
+
+-- Given general premises
+axiom club_performers_attend_and_engage :
+  ∀ x : Person, InClub x ∧ PerformsTalentShowsOften x → AttendsAndIsVeryEngagedWithSchoolEvents x
+
+axiom club_members_perform_or_inactive :
+  ∀ x : Person, InClub x → (PerformsTalentShowsOften x ∨ InactiveAndDisinterestedCommunityMember x)
+
+axiom club_chaperones_are_not_students :
+  ∀ x : Person, InClub x ∧ ChaperonesHighSchoolDances x → ¬ StudentWhoAttendsTheSchool x
+
+axiom club_inactive_chaperone :
+  ∀ x : Person, InClub x ∧ InactiveAndDisinterestedCommunityMember x → ChaperonesHighSchoolDances x
+
+axiom club_young_and_wishing_are_students :
+  ∀ x : Person,
+    InClub x ∧ YoungChildOrTeenager x ∧ WishesToFurtherAcademicCareersAndEducationalOpportunities x
+      → StudentWhoAttendsTheSchool x
+
+-- Bonnie-specific information
+axiom bonnie_info :
+  InClub Bonnie ∧
+    ( (AttendsAndIsVeryEngagedWithSchoolEvents Bonnie ∧ StudentWhoAttendsTheSchool Bonnie)
+    ∨ (¬ AttendsAndIsVeryEngagedWithSchoolEvents Bonnie ∧ ¬ StudentWhoAttendsTheSchool Bonnie) )
+
+-- Irrelevant propositional facts included in the text
+theorem not_false_and_false_is_false : ¬(¬False ∧ False) := by
+  intro h
+  exact h.right
+
+theorem false_or_not_false_is_true : False ∨ ¬False := by
+  exact Or.inr (fun h => h)
+
+-- Some useful derived facts about Bonnie
+
+-- Bonnie is in the club
+def BonnieInClub : Prop := InClub Bonnie
+theorem bonnie_in_club : InClub Bonnie := by
+  exact bonnie_info.left
+
+-- If Bonnie chaperones, then she is inactive and disinterested.
+theorem bonnie_chaperone_implies_inactive :
+  ChaperonesHighSchoolDances Bonnie → InactiveAndDisinterestedCommunityMember Bonnie := by
+  intro hChap
+  have hClub : InClub Bonnie := bonnie_in_club
+  have hNotStudent : ¬ StudentWhoAttendsTheSchool Bonnie :=
+    club_chaperones_are_not_students Bonnie ⟨hClub, hChap⟩
+  -- From Bonnie's info, deduce ¬(Attends and Engaged)
+  have hDisj := bonnie_info.right
+  have hNotAttendEngaged : ¬ AttendsAndIsVeryEngagedWithSchoolEvents Bonnie := by
+    cases hDisj with
+    | inl hAEStu =>
+        -- hAEStu.right : Student, contradicts hNotStudent
+        exact False.elim (hNotStudent hAEStu.right)
+    | inr hNotAENotStu =>
+        exact hNotAENotStu.left
+  -- From club membership, she either performs often or is inactive
+  have hPOorI := club_members_perform_or_inactive Bonnie hClub
+  cases hPOorI with
+  | inl hPerf =>
+      -- Then she attends and is very engaged, contradiction
+      have hAE := club_performers_attend_and_engage Bonnie ⟨hClub, hPerf⟩
+      exact False.elim (hNotAttendEngaged hAE)
+  | inr hInactive =>
+      exact hInactive
+
+-- The antecedent in the query is always satisfied for Bonnie given the premises.
+def Antecedent : Prop :=
+  ChaperonesHighSchoolDances Bonnie ∨ (¬ ChaperonesHighSchoolDances Bonnie → PerformsTalentShowsOften Bonnie)
+
+def Consequent : Prop :=
+  (YoungChildOrTeenager Bonnie ∧ WishesToFurtherAcademicCareersAndEducationalOpportunities Bonnie)
+  ∧ InactiveAndDisinterestedCommunityMember Bonnie
+
+theorem bonnie_antecedent_holds : Antecedent := by
+  have hClub : InClub Bonnie := bonnie_in_club
+  have hPOorI := club_members_perform_or_inactive Bonnie hClub
+  cases hPOorI with
+  | inl hPerf =>
+      -- If she performs often, then the implication (¬chaperone → performs) holds
+      exact Or.inr (fun _ => hPerf)
+  | inr hInactive =>
+      -- Inactive club members chaperone
+      have hChap := club_inactive_chaperone Bonnie ⟨hClub, hInactive⟩
+      exact Or.inl hChap
+
+-- The target statement from the problem text
+def TargetStatement : Prop := Antecedent → Consequent
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: Unknown
+Correct: No
+Total Iterations: 1

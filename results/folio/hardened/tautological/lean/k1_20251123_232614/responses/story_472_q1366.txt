@@ -1,0 +1,331 @@
+Story ID: 472
+Example ID: 1366
+Premises: Not true is false. Animals are either invertebrates or vertebrates.
+All animals with backbones reproduce by male-and-female mating. 
+All vertebrate animals have a backbone.
+All bees do not reproduce by male-and-female mating.
+All queen bees are bees.
+Harry is a bee.
+Conclusion: Harry is a queen bee.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+constant Entity : Type u
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, Animal x ∧ HasBackbone x → ReproduceMF x
+
+axiom vertebrates_have_backbone :
+  ∀ x, Vertebrate x → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- Derived: vertebrate animals reproduce by male-and-female mating
+lemma vertebrate_animals_reproduce_MF (x : Entity) :
+    Animal x → Vertebrate x → ReproduceMF x := by
+  intro hxA hxV
+  have hxB : HasBackbone x := vertebrates_have_backbone x hxV
+  have : Animal x ∧ HasBackbone x := And.intro hxA hxB
+  exact animals_with_backbones_reproduce_MF x this
+
+-- From the above, Harry cannot be both an animal and a vertebrate
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hRepro : ReproduceMF Harry := vertebrate_animals_reproduce_MF Harry hA hV
+  have hNotRepro : ¬ ReproduceMF Harry := bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- Target claim (not derivable from given premises):
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+universe u
+constant Entity : Type u
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, Animal x ∧ HasBackbone x → ReproduceMF x
+
+axiom vertebrates_have_backbone :
+  ∀ x, Vertebrate x → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- Derived: vertebrate animals reproduce by male-and-female mating
+lemma vertebrate_animals_reproduce_MF (x : Entity) :
+    Animal x → Vertebrate x → ReproduceMF x := by
+  intro hxA hxV
+  have hxB : HasBackbone x := vertebrates_have_backbone x hxV
+  have : Animal x ∧ HasBackbone x := And.intro hxA hxB
+  exact animals_with_backbones_reproduce_MF x this
+
+-- From the above, Harry cannot be both an animal and a vertebrate
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hRepro : ReproduceMF Harry := vertebrate_animals_reproduce_MF Harry hA hV
+  have hNotRepro : ¬ ReproduceMF Harry := bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- Target claim (not derivable from given premises):
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Memory usage is too high. We attempted to restart the Lean server 5 times without success.
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+constant Entity : Type
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, (Animal x ∧ HasBackbone x) → ReproduceMF x
+
+axiom vertebrates_have_backbone :
+  ∀ x, Vertebrate x → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- A derived contradiction if Harry were both an animal and a vertebrate
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hB : HasBackbone Harry := vertebrates_have_backbone Harry hV
+  have hRepro : ReproduceMF Harry :=
+    animals_with_backbones_reproduce_MF Harry ⟨hA, hB⟩
+  have hNotRepro : ¬ ReproduceMF Harry :=
+    bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- The target "Harry is a queen bee" is not derivable from the given axioms.
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+constant Entity : Type
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, (Animal x ∧ HasBackbone x) → ReproduceMF x
+
+axiom vertebrates_have_backbone :
+  ∀ x, Vertebrate x → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- A derived contradiction if Harry were both an animal and a vertebrate
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hB : HasBackbone Harry := vertebrates_have_backbone Harry hV
+  have hRepro : ReproduceMF Harry :=
+    animals_with_backbones_reproduce_MF Harry ⟨hA, hB⟩
+  have hNotRepro : ¬ ReproduceMF Harry :=
+    bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- The target "Harry is a queen bee" is not derivable from the given axioms.
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Memory usage is too high. We attempted to restart the Lean server 5 times without success.
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+constant Entity : Type
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, (Animal x ∧ HasBackbone x) → ReproduceMF x
+
+axiom vertebrate_animals_have_backbone :
+  ∀ x, (Animal x ∧ Vertebrate x) → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- If Harry were both an animal and a vertebrate, we'd get a contradiction with bee reproduction.
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hB : HasBackbone Harry := vertebrate_animals_have_backbone Harry ⟨hA, hV⟩
+  have hRepro : ReproduceMF Harry := animals_with_backbones_reproduce_MF Harry ⟨hA, hB⟩
+  have hNotRepro : ¬ ReproduceMF Harry := bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- The statement "Harry is a queen bee" is not derivable from the given axioms.
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+</lean>
+ANSWER: Unknown
+
+--- Lean Code ---
+constant Entity : Type
+
+constant Animal : Entity → Prop
+constant Invertebrate : Entity → Prop
+constant Vertebrate : Entity → Prop
+constant HasBackbone : Entity → Prop
+constant ReproduceMF : Entity → Prop
+constant Bee : Entity → Prop
+constant QueenBee : Entity → Prop
+
+constant Harry : Entity
+
+axiom animals_either_inv_or_vert :
+  ∀ x, Animal x → (Invertebrate x ∨ Vertebrate x)
+
+axiom animals_with_backbones_reproduce_MF :
+  ∀ x, (Animal x ∧ HasBackbone x) → ReproduceMF x
+
+axiom vertebrate_animals_have_backbone :
+  ∀ x, (Animal x ∧ Vertebrate x) → HasBackbone x
+
+axiom bees_do_not_reproduce_MF :
+  ∀ x, Bee x → ¬ ReproduceMF x
+
+axiom queen_bees_are_bees :
+  ∀ x, QueenBee x → Bee x
+
+axiom harry_is_a_bee : Bee Harry
+
+-- If Harry were both an animal and a vertebrate, we'd get a contradiction with bee reproduction.
+theorem not_animal_and_vertebrate_harry : ¬ (Animal Harry ∧ Vertebrate Harry) := by
+  intro h
+  have hA : Animal Harry := And.left h
+  have hV : Vertebrate Harry := And.right h
+  have hB : HasBackbone Harry := vertebrate_animals_have_backbone Harry ⟨hA, hV⟩
+  have hRepro : ReproduceMF Harry := animals_with_backbones_reproduce_MF Harry ⟨hA, hB⟩
+  have hNotRepro : ¬ ReproduceMF Harry := bees_do_not_reproduce_MF Harry harry_is_a_bee
+  exact hNotRepro hRepro
+
+-- The statement "Harry is a queen bee" is not derivable from the given axioms.
+-- theorem harry_is_a_queen_bee : QueenBee Harry := by
+--   sorry
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Memory usage is too high. We attempted to restart the Lean server 5 times without success.
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes
+Total Iterations: 3

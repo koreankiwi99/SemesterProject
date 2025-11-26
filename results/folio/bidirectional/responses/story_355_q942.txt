@@ -1,0 +1,115 @@
+Story ID: 355
+Example ID: 942
+Premises: All people who eat salads regularly are very conscious about their health and eating habits.
+All people who grew up in health-conscious childhood homes eat salads regularly.
+All people who fulfill their daily nutritional intakes grew up in health-conscious childhood homes.
+All people who disregard their physical well-being are not very conscious about their health and eating habits.
+If people visit the gym at least once a day, then they always fulfill their daily nutritional intakes.
+Taylor either grew up in a health-conscious childhood home and disregard her physical well-being, or she did neither.
+Conclusion: Taylor visits the gym at least once a day.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Taylor : Person
+
+axiom EatsSaladsRegularly : Person → Prop
+axiom VeryConscious : Person → Prop
+axiom GrewUpHealthConsciousHome : Person → Prop
+axiom FulfillsDailyNutritionalIntakes : Person → Prop
+axiom DisregardsPhysicalWellbeing : Person → Prop
+axiom VisitsGymAtLeastOnceADay : Person → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Person, EatsSaladsRegularly x → VeryConscious x
+axiom ax2 : ∀ x : Person, GrewUpHealthConsciousHome x → EatsSaladsRegularly x
+axiom ax3 : ∀ x : Person, FulfillsDailyNutritionalIntakes x → GrewUpHealthConsciousHome x
+axiom ax4 : ∀ x : Person, DisregardsPhysicalWellbeing x → ¬ VeryConscious x
+axiom ax5 : ∀ x : Person, VisitsGymAtLeastOnceADay x → FulfillsDailyNutritionalIntakes x
+axiom ax6 : (GrewUpHealthConsciousHome Taylor ∧ DisregardsPhysicalWellbeing Taylor) ∨ (¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardsPhysicalWellbeing Taylor)
+
+-- Useful derived facts
+theorem very_of_grew (x : Person) : GrewUpHealthConsciousHome x → VeryConscious x := by
+  intro hg
+  exact ax1 x (ax2 x hg)
+
+theorem not_both_grew_and_disregards : ¬ (GrewUpHealthConsciousHome Taylor ∧ DisregardsPhysicalWellbeing Taylor) := by
+  intro h
+  have v : VeryConscious Taylor := very_of_grew Taylor h.left
+  have nv : ¬ VeryConscious Taylor := ax4 Taylor h.right
+  exact nv v
+
+theorem taylor_neither_grew_nor_disregards : ¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardsPhysicalWellbeing Taylor := by
+  have h := ax6
+  have hnot := not_both_grew_and_disregards
+  cases h with
+  | inl hgd =>
+      exact False.elim (hnot hgd)
+  | inr hne =>
+      exact hne
+
+-- Conclusion to analyze
+theorem goal : VisitsGymAtLeastOnceADay Taylor := by
+  -- This does not follow from the given premises.
+  -- From the premises we can derive that Taylor did neither grow up in a health-conscious home nor disregard her well-being,
+  -- but nothing implies she visits the gym at least once a day.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Taylor : Person
+
+axiom EatsSaladsRegularly : Person → Prop
+axiom VeryConscious : Person → Prop
+axiom GrewUpHealthConsciousHome : Person → Prop
+axiom FulfillsDailyNutrition : Person → Prop
+axiom DisregardsPhysicalWellBeing : Person → Prop
+axiom VisitsGymDaily : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, EatsSaladsRegularly x → VeryConscious x
+axiom premise2 : ∀ x : Person, GrewUpHealthConsciousHome x → EatsSaladsRegularly x
+axiom premise3 : ∀ x : Person, FulfillsDailyNutrition x → GrewUpHealthConsciousHome x
+axiom premise4 : ∀ x : Person, DisregardsPhysicalWellBeing x → ¬VeryConscious x
+axiom premise5 : ∀ x : Person, VisitsGymDaily x → FulfillsDailyNutrition x
+axiom premise6 :
+  (GrewUpHealthConsciousHome Taylor ∧ DisregardsPhysicalWellBeing Taylor) ∨
+  (¬GrewUpHealthConsciousHome Taylor ∧ ¬DisregardsPhysicalWellBeing Taylor)
+
+-- Negation of the conclusion: Taylor does not visit the gym at least once a day
+theorem goal : ¬VisitsGymDaily Taylor := by
+  intro hGym
+  have hFul : FulfillsDailyNutrition Taylor := premise5 Taylor hGym
+  have hGrew : GrewUpHealthConsciousHome Taylor := premise3 Taylor hFul
+  have hEat : EatsSaladsRegularly Taylor := premise2 Taylor hGrew
+  have hVC  : VeryConscious Taylor := premise1 Taylor hEat
+  cases premise6 with
+  | inl hBoth =>
+      have hNotVC : ¬VeryConscious Taylor := premise4 Taylor hBoth.right
+      exact hNotVC hVC
+  | inr hNeither =>
+      have hNotGrew : ¬GrewUpHealthConsciousHome Taylor := hNeither.left
+      exact hNotGrew hGrew
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

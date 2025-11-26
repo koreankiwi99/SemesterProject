@@ -1,0 +1,114 @@
+Story ID: 452
+Example ID: 1302
+Premises: All aliens are extraterrestrials.
+If someone is from Mars, then they are an alien.
+No extraterrestrials are human.
+All highly intelligent beings from Earth are humans.
+Marvin is a highly intelligent being.
+Marvin is either from Earth and from Mars, or he is from neither.
+If Marvin is not from Earth, then Marvin is an extraterrestrial.
+Conclusion: Marvin is neither a human nor from Mars.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Being : Type
+axiom Alien : Being → Prop
+axiom Extraterrestrial : Being → Prop
+axiom Human : Being → Prop
+axiom FromMars : Being → Prop
+axiom FromEarth : Being → Prop
+axiom HighlyIntelligent : Being → Prop
+axiom Marvin : Being
+
+-- Premises
+axiom ax1 : ∀ x : Being, Alien x → Extraterrestrial x
+axiom ax2 : ∀ x : Being, FromMars x → Alien x
+axiom ax3 : ∀ x : Being, Extraterrestrial x → ¬ Human x
+axiom ax4 : ∀ x : Being, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom ax5 : HighlyIntelligent Marvin
+axiom ax6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom ax7 : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+-- Conclusion: Marvin is neither a human nor from Mars.
+theorem goal : ¬ Human Marvin ∧ ¬ FromMars Marvin := by
+  cases ax6 with
+  | inl hBoth =>
+    have hFM : FromMars Marvin := hBoth.right
+    have hFE : FromEarth Marvin := hBoth.left
+    have hAlien : Alien Marvin := ax2 Marvin hFM
+    have hExtra : Extraterrestrial Marvin := ax1 Marvin hAlien
+    have hNotHuman : ¬ Human Marvin := ax3 Marvin hExtra
+    have hHuman : Human Marvin := ax4 Marvin ⟨ax5, hFE⟩
+    have hFalse : False := hNotHuman hHuman
+    exact False.elim hFalse
+  | inr hNeither =>
+    have hNotE : ¬ FromEarth Marvin := hNeither.left
+    have hNotM : ¬ FromMars Marvin := hNeither.right
+    have hExtra : Extraterrestrial Marvin := ax7 hNotE
+    have hNotHuman : ¬ Human Marvin := ax3 Marvin hExtra
+    exact And.intro hNotHuman hNotM
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom Marvin : Entity
+
+axiom Alien : Entity → Prop
+axiom Extraterrestrial : Entity → Prop
+axiom Human : Entity → Prop
+axiom HighlyIntelligent : Entity → Prop
+axiom FromEarth : Entity → Prop
+axiom FromMars : Entity → Prop
+
+-- Premises
+axiom all_aliens_are_extraterrestrials : ∀ x : Entity, Alien x → Extraterrestrial x
+axiom fromMars_implies_alien : ∀ x : Entity, FromMars x → Alien x
+axiom no_extraterrestrials_are_human : ∀ x : Entity, Extraterrestrial x → ¬Human x
+axiom hi_fromEarth_are_humans : ∀ x : Entity, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom marvin_hi : HighlyIntelligent Marvin
+axiom marvin_both_or_neither : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom not_fromEarth_implies_extraterrestrial_marvin : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Conclusion to analyze: "Marvin is neither a human nor from Mars"
+-- Its formalization would be: (¬Human Marvin ∧ ¬FromMars Marvin)
+-- We aim to prove its NEGATION: ¬(¬Human Marvin ∧ ¬FromMars Marvin)
+
+theorem negation_of_conclusion : ¬(¬Human Marvin ∧ ¬FromMars Marvin) := by
+  intro h
+  have nh : ¬Human Marvin := h.left
+  have nfm : ¬FromMars Marvin := h.right
+  cases marvin_both_or_neither with
+  | inl hboth =>
+      -- In this branch, FromMars Marvin holds, contradicting nfm
+      have fm : FromMars Marvin := hboth.right
+      exact nfm fm
+  | inr hneither =>
+      -- In this branch, we only obtain ¬FromEarth and ¬FromMars.
+      -- From ¬FromEarth we get Extraterrestrial, which implies ¬Human,
+      -- consistent with the assumption nh; no contradiction arises.
+      have nfe : ¬FromEarth Marvin := hneither.left
+      have ext : Extraterrestrial Marvin := not_fromEarth_implies_extraterrestrial_marvin nfe
+      have nh' : ¬Human Marvin := no_extraterrestrials_are_human Marvin ext
+      admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

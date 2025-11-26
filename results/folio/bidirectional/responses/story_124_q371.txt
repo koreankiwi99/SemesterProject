@@ -1,0 +1,114 @@
+Story ID: 124
+Example ID: 371
+Premises: The Picuris Mountains are a mountain range in New Mexico or Texas.
+Juan de Onate visited the Picuris Mountains.
+The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+There are no mountain ranges in texas that have mines that have been donated.
+Conclusion: Juan de Onate visited a mountain range in Texas.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+
+axiom Picuris : MountainRange
+axiom HardingPegmatiteMine : Mine
+axiom JuanDeOnate : Person
+
+axiom InTexas : MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+-- Premises
+axiom pm_in_nm_or_tx : InNewMexico Picuris ∨ InTexas Picuris
+axiom onate_visited_picuris : Visited JuanDeOnate Picuris
+axiom harding_located_in_picuris : LocatedIn HardingPegmatiteMine Picuris
+axiom harding_donated : Donated HardingPegmatiteMine
+axiom no_tx_ranges_with_donated_mines :
+  ∀ r : MountainRange, InTexas r → ¬ (∃ m : Mine, LocatedIn m r ∧ Donated m)
+
+-- Consequence: Picuris is not in Texas (since it has a donated mine located in it)
+theorem picuris_not_in_texas : ¬ InTexas Picuris := by
+  intro hInTx
+  have hExists : ∃ m : Mine, LocatedIn m Picuris ∧ Donated m := by
+    exact ⟨HardingPegmatiteMine, And.intro harding_located_in_picuris harding_donated⟩
+  have hNo := no_tx_ranges_with_donated_mines Picuris hInTx
+  exact hNo hExists
+
+-- Consequence: therefore, by the disjunction, Picuris is in New Mexico
+theorem picuris_in_new_mexico : InNewMexico Picuris := by
+  cases pm_in_nm_or_tx with
+  | inl h => exact h
+  | inr h => exact False.elim (picuris_not_in_texas h)
+
+-- Conclusion to analyze (not derivable from the premises)
+theorem conclusion : ∃ r : MountainRange, InTexas r ∧ Visited JuanDeOnate r := by
+  -- We know Juan de Onate visited Picuris, and Picuris is not in Texas.
+  -- There is no information that he visited any other mountain range in Texas.
+  -- Hence this existential statement cannot be proved from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Juan : Person
+
+axiom MountainRange : Type
+axiom Mine : Type
+
+axiom Picuris : MountainRange
+axiom HardingPegmatiteMine : Mine
+
+axiom InTexas : MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+-- Premises:
+-- 1. The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom premise1 : InNewMexico Picuris ∨ InTexas Picuris
+-- 2. Juan de Onate visited the Picuris Mountains.
+axiom premise2 : Visited Juan Picuris
+-- 3. The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+axiom premise3 : LocatedIn HardingPegmatiteMine Picuris ∧ Donated HardingPegmatiteMine
+-- 4. There are no mountain ranges in texas that have mines that have been donated.
+axiom premise4 : ∀ r : MountainRange, InTexas r → ¬ (∃ m : Mine, LocatedIn m r ∧ Donated m)
+
+-- Conclusion to negate/formalize: "Juan de Onate visited a mountain range in Texas."
+-- We interpret this as asserting that the specific mountain range he visited (Picuris) is in Texas.
+-- So the negation we will prove is: ¬(Visited Juan Picuris ∧ InTexas Picuris).
+theorem goal : ¬ (Visited Juan Picuris ∧ InTexas Picuris) := by
+  intro h
+  have h_tex : InTexas Picuris := And.right h
+  have no_donated_mine_in_texas_picuris : ¬ (∃ m : Mine, LocatedIn m Picuris ∧ Donated m) := by
+    exact premise4 Picuris h_tex
+  have exists_donated_mine_in_picuris : ∃ m : Mine, LocatedIn m Picuris ∧ Donated m := by
+    refine Exists.intro HardingPegmatiteMine ?_
+    exact And.intro (And.left premise3) (And.right premise3)
+  exact no_donated_mine_in_texas_picuris exists_donated_mine_in_picuris
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: False
+Correct: No

@@ -1,0 +1,119 @@
+Story ID: 379
+Example ID: 1012
+Premises: People who are born in a multiple birth with siblings spend a lot of time hanging out with and playing with their siblings.
+If people have siblings who were born together, then they were born in a multiple birth.
+If people complain often about annoying siblings, then they have siblings who were born together.
+If people live at home, then they do not live with strangers.
+If people spend a lot of time hanging out with and playing with their siblings, then they often live at home. 
+Luke either is a baby born in a multiple birth and live with strangers, or is not a baby born in a multiple birth and does not live with strangers
+Conclusion: Luke complains often about annoying siblings.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Luke : Person
+
+-- Predicates
+axiom BornInMultipleBirth : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+axiom HaveSiblingsBornTogether : Person → Prop
+axiom ComplainAnnoyingSiblings : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+axiom Baby : Person → Prop
+
+-- Premises
+-- 1. People who are born in a multiple birth with siblings spend a lot of time hanging out with and playing with their siblings.
+axiom P1 : ∀ x : Person, BornInMultipleBirth x → SpendTimeWithSiblings x
+
+-- 2. If people have siblings who were born together, then they were born in a multiple birth.
+axiom P2 : ∀ x : Person, HaveSiblingsBornTogether x → BornInMultipleBirth x
+
+-- 3. If people complain often about annoying siblings, then they have siblings who were born together.
+axiom P3 : ∀ x : Person, ComplainAnnoyingSiblings x → HaveSiblingsBornTogether x
+
+-- 4. If people live at home, then they do not live with strangers.
+axiom P4 : ∀ x : Person, LiveAtHome x → ¬ LiveWithStrangers x
+
+-- 5. If people spend a lot of time hanging out with and playing with their siblings, then they often live at home.
+axiom P5 : ∀ x : Person, SpendTimeWithSiblings x → LiveAtHome x
+
+-- 6. Luke either is a baby born in a multiple birth and live with strangers,
+--    or is not a baby born in a multiple birth and does not live with strangers.
+axiom P6 :
+  (Baby Luke ∧ BornInMultipleBirth Luke ∧ LiveWithStrangers Luke) ∨
+  (¬ Baby Luke ∧ ¬ BornInMultipleBirth Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Conclusion to prove: Luke complains often about annoying siblings.
+theorem goal : ComplainAnnoyingSiblings Luke := by
+  cases P6 with
+  | inl h =>
+    -- From this branch we can derive a contradiction:
+    -- BornInMultipleBirth → SpendTimeWithSiblings → LiveAtHome → ¬ LiveWithStrangers,
+    -- which contradicts LiveWithStrangers.
+    have hb : BornInMultipleBirth Luke := h.2.1
+    have hst : SpendTimeWithSiblings Luke := P1 Luke hb
+    have hhome : LiveAtHome Luke := P5 Luke hst
+    have hnstr : ¬ LiveWithStrangers Luke := P4 Luke hhome
+    have contra : False := hnstr h.2.2
+    exact False.elim contra
+  | inr h =>
+    -- In this branch we have ¬BornInMultipleBirth Luke and ¬LiveWithStrangers Luke,
+    -- but there is no premise allowing us to conclude ComplainAnnoyingSiblings Luke.
+    -- Hence the proof cannot be completed from the given premises.
+    sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Luke : Person
+
+axiom BornMultiple : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+axiom HaveSiblingsBornTogether : Person → Prop
+axiom ComplainOftenAboutAnnoyingSiblings : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, BornMultiple x → SpendTimeWithSiblings x
+axiom premise2 : ∀ x : Person, HaveSiblingsBornTogether x → BornMultiple x
+axiom premise3 : ∀ x : Person, ComplainOftenAboutAnnoyingSiblings x → HaveSiblingsBornTogether x
+axiom premise4 : ∀ x : Person, LiveAtHome x → ¬ LiveWithStrangers x
+axiom premise5 : ∀ x : Person, SpendTimeWithSiblings x → LiveAtHome x
+axiom premise6 : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Negation of the conclusion: Luke does NOT complain often about annoying siblings.
+theorem goal : ¬ ComplainOftenAboutAnnoyingSiblings Luke := by
+  intro hC
+  have hHS : HaveSiblingsBornTogether Luke := premise3 Luke hC
+  have hBM : BornMultiple Luke := premise2 Luke hHS
+  have hST : SpendTimeWithSiblings Luke := premise1 Luke hBM
+  have hHome : LiveAtHome Luke := premise5 Luke hST
+  have hNotStr : ¬ LiveWithStrangers Luke := premise4 Luke hHome
+  exact Or.elim premise6
+    (fun h => hNotStr h.right)
+    (fun h => h.left hBM)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

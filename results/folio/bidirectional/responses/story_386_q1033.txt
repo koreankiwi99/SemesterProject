@@ -1,0 +1,143 @@
+Story ID: 386
+Example ID: 1033
+Premises: If something is a deadly disease, then it comes with a low survival rate. 
+Severe cancers are deadly diseases.
+Bile duct cancer is a severe form cancer. 
+All Cholangiocarcinoma is bile duct cancer.
+Mild flu comes with a low survival rate.
+Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+Conclusion: If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma, then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+
+-- Predicates
+axiom Deadly : Entity → Prop
+axiom LowSurvival : Entity → Prop
+axiom SevereCancer : Entity → Prop
+axiom BileDuctCancer : Entity → Prop
+axiom Cholangiocarcinoma : Entity → Prop
+axiom MildFlu : Entity → Prop
+
+-- Constant for colorectal cancer
+axiom Colorectal : Entity
+
+-- Premises
+axiom deadly_implies_low : ∀ x : Entity, Deadly x → LowSurvival x
+axiom severe_implies_deadly : ∀ x : Entity, SevereCancer x → Deadly x
+axiom bile_implies_severe : ∀ x : Entity, BileDuctCancer x → SevereCancer x
+axiom cholangio_implies_bile : ∀ x : Entity, Cholangiocarcinoma x → BileDuctCancer x
+axiom mildflu_implies_low : ∀ x : Entity, MildFlu x → LowSurvival x
+axiom colorectal_not_bile_and_low : ¬ (BileDuctCancer Colorectal ∧ LowSurvival Colorectal)
+
+-- Conclusion
+theorem goal :
+  (BileDuctCancer Colorectal ∨ Cholangiocarcinoma Colorectal) →
+  (BileDuctCancer Colorectal ∧ MildFlu Colorectal) := by
+  intro h
+  cases h with
+  | inl hbile =>
+      -- From bile duct -> severe -> deadly -> low survival
+      have hsevere : SevereCancer Colorectal := bile_implies_severe Colorectal hbile
+      have hdeadly : Deadly Colorectal := severe_implies_deadly Colorectal hsevere
+      have hlow : LowSurvival Colorectal := deadly_implies_low Colorectal hdeadly
+      -- Contradiction with the given "not (bile ∧ low)"
+      have contra : False := colorectal_not_bile_and_low (And.intro hbile hlow)
+      -- From contradiction, derive MildFlu Colorectal (ex falso)
+      have hmf : MildFlu Colorectal := False.elim contra
+      exact And.intro hbile hmf
+  | inr hcholangio =>
+      -- From cholangio -> bile
+      have hbile : BileDuctCancer Colorectal := cholangio_implies_bile Colorectal hcholangio
+      -- From bile duct -> severe -> deadly -> low survival
+      have hsevere : SevereCancer Colorectal := bile_implies_severe Colorectal hbile
+      have hdeadly : Deadly Colorectal := severe_implies_deadly Colorectal hsevere
+      have hlow : LowSurvival Colorectal := deadly_implies_low Colorectal hdeadly
+      -- Contradiction with the given "not (bile ∧ low)"
+      have contra : False := colorectal_not_bile_and_low (And.intro hbile hlow)
+      -- From contradiction, derive MildFlu Colorectal (ex falso)
+      have hmf : MildFlu Colorectal := False.elim contra
+      exact And.intro hbile hmf
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Thing : Type
+
+axiom Deadly : Thing → Prop
+axiom LowSurvival : Thing → Prop
+axiom SevereCancer : Thing → Prop
+axiom BileDuctCancer : Thing → Prop
+axiom Cholangiocarcinoma : Thing → Prop
+axiom MildFlu : Thing → Prop
+
+axiom ColorectalCancer : Thing
+
+-- Premises
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom premise1 : ∀ x : Thing, Deadly x → LowSurvival x
+-- Severe cancers are deadly diseases.
+axiom premise2 : ∀ x : Thing, SevereCancer x → Deadly x
+-- Bile duct cancer is a severe form cancer.
+axiom premise3 : ∀ x : Thing, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom premise4 : ∀ x : Thing, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom premise5 : ∀ x : Thing, MildFlu x → LowSurvival x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom premise6 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+-- We attempt to prove the negation of the conclusion:
+-- ¬( (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer)
+--     → (BileDuctCancer ColorectalCancer ∧ MildFlu ColorectalCancer) )
+theorem negate_conclusion :
+  ¬ ((BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer)
+     → (BileDuctCancer ColorectalCancer ∧ MildFlu ColorectalCancer)) := by
+  -- Derive that any bile duct cancer has a low survival rate
+  have bd_implies_low : ∀ x : Thing, BileDuctCancer x → LowSurvival x := by
+    intro x hbd
+    have hsev : SevereCancer x := premise3 x hbd
+    have hd : Deadly x := premise2 x hsev
+    exact premise1 x hd
+  -- Hence colorectal cancer is not a bile duct cancer
+  have not_bd_col : ¬ BileDuctCancer ColorectalCancer := by
+    intro hbd
+    have hl : LowSurvival ColorectalCancer := bd_implies_low ColorectalCancer hbd
+    exact premise6 ⟨hbd, hl⟩
+  -- Hence colorectal cancer is not a cholangiocarcinoma either (since that would imply bile duct cancer)
+  have not_chol_col : ¬ Cholangiocarcinoma ColorectalCancer := by
+    intro hc
+    have hbd : BileDuctCancer ColorectalCancer := premise4 ColorectalCancer hc
+    exact not_bd_col hbd
+  -- Therefore the antecedent of the implication is false
+  have not_ante : ¬ (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) := by
+    intro h
+    cases h with
+    | inl hbd => exact not_bd_col hbd
+    | inr hc => exact not_chol_col hc
+  -- Attempt to refute the implication leads nowhere since the antecedent is false (implication holds vacuously)
+  intro h
+  -- Stuck: from h : (P → Q) and ¬P we cannot derive False
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

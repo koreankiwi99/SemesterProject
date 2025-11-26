@@ -1,0 +1,145 @@
+Story ID: 2
+Example ID: 4
+Premises: Billings is a city in the state of Montana in U.S.
+The state of Montana includes the cities of Butte, Helena, and Missoula.
+White Sulphur Springs and Butte are cities in the same state in U.S.
+The city of St Pierre is not in the state of Montana.
+Any city in Butte is not in St Pierre.
+A city can only be in one state in U.S.  except for Bristol, Texarkana, Texhoma and Union City.
+Conclusion: Butte and St Pierre are in the same state.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom City : Type
+axiom State : Type
+
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+axiom Montana : State
+
+axiom InState : City → State → Prop
+
+def SameState (c1 c2 : City) : Prop := ∃ s : State, InState c1 s ∧ InState c2 s
+
+-- Premises
+axiom Billings_in_Montana : InState Billings Montana
+axiom Butte_in_Montana : InState Butte Montana
+axiom Helena_in_Montana : InState Helena Montana
+axiom Missoula_in_Montana : InState Missoula Montana
+
+axiom WSS_same_as_Butte : SameState WhiteSulphurSprings Butte
+
+axiom StPierre_not_in_Montana : ¬ InState StPierre Montana
+
+-- Interpretation of: "Any city in Butte is not in St Pierre."
+axiom any_city_in_Butte_not_in_StPierre :
+  ∀ c : City, SameState c Butte → ¬ SameState c StPierre
+
+-- Uniqueness of state membership except for specific exceptions
+axiom unique_state_except_exceptions :
+  ∀ c : City,
+    (c ≠ Bristol ∧ c ≠ Texarkana ∧ c ≠ Texhoma ∧ c ≠ UnionCity) →
+    ∀ s1 s2 : State, InState c s1 → InState c s2 → s1 = s2
+
+-- Butte and StPierre are not any of the exceptions
+axiom Butte_not_exception :
+  Butte ≠ Bristol ∧ Butte ≠ Texarkana ∧ Butte ≠ Texhoma ∧ Butte ≠ UnionCity
+
+axiom StPierre_not_exception :
+  StPierre ≠ Bristol ∧ StPierre ≠ Texarkana ∧ StPierre ≠ Texhoma ∧ StPierre ≠ UnionCity
+
+-- From the premises we can actually derive that they are NOT in the same state.
+theorem not_same_state_Butte_StPierre : ¬ SameState Butte StPierre := by
+  intro h
+  have ⟨s, hButte, hStPierre⟩ := h
+  have uniq := unique_state_except_exceptions Butte Butte_not_exception
+  have hs_eq : s = Montana := uniq s Montana hButte Butte_in_Montana
+  have : InState StPierre Montana := by simpa [hs_eq] using hStPierre
+  exact StPierre_not_in_Montana this
+
+-- Conclusion to analyze (claimed): Butte and St Pierre are in the same state.
+theorem goal : SameState Butte StPierre := by
+  -- This does not follow from the premises; see the theorem above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom City : Type
+axiom State : Type
+
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+axiom Montana : State
+
+axiom InState : City → State → Prop
+
+-- Premises:
+-- Billings is in Montana.
+axiom hBillingsMontana : InState Billings Montana
+-- Butte, Helena, and Missoula are in Montana.
+axiom hButteMontana : InState Butte Montana
+axiom hHelenaMontana : InState Helena Montana
+axiom hMissoulaMontana : InState Missoula Montana
+-- White Sulphur Springs and Butte are in the same state.
+axiom hWSS_Butte_SameState : ∃ s : State, InState WhiteSulphurSprings s ∧ InState Butte s
+-- St Pierre is not in Montana.
+axiom hStPierreNotMontana : ¬ InState StPierre Montana
+-- Any city in the same state as Butte is not in the same state as St Pierre.
+axiom hAnyCityInButteNotInStPierre :
+  ∀ c : City,
+    (∃ s : State, InState c s ∧ InState Butte s) →
+    ¬ (∃ s : State, InState c s ∧ InState StPierre s)
+-- A city can only be in one state except for Bristol, Texarkana, Texhoma, and Union City.
+axiom hUniqueStateExceptExceptions :
+  ∀ c : City, ∀ s1 s2 : State,
+    InState c s1 → InState c s2 →
+    (s1 = s2) ∨ c = Bristol ∨ c = Texarkana ∨ c = Texhoma ∨ c = UnionCity
+
+-- Negation of the conclusion: Butte and St Pierre are NOT in the same state.
+theorem not_same_state_Butte_StPierre : ¬ (∃ s : State, InState Butte s ∧ InState StPierre s) := by
+  -- Butte is in the same state as itself (Montana).
+  have hButteInSameAsButte : ∃ s : State, InState Butte s ∧ InState Butte s := by
+    exact ⟨Montana, And.intro hButteMontana hButteMontana⟩
+  -- Apply the premise that any city in the same state as Butte is not in the same state as St Pierre.
+  exact hAnyCityInButteNotInStPierre Butte hButteInSameAsButte
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

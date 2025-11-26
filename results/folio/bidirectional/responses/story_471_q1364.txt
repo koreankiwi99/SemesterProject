@@ -1,0 +1,126 @@
+Story ID: 471
+Example ID: 1364
+Premises: All rabbits that can be spotted near the campus are cute. 
+Some turtles can be spotted near the campus. 
+The only animals that can be spotted near the campus are rabbits and squirrels.
+If something is skittish, then it is not calm.
+All the squirrels that can be spotted near the campus are skittish.
+Rockie can be spotted near the campus, and it is calm.
+Conclusion: If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Animal : Type
+
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Spotted : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- Premises
+axiom p1 : ∀ x : Animal, (Rabbit x ∧ Spotted x) → Cute x
+axiom p2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom p3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom p4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom p5 : ∀ x : Animal, (Squirrel x ∧ Spotted x) → Skittish x
+axiom p6 : Spotted Rockie ∧ Calm Rockie
+
+theorem goal :
+  (¬ (Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie) := by
+  intro _
+  have hSpot : Spotted Rockie := And.left p6
+  have hCalm : Calm Rockie := And.right p6
+  have hRS : Rabbit Rockie ∨ Squirrel Rockie := p3 Rockie hSpot
+  cases hRS with
+  | inl hRab =>
+      have hCute : Cute Rockie := p1 Rockie (And.intro hRab hSpot)
+      exact Or.inl hCute
+  | inr hSquir =>
+      have hSkit : Skittish Rockie := p5 Rockie (And.intro hSquir hSpot)
+      have hNotCalm : ¬ Calm Rockie := p4 Rockie hSkit
+      have contra : False := hNotCalm hCalm
+      exact False.elim contra
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom NearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom premise1 : ∀ x : Animal, Rabbit x ∧ NearCampus x → Cute x
+axiom premise2 : ∃ x : Animal, Turtle x ∧ NearCampus x
+axiom premise3 : ∀ x : Animal, NearCampus x → (Rabbit x ∨ Squirrel x)
+axiom premise4 : ∀ x : Animal, Skittish x → ¬Calm x
+axiom premise5 : ∀ x : Animal, Squirrel x ∧ NearCampus x → Skittish x
+axiom premise6 : NearCampus Rockie ∧ Calm Rockie
+
+-- Derived facts
+theorem not_squirrel_Rockie : ¬Squirrel Rockie := by
+  intro hSq
+  have hNear : NearCampus Rockie := premise6.left
+  have hSk : Skittish Rockie := by
+    apply premise5
+    exact And.intro hSq hNear
+  have hNotCalm : ¬Calm Rockie := premise4 Rockie hSk
+  exact hNotCalm premise6.right
+
+theorem rabbit_Rockie : Rabbit Rockie := by
+  have hNear : NearCampus Rockie := premise6.left
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie := premise3 Rockie hNear
+  cases hDisj with
+  | inl hR => exact hR
+  | inr hS => exact False.elim (not_squirrel_Rockie hS)
+
+theorem cute_Rockie : Cute Rockie := by
+  have hNear : NearCampus Rockie := premise6.left
+  have hRabbit : Rabbit Rockie := rabbit_Rockie
+  exact premise1 Rockie (And.intro hRabbit hNear)
+
+theorem not_skittish_Rockie : ¬Skittish Rockie := by
+  intro hSk
+  have hNotCalm : ¬Calm Rockie := premise4 Rockie hSk
+  exact hNotCalm premise6.right
+
+-- The given conclusion actually holds under the premises
+theorem conclusion_true : (¬(Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie) := by
+  intro _
+  exact Or.inl cute_Rockie
+
+-- Therefore, its negation is not derivable; in fact we can prove its double negation
+theorem negation_of_conclusion_is_false : ¬¬((¬(Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie)) := by
+  intro hneg
+  exact hneg conclusion_true
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

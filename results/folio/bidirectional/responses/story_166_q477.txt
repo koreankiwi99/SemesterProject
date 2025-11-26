@@ -1,0 +1,170 @@
+Story ID: 166
+Example ID: 477
+Premises: Pets are allowed in some managed buildings.
+A deposit is required to rent an apartment in a managed building.
+The security deposit can be either equal to the monthly rent at a managed building or more.
+Fluffy is Tom's cat.
+Cats are pets.
+The Olive Garden is a managed building.
+The monthly rent at the Olive Garden is $2000.
+$2000 is more than $1500.
+Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy, and the security deposit is no more than $1500.
+If a managed building allows pets, then people are allowed to move in with a pet. 
+Conclusion: Tom is allowed to move into an apartment in The Olive Garden with Fluffy.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Types for the domain
+axiom Person : Type
+axiom Animal : Type
+axiom Building : Type
+
+-- Constants for specific entities
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom OliveGarden : Building
+
+-- Predicates and relations
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Cat : Animal → Prop
+axiom Pet : Animal → Prop
+axiom AllowedMoveInWith : Person → Building → Animal → Prop
+
+-- Numerical attributes
+axiom Rent : Building → Nat
+axiom SecurityDeposit : Building → Nat
+
+-- Additional predicates
+axiom WillRent : Person → Building → Prop
+
+-- Premises as axioms
+
+-- Pets are allowed in some managed buildings (existential)
+axiom some_managed_allows_pets :
+  ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- A deposit is required to rent an apartment in a managed building.
+-- (We do not formalize "required" predicate since it is not used directly.)
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom deposit_ge_rent :
+  ∀ b : Building, Managed b → (SecurityDeposit b = Rent b ∨ SecurityDeposit b > Rent b)
+
+-- Fluffy is Tom's cat.
+axiom fluffy_is_cat : Cat Fluffy
+
+-- Cats are pets.
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+
+-- The Olive Garden is a managed building.
+axiom og_is_managed : Managed OliveGarden
+
+-- The monthly rent at the Olive Garden is $2000.
+axiom og_rent_2000 : Rent OliveGarden = 2000
+
+-- $2000 is more than $1500.
+axiom two_thousand_gt_1500 : 2000 > 1500
+
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy,
+-- and the security deposit is no more than $1500.
+axiom tom_will_rent_if_allowed_and_deposit_le_1500 :
+  ∀ b : Building, Managed b →
+    (AllowedMoveInWith Tom b Fluffy ∧ SecurityDeposit b ≤ 1500) →
+    WillRent Tom b
+
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom allows_pets_implies_allowed_move_in :
+  ∀ (b : Building) (p : Person) (a : Animal),
+    Managed b → AllowsPets b → Pet a → AllowedMoveInWith p b a
+
+-- What we can derive: if The Olive Garden allows pets, Tom is allowed to move in with Fluffy.
+-- This shows precisely the missing piece needed for the target conclusion.
+theorem conditional_conclusion :
+  AllowsPets OliveGarden → AllowedMoveInWith Tom OliveGarden Fluffy := by
+  intro og_allows
+  have hPet : Pet Fluffy := cats_are_pets Fluffy fluffy_is_cat
+  exact allows_pets_implies_allowed_move_in OliveGarden Tom Fluffy og_is_managed og_allows hPet
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Animal : Type
+axiom Building : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom TheOliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom PetsAllowed : Building → Prop
+axiom Cat : Animal → Prop
+axiom Pet : Animal → Prop
+
+axiom AllowsMoveInWith : Person → Animal → Building → Prop
+axiom WillRent : Person → Building → Prop
+
+axiom MonthlyRent : Building → Nat
+axiom SecurityDeposit : Building → Nat
+
+axiom DepositRequired : Building → Prop
+
+-- Premises
+-- Pets are allowed in some managed buildings.
+axiom premise1 : ∃ b : Building, Managed b ∧ PetsAllowed b
+-- A deposit is required to rent an apartment in a managed building.
+axiom premise2 : ∀ b : Building, Managed b → DepositRequired b
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom premise3 : ∀ b : Building, Managed b → MonthlyRent b ≤ SecurityDeposit b
+-- Fluffy is Tom's cat.
+axiom premise4 : Cat Fluffy
+-- Cats are pets.
+axiom premise5 : ∀ a : Animal, Cat a → Pet a
+-- The Olive Garden is a managed building.
+axiom premise6 : Managed TheOliveGarden
+-- The monthly rent at the Olive Garden is $2000.
+axiom premise7 : MonthlyRent TheOliveGarden = 2000
+-- $2000 is more than $1500.
+axiom premise8 : 1500 < 2000
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy, and the security deposit is no more than $1500.
+axiom premise9 : ∀ b : Building, Managed b → (AllowsMoveInWith Tom Fluffy b ∧ SecurityDeposit b ≤ 1500) → WillRent Tom b
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom premise10 : ∀ b : Building, Managed b → PetsAllowed b → ∀ p : Person, ∀ a : Animal, Pet a → AllowsMoveInWith p a b
+
+-- We attempt to prove the negation of the conclusion:
+-- Tom is NOT allowed to move into an apartment in The Olive Garden with Fluffy.
+theorem negate_conclusion : ¬ AllowsMoveInWith Tom Fluffy TheOliveGarden := by
+  intro h
+  -- From premises, we can derive that SecurityDeposit at TheOliveGarden is at least 2000
+  have h_dep_ge_rent : MonthlyRent TheOliveGarden ≤ SecurityDeposit TheOliveGarden := by
+    apply premise3
+    exact premise6
+  have h_dep_ge_2000 : 2000 ≤ SecurityDeposit TheOliveGarden := by
+    simpa [premise7] using h_dep_ge_rent
+  have h_dep_gt_1500 : 1500 < SecurityDeposit TheOliveGarden := lt_of_lt_of_le premise8 h_dep_ge_2000
+  have h_not_small : ¬ SecurityDeposit TheOliveGarden ≤ 1500 := by
+    exact Nat.not_le_of_gt h_dep_gt_1500
+  -- However, this does not contradict that Tom is allowed to move in with Fluffy at The Olive Garden.
+  -- No contradiction can be derived from the given premises.
+  admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

@@ -1,0 +1,117 @@
+Story ID: 459
+Example ID: 1324
+Premises: Jane does not like any animals that bark.
+All dogs are animals that bark.
+Jane likes all animals that jump.
+If an animal has legs, then it jumps.
+If an animal is terricolous, then it has legs. 
+KiKi is an animal.
+If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+Conclusion: KiKi is terricolous.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+axiom Entity : Type u
+axiom Jane : Entity
+axiom KiKi : Entity
+
+axiom Animal : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Bark : Entity → Prop
+axiom Jumps : Entity → Prop
+axiom HasLegs : Entity → Prop
+axiom Terricolous : Entity → Prop
+axiom Likes : Entity → Entity → Prop
+
+-- Premises
+axiom p1 : ∀ x : Entity, Animal x ∧ Bark x → ¬ Likes Jane x
+axiom p2 : ∀ x : Entity, Dog x → Animal x ∧ Bark x
+axiom p3 : ∀ x : Entity, Animal x ∧ Jumps x → Likes Jane x
+axiom p4 : ∀ x : Entity, Animal x ∧ HasLegs x → Jumps x
+axiom p5 : ∀ x : Entity, Animal x ∧ Terricolous x → HasLegs x
+axiom p6 : Animal KiKi
+axiom p7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical
+
+-- Conclusion to analyze: KiKi is Terricolous.
+theorem goal : Terricolous KiKi := by
+  by_cases hL : HasLegs KiKi
+  · -- Case: KiKi has legs. From p4 and p6 we get Jumps KiKi, but nothing forces Terricolous KiKi.
+    sorry
+  · -- Case: KiKi does not have legs.
+    have hNotL : ¬ HasLegs KiKi := hL
+    by_cases hJ : Jumps KiKi
+    · -- Subcase: KiKi jumps but has no legs. No premise forces Terricolous KiKi from this.
+      sorry
+    · -- Subcase: KiKi neither jumps nor has legs: use p7 to conclude Terricolous KiKi.
+      have hNotJ : ¬ Jumps KiKi := hJ
+      have h := p7 ⟨hNotJ, hNotL⟩
+      cases h with
+      | inl hT => exact hT
+      | inr hL2 => exact False.elim (hNotL hL2)
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Animal : Type
+axiom Person : Type
+
+axiom Jane : Person
+axiom KiKi : Animal
+
+axiom Barks : Animal → Prop
+axiom Dog : Animal → Prop
+axiom Jumps : Animal → Prop
+axiom Legs : Animal → Prop
+axiom Terricolous : Animal → Prop
+axiom Likes : Person → Animal → Prop
+
+-- Premises:
+-- Jane does not like any animals that bark.
+axiom premise1 : ∀ a : Animal, Barks a → ¬ Likes Jane a
+-- All dogs are animals that bark.
+axiom premise2 : ∀ a : Animal, Dog a → Barks a
+-- Jane likes all animals that jump.
+axiom premise3 : ∀ a : Animal, Jumps a → Likes Jane a
+-- If an animal has legs, then it jumps.
+axiom premise4 : ∀ a : Animal, Legs a → Jumps a
+-- If an animal is terricolous, then it has legs.
+axiom premise5 : ∀ a : Animal, Terricolous a → Legs a
+-- KiKi is an animal. (encoded by KiKi : Animal)
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom premise7 : (¬ Jumps KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+-- We attempt to prove the negation of the conclusion: KiKi is not terricolous.
+theorem goal : ¬ Terricolous KiKi := by
+  intro hT
+  have hL : Legs KiKi := premise5 KiKi hT
+  have hJ : Jumps KiKi := premise4 KiKi hL
+  have hLike : Likes Jane KiKi := premise3 KiKi hJ
+  -- From here, there is no way to derive a contradiction with the given premises.
+  -- In particular, we have no information that KiKi barks, so we cannot use premise1
+  -- to contradict hLike. Thus, the proof cannot be completed from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

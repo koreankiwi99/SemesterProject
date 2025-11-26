@@ -1,0 +1,112 @@
+Story ID: 322
+Example ID: 820
+Premises: All growth stocks are bought to earn profits from rapid price appreciation.
+If the stock price is bought to earn profits from rapid price appreciation, then it is not suitable for a retirement fund.
+Some stocks are growth stocks.
+All mature stocks are suitable for a retirement fund.
+KO is a mature stock.
+Conclusion: KO is a stock and a growth stock.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+-- Entities and predicates
+axiom Entity : Type u
+axiom Stock : Entity → Prop
+axiom GrowthStock : Entity → Prop
+axiom MatureStock : Entity → Prop
+axiom BoughtForRapidAppreciation : Entity → Prop
+axiom SuitableForRetirementFund : Entity → Prop
+axiom KO : Entity
+
+-- Premises
+axiom all_growth_bought_rapid :
+  ∀ x : Entity, GrowthStock x → BoughtForRapidAppreciation x
+
+axiom bought_rapid_not_suitable :
+  ∀ x : Entity, BoughtForRapidAppreciation x → ¬ SuitableForRetirementFund x
+
+axiom some_stock_growth :
+  ∃ x : Entity, Stock x ∧ GrowthStock x
+
+axiom all_mature_suitable :
+  ∀ x : Entity, MatureStock x → SuitableForRetirementFund x
+
+axiom KO_mature : MatureStock KO
+
+-- Useful derived facts
+theorem growth_implies_not_suitable :
+  ∀ x : Entity, GrowthStock x → ¬ SuitableForRetirementFund x := by
+  intro x hg
+  have hbr : BoughtForRapidAppreciation x := all_growth_bought_rapid x hg
+  have hns : ¬ SuitableForRetirementFund x := bought_rapid_not_suitable x hbr
+  exact hns
+
+theorem KO_suitable : SuitableForRetirementFund KO := by
+  exact all_mature_suitable KO KO_mature
+
+theorem not_growth_KO : ¬ GrowthStock KO := by
+  intro hg
+  have hns : ¬ SuitableForRetirementFund KO := growth_implies_not_suitable KO hg
+  exact hns KO_suitable
+
+theorem not_goal : ¬ (Stock KO ∧ GrowthStock KO) := by
+  intro h
+  have hg : GrowthStock KO := And.right h
+  exact not_growth_KO hg
+
+-- Conclusion to analyze (requested, but it does not follow from the premises)
+theorem goal : Stock KO ∧ GrowthStock KO := by
+  -- This goal is unprovable from the given premises; moreover, we proved `¬ (Stock KO ∧ GrowthStock KO)` above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom KO : Entity
+
+axiom Stock : Entity → Prop
+axiom Growth : Entity → Prop
+axiom RapidAppreciation : Entity → Prop
+axiom SuitableForRetirement : Entity → Prop
+axiom Mature : Entity → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Entity, Growth x → RapidAppreciation x
+axiom premise2 : ∀ x : Entity, RapidAppreciation x → ¬ SuitableForRetirement x
+axiom premise3 : ∃ x : Entity, Stock x ∧ Growth x
+axiom premise4 : ∀ x : Entity, Mature x → SuitableForRetirement x
+axiom premise5 : Mature KO
+axiom premise6 : Stock KO   -- from "KO is a mature stock", we take KO is a Stock as well
+
+-- Goal: Prove the negation of "KO is a stock and a growth stock"
+theorem goal : ¬ (Stock KO ∧ Growth KO) := by
+  intro h
+  have hG : Growth KO := h.right
+  have hR : RapidAppreciation KO := premise1 KO hG
+  have hNotS : ¬ SuitableForRetirement KO := premise2 KO hR
+  have hS : SuitableForRetirement KO := premise4 KO premise5
+  exact hNotS hS
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

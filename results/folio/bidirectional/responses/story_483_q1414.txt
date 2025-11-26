@@ -1,0 +1,138 @@
+Story ID: 483
+Example ID: 1414
+Premises: Everyone who can register to vote in the United States can participate in the 2024 United States presidential election.
+If someone has United States citizenship, then they can register to vote in the United States.
+A person either has United States citizenship or Taiwanese citizenship.
+No Russian Federation officials hold Taiwanese citizenship. 
+Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom. 
+Ekaterina she can register to vote in the United States, or she is a Russian federation official.
+Conclusion: It is not true that Ekaterina can register to vote in the United States and Vladimir can participate in the 2024 United States presidential election.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom CanRegisterUSA : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwanCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom GazpromManager : Person → Prop
+
+axiom Vladimir : Person
+axiom Ekaterina : Person
+
+-- Premises
+axiom prem1 : ∀ x : Person, CanRegisterUSA x → CanParticipate2024 x
+axiom prem2 : ∀ x : Person, USCitizen x → CanRegisterUSA x
+axiom prem3 : ∀ x : Person, USCitizen x ∨ TaiwanCitizen x
+axiom prem4 : ∀ x : Person, RussianOfficial x → ¬ TaiwanCitizen x
+axiom prem5 : ¬ TaiwanCitizen Vladimir ∧ ¬ GazpromManager Vladimir
+axiom prem6 : CanRegisterUSA Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Derive that Vladimir is a US citizen (using the dichotomy and ¬ Taiwanese citizenship)
+lemma vladimir_US_citizen : USCitizen Vladimir := by
+  have hdisj : USCitizen Vladimir ∨ TaiwanCitizen Vladimir := prem3 Vladimir
+  have hnotTW : ¬ TaiwanCitizen Vladimir := And.left prem5
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hnotTW hTW)
+
+lemma vladimir_can_register : CanRegisterUSA Vladimir :=
+  prem2 Vladimir vladimir_US_citizen
+
+lemma vladimir_can_participate : CanParticipate2024 Vladimir :=
+  prem1 Vladimir vladimir_can_register
+
+-- Derive that Ekaterina can register
+lemma ekaterina_can_register : CanRegisterUSA Ekaterina := by
+  cases prem6 with
+  | inl hreg => exact hreg
+  | inr hoff =>
+      have hnotTW : ¬ TaiwanCitizen Ekaterina := prem4 Ekaterina hoff
+      have hdisj : USCitizen Ekaterina ∨ TaiwanCitizen Ekaterina := prem3 Ekaterina
+      cases hdisj with
+      | inl hUS => exact prem2 Ekaterina hUS
+      | inr hTW => exact False.elim (hnotTW hTW)
+
+-- Hence the conjunction (negating the stated conclusion) actually holds
+theorem conjunction_holds : CanRegisterUSA Ekaterina ∧ CanParticipate2024 Vladimir := by
+  exact And.intro ekaterina_can_register vladimir_can_participate
+
+-- The stated conclusion would be:
+-- theorem goal : ¬ (CanRegisterUSA Ekaterina ∧ CanParticipate2024 Vladimir) := by
+--   -- This is not provable from the premises; in fact, the opposite holds (see conjunction_holds).
+--   admit
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom RegisterUS : Person → Prop
+axiom Participate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom GazpromManager : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, RegisterUS x → Participate2024 x
+axiom premise2 : ∀ x : Person, USCitizen x → RegisterUS x
+axiom premise3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom premise4 : ∀ x : Person, RussianOfficial x → ¬TaiwaneseCitizen x
+axiom premise5a : ¬TaiwaneseCitizen Vladimir
+axiom premise5b : ¬GazpromManager Vladimir
+axiom premise6 : RegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Negation of the conclusion: Ekaterina can register AND Vladimir can participate
+theorem neg_conclusion : RegisterUS Ekaterina ∧ Participate2024 Vladimir := by
+  -- Ekaterina can register
+  have h_regE : RegisterUS Ekaterina := by
+    have h6 : RegisterUS Ekaterina ∨ RussianOfficial Ekaterina := premise6
+    cases h6 with
+    | inl hreg => exact hreg
+    | inr hro =>
+      have hnotTW : ¬TaiwaneseCitizen Ekaterina := premise4 Ekaterina hro
+      have hdisj : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := premise3 Ekaterina
+      have hus : USCitizen Ekaterina := by
+        cases hdisj with
+        | inl hus => exact hus
+        | inr htw =>
+          have : False := hnotTW htw
+          exact False.elim this
+      exact premise2 Ekaterina hus
+  -- Vladimir can participate
+  have h_partV : Participate2024 Vladimir := by
+    have hdisjV : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := premise3 Vladimir
+    have husV : USCitizen Vladimir := by
+      cases hdisjV with
+      | inl hus => exact hus
+      | inr htw =>
+        have : False := premise5a htw
+        exact False.elim this
+    have hregV : RegisterUS Vladimir := premise2 Vladimir husV
+    exact premise1 Vladimir hregV
+  exact And.intro h_regE h_partV
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

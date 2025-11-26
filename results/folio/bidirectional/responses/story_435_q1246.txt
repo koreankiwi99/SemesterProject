@@ -1,0 +1,95 @@
+Story ID: 435
+Example ID: 1246
+Premises: None of the students who currently work in the library are from the computer science department. 
+All of the students with part-time jobs offered by the university currently work in the library. 
+All of the students who are taking the database course are from the computer science department. 
+All of the students taking a class with Professor David are taking the database course. 
+All students working in the lab are taking a class with Professor David.
+James is a student working in the lab. 
+James doesn't work in the lab or have a part-time job offered by the university.
+Conclusion: James either takes the database course or has a part-time job offered by the university.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Student : Type
+axiom James : Student
+
+axiom WorksLibrary : Student → Prop
+axiom PartTimeUni : Student → Prop
+axiom TakesDatabase : Student → Prop
+axiom TakesWithDavid : Student → Prop
+axiom WorksLab : Student → Prop
+axiom FromCS : Student → Prop
+
+-- Premises
+-- None of the students who currently work in the library are from the computer science department.
+axiom noneLibraryCS : ∀ s : Student, WorksLibrary s → ¬ FromCS s
+-- All of the students with part-time jobs offered by the university currently work in the library.
+axiom allPartTimeWorkLibrary : ∀ s : Student, PartTimeUni s → WorksLibrary s
+-- All of the students who are taking the database course are from the computer science department.
+axiom allDatabaseCS : ∀ s : Student, TakesDatabase s → FromCS s
+-- All of the students taking a class with Professor David are taking the database course.
+axiom allDavidDatabase : ∀ s : Student, TakesWithDavid s → TakesDatabase s
+-- All students working in the lab are taking a class with Professor David.
+axiom allLabDavid : ∀ s : Student, WorksLab s → TakesWithDavid s
+-- James is a student working in the lab.
+axiom jamesLab : WorksLab James
+-- James doesn't work in the lab or have a part-time job offered by the university.
+-- Interpreted as: ¬WorksLab James ∧ ¬PartTimeUni James
+axiom jamesNoLabNoPartTime : ¬ WorksLab James ∧ ¬ PartTimeUni James
+
+-- Conclusion: James either takes the database course or has a part-time job offered by the university.
+theorem goal : TakesDatabase James ∨ PartTimeUni James := by
+  have hDavid : TakesWithDavid James := allLabDavid James jamesLab
+  have hDB : TakesDatabase James := allDavidDatabase James hDavid
+  exact Or.inl hDB
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Student : Type
+axiom James : Student
+
+axiom WorksLibrary : Student → Prop
+axiom FromCS : Student → Prop
+axiom PTUni : Student → Prop
+axiom TakesDB : Student → Prop
+axiom TakesWithDavid : Student → Prop
+axiom WorksLab : Student → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Student, WorksLibrary x → ¬ FromCS x
+axiom premise2 : ∀ x : Student, PTUni x → WorksLibrary x
+axiom premise3 : ∀ x : Student, TakesDB x → FromCS x
+axiom premise4 : ∀ x : Student, TakesWithDavid x → TakesDB x
+axiom premise5 : ∀ x : Student, WorksLab x → TakesWithDavid x
+axiom premise6 : WorksLab James
+axiom premise7 : ¬WorksLab James ∧ ¬PTUni James
+
+-- Negation of the conclusion: James does not (take DB or have a university PT job)
+theorem negConclusion : ¬(TakesDB James ∨ PTUni James) := by
+  intro h
+  have hNotLab : ¬WorksLab James := And.left premise7
+  have hLab : WorksLab James := premise6
+  exact hNotLab hLab
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: BOTH_SUCCESS
+Formalization Error Detected: True
+Used Fallback: True
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

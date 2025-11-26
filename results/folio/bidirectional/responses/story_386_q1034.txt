@@ -1,0 +1,132 @@
+Story ID: 386
+Example ID: 1034
+Premises: If something is a deadly disease, then it comes with a low survival rate. 
+Severe cancers are deadly diseases.
+Bile duct cancer is a severe form cancer. 
+All Cholangiocarcinoma is bile duct cancer.
+Mild flu comes with a low survival rate.
+Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+Conclusion: Colorectal cancer is a form of Cholangiocarcinoma and it is a kind of mild flu or a kind of bile duct cancer, or all of the above.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+/-
+We model diseases and properties as predicates over a domain `Entity`.
+-/
+axiom Entity : Type
+
+axiom DeadlyDisease : Entity → Prop
+axiom LowSurvival : Entity → Prop
+axiom SevereCancer : Entity → Prop
+axiom BileDuctCancer : Entity → Prop
+axiom Cholangiocarcinoma : Entity → Prop
+axiom MildFlu : Entity → Prop
+
+axiom ColorectalCancer : Entity
+
+/-
+Premises:
+1. If something is a deadly disease, then it comes with a low survival rate.
+2. Severe cancers are deadly diseases.
+3. Bile duct cancer is a severe form cancer. (i.e., all bile duct cancers are severe cancers)
+4. All Cholangiocarcinoma is bile duct cancer.
+5. Mild flu comes with a low survival rate.
+6. Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+-/
+axiom A1 : ∀ x : Entity, DeadlyDisease x → LowSurvival x
+axiom A2 : ∀ x : Entity, SevereCancer x → DeadlyDisease x
+axiom A3 : ∀ x : Entity, BileDuctCancer x → SevereCancer x
+axiom A4 : ∀ x : Entity, Cholangiocarcinoma x → BileDuctCancer x
+axiom A5 : ∀ x : Entity, MildFlu x → LowSurvival x
+axiom A6 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+/-
+Useful derived lemma: any bile duct cancer has a low survival rate (by chaining A3, A2, A1).
+-/
+lemma bileDuct_implies_low : ∀ x : Entity, BileDuctCancer x → LowSurvival x := by
+  intro x hbdc
+  have hsev : SevereCancer x := A3 x hbdc
+  have hdeadly : DeadlyDisease x := A2 x hsev
+  exact A1 x hdeadly
+
+/-
+From A4 and the lemma above, if ColorectalCancer were Cholangiocarcinoma,
+then it would be both a bile duct cancer and have a low survival rate,
+contradicting A6. Hence ¬ Cholangiocarcinoma ColorectalCancer.
+-/
+theorem not_cholangio_on_colorectal : ¬ Cholangiocarcinoma ColorectalCancer := by
+  intro h
+  have hbdc : BileDuctCancer ColorectalCancer := A4 ColorectalCancer h
+  have hlow : LowSurvival ColorectalCancer := bileDuct_implies_low ColorectalCancer hbdc
+  exact A6 ⟨hbdc, hlow⟩
+
+/-
+Conclusion to analyze (as requested):
+"Colorectal cancer is a form of Cholangiocarcinoma and it is a kind of mild flu or a kind of bile duct cancer, or all of the above."
+We formalize it as:
+Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer)
+
+However, from the lemma above we have ¬ Cholangiocarcinoma ColorectalCancer, so the conclusion is incompatible with the premises and not derivable.
+We include a proof attempt placeholder.
+-/
+set_option sorryEnabled true
+theorem goal :
+  Cholangiocarcinoma ColorectalCancer ∧ (MildFlu ColorectalCancer ∨ BileDuctCancer ColorectalCancer) := by
+  /- This goal is unprovable from the premises since ¬ Cholangiocarcinoma ColorectalCancer (see not_cholangio_on_colorectal). -/
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Disease : Type
+
+axiom Deadly : Disease → Prop
+axiom LowSurvival : Disease → Prop
+axiom SevereCancer : Disease → Prop
+axiom BileDuctCancer : Disease → Prop
+axiom Cholangiocarcinoma : Disease → Prop
+axiom MildFlu : Disease → Prop
+
+axiom colorectal : Disease
+
+-- Premises
+axiom premise1 : ∀ x : Disease, Deadly x → LowSurvival x
+axiom premise2 : ∀ x : Disease, SevereCancer x → Deadly x
+axiom premise3 : ∀ x : Disease, BileDuctCancer x → SevereCancer x
+axiom premise4 : ∀ x : Disease, Cholangiocarcinoma x → BileDuctCancer x
+axiom premise5 : ∀ x : Disease, MildFlu x → LowSurvival x
+axiom premise6 : ¬ (BileDuctCancer colorectal ∧ LowSurvival colorectal)
+
+-- Negation of the conclusion: we show the conclusion is false
+theorem goal :
+  ¬ (Cholangiocarcinoma colorectal ∧
+     (MildFlu colorectal ∨ BileDuctCancer colorectal ∨
+      (MildFlu colorectal ∧ BileDuctCancer colorectal ∧ Cholangiocarcinoma colorectal))) := by
+  intro h
+  have hChol : Cholangiocarcinoma colorectal := And.left h
+  have hBD : BileDuctCancer colorectal := premise4 colorectal hChol
+  have hSev : SevereCancer colorectal := premise3 colorectal hBD
+  have hDead : Deadly colorectal := premise2 colorectal hSev
+  have hLow : LowSurvival colorectal := premise1 colorectal hDead
+  exact premise6 ⟨hBD, hLow⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

@@ -1,0 +1,149 @@
+Story ID: 363
+Example ID: 966
+Premises: All hydrocarbons are organic compounds .
+All alkanes are hydrocarbons
+All organic compounds are chemical compounds.
+All organic compounds contain carbon.
+No chemical compounds contain only one element.
+The mixture either both is a chemical compound and contains only one element, or neither. 
+Conclusion: If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Thing : Type
+
+axiom Hydrocarbon : Thing → Prop
+axiom Organic : Thing → Prop
+axiom Alkane : Thing → Prop
+axiom Chemical : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+
+axiom mixture : Thing
+
+-- Premises
+axiom all_hydro_are_organic : ∀ x : Thing, Hydrocarbon x → Organic x
+axiom all_alkanes_are_hydro : ∀ x : Thing, Alkane x → Hydrocarbon x
+axiom all_organic_are_chemical : ∀ x : Thing, Organic x → Chemical x
+axiom all_organic_contain_carbon : ∀ x : Thing, Organic x → ContainsCarbon x
+axiom no_chemical_only_one_element : ∀ x : Thing, Chemical x → ¬ OnlyOneElement x
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom mixture_xnor :
+  (Chemical mixture ∧ OnlyOneElement mixture) ∨ (¬ Chemical mixture ∧ ¬ OnlyOneElement mixture)
+
+-- Conclusion:
+-- If the mixture contains only one element or contains carbon,
+-- then the mixture is neither a chemical compound nor an alkane.
+theorem conclusion :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬ Chemical mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  -- First show the mixture is not a chemical compound.
+  have not_chem : ¬ Chemical mixture := by
+    have h := mixture_xnor
+    cases h with
+    | inl hboth =>
+        have hchem : Chemical mixture := hboth.left
+        have hone : OnlyOneElement mixture := hboth.right
+        have hnotone : ¬ OnlyOneElement mixture := no_chemical_only_one_element mixture hchem
+        exact False.elim (hnotone hone)
+    | inr hneither =>
+        exact hneither.left
+  -- From not_chem, show the mixture is not an alkane (since alkane → hydrocarbon → organic → chemical).
+  have not_alk : ¬ Alkane mixture := by
+    intro hA
+    have hChem : Chemical mixture := by
+      have hHydro : Hydrocarbon mixture := all_alkanes_are_hydro mixture hA
+      have hOrg : Organic mixture := all_hydro_are_organic mixture hHydro
+      exact all_organic_are_chemical mixture hOrg
+    exact not_chem hChem
+  exact And.intro not_chem not_alk
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Thing : Type
+axiom Mixture : Thing
+
+axiom Hydrocarbon : Thing → Prop
+axiom OrganicCompound : Thing → Prop
+axiom Alkane : Thing → Prop
+axiom ChemicalCompound : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+
+-- Premises
+axiom all_hydrocarbons_are_organic : ∀ x : Thing, Hydrocarbon x → OrganicCompound x
+axiom all_alkanes_are_hydrocarbons : ∀ x : Thing, Alkane x → Hydrocarbon x
+axiom all_organics_are_chemicals : ∀ x : Thing, OrganicCompound x → ChemicalCompound x
+axiom all_organics_contain_carbon : ∀ x : Thing, OrganicCompound x → ContainsCarbon x
+axiom no_chemicals_have_only_one_element : ∀ x : Thing, ChemicalCompound x → ¬ OnlyOneElement x
+-- "The mixture either both is a chemical compound and contains only one element, or neither."
+axiom mixture_both_or_neither :
+  (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) ∨ (¬ChemicalCompound Mixture ∧ ¬OnlyOneElement Mixture)
+
+-- Useful derived facts
+
+-- From Alkane → Hydrocarbon → Organic → Chemical
+theorem chemical_of_alkane (x : Thing) : Alkane x → ChemicalCompound x := by
+  intro hA
+  have hH : Hydrocarbon x := all_alkanes_are_hydrocarbons x hA
+  have hO : OrganicCompound x := all_hydrocarbons_are_organic x hH
+  exact all_organics_are_chemicals x hO
+
+-- It's impossible for Mixture to be both a chemical compound and have only one element
+theorem not_chem_and_one_for_mixture : ¬ (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) := by
+  intro h
+  have : ¬ OnlyOneElement Mixture := no_chemicals_have_only_one_element Mixture h.left
+  exact this h.right
+
+-- Therefore, Mixture is not a chemical compound
+theorem not_chemical_mixture : ¬ ChemicalCompound Mixture := by
+  have h := mixture_both_or_neither
+  cases h with
+  | inl hboth =>
+    -- This case contradicts "no chemical compounds have only one element"
+    have : False := not_chem_and_one_for_mixture hboth
+    exact False.elim this
+  | inr hneither =>
+    exact hneither.left
+
+-- Therefore, Mixture is not an alkane (since alkanes are chemicals)
+theorem not_alkane_mixture : ¬ Alkane Mixture := by
+  intro hA
+  have hC : ChemicalCompound Mixture := chemical_of_alkane Mixture hA
+  exact not_chemical_mixture hC
+
+-- The original conclusion is actually true (the consequent holds outright)
+theorem conclusion_true :
+  (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) →
+  (¬ChemicalCompound Mixture ∧ ¬Alkane Mixture) := by
+  intro _
+  exact And.intro not_chemical_mixture not_alkane_mixture
+
+-- NEGATION of the conclusion to analyze:
+-- ¬( (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) → (¬ChemicalCompound Mixture ∧ ¬Alkane Mixture) )
+-- This is not derivable from the premises (indeed, the implication is true), so the proof attempt fails.
+theorem neg_conclusion :
+  ¬( (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) → (¬ChemicalCompound Mixture ∧ ¬Alkane Mixture) ) := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

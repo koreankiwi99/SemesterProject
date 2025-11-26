@@ -1,0 +1,158 @@
+Story ID: 340
+Example ID: 894
+Premises: Everyone at the mixer is a Grand Slam champion or an Oscar-nominated actor.
+Every Grand Slam champion at the mixer is a professional tennis player.
+All Oscar-nominated actors at the mixer are celebrities.
+All professional tennis players at the mixer are athletes.
+If a person at the mixer is a celebrity, then they are well paid.
+If a person at the mixer is an athlete, then they are famous.
+All well-paid people at the mixer live in tax havens.
+Djokovic is at the mixer: if Djokovic is a famous athlete, then Djokovic is well-paid.
+Conclusion: Djokovic lives in a tax haven.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Djokovic : Person
+
+-- Predicates
+axiom AtMixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom WellPaid : Person → Prop
+axiom Famous : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+
+-- Premises
+-- 1. Everyone at the mixer is a Grand Slam champion or an Oscar-nominated actor.
+axiom mixer_gsc_or_ona :
+  ∀ x : Person, AtMixer x → (GrandSlamChampion x ∨ OscarNominatedActor x)
+
+-- 2. Every Grand Slam champion at the mixer is a professional tennis player.
+axiom mixer_gsc_to_ptp :
+  ∀ x : Person, AtMixer x → GrandSlamChampion x → ProfessionalTennisPlayer x
+
+-- 3. All Oscar-nominated actors at the mixer are celebrities.
+axiom mixer_ona_to_celebrity :
+  ∀ x : Person, AtMixer x → OscarNominatedActor x → Celebrity x
+
+-- 4. All professional tennis players at the mixer are athletes.
+axiom mixer_ptp_to_athlete :
+  ∀ x : Person, AtMixer x → ProfessionalTennisPlayer x → Athlete x
+
+-- 5. If a person at the mixer is a celebrity, then they are well paid.
+axiom mixer_celebrity_to_wellpaid :
+  ∀ x : Person, AtMixer x → Celebrity x → WellPaid x
+
+-- 6. If a person at the mixer is an athlete, then they are famous.
+axiom mixer_athlete_to_famous :
+  ∀ x : Person, AtMixer x → Athlete x → Famous x
+
+-- 7. All well-paid people at the mixer live in tax havens.
+axiom mixer_wellpaid_to_taxhaven :
+  ∀ x : Person, AtMixer x → WellPaid x → LivesInTaxHaven x
+
+-- 8. Djokovic is at the mixer; if Djokovic is a famous athlete, then Djokovic is well-paid.
+axiom djokovic_at_mixer : AtMixer Djokovic
+axiom djokovic_famous_athlete_implies_wellpaid :
+  (Famous Djokovic ∧ Athlete Djokovic) → WellPaid Djokovic
+
+-- Conclusion: Djokovic lives in a tax haven.
+theorem goal : LivesInTaxHaven Djokovic := by
+  have hAt : AtMixer Djokovic := djokovic_at_mixer
+  have hDisj : GrandSlamChampion Djokovic ∨ OscarNominatedActor Djokovic :=
+    mixer_gsc_or_ona Djokovic hAt
+  -- Case analysis on whether Djokovic is a Grand Slam champion or an Oscar-nominated actor
+  cases hDisj with
+  | inl hGSC =>
+      have hPTP : ProfessionalTennisPlayer Djokovic :=
+        mixer_gsc_to_ptp Djokovic hAt hGSC
+      have hAth : Athlete Djokovic :=
+        mixer_ptp_to_athlete Djokovic hAt hPTP
+      have hFam : Famous Djokovic :=
+        mixer_athlete_to_famous Djokovic hAt hAth
+      have hWP : WellPaid Djokovic :=
+        djokovic_famous_athlete_implies_wellpaid ⟨hFam, hAth⟩
+      exact mixer_wellpaid_to_taxhaven Djokovic hAt hWP
+  | inr hONA =>
+      have hCeleb : Celebrity Djokovic :=
+        mixer_ona_to_celebrity Djokovic hAt hONA
+      have hWP : WellPaid Djokovic :=
+        mixer_celebrity_to_wellpaid Djokovic hAt hCeleb
+      exact mixer_wellpaid_to_taxhaven Djokovic hAt hWP
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Djokovic : Person
+
+axiom AtMixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom TennisPro : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom WellPaid : Person → Prop
+axiom Famous : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, AtMixer x → (GrandSlamChampion x ∨ OscarNominatedActor x)
+axiom premise2 : ∀ x : Person, AtMixer x ∧ GrandSlamChampion x → TennisPro x
+axiom premise3 : ∀ x : Person, AtMixer x ∧ OscarNominatedActor x → Celebrity x
+axiom premise4 : ∀ x : Person, AtMixer x ∧ TennisPro x → Athlete x
+axiom premise5 : ∀ x : Person, AtMixer x ∧ Celebrity x → WellPaid x
+axiom premise6 : ∀ x : Person, AtMixer x ∧ Athlete x → Famous x
+axiom premise7 : ∀ x : Person, AtMixer x ∧ WellPaid x → LivesInTaxHaven x
+axiom premise8 : AtMixer Djokovic
+axiom premise9 : (Famous Djokovic ∧ Athlete Djokovic) → WellPaid Djokovic
+
+-- From the premises, the positive conclusion (that Djokovic lives in a tax haven) actually follows.
+theorem livesInTaxHaven_Djokovic : LivesInTaxHaven Djokovic := by
+  have hAt : AtMixer Djokovic := premise8
+  have hEither : GrandSlamChampion Djokovic ∨ OscarNominatedActor Djokovic := premise1 Djokovic hAt
+  cases hEither with
+  | inl hGS =>
+      have hTP : TennisPro Djokovic := premise2 Djokovic ⟨hAt, hGS⟩
+      have hAth : Athlete Djokovic := premise4 Djokovic ⟨hAt, hTP⟩
+      have hFam : Famous Djokovic := premise6 Djokovic ⟨hAt, hAth⟩
+      have hWP : WellPaid Djokovic := premise9 ⟨hFam, hAth⟩
+      exact premise7 Djokovic ⟨hAt, hWP⟩
+  | inr hOsc =>
+      have hCel : Celebrity Djokovic := premise3 Djokovic ⟨hAt, hOsc⟩
+      have hWP : WellPaid Djokovic := premise5 Djokovic ⟨hAt, hCel⟩
+      exact premise7 Djokovic ⟨hAt, hWP⟩
+
+-- We are asked to prove the negation of the conclusion. This is not derivable from the premises.
+theorem goal : ¬ LivesInTaxHaven Djokovic := by
+  intro h
+  have hPos : LivesInTaxHaven Djokovic := livesInTaxHaven_Djokovic
+  -- No contradiction can be obtained; the premises entail that Djokovic lives in a tax haven.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

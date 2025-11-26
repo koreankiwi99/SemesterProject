@@ -2,6 +2,7 @@
 
 import json
 import os
+import asyncio
 from datetime import datetime
 from collections import defaultdict
 
@@ -20,6 +21,7 @@ class BaseSaver:
         self.experiment_name = experiment_name
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         os.makedirs(output_dir, exist_ok=True)
+        self._save_lock = asyncio.Lock()
 
     def _append_to_json(self, file_path, result):
         """Append a result to a JSON file.
@@ -733,3 +735,161 @@ class FOLIOLeanSaver(BaseSaver):
             if lean_stats['with_code'] > 0:
                 verification_rate = lean_stats['successful'] / lean_stats['with_code']
                 f.write(f"Verification success rate: {verification_rate:.2%}\n")
+
+
+class BidirectionalSaver(BaseSaver):
+    """Saver for bidirectional verification results."""
+
+    def __init__(self, output_dir="results", prompt_name="bidirectional", resume_dir=None):
+        super().__init__(output_dir, prompt_name)
+
+        if resume_dir:
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            self.base_dir = f"{output_dir}/folio_bidirectional_{prompt_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
+
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.responses_dir = f"{self.base_dir}/responses"
+        self.progress_file = f"{self.base_dir}/progress.txt"
+        self.summary_file = f"{self.base_dir}/summary.txt"
+        self.stats_file = f"{self.base_dir}/bidirectional_stats.txt"
+
+        os.makedirs(self.responses_dir, exist_ok=True)
+
+        if not resume_dir:
+            self._init_files()
+
+    def _init_files(self):
+        with open(self.all_results_file, 'w') as f:
+            json.dump([], f)
+        with open(self.progress_file, 'w') as f:
+            f.write(f"FOLIO Bidirectional Verification - Started at {self.timestamp}\n")
+            f.write("=" * 70 + "\n\n")
+
+    def save_result(self, result, question_index, total_questions):
+        self._append_to_json(self.all_results_file, result)
+        if 'error' not in result:
+            self._save_individual_response(result)
+        self._update_progress(result, question_index, total_questions)
+
+    def _save_individual_response(self, result):
+        story_id = result['story_id']
+        example_id = result['example_id']
+        response_file = f"{self.responses_dir}/story_{story_id}_q{example_id}.txt"
+
+        try:
+            with open(response_file, 'w') as f:
+                f.write(f"Story ID: {story_id}\n")
+                f.write(f"Example ID: {example_id}\n")
+                f.write(f"Premises: {result['premises']}\n")
+                f.write(f"Conclusion: {result['conclusion']}\n\n")
+
+                f.write("=" * 70 + "\n")
+                f.write("PROVE TRUE ATTEMPT\n")
+                f.write("=" * 70 + "\n")
+                f.write(f"Lean Code:\n{result.get('true_lean_code', 'None')}\n\n")
+                f.write(f"Verification Success: {result.get('true_proof_success', False)}\n")
+                if result.get('true_errors'):
+                    f.write(f"Errors: {result['true_errors']}\n")
+                f.write("\n")
+
+                f.write("=" * 70 + "\n")
+                f.write("PROVE FALSE ATTEMPT\n")
+                f.write("=" * 70 + "\n")
+                f.write(f"Lean Code:\n{result.get('false_lean_code', 'None')}\n\n")
+                f.write(f"Verification Success: {result.get('false_proof_success', False)}\n")
+                if result.get('false_errors'):
+                    f.write(f"Errors: {result['false_errors']}\n")
+                f.write("\n")
+
+                f.write("=" * 70 + "\n")
+                f.write("AGREEMENT ANALYSIS\n")
+                f.write("=" * 70 + "\n")
+                f.write(f"Agreement Pattern: {result.get('agreement_pattern', 'Unknown')}\n")
+                f.write(f"Formalization Error Detected: {result.get('formalization_error', False)}\n")
+                f.write(f"Used Fallback: {result.get('used_fallback', False)}\n\n")
+
+                f.write("=" * 70 + "\n")
+                f.write("FINAL RESULT\n")
+                f.write("=" * 70 + "\n")
+                f.write(f"Ground Truth: {result['ground_truth']}\n")
+                f.write(f"Prediction: {result['prediction']}\n")
+                f.write(f"Correct: {'Yes' if result['correct'] else 'No'}\n")
+
+        except Exception as e:
+            print(f"Warning: Could not save individual response: {e}")
+
+    def _update_progress(self, result, question_index, total_questions):
+        try:
+            with open(self.progress_file, 'a') as f:
+                f.write(f"Question {question_index+1}/{total_questions}\n")
+                f.write(f"  Story: {result.get('story_id')}, Example: {result.get('example_id')}\n")
+
+                if 'error' in result:
+                    f.write(f"  ERROR: {result['error']}\n")
+                else:
+                    f.write(f"  True proof: {'✓' if result.get('true_proof_success') else '✗'}, "
+                           f"False proof: {'✓' if result.get('false_proof_success') else '✗'}\n")
+                    f.write(f"  Pattern: {result.get('agreement_pattern', 'Unknown')}\n")
+                    f.write(f"  Result: {result['ground_truth']} → {result['prediction']} "
+                           f"{'✓' if result['correct'] else '✗'}\n")
+
+                f.write(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        except Exception as e:
+            print(f"Warning: Could not update progress: {e}")
+
+    def finalize(self, total_questions, total_correct, stats):
+        """Write final summary."""
+        with open(self.summary_file, 'w') as f:
+            f.write("FOLIO Bidirectional Verification Summary\n")
+            f.write("=" * 70 + "\n")
+            f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+
+            if total_questions > 0:
+                overall_accuracy = total_correct / total_questions
+                f.write(f"Total Questions: {total_questions}\n")
+                f.write(f"Total Correct: {total_correct}\n")
+                f.write(f"Overall Accuracy: {overall_accuracy:.2%}\n\n")
+
+            f.write("Agreement Pattern Distribution:\n")
+            for pattern, count in sorted(stats['patterns'].items()):
+                f.write(f"  {pattern}: {count}\n")
+
+            f.write(f"\nFormalization Errors Detected: {stats['formalization_errors']}\n")
+            f.write(f"Fallback to CoT Used: {stats['fallbacks_used']}\n")
+
+        self._save_stats(stats)
+
+        print(f"\n{'='*70}")
+        print("Results saved:")
+        print(f"{'='*70}")
+        print(f"All results:    {self.all_results_file}")
+        print(f"Summary:        {self.summary_file}")
+        print(f"Stats:          {self.stats_file}")
+        print(f"Progress log:   {self.progress_file}")
+        print(f"Responses:      {self.responses_dir}/")
+        print(f"{'='*70}")
+
+    def _save_stats(self, stats):
+        with open(self.stats_file, 'w') as f:
+            f.write("Bidirectional Verification Statistics\n")
+            f.write("=" * 70 + "\n\n")
+
+            f.write("Agreement Patterns:\n")
+            f.write("-" * 40 + "\n")
+            for pattern, count in sorted(stats['patterns'].items()):
+                f.write(f"  {pattern}: {count}\n")
+
+            f.write(f"\nFormalization Errors Detected: {stats['formalization_errors']}\n")
+            f.write(f"(Both TRUE and FALSE proofs succeeded - contradiction)\n\n")
+
+            f.write(f"Fallbacks to CoT: {stats['fallbacks_used']}\n")
+
+            f.write("\nAccuracy by Pattern:\n")
+            f.write("-" * 40 + "\n")
+            for pattern, data in sorted(stats['accuracy_by_pattern'].items()):
+                if data['total'] > 0:
+                    acc = data['correct'] / data['total']
+                    f.write(f"  {pattern}: {data['correct']}/{data['total']} ({acc:.2%})\n")

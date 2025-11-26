@@ -1,0 +1,675 @@
+Story ID: 471
+Example ID: 1365
+Premises: All rabbits that can be spotted near the campus are cute. 
+Some turtles can be spotted near the campus. 
+The only animals that can be spotted near the campus are rabbits and squirrels.
+If something is skittish, then it is not calm.
+All the squirrels that can be spotted near the campus are skittish.
+Rockie can be spotted near the campus, and it is calm.
+Conclusion: If Rockie is cute and calm, then Rockie is a skittish turtle.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+universe u
+
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target statement: If Rockie is cute and calm, then Rockie is a skittish turtle.
+-- We prove its negation from the premises (thus the statement is False).
+theorem statement : ¬((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp  : Spotted Rockie := ax6.left
+  have hCalm: Calm Rockie    := ax6.right
+  -- Rockie is not a squirrel; thus Rockie is a rabbit
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq =>
+        have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+        have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  have hA : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+  -- From the implication, get the consequent
+  have hB : Skittish Rockie ∧ Turtle Rockie := hImp hA
+  -- But skittish contradicts calm, so the consequent is impossible
+  have hNotB : ¬ (Skittish Rockie ∧ Turtle Rockie) := by
+    intro h
+    have hSk : Skittish Rockie := h.left
+    have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+    exact hNotCalm hCalm
+  exact hNotB hB
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+universe u
+
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target statement: If Rockie is cute and calm, then Rockie is a skittish turtle.
+-- We prove its negation from the premises (thus the statement is False).
+theorem statement : ¬((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp  : Spotted Rockie := ax6.left
+  have hCalm: Calm Rockie    := ax6.right
+  -- Rockie is not a squirrel; thus Rockie is a rabbit
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq =>
+        have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+        have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  have hA : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+  -- From the implication, get the consequent
+  have hB : Skittish Rockie ∧ Turtle Rockie := hImp hA
+  -- But skittish contradicts calm, so the consequent is impossible
+  have hNotB : ¬ (Skittish Rockie ∧ Turtle Rockie) := by
+    intro h
+    have hSk : Skittish Rockie := h.left
+    have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+    exact hNotCalm hCalm
+  exact hNotB hB
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - unexpected token ':'; expected command
+  - Function expected at
+  Rabbit
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Cute
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Turtle
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Rabbit
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Squirrel
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Calm
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Squirrel
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.1
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Calm
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Cute
+but this term has type
+  ?m.1
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Calm
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Turtle
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Unknown identifier `Spotted`
+  - unsolved goals
+x✝³ : Sort u_1
+Cute : x✝³
+x✝² : Sort u_2
+Calm : x✝²
+x✝¹ : Sort u_3
+Skittish : x✝¹
+x✝ : Sort u_4
+Turtle : x✝
+hImp : sorry ∧ sorry → sorry ∧ sorry
+⊢ False
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target: If Rockie is cute and calm, then Rockie is a skittish turtle.
+-- We show this statement is false from the premises.
+theorem target_false :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp   : Spotted Rockie := ax6.left
+  have hCalm : Calm Rockie    := ax6.right
+  -- Show Rockie is a rabbit (cannot be a squirrel because Rockie is calm)
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq =>
+      have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+      have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  have hAnte : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+  -- Use the implication to get the consequent
+  have hCons : Skittish Rockie ∧ Turtle Rockie := hImp hAnte
+  -- But skittish contradicts calm, so contradiction
+  have : False := by
+    have hSk : Skittish Rockie := hCons.left
+    have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+    exact hNotCalm hCalm
+  exact this
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target: If Rockie is cute and calm, then Rockie is a skittish turtle.
+-- We show this statement is false from the premises.
+theorem target_false :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp   : Spotted Rockie := ax6.left
+  have hCalm : Calm Rockie    := ax6.right
+  -- Show Rockie is a rabbit (cannot be a squirrel because Rockie is calm)
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hSq =>
+      have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+      have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  have hAnte : Cute Rockie ∧ Calm Rockie := And.intro hCute hCalm
+  -- Use the implication to get the consequent
+  have hCons : Skittish Rockie ∧ Turtle Rockie := hImp hAnte
+  -- But skittish contradicts calm, so contradiction
+  have : False := by
+    have hSk : Skittish Rockie := hCons.left
+    have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+    exact hNotCalm hCalm
+  exact this
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - unexpected identifier; expected command
+  - Function expected at
+  Rabbit
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Cute
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Turtle
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Rabbit
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Squirrel
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Calm
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Squirrel
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  x
+  - Function expected at
+  Spotted
+but this term has type
+  ?m.1
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Calm
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Cute
+but this term has type
+  ?m.1
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Calm
+but this term has type
+  ?m.2
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Skittish
+but this term has type
+  ?m.3
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Function expected at
+  Turtle
+but this term has type
+  ?m.4
+
+Note: Expected a function because this term is being applied to the argument
+  Rockie
+  - Unknown identifier `Spotted`
+  - unsolved goals
+x✝³ : Sort u_1
+Cute : x✝³
+x✝² : Sort u_2
+Calm : x✝²
+x✝¹ : Sort u_3
+Skittish : x✝¹
+x✝ : Sort u_4
+Turtle : x✝
+hImp : sorry ∧ sorry → sorry ∧ sorry
+⊢ False
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+set_option autoImplicit false
+
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target: If Rockie is cute and calm, then Rockie is a skittish turtle (we show this is false).
+theorem target_false :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp   : Spotted Rockie := ax6.left
+  have hCalm : Calm Rockie    := ax6.right
+  -- Rockie is a rabbit (it cannot be a squirrel, since Rockie is calm and spotted squirrels are skittish hence not calm)
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    apply Or.elim hDisj
+    · intro hR; exact hR
+    · intro hSq
+      have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+      have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  -- Apply the implication
+  have hCons : Skittish Rockie ∧ Turtle Rockie := hImp ⟨hCute, hCalm⟩
+  -- But skittish contradicts calm
+  have hNotCalm' : ¬ Calm Rockie := ax4 Rockie hCons.left
+  exact hNotCalm' hCalm
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+set_option autoImplicit false
+
+constant Animal : Type
+
+-- Predicates
+constant Rabbit   : Animal → Prop
+constant Turtle   : Animal → Prop
+constant Squirrel : Animal → Prop
+constant Spotted  : Animal → Prop
+constant Cute     : Animal → Prop
+constant Skittish : Animal → Prop
+constant Calm     : Animal → Prop
+
+constant Rockie : Animal
+
+-- Premises
+axiom ax1 : ∀ x : Animal, Rabbit x ∧ Spotted x → Cute x
+axiom ax2 : ∃ x : Animal, Turtle x ∧ Spotted x
+axiom ax3 : ∀ x : Animal, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom ax4 : ∀ x : Animal, Skittish x → ¬ Calm x
+axiom ax5 : ∀ x : Animal, Squirrel x ∧ Spotted x → Skittish x
+axiom ax6 : Spotted Rockie ∧ Calm Rockie
+
+-- Target: If Rockie is cute and calm, then Rockie is a skittish turtle (we show this is false).
+theorem target_false :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSp   : Spotted Rockie := ax6.left
+  have hCalm : Calm Rockie    := ax6.right
+  -- Rockie is a rabbit (it cannot be a squirrel, since Rockie is calm and spotted squirrels are skittish hence not calm)
+  have hRabbit : Rabbit Rockie := by
+    have hDisj : Rabbit Rockie ∨ Squirrel Rockie := ax3 Rockie hSp
+    apply Or.elim hDisj
+    · intro hR; exact hR
+    · intro hSq
+      have hSk : Skittish Rockie := ax5 Rockie ⟨hSq, hSp⟩
+      have hNotCalm : ¬ Calm Rockie := ax4 Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+  -- Hence Rockie is cute
+  have hCute : Cute Rockie := ax1 Rockie ⟨hRabbit, hSp⟩
+  -- Apply the implication
+  have hCons : Skittish Rockie ∧ Turtle Rockie := hImp ⟨hCute, hCalm⟩
+  -- But skittish contradicts calm
+  have hNotCalm' : ¬ Calm Rockie := ax4 Rockie hCons.left
+  exact hNotCalm' hCalm
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - unexpected identifier; expected command
+  - Unknown identifier `Animal`
+  - Unknown identifier `Rabbit`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Cute`
+  - Unknown identifier `Animal`
+  - Unknown identifier `Turtle`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Animal`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Rabbit`
+  - Unknown identifier `Squirrel`
+  - Unknown identifier `Animal`
+  - Unknown identifier `Skittish`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Animal`
+  - Unknown identifier `Squirrel`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Skittish`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Cute`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Skittish`
+  - Unknown identifier `Turtle`
+  - Unknown identifier `Spotted`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Rabbit`
+  - Unknown identifier `Rabbit`
+  - Unknown identifier `Squirrel`
+  - Unknown identifier `Rockie`
+  - Unknown identifier `Skittish`
+  - Unknown identifier `Rockie`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Rockie`
+  - Unknown identifier `Cute`
+  - Unknown identifier `Rockie`
+  - Unknown identifier `Skittish`
+  - Unknown identifier `Turtle`
+  - Unknown identifier `Calm`
+  - Unknown identifier `Rockie`
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

@@ -1,0 +1,114 @@
+Story ID: 0
+Example ID: combo5_q4
+Premises: If the musician submits a complete album draft, then the producer reviews the album. If the record label confirms the release date, then the album is officially scheduled for launch. Either the producer does not review the album, or the album is not officially scheduled for launch, or both. If the musician attends advanced music composition classes, then the musician's composition skills improve. If the musician's composition skills improve, then the album's critical acclaim increases. Either the musician attends advanced music composition classes, or the manager arranges additional recording sessions, or both. If the manager arranges additional recording sessions, then the musician receives professional studio feedback. If the musician receives professional studio feedback, then the album becomes a hit.
+Conclusion: If the musician submits a complete album draft and the album's critical acclaim does not increase, does the album become a hit?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom SubmitsDraft : Prop
+axiom ProducerReviews : Prop
+axiom LabelConfirms : Prop
+axiom OfficiallyScheduled : Prop
+axiom AttendsAdvancedClasses : Prop
+axiom CompositionImproves : Prop
+axiom CriticalAcclaimIncreases : Prop
+axiom ManagerArrangesSessions : Prop
+axiom ReceivesProfessionalFeedback : Prop
+axiom AlbumBecomesHit : Prop
+
+axiom premise1 : SubmitsDraft → ProducerReviews
+axiom premise2 : LabelConfirms → OfficiallyScheduled
+axiom premise3 : ¬ ProducerReviews ∨ ¬ OfficiallyScheduled
+axiom premise4 : AttendsAdvancedClasses → CompositionImproves
+axiom premise5 : CompositionImproves → CriticalAcclaimIncreases
+axiom premise6 : AttendsAdvancedClasses ∨ ManagerArrangesSessions
+axiom premise7 : ManagerArrangesSessions → ReceivesProfessionalFeedback
+axiom premise8 : ReceivesProfessionalFeedback → AlbumBecomesHit
+
+theorem goal :
+  (SubmitsDraft ∧ ¬ CriticalAcclaimIncreases) → AlbumBecomesHit := by
+  intro h
+  cases h with
+  | intro hSubmit hNotInc =>
+    cases premise6 with
+    | inl hAttend =>
+        have hImprove : CompositionImproves := premise4 hAttend
+        have hInc : CriticalAcclaimIncreases := premise5 hImprove
+        have : False := hNotInc hInc
+        exact False.elim this
+    | inr hArrange =>
+        have hFeedback : ReceivesProfessionalFeedback := premise7 hArrange
+        have hHit : AlbumBecomesHit := premise8 hFeedback
+        exact hHit
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Propositions representing events and properties in the scenario
+axiom Submit : Prop                      -- Musician submits a complete album draft
+axiom Review : Prop                      -- Producer reviews the album
+axiom ConfirmRelease : Prop              -- Record label confirms the release date
+axiom OfficialLaunch : Prop              -- Album is officially scheduled for launch
+axiom AttendClasses : Prop               -- Musician attends advanced music composition classes
+axiom ImproveSkills : Prop               -- Musician's composition skills improve
+axiom AcclaimIncreases : Prop            -- Album's critical acclaim increases
+axiom ArrangeSessions : Prop             -- Manager arranges additional recording sessions
+axiom StudioFeedback : Prop              -- Musician receives professional studio feedback
+axiom HitAlbum : Prop                    -- Album becomes a hit
+
+-- Premises
+axiom premise1 : Submit → Review
+axiom premise2 : ConfirmRelease → OfficialLaunch
+axiom premise3 : (¬Review) ∨ (¬OfficialLaunch)
+axiom premise4 : AttendClasses → ImproveSkills
+axiom premise5 : ImproveSkills → AcclaimIncreases
+axiom premise6 : AttendClasses ∨ ArrangeSessions
+axiom premise7 : ArrangeSessions → StudioFeedback
+axiom premise8 : StudioFeedback → HitAlbum
+
+-- Helpful lemma: From not (AcclaimIncreases), we can derive HitAlbum using the disjunction in premise6
+theorem hit_from_not_acclaim : ¬AcclaimIncreases → HitAlbum := by
+  intro hNotAcclaim
+  have hClassesOrSessions : AttendClasses ∨ ArrangeSessions := premise6
+  cases hClassesOrSessions with
+  | inl hAttend =>
+    have hImprove : ImproveSkills := premise4 hAttend
+    have hAcclaim : AcclaimIncreases := premise5 hImprove
+    exact False.elim (hNotAcclaim hAcclaim)
+  | inr hArrange =>
+    have hFeedback : StudioFeedback := premise7 hArrange
+    exact premise8 hFeedback
+
+-- The original conclusion is actually provable from the premises:
+-- If the musician submits a complete album draft and acclaim does not increase, then the album becomes a hit.
+theorem conclusion_true : (Submit ∧ ¬AcclaimIncreases) → HitAlbum := by
+  intro h
+  exact hit_from_not_acclaim h.right
+
+-- Since the conclusion is true, its negation is false. We can show that
+-- assuming the negation leads to a contradiction.
+theorem not_not_conclusion : ¬¬((Submit ∧ ¬AcclaimIncreases) → HitAlbum) := by
+  intro hneg
+  apply hneg
+  exact conclusion_true
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Unknown
+Prediction: Yes
+Correct: No

@@ -1,0 +1,98 @@
+Story ID: 0
+Example ID: 14
+Premises: Jessica aims to finish all her homework before she relaxes at night. She knows that if she finishes her homework, she'll have time to relax before bed. If her friend calls, Jessica will likely talk with her for an hour or more. Either Jessica finished her homework, or she didn't talk with her friend for an hour. Jessica realizes that if she relaxes before bed, she'll feel tired when it's time to sleep. And if she feels tired, she'll fall asleep quickly once she's in bed.
+Conclusion: If Jessica's friend calls her on the phone, then does Jessica fall asleep quickly when she goes to bed?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Propositions representing key facts about Jessica's evening
+axiom Finished : Prop                  -- Jessica finished her homework
+axiom Relax : Prop                     -- Jessica relaxes before bed
+axiom Calls : Prop                     -- Jessica's friend calls her
+axiom TalkHour : Prop                  -- Jessica talks with her friend for an hour or more
+axiom Tired : Prop                     -- Jessica feels tired at bedtime
+axiom SleepQuick : Prop                -- Jessica falls asleep quickly
+
+-- Premises formalized
+axiom aim_finish_before_relax : Relax → Finished
+axiom finish_implies_relax : Finished → Relax
+axiom calls_implies_talkhour : Calls → TalkHour
+axiom finished_or_not_talkhour : Finished ∨ ¬ TalkHour
+axiom relax_implies_tired : Relax → Tired
+axiom tired_implies_sleepquick : Tired → SleepQuick
+
+-- Goal: If Jessica's friend calls, then Jessica falls asleep quickly when she goes to bed
+theorem conclusion : Calls → SleepQuick := by
+  intro hcall
+  have htalk : TalkHour := calls_implies_talkhour hcall
+  have hfin : Finished :=
+    Or.elim finished_or_not_talkhour
+      (fun hf => hf)
+      (fun hnot => False.elim (hnot htalk))
+  have hrelax : Relax := finish_implies_relax hfin
+  have htired : Tired := relax_implies_tired hrelax
+  exact tired_implies_sleepquick htired
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Calls : Prop
+axiom Finished : Prop
+axiom Relaxes : Prop
+axiom TalksHourOrMore : Prop
+axiom Tired : Prop
+axiom SleepsQuickly : Prop
+
+-- Premises
+-- 1) She relaxes before bed only after finishing homework
+axiom p1 : Relaxes → Finished
+-- 2) If she finishes her homework, she'll have time to relax before bed
+axiom p2 : Finished → Relaxes
+-- 3) If her friend calls, she will talk for an hour or more
+axiom p3 : Calls → TalksHourOrMore
+-- 4) Either she finished homework, or she didn't talk for an hour or more
+axiom p4 : Finished ∨ ¬TalksHourOrMore
+-- 5) If she relaxes before bed, she'll feel tired when it's time to sleep
+axiom p5 : Relaxes → Tired
+-- 6) If she feels tired, she'll fall asleep quickly once in bed
+axiom p6 : Tired → SleepsQuickly
+
+-- From the premises, the conclusion actually follows: Calls → SleepsQuickly
+theorem conclusion_true : Calls → SleepsQuickly := by
+  intro hCall
+  have hTalk : TalksHourOrMore := p3 hCall
+  have hFinished : Finished := by
+    cases p4 with
+    | inl hF => exact hF
+    | inr hNotTalk =>
+      have contra : False := hNotTalk hTalk
+      exact False.elim contra
+  have hRelax : Relaxes := p2 hFinished
+  have hTired : Tired := p5 hRelax
+  exact p6 hTired
+
+-- Consequently, the negation of the conclusion is refutable
+theorem not_not_conclusion : ¬¬(Calls → SleepsQuickly) := by
+  intro hneg
+  exact hneg conclusion_true
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

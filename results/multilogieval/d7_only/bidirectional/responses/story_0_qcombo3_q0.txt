@@ -1,0 +1,122 @@
+Story ID: 0
+Example ID: combo3_q0
+Premises: If Sarah completes her project proposal ahead of the deadline, then she has ample time to refine the details. If Sarah meets with her project advisor, then she receives valuable insights. Sarah is determined that she will either complete her proposal ahead of time or meet with her advisor, or do both. If Sarah receives valuable insights, then she incorporates the new ideas into her project. If she incorporates the new ideas into her project, then she creates an outstanding project. If Sarah collaborates with a team, then she brainstorms innovative solutions. She also plans that either she receives valuable insights or collaborates with a team, or both. If Sarah brainstorms innovative solutions, then her project presentation is engaging. If her project presentation is engaging, then she wins the best project award.
+Conclusion: If Sarah did not have ample time to refine the details and did not create an outstanding project, did she win the best project award?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom CompletedAhead : Prop
+axiom AmpleTime : Prop
+axiom MeetsAdvisor : Prop
+axiom ReceivesInsights : Prop
+axiom IncorporatesIdeas : Prop
+axiom OutstandingProject : Prop
+axiom CollaboratesTeam : Prop
+axiom BrainstormsInnovative : Prop
+axiom EngagingPresentation : Prop
+axiom WinsBestAward : Prop
+
+-- Premises
+axiom ax1 : CompletedAhead → AmpleTime
+axiom ax2 : MeetsAdvisor → ReceivesInsights
+axiom ax3 : CompletedAhead ∨ MeetsAdvisor
+axiom ax4 : ReceivesInsights → IncorporatesIdeas
+axiom ax5 : IncorporatesIdeas → OutstandingProject
+axiom ax6 : CollaboratesTeam → BrainstormsInnovative
+axiom ax7 : ReceivesInsights ∨ CollaboratesTeam
+axiom ax8 : BrainstormsInnovative → EngagingPresentation
+axiom ax9 : EngagingPresentation → WinsBestAward
+
+-- Conclusion: If Sarah did not have ample time and did not create an outstanding project, she still wins the award.
+theorem goal : (¬AmpleTime ∧ ¬OutstandingProject) → WinsBestAward := by
+  intro h
+  have hNotO : ¬OutstandingProject := And.right h
+  -- From ReceivesInsights → IncorporatesIdeas → OutstandingProject
+  have vToO : ReceivesInsights → OutstandingProject := by
+    intro v
+    have inc : IncorporatesIdeas := ax4 v
+    exact ax5 inc
+  -- From ¬OutstandingProject, deduce ¬ReceivesInsights
+  have notV : ¬ReceivesInsights := by
+    intro v
+    exact hNotO (vToO v)
+  -- From (ReceivesInsights ∨ CollaboratesTeam) and ¬ReceivesInsights, deduce CollaboratesTeam
+  have c : CollaboratesTeam := Or.resolve_left ax7 notV
+  -- Chain to the award
+  have b : BrainstormsInnovative := ax6 c
+  have e : EngagingPresentation := ax8 b
+  exact ax9 e
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Ahead : Prop
+axiom Ample : Prop
+axiom Meets : Prop
+axiom Insights : Prop
+axiom Incorporate : Prop
+axiom Outstanding : Prop
+axiom Collaborate : Prop
+axiom Brainstorm : Prop
+axiom Engaging : Prop
+axiom Award : Prop
+
+-- Premises
+axiom p1 : Ahead → Ample
+axiom p2 : Meets → Insights
+axiom p3 : Ahead ∨ Meets
+axiom p4 : Insights → Incorporate
+axiom p5 : Incorporate → Outstanding
+axiom p6 : Collaborate → Brainstorm
+axiom p7 : Insights ∨ Collaborate
+axiom p8 : Brainstorm → Engaging
+axiom p9 : Engaging → Award
+
+-- From the "either ahead or meets" premise, we derive Ample ∨ Outstanding.
+theorem ample_or_outstanding : Ample ∨ Outstanding := by
+  cases p3 with
+  | inl hAhead =>
+    exact Or.inl (p1 hAhead)
+  | inr hMeets =>
+    have hIns : Insights := p2 hMeets
+    have hInc : Incorporate := p4 hIns
+    have hOut : Outstanding := p5 hInc
+    exact Or.inr hOut
+
+-- Hence, it is impossible that both ¬Ample and ¬Outstanding hold simultaneously.
+theorem not_both_not_ample_and_not_outstanding : ¬(¬Ample ∧ ¬Outstanding) := by
+  intro h
+  have hna : ¬Ample := And.left h
+  have hno : ¬Outstanding := And.right h
+  cases ample_or_outstanding with
+  | inl hA =>
+    exact hna hA
+  | inr hO =>
+    exact hno hO
+
+-- Therefore, the analyzed conclusion (¬Ample ∧ ¬Outstanding) → Award actually holds vacuously.
+theorem analyzed_conclusion_true : (¬Ample ∧ ¬Outstanding) → Award := by
+  intro h
+  have : False := not_both_not_ample_and_not_outstanding h
+  exact False.elim this
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Unknown
+Prediction: Yes
+Correct: No

@@ -1,0 +1,86 @@
+Story ID: 0
+Example ID: 9
+Premises: Mary was baking a cake for John's graduation party today. She knew that if the oven is preheated properly, the cake will bake evenly all over. At the same time, Mary knew it was John's graduation ceremony today. If it is John's graduation today, his family will bake a cake to celebrate the occasion. Either the oven was preheated correctly, or John's family did not bake a cake. Mary knows that if the cake bakes evenly throughout, it will taste delicious. If the cake tastes great, then John will be absolutely thrilled with it.
+Conclusion: If it is John's graduation ceremony today, then is John thrilled with the cake?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom G : Prop        -- John's graduation is today
+axiom P : Prop        -- Oven preheated properly
+axiom B : Prop        -- Cake bakes evenly
+axiom F : Prop        -- John's family bakes a cake
+axiom D : Prop        -- Cake tastes delicious
+axiom T : Prop        -- John is thrilled with the cake
+
+axiom preheat_implies_even : P → B
+axiom grad_implies_family_bakes : G → F
+axiom preheated_or_family_not_bake : P ∨ ¬ F
+axiom even_implies_delicious : B → D
+axiom delicious_implies_thrilled : D → T
+
+theorem goal : G → T := by
+  intro g
+  have f : F := grad_implies_family_bakes g
+  cases preheated_or_family_not_bake with
+  | inl hp =>
+      exact delicious_implies_thrilled (even_implies_delicious (preheat_implies_even hp))
+  | inr hnf =>
+      exact False.elim (hnf f)
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Grad : Prop            -- It is John's graduation ceremony today
+axiom FamilyBakes : Prop     -- John's family bakes a cake
+axiom Preheated : Prop       -- The oven was preheated properly
+axiom EvenBake : Prop        -- The cake bakes evenly all over
+axiom Delicious : Prop       -- The cake tastes delicious
+axiom Thrilled : Prop        -- John is thrilled with the cake
+
+-- Premises
+axiom gradToday : Grad
+axiom grad_implies_family : Grad → FamilyBakes
+axiom preheated_or_not_family : Preheated ∨ ¬FamilyBakes
+axiom preheated_implies_even : Preheated → EvenBake
+axiom even_implies_delicious : EvenBake → Delicious
+axiom delicious_implies_thrilled : Delicious → Thrilled
+
+-- From the premises, the conclusion actually follows:
+theorem conclusion_true : Grad → Thrilled := by
+  intro g
+  have family : FamilyBakes := grad_implies_family g
+  have pre : Preheated := by
+    cases preheated_or_not_family with
+    | inl hp => exact hp
+    | inr hnot =>
+      have : False := hnot family
+      exact False.elim this
+  have ev : EvenBake := preheated_implies_even pre
+  have taste : Delicious := even_implies_delicious ev
+  exact delicious_implies_thrilled taste
+
+-- Therefore, the negation of the conclusion is refutable (we can prove ¬¬(Grad → Thrilled)):
+theorem not_not_conclusion : ¬¬(Grad → Thrilled) := by
+  intro neg
+  exact neg conclusion_true
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

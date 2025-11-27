@@ -1,0 +1,117 @@
+Story ID: 0
+Example ID: 6
+Premises: Emma checked the pet store hours. She knew if they're open, she buys treats for her dog. Emma was also taking her dog on a long hike. If they go on a long hike, the dog gets well-exercised. Either the store is open or the dog isn't exercised, or the store is open and the dog isn't exercised. Emma also knows if she finished work early, they're going on a hike. Her friend wondered if either Emma finished work early or she's meeting a friend for dinner, or both.
+Conclusion: If Emma did not buy treats, is she meeting a friend for dinner?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom StoreOpen : Prop
+axiom BuysTreats : Prop
+axiom LongHike : Prop
+axiom WellExercised : Prop
+axiom FinishedEarly : Prop
+axiom MeetingFriendForDinner : Prop
+
+-- Premises
+axiom open_imp_buy : StoreOpen → BuysTreats
+axiom taking_hike : LongHike
+axiom hike_imp_ex : LongHike → WellExercised
+axiom weird_disjunction : (StoreOpen ∨ ¬ WellExercised) ∨ (StoreOpen ∧ ¬ WellExercised)
+axiom finished_imp_hike : FinishedEarly → LongHike
+axiom friend_wondered : FinishedEarly ∨ MeetingFriendForDinner
+
+-- Conclusion: If Emma did not buy treats, she is meeting a friend for dinner.
+theorem goal : (¬ BuysTreats) → MeetingFriendForDinner := by
+  intro nb
+  have ex : WellExercised := hike_imp_ex taking_hike
+  have op : StoreOpen := by
+    cases weird_disjunction with
+    | inl disj =>
+      cases disj with
+      | inl o => exact o
+      | inr ne =>
+        have f : False := ne ex
+        exact False.elim f
+    | inr conj =>
+      exact conj.left
+  have b : BuysTreats := open_imp_buy op
+  have f : False := nb b
+  exact False.elim f
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Propositions
+axiom Open : Prop
+axiom BuysTreats : Prop
+axiom LongHike : Prop
+axiom Exercised : Prop
+axiom FinishedEarly : Prop
+axiom MeetingFriend : Prop
+
+-- Premises
+-- If the store is open, Emma buys treats for her dog.
+axiom premise1 : Open → BuysTreats
+-- Emma was taking her dog on a long hike.
+axiom premise2 : LongHike
+-- If they go on a long hike, the dog gets well-exercised.
+axiom premise3 : LongHike → Exercised
+-- Either (the store is open or the dog isn't exercised) or (the store is open and the dog isn't exercised).
+axiom premise4 : (Open ∨ ¬Exercised) ∨ (Open ∧ ¬Exercised)
+-- If Emma finished work early, they're going on a hike.
+axiom premise5 : FinishedEarly → LongHike
+-- Her friend wondered if either Emma finished work early or she's meeting a friend for dinner, or both.
+axiom premise6 : (FinishedEarly ∨ MeetingFriend) ∨ (FinishedEarly ∧ MeetingFriend)
+
+-- Derived facts
+lemma exercised : Exercised := by
+  exact premise3 premise2
+
+lemma open_or_not_exercised : Open ∨ ¬Exercised := by
+  cases premise4 with
+  | inl h => exact h
+  | inr h =>
+    -- from Open ∧ ¬Exercised, we can derive Open
+    exact Or.inl h.left
+
+lemma open_true : Open := by
+  cases open_or_not_exercised with
+  | inl o => exact o
+  | inr notEx =>
+    exact False.elim (notEx exercised)
+
+lemma buys_true : BuysTreats := by
+  exact premise1 open_true
+
+-- The original conclusion (If Emma did not buy treats, she is meeting a friend for dinner) is actually true,
+-- because ¬BuysTreats is false (we have BuysTreats), so the implication holds vacuously.
+theorem conclusion_true : (¬BuysTreats → MeetingFriend) := by
+  intro h
+  exact False.elim (h buys_true)
+
+-- Requested: Prove the NEGATION of the conclusion: ¬(¬BuysTreats → MeetingFriend).
+-- This is not derivable from the premises (indeed, the implication is true as shown above),
+-- so the following proof attempt cannot be completed.
+theorem neg_conclusion : ¬(¬BuysTreats → MeetingFriend) := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

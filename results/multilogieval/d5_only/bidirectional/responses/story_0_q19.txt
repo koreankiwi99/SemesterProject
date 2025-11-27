@@ -1,0 +1,123 @@
+Story ID: 0
+Example ID: 19
+Premises: Coffee and Tea are beverages served in a cafe. Usually, beverages served in a cafe are hot. If Coffee is brewed, then it is aromatic. If Tea is steeped, then it can be sweetened. Either Coffee is brewed or Tea can be sweetened, or both. If Hot Chocolate can be sweetened, then Tea is steeped. If Espresso is hot, then Coffee is brewed.
+Conclusion: Can we conclude if Hot Chocolate is not aromatic then Tea can be sweetened?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Drink : Type
+
+axiom Coffee : Drink
+axiom Tea : Drink
+axiom HotChocolate : Drink
+axiom Espresso : Drink
+
+axiom ServedInCafe : Drink → Prop
+axiom Hot : Drink → Prop
+axiom Brewed : Drink → Prop
+axiom Aromatic : Drink → Prop
+axiom Steeped : Drink → Prop
+axiom CanBeSweetened : Drink → Prop
+
+-- Premises:
+-- Coffee and Tea are served in a cafe.
+axiom coffee_served : ServedInCafe Coffee
+axiom tea_served : ServedInCafe Tea
+
+-- Usually, beverages served in a cafe are hot.
+axiom served_implies_hot : ∀ d : Drink, ServedInCafe d → Hot d
+
+-- If Coffee is brewed, then it is aromatic.
+axiom coffee_brewed_implies_aromatic : Brewed Coffee → Aromatic Coffee
+
+-- If Tea is steeped, then it can be sweetened.
+axiom tea_steeped_implies_sweetened : Steeped Tea → CanBeSweetened Tea
+
+-- Either Coffee is brewed or Tea can be sweetened, or both.
+axiom coffee_brewed_or_tea_sweetenable : Brewed Coffee ∨ CanBeSweetened Tea
+
+-- If Hot Chocolate can be sweetened, then Tea is steeped.
+axiom hotchoc_sweetenable_implies_tea_steeped : CanBeSweetened HotChocolate → Steeped Tea
+
+-- If Espresso is hot, then Coffee is brewed.
+axiom espresso_hot_implies_coffee_brewed : Hot Espresso → Brewed Coffee
+
+-- Conclusion to analyze:
+-- If Hot Chocolate is not aromatic then Tea can be sweetened.
+theorem goal : ¬ Aromatic HotChocolate → CanBeSweetened Tea := by
+  intro hNotAromHC
+  -- From the disjunction, if Tea can be sweetened, we are done; otherwise we only get Coffee brewed,
+  -- which via premises yields no information about Tea or Hot Chocolate's aromaticity.
+  cases coffee_brewed_or_tea_sweetenable with
+  | inr teaSweet => exact teaSweet
+  | inl coffeeBrewed =>
+    -- We can derive Aromatic Coffee, but this does not help conclude Tea can be sweetened.
+    have _ : Aromatic Coffee := coffee_brewed_implies_aromatic coffeeBrewed
+    -- We can also note that if Hot Chocolate were sweetenable, Tea would be steeped and hence sweetenable.
+    have hc_to_tea_sweet : CanBeSweetened HotChocolate → CanBeSweetened Tea := by
+      intro hcSweet
+      have tSteep : Steeped Tea := hotchoc_sweetenable_implies_tea_steeped hcSweet
+      exact tea_steeped_implies_sweetened tSteep
+    -- However, we have no way to obtain CanBeSweetened HotChocolate from ¬ Aromatic HotChocolate,
+    -- nor any other route to conclude CanBeSweetened Tea in this branch.
+    sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Domain and constants
+axiom Entity : Type
+axiom Coffee Tea HotChocolate Espresso : Entity
+
+-- Predicates
+axiom ServedInCafe : Entity → Prop
+axiom Hot : Entity → Prop
+axiom Brewed : Entity → Prop
+axiom Aromatic : Entity → Prop
+axiom Steeped : Entity → Prop
+axiom CanBeSweetened : Entity → Prop
+
+-- Premises
+axiom premise1 : ServedInCafe Coffee
+axiom premise2 : ServedInCafe Tea
+axiom premise3 : ∀ x : Entity, ServedInCafe x → Hot x
+axiom premise4 : Brewed Coffee → Aromatic Coffee
+axiom premise5 : Steeped Tea → CanBeSweetened Tea
+axiom premise6 : Brewed Coffee ∨ CanBeSweetened Tea
+axiom premise7 : CanBeSweetened HotChocolate → Steeped Tea
+axiom premise8 : Hot Espresso → Brewed Coffee
+
+-- A small derived fact (not directly useful for the final negation)
+theorem sweetHC_implies_sweetTea : CanBeSweetened HotChocolate → CanBeSweetened Tea := by
+  intro hhc
+  apply premise5
+  exact premise7 hhc
+
+-- Negation of the conclusion we are asked to analyze:
+-- We try to prove: ¬((¬Aromatic HotChocolate) → CanBeSweetened Tea)
+theorem neg_conclusion : ¬((¬Aromatic HotChocolate) → CanBeSweetened Tea) := by
+  intro h
+  -- Attempted derivation runs out of information: the premises do not yield
+  -- ¬Aromatic HotChocolate nor ¬CanBeSweetened Tea, so we cannot force a contradiction.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Yes
+Prediction: No
+Correct: No

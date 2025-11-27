@@ -1,0 +1,107 @@
+Story ID: 0
+Example ID: 1
+Premises: Liam had a big exam coming up that he needed to ace. He realized if he studied hard, he would understand the material thoroughly. And if he understood the material, Liam knew he could pass the exam. Liam strived to either study hard, or get enough sleep, or do both to optimize his mind. He understood that if he got enough sleep, he would have good mental clarity. Logically, if Liam had mental clarity, he would run bussiness.
+Conclusion: If Liam does not pass the exam, then does he run bussiness?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom StudyHard : Prop
+axiom Understands : Prop
+axiom PassesExam : Prop
+axiom EnoughSleep : Prop
+axiom MentalClarity : Prop
+axiom RunsBusiness : Prop
+
+-- Premises
+axiom h1 : StudyHard → Understands
+axiom h2 : Understands → PassesExam
+axiom h3 : StudyHard ∨ EnoughSleep
+axiom h4 : EnoughSleep → MentalClarity
+axiom h5 : MentalClarity → RunsBusiness
+
+-- Conclusion: If Liam does not pass the exam, then he runs business.
+theorem goal : (¬ PassesExam) → RunsBusiness := by
+  intro notPass
+  cases h3 with
+  | inl study =>
+      have u : Understands := h1 study
+      have p : PassesExam := h2 u
+      exact False.elim (notPass p)
+  | inr sleep =>
+      have c : MentalClarity := h4 sleep
+      exact h5 c
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Propositional variables for Liam's situation
+axiom StudyHard : Prop
+axiom UnderstandMaterial : Prop
+axiom PassExam : Prop
+axiom EnoughSleep : Prop
+axiom MentalClarity : Prop
+axiom RunBussiness : Prop
+
+-- Premises
+axiom premise1 : StudyHard → UnderstandMaterial
+axiom premise2 : UnderstandMaterial → PassExam
+axiom premise3 : StudyHard ∨ EnoughSleep
+axiom premise4 : EnoughSleep → MentalClarity
+axiom premise5 : MentalClarity → RunBussiness
+
+-- From studying hard, Liam would pass the exam
+theorem study_implies_pass : StudyHard → PassExam := by
+  intro hs
+  have hu : UnderstandMaterial := premise1 hs
+  exact premise2 hu
+
+-- The original conclusion (which we can actually prove from the premises):
+-- If Liam does not pass the exam, then he runs bussiness.
+theorem conclusion_true : (¬PassExam) → RunBussiness := by
+  intro hnp
+  -- From ¬PassExam, deduce ¬StudyHard (since StudyHard → PassExam)
+  have hns : ¬StudyHard := by
+    intro hs
+    exact hnp (study_implies_pass hs)
+  -- From StudyHard ∨ EnoughSleep and ¬StudyHard, deduce EnoughSleep
+  have he : EnoughSleep :=
+    Or.elim premise3
+      (fun hs => False.elim (hns hs))
+      (fun he => he)
+  -- EnoughSleep → MentalClarity → RunBussiness
+  exact premise5 (premise4 he)
+
+-- Formalization of the negation of the conclusion as a proposition
+def NegConclusion : Prop := ¬(¬PassExam → RunBussiness)
+
+-- Demonstrate that the negation of the conclusion cannot hold given the premises
+theorem negation_impossible : NegConclusion → False := by
+  intro hneg
+  apply hneg
+  exact conclusion_true
+
+-- Attempt (not provable): the negation itself as a theorem
+-- theorem neg_goal : ¬(¬PassExam → RunBussiness) := by
+--   -- This cannot be derived from the premises because the conclusion is true (see conclusion_true).
+--   admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

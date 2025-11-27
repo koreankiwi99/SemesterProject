@@ -1,0 +1,102 @@
+Story ID: 0
+Example ID: 10
+Premises: Jessica set a goal to run a marathon. She learned that if she trained consistently, she could increase her endurance and stamina. Jessica knew that if her endurance improved, she could complete the 26.2 mile marathon. To complement her training, Jessica made sure she either trained regularly, or ate nutritious foods, or did both. Eating nutritious foods gave Jessica more steady energy for her workouts. With this extra energy, Jessica found she could train harder while staying injury-free on her road to marathon success.
+Conclusion: If Jessica does not complete the marathon, then does she stay injury-free during training?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We formalize the scenario with propositional predicates about Jessica.
+axiom Train : Prop                -- Jessica trains consistently/regularly
+axiom Eat : Prop                  -- Jessica eats nutritious foods
+axiom Energy : Prop               -- Jessica has steady energy
+axiom InjuryFree : Prop           -- Jessica stays injury-free during training
+axiom ImprovedEndurance : Prop    -- Jessica's endurance improves
+axiom CompleteMarathon : Prop     -- Jessica completes the marathon
+
+-- Premises translated to axioms:
+-- If she trains consistently, her endurance improves.
+axiom p_train_to_endurance : Train → ImprovedEndurance
+-- If her endurance improves, she can complete the marathon.
+axiom p_endurance_to_complete : ImprovedEndurance → CompleteMarathon
+-- She made sure either she trained regularly or ate nutritious foods (or both).
+axiom p_either_train_or_eat : Train ∨ Eat
+-- Eating nutritious foods gave her steady energy.
+axiom p_eat_to_energy : Eat → Energy
+-- With the extra energy, she stays injury-free.
+axiom p_energy_to_injuryfree : Energy → InjuryFree
+
+-- Goal: If Jessica does not complete the marathon, then she stays injury-free during training.
+theorem goal : (¬ CompleteMarathon) → InjuryFree := by
+  intro h_not_complete
+  -- From ¬Complete and (Train → Complete), derive ¬Train.
+  have h_not_train : ¬ Train := by
+    intro h_train
+    have h_endurance : ImprovedEndurance := p_train_to_endurance h_train
+    have h_complete : CompleteMarathon := p_endurance_to_complete h_endurance
+    exact h_not_complete h_complete
+  -- From (Train ∨ Eat) and ¬Train, deduce Eat.
+  have h_eat : Eat := by
+    cases p_either_train_or_eat with
+    | inl h_train => exact False.elim (h_not_train h_train)
+    | inr h_eat => exact h_eat
+  -- From Eat → Energy and Energy → InjuryFree, conclude InjuryFree.
+  have h_energy : Energy := p_eat_to_energy h_eat
+  exact p_energy_to_injuryfree h_energy
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom TrainsConsistently : Prop
+axiom EnduranceImproved : Prop
+axiom CompleteMarathon : Prop
+axiom EatsNutritiousFoods : Prop
+axiom ExtraEnergy : Prop
+axiom TrainsHarder : Prop
+axiom InjuryFreeDuringTraining : Prop
+
+-- Premises
+axiom p1 : TrainsConsistently → EnduranceImproved
+axiom p2 : EnduranceImproved → CompleteMarathon
+axiom p3 : TrainsConsistently ∨ EatsNutritiousFoods
+axiom p4 : EatsNutritiousFoods → ExtraEnergy
+axiom p5 : ExtraEnergy → (TrainsHarder ∧ InjuryFreeDuringTraining)
+
+-- Negation of the conclusion to analyze: we attempt to prove ¬(¬CompleteMarathon → InjuryFreeDuringTraining)
+theorem neg_conclusion : ¬(¬CompleteMarathon → InjuryFreeDuringTraining) := by
+  -- This negation does not follow from the given premises.
+  sorry
+
+-- In fact, the original conclusion follows from the premises:
+theorem conclusion_holds : (¬CompleteMarathon → InjuryFreeDuringTraining) := by
+  intro hNotComplete
+  cases p3 with
+  | inl hTrain =>
+      have hEnd : EnduranceImproved := p1 hTrain
+      have hComp : CompleteMarathon := p2 hEnd
+      have hFalse : False := hNotComplete hComp
+      exact False.elim hFalse
+  | inr hEat =>
+      have hEnergy : ExtraEnergy := p4 hEat
+      have hPair : TrainsHarder ∧ InjuryFreeDuringTraining := p5 hEnergy
+      exact hPair.right
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

@@ -1,134 +1,308 @@
-# Reverse Curriculum Learning for Multi-Step Logical Reasoning with Lean 4
+# Formal Verification for Multi-Step Logical Reasoning with Lean 4
 
 **EPFL NLP Lab Semester Project**
 
 ## Overview
 
-This project investigates curriculum learning approaches for multi-step logical reasoning, using Lean 4 formal verification. We address performance degradation in LLMs as reasoning depth increases (single-step: 90%+, 5-step: often <50%).
+This project investigates how formal verification with Lean 4 can improve LLM performance on multi-step logical reasoning tasks. We address a critical limitation: LLM accuracy degrades significantly as reasoning depth increases (single-step: 90%+, 5-step: often <50%).
 
-## Baseline Evaluation (Completed)
+**Key Innovation**: We introduce **Bidirectional Verification**, which attempts to prove both a statement AND its negation, detecting formalization errors when both succeed.
 
-**Datasets:**
-- Multi-LogiEval: 150 questions (FOL/non-monotonic/propositional logic, depths 1-5)
-- FOLIO: 203 validation questions (first-order logic)
+## Key Results
 
-**Results (Multi-LogiEval):**
+### Main Finding: Formal Verification Excels on Hard Problems
 
-| Approach | Overall | FOL | Non-Monotonic | Propositional |
-|----------|---------|-----|---------------|---------------|
-| Zero-shot CoT | 76.7% | 82% | 64% | 84% |
-| Lean Verification | **84.0%** | **88%** | **68%** | **96%** |
+| Dataset | CoT | Lean | Bidirectional | Best Improvement |
+|---------|-----|------|---------------|------------------|
+| FOLIO (n=203) | 85.71% | 74.88% | **87.68%** | +1.97% over CoT |
+| Multi-LogiEval d1-d5 (n=150) | 76.67% | 78.67% | **82.67%** | +6.00% over CoT |
+| Multi-LogiEval d5 only (n=110) | 72.97% | 84.55% | **87.27%** | **+14.30%** over CoT |
 
-**Findings:** Lean verification adds +7.3% without training. Success rate: 98.7% (148/150).
+**Critical Insight**: As reasoning depth increases, formal verification becomes increasingly valuable:
+- Simple tasks (FOLIO): CoT outperforms unidirectional Lean by 10.8pp
+- Hard tasks (depth-5): Lean outperforms CoT by **11.8pp**
+- Bidirectional verification achieves best results across all benchmarks
 
-## Two Proposed Directions
+### Breakdown by Logic Type (Depth-5)
 
-### Option 1: Reverse Curriculum Training
+| Logic Type | CoT | Lean | Bidirectional |
+|------------|-----|------|---------------|
+| Propositional (PL) | 82.22% | 93.33% | **97.78%** |
+| First-Order (FOL) | 76.09% | 86.67% | **88.89%** |
+| Non-Monotonic (NM) | 45.00% | 60.00% | 60.00% |
 
-**Hypothesis:** Training depth 5→1 with Lean-gated progression outperforms forward curriculum (1→5).
+Propositional logic achieves exceptional **97.78%** accuracy with bidirectional verification.
 
-**Basis:** R³ (Xi et al., 2024) showed reverse curriculum success—starting near complete solutions provides stronger supervision.
+### Performance by Ground Truth Label
 
-**Experiments:**
-- Reverse: depth 5→4→3→2→1
-- Forward: depth 1→2→3→4→5 (baseline)
-- Random: random depth order (control)
-- Gated vs non-gated (gate: advance after ≥80% Lean verification)
+Understanding how different methods perform on True vs False vs Unknown answers reveals important biases.
 
-**Setup:** Fine-tune GPT-4-mini on Lean-verified examples from Multi-LogiEval. Measure accuracy, sample efficiency, depth degradation.
+#### FOLIO (n=203: 72 True, 62 False, 69 Unknown)
 
-**Contribution:** Empirical validation of reverse curriculum with formal verification.
+| Method | True | False | Unknown | Overall |
+|--------|------|-------|---------|---------|
+| CoT | 60/72 (83.33%) | 52/62 (83.87%) | 62/69 (89.86%) | 85.71% |
+| Lean | 68/72 (94.44%) | 35/62 (56.45%) | 49/69 (71.01%) | 74.88% |
+| Two-Stage | 60/72 (83.33%) | 48/62 (77.42%) | 53/69 (76.81%) | 79.31% |
+| Bidirectional | 64/72 (88.89%) | 54/62 (87.10%) | 60/69 (86.96%) | **87.68%** |
 
-### Option 2: Process Reward Models with Lean Supervision
+**Key Observations:**
+- Lean has strong **True-bias**: 94.44% on True but only 56.45% on False
+- This imbalance explains why unidirectional Lean underperforms CoT overall
+- Bidirectional achieves balanced performance across all label types
+- CoT is best on Unknown cases (open-world reasoning)
 
-**Hypothesis:** Train step-level verifiers using Lean as supervision signal, enabling inference-time search over reasoning paths.
+#### Multi-LogiEval d1-d5 (n=150: 103 Yes, 47 No)
 
-**Background:** Process Reward Models (PRMs) provide feedback at each reasoning step rather than only final answers. OpenAI (2023) showed process supervision outperforms outcome supervision for mathematical reasoning. Recent work (2024-2025) demonstrates PRMs enable smaller models to outperform larger ones through reward-guided search.
+| Method | Yes (True) | No (False) | Overall |
+|--------|------------|------------|---------|
+| CoT | 72/103 (69.90%) | 43/47 (91.49%) | 76.67% |
+| Lean | 82/103 (79.61%) | 36/47 (76.60%) | 78.67% |
+| Bidirectional | 85/103 (82.52%) | 39/47 (82.98%) | **82.67%** |
 
-**Our Approach:**
-- Use Lean verification as ground truth for process supervision
-- Train PRM to predict step-level correctness (verified by Lean)
-- At inference: generate multiple reasoning paths, use PRM to guide search toward Lean-verifiable solutions
-- Unlike human annotation (expensive) or MC estimation (noisy), Lean provides binary, objective step verification
+**Key Observations:**
+- CoT shows strong **No-bias** (91.49% on No vs 69.90% on Yes)
+- Lean corrects Yes-detection (+9.71pp) but hurts No-detection (-14.89pp)
+- Bidirectional achieves balanced performance across both labels
 
-**Advantages:**
-- Scalable supervision: Lean automatically labels reasoning steps
-- Interpretable: PRM learns what makes reasoning steps formally valid
-- Inference-time compute: Search over reasoning paths without retraining base model
-- Complementary to Option 1: Can combine with curriculum training
+#### Multi-LogiEval Depth-5 Only (n=110: 100 Yes, 10 No)
 
-**Implementation:**
-1. Collect reasoning traces with Lean verification for each step
-2. Train discriminative PRM: input=(context, partial reasoning, next step) → output=probability step is Lean-verifiable
-3. At inference: beam search or MCTS over reasoning steps, guided by PRM scores
-4. Verify final proof with Lean
+| Method | Yes (True) | No (False) | Overall |
+|--------|------------|------------|---------|
+| CoT | 72/100 (72.00%) | 8/10 (80.00%) | 72.73% |
+| Lean | 86/100 (86.00%) | 7/10 (70.00%) | 84.55% |
+| Bidirectional | 89/100 (89.00%) | 7/10 (70.00%) | **87.27%** |
 
-**Contribution:** First use of formal verification as supervision signal for process reward models in logical reasoning.
+**Key Observations:**
+- Dataset is heavily Yes-biased (91% Yes, 9% No)
+- Lean dramatically improves Yes-detection (+14pp over CoT)
+- All methods struggle with minority No class at depth-5
+- Bidirectional achieves best Yes performance (89.00%)
 
-## Current Infrastructure
+---
 
-**Evaluation modes:** Zero-shot CoT (baseline), Direct Lean (iterative refinement), Two-stage (NL → Lean, tracks answer drift)
+## Approach Comparison
 
-**Implementation:** Interactive Lean 4 via `lean-interact`, max 3 refinement iterations, comprehensive logging
+### 1. Chain-of-Thought (CoT)
+Zero-shot prompting asking the model to reason step-by-step in natural language.
+- **Strengths**: Simple, fast, works well on easy problems
+- **Weaknesses**: Degrades significantly at higher reasoning depths
+
+### 2. Direct Lean Verification
+Translate natural language to Lean 4 formal proofs with iterative refinement (max 3 iterations).
+- **Strengths**: Structured reasoning, excellent on hard problems
+- **Weaknesses**: Models can "cheat" by axiomatizing conclusions
+
+### 3. Two-Stage (NL → Lean)
+First perform natural language reasoning, then translate to Lean.
+- **Strengths**: Combines NL intuition with formal verification
+- **Weaknesses**: Translation step introduces additional errors
+
+### 4. Bidirectional Verification (Novel)
+Attempt to prove BOTH the statement AND its negation in parallel:
+- If only TRUE succeeds → Answer is True
+- If only FALSE succeeds → Answer is False
+- If BOTH succeed → Formalization error detected, fall back to CoT
+- If NEITHER succeeds → Fall back to CoT
+
+**Key Innovation**: Detects formalization errors that unidirectional approaches miss.
+
+---
+
+## Error Analysis
+
+### The Axiomatization Problem
+
+Error analysis revealed that **60-78%** of verification failures on simple tasks stem from models "cheating" by axiomatizing conclusions instead of proving them:
+
+| Dataset | Axiomatization Rate | Top Error Type |
+|---------|---------------------|----------------|
+| FOLIO | 77.6% | Axiomatizes Conclusion (59.2%) |
+| Multi-LogiEval d5 | **0%** | Reasoning Failure (63.6%) |
+
+**Key Finding**: Error patterns shift dramatically with task complexity:
+- Simple tasks: Models exploit Lean syntax to "cheat"
+- Hard tasks: Models cannot cheat—errors are genuine reasoning failures
+
+This validates that strong depth-5 performance reflects real reasoning capability.
+
+### Error Categories
+1. **AXIOMATIZES_CONCLUSION**: Directly asserts what should be proven
+2. **AXIOMATIZES_CONTRADICTION**: Asserts statements contradicting premises
+3. **AXIOMATIZES_UNMENTIONED**: Invents facts about entities not in premises
+4. **INCORRECT_FORMALIZATION**: Mistranslates premises to Lean
+5. **REASONING_FAILURE**: Correct axioms but can't derive conclusion
+6. **OTHER**: Miscellaneous errors
+
+---
+
+## Bidirectional Verification Details
+
+### Agreement Patterns
+
+**FOLIO (n=203):**
+| Pattern | Count | Accuracy |
+|---------|-------|----------|
+| TRUE_ONLY | 69 | 89.86% |
+| FALSE_ONLY | 56 | 92.86% |
+| BOTH_SUCCESS | 8 | 62.50% (falls back to CoT) |
+| NEITHER_SUCCESS | 70 | 84.29% (falls back to CoT) |
+
+**Multi-LogiEval d5 (n=110):**
+| Pattern | Count |
+|---------|-------|
+| TRUE_ONLY | 92 |
+| NEITHER_SUCCESS | 18 |
+| BOTH_SUCCESS | 0 |
+| FALSE_ONLY | 0 |
+
+At depth-5, bidirectional verification achieves high TRUE_ONLY rates with no formalization errors detected.
+
+---
+
+## Robustness Evaluation
+
+### Tautological Noise (FOLIO)
+
+Adding logically irrelevant but syntactically valid statements:
+
+| Method | Original | k=1 noise | k=2 noise | k=4 noise |
+|--------|----------|-----------|-----------|-----------|
+| CoT | 85.71% | 84.00% | 85.50% | 85.00% |
+| Lean | 74.88% | 69.95% | 70.44% | 70.94% |
+
+- CoT is robust to tautological noise (~0.71% degradation)
+- Lean verification degrades ~4-5% with noise (increased formalization complexity)
+
+---
+
+## Datasets
+
+### FOLIO
+- 203 validation questions (first-order logic)
+- Natural language premises and conclusions
+- Labels: True / False / Unknown
+
+### Multi-LogiEval
+- 150 questions across 3 logic types × 5 depths
+- **FOL**: First-order logic (50 questions)
+- **NM**: Non-monotonic logic (50 questions)
+- **PL**: Propositional logic (50 questions)
+- Depths 1-5 (10 questions each per type)
+
+### Depth-7 Extension (Pilot)
+- 25 LLM-generated questions at depth-7
+- Currently unlabeled (ground truth unknown)
+- Used for cross-method agreement analysis
+
+---
 
 ## Project Structure
 
 ```
-├── data/          # Multi-LogiEval, FOLIO datasets
-├── prompts/       # System/user prompts
+├── data/
+│   ├── folio_original/           # FOLIO dataset
+│   ├── folio_hardened/           # Robustness variants
+│   ├── multi_logi_original/      # Multi-LogiEval benchmark
+│   ├── multi_logi_hardened/      # Adversarial variants
+│   └── multi_logi_d5_only/       # Depth-5 subset
 ├── src/
-│   ├── experiments/   # test_multi*.py, test_folio*.py
-│   ├── utils/         # Lean integration, parsing
-│   └── datasets/      # Data loading
-├── results/       # Experiment outputs
-└── scripts/       # Bash runners
+│   ├── experiments/              # All experiment scripts
+│   │   ├── test_folio*.py        # FOLIO experiments
+│   │   └── test_multi*.py        # Multi-LogiEval experiments
+│   ├── datasets/                 # Data loading utilities
+│   ├── utils/                    # Lean integration, parsing
+│   ├── analysis/                 # Error classification
+│   └── hardening/                # Robustness testing
+├── prompts/                      # System/user prompts
+│   ├── folio/
+│   ├── multilogi/
+│   └── bidirectional/
+├── results/                      # Experiment outputs
+│   ├── folio/{cot,lean,bidirectional}/
+│   └── multilogieval/{all_depths,d5_only}/
+├── scripts/                      # Bash runners
+├── docs/                         # Documentation
+└── nb/                           # Jupyter analysis notebooks
 ```
 
-## Dependencies
+---
 
-Python 3.10+, `openai`, `lean-interact`, Lean 4 (via `elan`)
+## Quick Start
 
-## Related Work
+### Prerequisites
 
-### Logical Reasoning Benchmarks
+```bash
+# Python 3.10+
+pip install openai lean-interact python-dotenv
 
-**FOLIO** (Han et al., 2022): First-order logic reasoning dataset with 1,435 examples (203 validation). Each problem consists of premises in natural language and conclusion statements requiring logical deduction. Supports True/False/Unknown labels to handle unprovable statements.
+# Lean 4 (via elan)
+curl https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh -sSf | sh
+```
 
-**ProofWriter** (Tafjord et al., 2021): Synthetic dataset for multi-step deductive reasoning with depths 0-5. Generated using rule-based templates and formal reasoning chains. Near-perfect solvability by symbolic reasoners, but challenging for neural models at higher depths.
+### Run Experiments
 
-**Multi-LogiEval** (Patel et al., 2024): Multi-step logical reasoning benchmark covering three logic types (FOL, non-monotonic, propositional) across depths 1-5. 150 examples total, designed to test systematic degradation as reasoning depth increases. Our baseline: 76.7% CoT, 84.0% with Lean verification.
+```bash
+# CoT Baseline
+PYTHONPATH=src:$PYTHONPATH python src/experiments/test_folio_async.py \
+    --folio_file data/folio_original/folio-validation.json \
+    --system_prompt prompts/folio/zero_shot_cot_system.txt \
+    --user_prompt prompts/folio/zero_shot_cot_user.txt \
+    --model gpt-4o
 
-### Lean-Based Reasoning
+# Bidirectional Verification
+PYTHONPATH=src:$PYTHONPATH python src/experiments/test_folio_bidirectional.py \
+    --folio_file data/folio_original/folio-validation.json \
+    --model gpt-4o --max_iterations 3 --concurrency 5
 
-**LeanReasoner** (Jiang et al., NAACL 2024): First work to apply Lean theorem proving to natural language logical reasoning. Key methodology:
-- **Formalizer**: LLM (GPT-3.5/4) translates NL problems → Lean theorems
-- **Proof Search**: ReProver model generates tactics, constructs proof trees
-- **Minimal fine-tuning**: <100 examples per dataset (40 FOLIO, 100 ProofWriter)
-- **Results**: State-of-the-art on FOLIO, near-perfect on ProofWriter
+# Multi-LogiEval Bidirectional
+PYTHONPATH=src:$PYTHONPATH python src/experiments/test_multi_bidirectional.py \
+    --data_dir data/multi_logi_original/data \
+    --model gpt-4o --max_iterations 3
+```
 
-**Our extension**: Unlike LeanReasoner's proof-search approach with ReProver, we use:
-1. Interactive Lean verification via `lean-interact` (no separate proof model)
-2. Iterative refinement (max 3 iterations) for error correction
-3. Two-stage reasoning: NL reasoning → Lean verification (tracks answer drift)
-4. Focus on curriculum learning rather than fine-tuning minimal examples
+---
 
-### Curriculum Learning for Reasoning
+## Summary of Findings
 
-**R³** (Xi et al., ICML 2024): Reverse curriculum reinforcement learning. Key finding: training from complex→simple (reverse) outperforms simple→complex (forward). Hypothesis: starting near complete solutions provides stronger supervision signal.
+### 1. Complexity Inverts Performance Ordering
+```
+Simple (FOLIO):      CoT (85.7%) > Two-Stage (79.3%) > Lean (74.9%)
+Hard (ML d5):        Lean (84.5%) > Two-Stage (75.5%) > CoT (72.7%)
+With Bidirectional:  87.27% (+14.3% over CoT)
+```
 
-**Our hypothesis**: Reverse curriculum (depth 5→1) with Lean-gated progression will outperform forward curriculum for logical reasoning, validated through empirical comparison.
+### 2. Error Patterns Reveal Task Nature
+- Simple tasks: 77.6% axiomatization (models cheat)
+- Hard tasks: 0% axiomatization (genuine reasoning)
 
-### Robustness and Difficulty
+### 3. Propositional Logic is Lean's Sweet Spot
+- 97.78% accuracy at depth-5 with bidirectional verification
 
-**GSM-Symbolic** (arXiv 2410.05229v2, 2024): Shows LLMs pattern-match rather than truly reason. Surface perturbations (name changes, symbolic abstraction, template variations) cause significant accuracy drops, revealing brittleness.
+### 4. Bidirectional Detection Works
+- 8 formalization errors caught in FOLIO via BOTH_SUCCESS pattern
+- All correctly fell back to CoT
 
-**Our planned extension**: Apply GSM-Symbolic perturbation techniques + depth extension (6-10) to create harder benchmarks, testing whether Lean verification maintains robustness under surface-form changes.
+---
+
+## Future Directions
+
+1. **Properly labeled depth-7/10 benchmarks** for evaluating extreme reasoning depths
+2. **Process Reward Models** using Lean verification as supervision signal
+3. **Reverse curriculum learning** (depth 5→1) with Lean-gated progression
+4. **Multi-model verification** using different models for TRUE/FALSE proofs
+
+---
 
 ## References
 
-- Han, S., et al. (2022). FOLIO: Natural Language Reasoning with First-Order Logic. arXiv:2209.00840.
-- Tafjord, O., et al. (2021). ProofWriter: Generating Implications, Proofs, and Abductive Statements over Natural Language. ACL Findings.
-- Patel, N., et al. (2024). Multi-LogiEval: Towards evaluating multi-step logical reasoning ability of large language models.
-- Jiang, D., et al. (2024). LeanReasoner: Boosting complex logical reasoning with Lean. NAACL.
-- Xi, Z., et al. (2024). Training large language models for reasoning through reverse curriculum reinforcement learning. ICML.
-- Zhang, A. (2025). Recursive Language Models. https://alexzhang13.github.io/blog/2025/rlm/
+- Han, S., et al. (2022). FOLIO: Natural Language Reasoning with First-Order Logic
+- Patel, N., et al. (2024). Multi-LogiEval: Evaluating multi-step logical reasoning
+- Jiang, D., et al. (2024). LeanReasoner: Boosting complex logical reasoning with Lean. NAACL
+- Xi, Z., et al. (2024). Training LLMs for reasoning through reverse curriculum RL. ICML
+
+---
+
+**Model**: GPT-5
+**Formal Verification**: Lean 4
+**Last Updated**: November 2025

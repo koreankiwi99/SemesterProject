@@ -16,11 +16,11 @@ This project investigates how formal verification with Lean 4 can improve LLM pe
 |---------|-----|------|---------------|------------------|
 | FOLIO (n=203) | 85.71% | 74.88% | **87.68%** | +1.97% over CoT |
 | Multi-LogiEval d1-d5 (n=150) | 76.67% | 78.67% | **82.67%** | +6.00% over CoT |
-| Multi-LogiEval d5 only (n=110) | 72.97% | 84.55% | **87.27%** | **+14.30%** over CoT |
+| Multi-LogiEval d5 only (n=110) | 75.45% | 84.55% | **87.27%** | **+11.82%** over CoT |
 
 **Critical Insight**: As reasoning depth increases, formal verification becomes increasingly valuable:
 - Simple tasks (FOLIO): CoT outperforms unidirectional Lean by 10.8pp
-- Hard tasks (depth-5): Lean outperforms CoT by **11.8pp**
+- Hard tasks (depth-5): Lean outperforms CoT by **9.1pp**
 - Bidirectional verification achieves best results across all benchmarks
 
 ### Breakdown by Logic Type (Depth-5)
@@ -69,13 +69,13 @@ Understanding how different methods perform on True vs False vs Unknown answers 
 
 | Method | Yes (True) | No (False) | Overall |
 |--------|------------|------------|---------|
-| CoT | 72/100 (72.00%) | 8/10 (80.00%) | 72.73% |
+| CoT | 75/100 (75.00%) | 8/10 (80.00%) | 75.45% |
 | Lean | 86/100 (86.00%) | 7/10 (70.00%) | 84.55% |
 | Bidirectional | 89/100 (89.00%) | 7/10 (70.00%) | **87.27%** |
 
 **Key Observations:**
 - Dataset is heavily Yes-biased (91% Yes, 9% No)
-- Lean dramatically improves Yes-detection (+14pp over CoT)
+- Lean improves Yes-detection (+11pp over CoT)
 - All methods struggle with minority No class at depth-5
 - Bidirectional achieves best Yes performance (89.00%)
 
@@ -158,6 +158,61 @@ This validates that strong depth-5 performance reflects real reasoning capabilit
 
 At depth-5, bidirectional verification achieves high TRUE_ONLY rates with no formalization errors detected.
 
+### CoT vs Bidirectional Gap Analysis by Depth
+
+#### Accuracy Gap (Bidir - CoT) by Depth
+
+| Depth | CoT | Bidir | Gap | Gap Change |
+|-------|-----|-------|-----|------------|
+| d1 | 76.7% | 73.3% | -3.3% | - |
+| d2 | 86.7% | 96.7% | +10.0% | +13.3% |
+| d3 | 73.3% | 70.0% | -3.3% | -13.3% |
+| d4 | 90.0% | 90.0% | +0.0% | +3.3% |
+| d5 | 56.7% | 83.3% | **+26.7%** | **+26.7%** |
+
+**Key Finding**: Gap fluctuates at d1-d4, then **explodes at d5** with a +26.7% jump.
+
+#### Accuracy by Logic Type (All Depths Combined)
+
+| Logic | CoT | Bidir | Gap |
+|-------|-----|-------|-----|
+| FOL | 82.0% | 86.0% | +4.0% |
+| NM | 64.0% | 70.0% | +6.0% |
+| PL | 84.0% | 92.0% | +8.0% |
+
+#### Gap by Logic Type × Depth
+
+| Logic | d1 | d2 | d3 | d4 | d5 |
+|-------|----|----|----|----|-----|
+| PL | 0% | +30% | -10% | -10% | **+30%** |
+| FOL | +10% | 0% | 0% | -10% | **+20%** |
+| NM | -20% | 0% | 0% | +20% | **+30%** |
+
+All three logic types show **largest Bidirectional advantage at d5**.
+
+#### Disagreement Analysis: When They Disagree, Who Wins?
+
+| Depth | Disagreements | Bidir Wins | CoT Wins | Bidir Win% |
+|-------|---------------|------------|----------|------------|
+| d1 | 3 | 1 | 2 | 33.3% |
+| d2 | 3 | 3 | 0 | **100%** |
+| d3 | 11 | 5 | 6 | 45.5% |
+| d4 | 4 | 2 | 2 | 50.0% |
+| d5 | 8 | 8 | 0 | **100%** |
+
+**Key Finding**: At d2 and d5, when CoT and Bidirectional disagree, **Bidirectional is always correct**. Analysis of d5 disagreements reveals CoT has a false-negative bias (says "No" when answer is "Yes"), which Bidirectional corrects by actually proving the statement.
+
+#### D5-Only Disagreement Analysis by Logic Type (n=110)
+
+| Logic Type | Disagreements | Bidir Wins | CoT Wins | Bidir Win% |
+|------------|---------------|------------|----------|------------|
+| FOL | 8 | 7 | 1 | 87.5% |
+| NM | 3 | 3 | 0 | **100%** |
+| PL | 7 | 7 | 0 | **100%** |
+| **TOTAL** | **18** | **17** | **1** | **94.4%** |
+
+**Key Finding**: On the depth-5 only subset (110 questions), when CoT and Bidirectional disagree, **Bidirectional wins 94.4% of the time** (17/18). The pattern shows CoT consistently says "No" when the answer is "Yes", while Bidirectional correctly proves the statement. This demonstrates formal verification's strength at high reasoning depths.
+
 ---
 
 ## Robustness Evaluation
@@ -173,6 +228,77 @@ Adding logically irrelevant but syntactically valid statements:
 
 - CoT is robust to tautological noise (~0.71% degradation)
 - Lean verification degrades ~4-5% with noise (increased formalization complexity)
+
+### Multi-LogiEval Noise Perturbations (GPT-5, December 2024)
+
+Testing robustness to different noise types on Multi-LogiEval depth-5 subset (n=110):
+
+#### Tautological Noise
+Injecting logically valid but irrelevant statements (e.g., "All cats are cats"):
+
+| Noise Level | Accuracy | vs Baseline |
+|-------------|----------|-------------|
+| Baseline (clean) | 83/110 (75.45%) | - |
+| k=1 | 86/110 (78.18%) | +2.73% |
+| k=2 | 82/110 (74.55%) | -0.90% |
+| k=4 | 84/110 (76.36%) | +0.91% |
+
+#### Encyclopedic Noise
+Injecting factually true but irrelevant Wikipedia sentences:
+
+| Noise Level | Accuracy | vs Baseline |
+|-------------|----------|-------------|
+| Baseline (clean) | 83/110 (75.45%) | - |
+| k=1 | 79/110 (71.82%) | -3.63% |
+| k=2 | 81/110 (73.64%) | -1.81% |
+| k=4 | 85/110 (77.27%) | +1.82% |
+
+**Key Finding**: GPT-5 shows **no systematic degradation** with noise perturbations on Multi-LogiEval. Performance variance is within normal sampling noise (~3%), indicating robustness to both tautological and encyclopedic distractors at depth-5 reasoning.
+
+---
+
+## Memorization Detection via Perturbation
+
+To assess whether GPT-5 has memorized the benchmark datasets, we conducted perturbation tests that modify questions in ways that should change the correct answer. If a model has memorized the dataset, it will give the **original answer** even when the question is modified.
+
+### Perturbation Types
+
+1. **Remove Critical Premise**: Remove the premise with highest word overlap with the conclusion
+2. **Add Contradiction**: Add a negation of the conclusion as an additional premise
+
+### Results (n=378 test cases)
+
+| Test | Total | Answer Changed | Possible Memorization | Rate |
+|------|-------|----------------|----------------------|------|
+| FOLIO Remove Premise | 100 | 63.0% | 21 | **21.0%** |
+| FOLIO Add Contradiction | 100 | 45.0% | 50 | **50.0%** |
+| Multi-LogiEval Remove Premise | 89 | 34.8% | 35 | **39.3%** |
+| Multi-LogiEval Add Contradiction | 89 | 15.7% | 51 | **57.3%** |
+| **TOTAL** | **378** | - | **157** | **41.5%** |
+
+### Key Findings
+
+1. **High memorization signal for "Add Contradiction" perturbations**:
+   - FOLIO: 50% of questions show possible memorization
+   - Multi-LogiEval: 57.3% show possible memorization
+   - When a direct contradiction is added, a non-memorizing model should change its answer
+
+2. **Lower but significant for "Remove Premise"**:
+   - FOLIO: 21% possible memorization
+   - Multi-LogiEval: 39.3% possible memorization
+
+3. **Multi-LogiEval appears more memorized than FOLIO** across both perturbation types
+
+4. **Overall**: 41.5% of test cases show possible memorization signals
+
+### Interpretation
+
+When a critical premise is removed or a direct contradiction is added, a reasoning model should change its answer. The high rate of unchanged answers (especially 50-57% for contradiction tests) suggests GPT-5 may have memorized portions of these benchmark datasets.
+
+**Implications**: This finding motivates the use of:
+- Hardened/perturbed benchmark variants for more reliable evaluation
+- Formal verification methods (Lean) that test actual reasoning capability
+- Novel benchmarks that the model has not seen during training
 
 ---
 
@@ -268,8 +394,8 @@ PYTHONPATH=src:$PYTHONPATH python src/experiments/test_multi_bidirectional.py \
 ### 1. Complexity Inverts Performance Ordering
 ```
 Simple (FOLIO):      CoT (85.7%) > Two-Stage (79.3%) > Lean (74.9%)
-Hard (ML d5):        Lean (84.5%) > Two-Stage (75.5%) > CoT (72.7%)
-With Bidirectional:  87.27% (+14.3% over CoT)
+Hard (ML d5):        Lean (84.5%) > Two-Stage (75.5%) > CoT (75.5%)
+With Bidirectional:  87.27% (+11.8% over CoT)
 ```
 
 ### 2. Error Patterns Reveal Task Nature

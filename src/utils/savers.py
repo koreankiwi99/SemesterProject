@@ -39,6 +39,26 @@ class BaseSaver:
         except Exception as e:
             print(f"Warning: Could not update JSON file: {e}")
 
+    def _update_json_at_index(self, file_path, result, index):
+        """Update a specific entry in a JSON file.
+
+        Args:
+            file_path: Path to the JSON file
+            result: Result dictionary to update
+            index: Index of the entry to update
+        """
+        try:
+            with open(file_path, 'r') as f:
+                data = json.load(f)
+            if 0 <= index < len(data):
+                data[index] = result
+                with open(file_path, 'w') as f:
+                    json.dump(data, f, indent=2)
+            else:
+                print(f"Warning: Index {index} out of range for JSON file")
+        except Exception as e:
+            print(f"Warning: Could not update JSON file at index {index}: {e}")
+
 
 class MultiLogiEvalSaver(BaseSaver):
     """Saver for Multi-LogiEval experiment results."""
@@ -82,6 +102,26 @@ class MultiLogiEvalSaver(BaseSaver):
         """Save a single result incrementally."""
         self._append_to_json(self.all_results_file, result)
         self._update_progress(result, question_index, total_questions)
+
+    def update_result(self, result, index):
+        """Update an existing result in place (for rerunning errors)."""
+        self._update_json_at_index(self.all_results_file, result, index)
+
+        # Update progress file
+        try:
+            with open(self.progress_file, 'a') as f:
+                f.write(f"[RERUN] Updated result at index {index}\n")
+                f.write(f"  Logic: {result.get('logic_type')}, Depth: {result.get('depth_dir')}, Rule: {result.get('rule')}\n")
+                if 'error' in result:
+                    f.write(f"  ERROR: {result['error']}\n")
+                else:
+                    f.write(f"  Result: {result['ground_truth']} → {result['prediction']} "
+                           f"{'✓' if result['correct'] else '✗'}\n")
+                f.write(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        except Exception as e:
+            print(f"Warning: Could not update progress: {e}")
+
+        print(f"✓ Updated result at index {index}")
 
     def _update_progress(self, result, question_index, total_questions):
         """Update progress file."""
@@ -453,6 +493,29 @@ class FOLIOSaver(BaseSaver):
         self._update_progress(result, story_index, total_stories)
         print(f"✓ Saved result for story {result.get('story_id', 'unknown')}")
 
+    def update_result(self, result, index):
+        """Update an existing result in place (for rerunning errors)."""
+        self._update_json_at_index(self.all_results_file, result, index)
+
+        if 'error' not in result:
+            self._save_individual_response(result)
+
+        # Update progress file
+        try:
+            with open(self.progress_file, 'a') as f:
+                f.write(f"[RERUN] Updated result at index {index}\n")
+                f.write(f"  Story: {result.get('story_id', 'unknown')}\n")
+                if 'error' in result:
+                    f.write(f"  ERROR: {result['error']}\n")
+                else:
+                    accuracy = result.get('story_accuracy', 0)
+                    f.write(f"  Accuracy: {accuracy:.2%}\n")
+                f.write(f"  Timestamp: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+        except Exception as e:
+            print(f"Warning: Could not update progress: {e}")
+
+        print(f"✓ Updated result at index {index} for story {result.get('story_id', 'unknown')}")
+
     def _save_individual_response(self, result):
         """Save individual response file."""
         story_id = result['story_id']
@@ -775,16 +838,20 @@ class BidirectionalSaver(BaseSaver):
         self._update_progress(result, question_index, total_questions)
 
     def _save_individual_response(self, result):
-        story_id = result['story_id']
-        example_id = result['example_id']
+        # Support both FOLIO (story_id/example_id) and Multi-LogiEval (question_num/sample_id)
+        story_id = result.get('story_id', result.get('question_num', 0))
+        example_id = result.get('example_id', result.get('sample_id', 0))
         response_file = f"{self.responses_dir}/story_{story_id}_q{example_id}.txt"
 
         try:
             with open(response_file, 'w') as f:
                 f.write(f"Story ID: {story_id}\n")
                 f.write(f"Example ID: {example_id}\n")
-                f.write(f"Premises: {result['premises']}\n")
-                f.write(f"Conclusion: {result['conclusion']}\n\n")
+                # Support both FOLIO (premises/conclusion) and Multi-LogiEval (context/question)
+                premises = result.get('premises', result.get('context', ''))
+                conclusion = result.get('conclusion', result.get('question', ''))
+                f.write(f"Premises: {premises}\n")
+                f.write(f"Conclusion: {conclusion}\n\n")
 
                 f.write("=" * 70 + "\n")
                 f.write("PROVE TRUE ATTEMPT\n")
@@ -893,3 +960,37 @@ class BidirectionalSaver(BaseSaver):
                 if data['total'] > 0:
                     acc = data['correct'] / data['total']
                     f.write(f"  {pattern}: {data['correct']}/{data['total']} ({acc:.2%})\n")
+
+
+class MemorizationSaver(BaseSaver):
+    """Saver for memorization test results."""
+
+    def __init__(self, output_dir="results", experiment_name="memorization"):
+        super().__init__(output_dir, experiment_name)
+        self.base_dir = f"{output_dir}/{experiment_name}_{self.timestamp}"
+        os.makedirs(self.base_dir, exist_ok=True)
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+
+    def save_all(self, results, config):
+        """Save all results at once."""
+        output = {
+            'config': config,
+            'timestamp': self.timestamp,
+            'results': results
+        }
+
+        # Calculate summaries
+        for dataset in ['folio', 'multilogieval']:
+            if results.get(dataset):
+                valid = [r for r in results[dataset] if 'error' not in r]
+                correct = sum(1 for r in valid if r['correct'])
+                output[f'{dataset}_accuracy'] = correct / len(valid) if valid else 0
+                output[f'{dataset}_total'] = len(valid)
+                output[f'{dataset}_correct'] = correct
+
+        with open(self.all_results_file, 'w') as f:
+            json.dump(output, f, indent=2)
+
+        print(f"\n{'='*70}")
+        print(f"Results saved to: {self.all_results_file}")
+        print(f"{'='*70}")

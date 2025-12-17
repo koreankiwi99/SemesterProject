@@ -1,0 +1,141 @@
+Story ID: 151
+Example ID: 439
+Premises: Barutin Cove is a cove named after the Bulgarian settlement of Barutin.
+Barutin Cove is on the southwest coast of Snow Island.
+Snow Island, Greenwich Island, and Deception Island are located in the South Shetland Islands.
+Antarctica is located on the South Shetland Islands. 
+If place A is located in place B and place B is located in place C, then place A is located in place C.
+Conclusion: Barutin Cove is named after all islands in Antarctica.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Types and basic predicates
+axiom Place : Type
+axiom NamedAfter : Place → Place → Prop
+axiom LocatedIn : Place → Place → Prop
+axiom Island : Place → Prop
+
+-- Specific places
+axiom BarutinCove : Place
+axiom BarutinSettlement : Place
+axiom SnowIsland : Place
+axiom GreenwichIsland : Place
+axiom DeceptionIsland : Place
+axiom SouthShetlandIslands : Place
+axiom Antarctica : Place
+
+-- Premises
+-- Barutin Cove is named after the Bulgarian settlement of Barutin.
+axiom premise1 : NamedAfter BarutinCove BarutinSettlement
+
+-- Barutin Cove is on the southwest coast of Snow Island (modeled as located in Snow Island).
+axiom premise2 : LocatedIn BarutinCove SnowIsland
+
+-- Snow Island, Greenwich Island, and Deception Island are located in the South Shetland Islands.
+axiom premise3a : LocatedIn SnowIsland SouthShetlandIslands
+axiom premise3b : LocatedIn GreenwichIsland SouthShetlandIslands
+axiom premise3c : LocatedIn DeceptionIsland SouthShetlandIslands
+
+-- Antarctica is located on the South Shetland Islands.
+axiom premise4 : LocatedIn Antarctica SouthShetlandIslands
+
+-- Transitivity of location: if A in B and B in C then A in C.
+axiom premise5_trans : ∀ {A B C : Place}, LocatedIn A B → LocatedIn B C → LocatedIn A C
+
+-- Conclusion to analyze:
+-- "Barutin Cove is named after all islands in Antarctica."
+-- Formalized as: for all x, if x is an island and x is located in Antarctica, then BarutinCove is named after x.
+theorem goal : ∀ x : Place, Island x → LocatedIn x Antarctica → NamedAfter BarutinCove x := by
+  intro x hxIsland hxInAntarctica
+  -- There is no premise connecting NamedAfter BarutinCove _ to arbitrary islands in Antarctica.
+  -- The only naming premise is that BarutinCove is named after BarutinSettlement.
+  -- Therefore, the goal cannot be derived from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Place : Type
+
+-- Specific places
+axiom BarutinCove : Place
+axiom BarutinSettlement : Place
+axiom SnowIsland : Place
+axiom GreenwichIsland : Place
+axiom DeceptionIsland : Place
+axiom SouthShetlandIslands : Place
+axiom Antarctica : Place
+
+-- Predicates/relations
+axiom Island : Place → Prop
+axiom NamedAfter : Place → Place → Prop
+axiom LocatedIn : Place → Place → Prop
+
+-- Premises
+-- Barutin Cove is named after the Bulgarian settlement of Barutin.
+axiom premise_named : NamedAfter BarutinCove BarutinSettlement
+
+-- Barutin Cove is on the southwest coast of Snow Island (modeled as located in Snow Island).
+axiom premise_cove_on_snow : LocatedIn BarutinCove SnowIsland
+
+-- Snow Island, Greenwich Island, and Deception Island are located in the South Shetland Islands.
+axiom premise_snow_in_ssi : LocatedIn SnowIsland SouthShetlandIslands
+axiom premise_greenwich_in_ssi : LocatedIn GreenwichIsland SouthShetlandIslands
+axiom premise_deception_in_ssi : LocatedIn DeceptionIsland SouthShetlandIslands
+
+-- South Shetland Islands are located in Antarctica.
+-- (Using the geographically standard direction to enable transitivity usage.)
+axiom premise_ssi_in_antarctica : LocatedIn SouthShetlandIslands Antarctica
+
+-- Transitivity of location: if A in B and B in C, then A in C.
+axiom premise_trans : ∀ A B C : Place, LocatedIn A B → LocatedIn B C → LocatedIn A C
+
+-- These are islands
+axiom premise_snow_island : Island SnowIsland
+axiom premise_greenwich_island : Island GreenwichIsland
+axiom premise_deception_island : Island DeceptionIsland
+
+-- Auxiliary domain principles (to refute "named after all islands"):
+-- Uniqueness of naming source: a place cannot be named after two distinct places.
+axiom named_after_unique : ∀ x y z : Place, NamedAfter x y → NamedAfter x z → y = z
+-- The Barutin settlement is not Snow Island (settlement ≠ island)
+axiom settlement_ne_snow : BarutinSettlement ≠ SnowIsland
+
+-- Negation of the conclusion:
+-- Conclusion to analyze: "Barutin Cove is named after all islands in Antarctica."
+-- We prove its negation: not (for all i, if i is an island in Antarctica then Barutin Cove is named after i).
+theorem not_named_after_all_islands_in_Antarctica :
+  ¬ (∀ i : Place, Island i ∧ LocatedIn i Antarctica → NamedAfter BarutinCove i) := by
+  intro h
+  -- Snow Island is an island located in Antarctica (by transitivity).
+  have snow_in_antarctica : LocatedIn SnowIsland Antarctica :=
+    premise_trans SnowIsland SouthShetlandIslands Antarctica premise_snow_in_ssi premise_ssi_in_antarctica
+  -- From the (assumed) universal claim, Barutin Cove would be named after Snow Island.
+  have h_named_snow : NamedAfter BarutinCove SnowIsland :=
+    h SnowIsland (And.intro premise_snow_island snow_in_antarctica)
+  -- But Barutin Cove is named after Barutin Settlement; by uniqueness, that would force equality.
+  have eq_settlement_snow : BarutinSettlement = SnowIsland :=
+    named_after_unique BarutinCove BarutinSettlement SnowIsland premise_named h_named_snow
+  -- Contradiction with distinctness.
+  exact settlement_ne_snow eq_settlement_snow
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: False
+Correct: No

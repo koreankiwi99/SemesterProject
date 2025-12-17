@@ -1,0 +1,137 @@
+Story ID: 363
+Example ID: 966
+Premises: Not false or false is true. False or not false is true. All hydrocarbons are organic compounds .
+All alkanes are hydrocarbons
+All organic compounds are chemical compounds.
+All organic compounds contain carbon.
+No chemical compounds contain only one element.
+The mixture either both is a chemical compound and contains only one element, or neither. 
+Conclusion: If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Substance : Type
+
+axiom Hydrocarbon : Substance → Prop
+axiom Organic : Substance → Prop
+axiom Alkane : Substance → Prop
+axiom ChemicalCompound : Substance → Prop
+axiom ContainsCarbon : Substance → Prop
+axiom OnlyOneElement : Substance → Prop
+
+axiom mixture : Substance
+
+-- Propositional context (tautologies from the text)
+theorem not_false_or_false_true : (¬ False ∨ False) := by
+  exact Or.inl (by intro f; exact f)
+
+theorem false_or_not_false_true : (False ∨ ¬ False) := by
+  exact Or.inr (by intro f; exact f)
+
+-- Domain knowledge from the text
+axiom all_hydro_are_organic : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkanes_are_hydro : ∀ x, Alkane x → Hydrocarbon x
+axiom all_organic_are_chemical : ∀ x, Organic x → ChemicalCompound x
+axiom all_organic_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_only_one : ∀ x, ChemicalCompound x → ¬ OnlyOneElement x
+
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom mixture_either_both_or_neither :
+  (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨
+  (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+-- Goal: If the mixture contains only one element or contains carbon,
+-- then the mixture is neither a chemical compound nor an alkane.
+theorem goal :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := by
+  -- First derive that the mixture is neither a chemical compound nor one-element
+  have hneither : ¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture := by
+    cases mixture_either_both_or_neither with
+    | inl hboth =>
+      have : False := by
+        have hno := no_chemical_only_one mixture hboth.left
+        exact hno hboth.right
+      exact False.elim this
+    | inr hneither => exact hneither
+  have nchem : ¬ ChemicalCompound mixture := hneither.left
+  -- From ¬Chemical, derive ¬Alkane via the implication chain Alkane → Hydrocarbon → Organic → Chemical
+  have nalk : ¬ Alkane mixture := by
+    intro hAlk
+    have hhydro := all_alkanes_are_hydro mixture hAlk
+    have horg := all_hydro_are_organic mixture hhydro
+    have hchem := all_organic_are_chemical mixture horg
+    exact nchem hchem
+  intro _
+  exact And.intro nchem nalk
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Substance : Type
+
+axiom Hydrocarbon : Substance → Prop
+axiom Organic : Substance → Prop
+axiom Alkane : Substance → Prop
+axiom ChemicalCompound : Substance → Prop
+axiom ContainsCarbon : Substance → Prop
+axiom OnlyOneElement : Substance → Prop
+
+axiom mixture : Substance
+
+-- Propositional context (tautologies from the text)
+theorem not_false_or_false_true : (¬ False ∨ False) := by
+  exact Or.inl (by intro f; exact f)
+
+theorem false_or_not_false_true : (False ∨ ¬ False) := by
+  exact Or.inr (by intro f; exact f)
+
+-- Domain knowledge from the text
+axiom all_hydro_are_organic : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkanes_are_hydro : ∀ x, Alkane x → Hydrocarbon x
+axiom all_organic_are_chemical : ∀ x, Organic x → ChemicalCompound x
+axiom all_organic_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_only_one : ∀ x, ChemicalCompound x → ¬ OnlyOneElement x
+
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom mixture_either_both_or_neither :
+  (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨
+  (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+-- Goal: If the mixture contains only one element or contains carbon,
+-- then the mixture is neither a chemical compound nor an alkane.
+theorem goal :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := by
+  -- First derive that the mixture is neither a chemical compound nor one-element
+  have hneither : ¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture := by
+    cases mixture_either_both_or_neither with
+    | inl hboth =>
+      have : False := by
+        have hno := no_chemical_only_one mixture hboth.left
+        exact hno hboth.right
+      exact False.elim this
+    | inr hneither => exact hneither
+  have nchem : ¬ ChemicalCompound mixture := hneither.left
+  -- From ¬Chemical, derive ¬Alkane via the implication chain Alkane → Hydrocarbon → Organic → Chemical
+  have nalk : ¬ Alkane mixture := by
+    intro hAlk
+    have hhydro := all_alkanes_are_hydro mixture hAlk
+    have horg := all_hydro_are_organic mixture hhydro
+    have hchem := all_organic_are_chemical mixture horg
+    exact nchem hchem
+  intro _
+  exact And.intro nchem nalk
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

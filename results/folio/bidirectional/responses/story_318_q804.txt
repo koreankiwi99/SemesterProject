@@ -1,0 +1,107 @@
+Story ID: 318
+Example ID: 804
+Premises: Some show airing at 8 pm on Monday gives out roses on TV.
+If a show gives out roses on TV, then the show is an episode of The Bachelor.
+The Bachelor portrays the lives of real people.
+All shows portraying the lives of real people are reality TV shows.
+Breaking Bad is a show.
+Breaking Bad is not a reality TV show.
+Conclusion: If roses are given out during Breaking Bad, then it is on Monday at 8 pm.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Show : Type
+axiom BreakingBad : Show
+
+axiom Monday8 : Show → Prop
+axiom GivesRoses : Show → Prop
+axiom EpisodeOfBachelor : Show → Prop
+axiom PortraysRealPeople : Show → Prop
+axiom RealityTV : Show → Prop
+axiom IsShow : Show → Prop
+
+-- Premises
+-- 1. Some show airing at 8 pm on Monday gives out roses on TV.
+axiom premise1 : ∃ s : Show, Monday8 s ∧ GivesRoses s
+-- 2. If a show gives out roses on TV, then the show is an episode of The Bachelor.
+axiom premise2 : ∀ s : Show, GivesRoses s → EpisodeOfBachelor s
+-- 3. The Bachelor portrays the lives of real people (modeled as: all its episodes do).
+axiom premise3 : ∀ s : Show, EpisodeOfBachelor s → PortraysRealPeople s
+-- 4. All shows portraying the lives of real people are reality TV shows.
+axiom premise4 : ∀ s : Show, PortraysRealPeople s → RealityTV s
+-- 5. Breaking Bad is a show.
+axiom premise5 : IsShow BreakingBad
+-- 6. Breaking Bad is not a reality TV show.
+axiom premise6 : ¬ RealityTV BreakingBad
+
+-- Conclusion: If roses are given out during Breaking Bad, then it is on Monday at 8 pm.
+theorem goal : GivesRoses BreakingBad → Monday8 BreakingBad := by
+  intro hRoses
+  have hEp : EpisodeOfBachelor BreakingBad := premise2 BreakingBad hRoses
+  have hPR : PortraysRealPeople BreakingBad := premise3 BreakingBad hEp
+  have hRT : RealityTV BreakingBad := premise4 BreakingBad hPR
+  have : False := premise6 hRT
+  exact False.elim this
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Show : Type
+axiom BreakingBad : Show
+
+axiom GivesRoses : Show → Prop
+axiom Monday8pm : Show → Prop
+axiom BachelorEpisode : Show → Prop
+axiom PortraysReal : Show → Prop
+axiom RealityTV : Show → Prop
+
+-- Premises
+axiom premise1 : ∃ s : Show, Monday8pm s ∧ GivesRoses s
+axiom premise2 : ∀ s : Show, GivesRoses s → BachelorEpisode s
+axiom premise3 : ∀ s : Show, BachelorEpisode s → PortraysReal s
+axiom premise4 : ∀ s : Show, PortraysReal s → RealityTV s
+axiom premise5 : ¬RealityTV BreakingBad
+
+-- Derived: any show that gives roses is reality TV
+lemma roses_implies_reality (s : Show) : GivesRoses s → RealityTV s := by
+  intro h
+  have hb : BachelorEpisode s := premise2 s h
+  have hp : PortraysReal s := premise3 s hb
+  exact premise4 s hp
+
+-- Consequently, Breaking Bad does not give roses
+lemma not_roses_on_BB : ¬GivesRoses BreakingBad := by
+  intro h
+  have hr : RealityTV BreakingBad := roses_implies_reality BreakingBad h
+  exact premise5 hr
+
+-- Negation of the conclusion to analyze:
+-- We try to prove: ¬(GivesRoses BreakingBad → Monday8pm BreakingBad)
+theorem neg_goal : ¬(GivesRoses BreakingBad → Monday8pm BreakingBad) := by
+  intro h
+  -- We would need to derive a contradiction from the implication h,
+  -- but from the premises we can only derive ¬GivesRoses BreakingBad,
+  -- which makes the implication trivially true rather than false.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

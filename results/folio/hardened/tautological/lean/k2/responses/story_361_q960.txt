@@ -1,0 +1,141 @@
+Story ID: 361
+Example ID: 960
+Premises: Not false and false is false. Not false or false is true. If people spill a lot of food on their clothing, then they are not notably tidy.
+All clumsy foodies who go out frequently to find new food restaurants to try are people who spill a lot of food on their clothing.
+If people are cleanly, then they are notably tidy.
+If people value order and spotlessness, then they are cleanly.
+All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+Peter is either a person who spills a lot of food on his clothing and is cleanly, or a person who does not spill a lot of food on his clothing and is not cleanly
+Conclusion: Peter is either both a clumsy foodie who goes out frequently to find new food restaurants to try and issomeone whose family prioritizes order and spotlessness, or he neither is a clumsy foodie who goes out frequently to find new food restaurants to try nor does his family prioritize order and spotlessness.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Person : Type
+axiom Peter : Person
+
+axiom Spills : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpotlessness : Person → Prop
+axiom FamilyPrioritizesOrderSpotlessness : Person → Prop
+axiom ClumsyFoodieGoOutFrequently : Person → Prop
+
+-- Premises
+axiom spills_imp_not_tidy : ∀ p : Person, Spills p → ¬ NotablyTidy p
+axiom clumsy_foodie_go_out_imp_spills : ∀ p : Person, ClumsyFoodieGoOutFrequently p → Spills p
+axiom cleanly_imp_tidy : ∀ p : Person, Cleanly p → NotablyTidy p
+axiom values_order_imp_cleanly : ∀ p : Person, ValuesOrderSpotlessness p → Cleanly p
+axiom family_prior_imp_values_order : ∀ p : Person, FamilyPrioritizesOrderSpotlessness p → ValuesOrderSpotlessness p
+
+-- Peter-specific given disjunctions
+axiom peter_spills_cleanly_equiv :
+  (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+axiom peter_cf_family_equiv :
+  (ClumsyFoodieGoOutFrequently Peter ∧ FamilyPrioritizesOrderSpotlessness Peter) ∨
+  (¬ ClumsyFoodieGoOutFrequently Peter ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter)
+
+-- Conclusion: Peter is neither a clumsy foodie who goes out frequently nor does his family prioritize order and spotlessness
+theorem peter_not_cf_and_not_family :
+  ¬ ClumsyFoodieGoOutFrequently Peter ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter := by
+  -- Show the left disjunct of peter_spills_cleanly_equiv is impossible
+  have not_left : ¬ (Spills Peter ∧ Cleanly Peter) := by
+    intro h
+    have hs : Spills Peter := h.left
+    have hc : Cleanly Peter := h.right
+    have ht : NotablyTidy Peter := cleanly_imp_tidy Peter hc
+    have hnt : ¬ NotablyTidy Peter := spills_imp_not_tidy Peter hs
+    exact hnt ht
+  -- Therefore, obtain ¬Spills Peter ∧ ¬Cleanly Peter
+  have hdisj := peter_spills_cleanly_equiv
+  have hright : (¬ Spills Peter ∧ ¬ Cleanly Peter) := by
+    cases hdisj with
+    | inl h => exact False.elim (not_left h)
+    | inr hr => exact hr
+  have hnot_spills : ¬ Spills Peter := hright.left
+  have hnot_cleanly : ¬ Cleanly Peter := hright.right
+  -- Deduce ¬ ClumsyFoodieGoOutFrequently Peter via modus tollens on clumsy_foodie_go_out_imp_spills
+  have h_not_cf : ¬ ClumsyFoodieGoOutFrequently Peter := by
+    intro hcf
+    exact hnot_spills (clumsy_foodie_go_out_imp_spills Peter hcf)
+  -- Deduce ¬ FamilyPrioritizesOrderSpotlessness Peter via modus tollens on the chain Family → Values → Cleanly
+  have family_imp_cleanly : FamilyPrioritizesOrderSpotlessness Peter → Cleanly Peter := by
+    intro hfam
+    exact values_order_imp_cleanly Peter (family_prior_imp_values_order Peter hfam)
+  have h_not_family : ¬ FamilyPrioritizesOrderSpotlessness Peter := by
+    intro hfam
+    exact hnot_cleanly (family_imp_cleanly hfam)
+  exact And.intro h_not_cf h_not_family
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom Peter : Person
+
+axiom Spills : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpotlessness : Person → Prop
+axiom FamilyPrioritizesOrderSpotlessness : Person → Prop
+axiom ClumsyFoodieGoOutFrequently : Person → Prop
+
+-- Premises
+axiom spills_imp_not_tidy : ∀ p : Person, Spills p → ¬ NotablyTidy p
+axiom clumsy_foodie_go_out_imp_spills : ∀ p : Person, ClumsyFoodieGoOutFrequently p → Spills p
+axiom cleanly_imp_tidy : ∀ p : Person, Cleanly p → NotablyTidy p
+axiom values_order_imp_cleanly : ∀ p : Person, ValuesOrderSpotlessness p → Cleanly p
+axiom family_prior_imp_values_order : ∀ p : Person, FamilyPrioritizesOrderSpotlessness p → ValuesOrderSpotlessness p
+
+-- Peter-specific given disjunctions
+axiom peter_spills_cleanly_equiv :
+  (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+axiom peter_cf_family_equiv :
+  (ClumsyFoodieGoOutFrequently Peter ∧ FamilyPrioritizesOrderSpotlessness Peter) ∨
+  (¬ ClumsyFoodieGoOutFrequently Peter ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter)
+
+-- Conclusion: Peter is neither a clumsy foodie who goes out frequently nor does his family prioritize order and spotlessness
+theorem peter_not_cf_and_not_family :
+  ¬ ClumsyFoodieGoOutFrequently Peter ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter := by
+  -- Show the left disjunct of peter_spills_cleanly_equiv is impossible
+  have not_left : ¬ (Spills Peter ∧ Cleanly Peter) := by
+    intro h
+    have hs : Spills Peter := h.left
+    have hc : Cleanly Peter := h.right
+    have ht : NotablyTidy Peter := cleanly_imp_tidy Peter hc
+    have hnt : ¬ NotablyTidy Peter := spills_imp_not_tidy Peter hs
+    exact hnt ht
+  -- Therefore, obtain ¬Spills Peter ∧ ¬Cleanly Peter
+  have hdisj := peter_spills_cleanly_equiv
+  have hright : (¬ Spills Peter ∧ ¬ Cleanly Peter) := by
+    cases hdisj with
+    | inl h => exact False.elim (not_left h)
+    | inr hr => exact hr
+  have hnot_spills : ¬ Spills Peter := hright.left
+  have hnot_cleanly : ¬ Cleanly Peter := hright.right
+  -- Deduce ¬ ClumsyFoodieGoOutFrequently Peter via modus tollens on clumsy_foodie_go_out_imp_spills
+  have h_not_cf : ¬ ClumsyFoodieGoOutFrequently Peter := by
+    intro hcf
+    exact hnot_spills (clumsy_foodie_go_out_imp_spills Peter hcf)
+  -- Deduce ¬ FamilyPrioritizesOrderSpotlessness Peter via modus tollens on the chain Family → Values → Cleanly
+  have family_imp_cleanly : FamilyPrioritizesOrderSpotlessness Peter → Cleanly Peter := by
+    intro hfam
+    exact values_order_imp_cleanly Peter (family_prior_imp_values_order Peter hfam)
+  have h_not_family : ¬ FamilyPrioritizesOrderSpotlessness Peter := by
+    intro hfam
+    exact hnot_cleanly (family_imp_cleanly hfam)
+  exact And.intro h_not_cf h_not_family
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

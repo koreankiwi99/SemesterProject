@@ -1,0 +1,109 @@
+Story ID: 0
+Example ID: 12
+Premises: Amy woke up eager to make plans for the beautiful day. If the weather is nice, she will go on a hike. Also, if Amy has no pressing work deadlines, she will take the day off. It seems either the weather will be nice or Amy will have no deadlines, maybe both. If Amy goes on a hike, she will get to explore nature and get some exercise. And if she explores nature and exercises, Amy will have a relaxing day.
+Conclusion: If Amy did not take the day off, then did she have a relaxing day?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Nice : Prop
+axiom NoDeadline : Prop
+axiom TakeOff : Prop
+axiom Hike : Prop
+axiom Explore : Prop
+axiom Exercise : Prop
+axiom Relaxing : Prop
+
+-- Premises
+axiom p1 : Nice → Hike
+axiom p2 : NoDeadline → TakeOff
+axiom p3 : Nice ∨ NoDeadline
+axiom p4 : Hike → (Explore ∧ Exercise)
+axiom p5 : (Explore ∧ Exercise) → Relaxing
+
+-- Conclusion: If Amy did not take the day off, then she had a relaxing day.
+theorem goal : (¬ TakeOff) → Relaxing := by
+  intro hNotOff
+  -- From ¬TakeOff and (NoDeadline → TakeOff), we get ¬NoDeadline
+  have hNotND : ¬ NoDeadline := by
+    intro hND
+    exact hNotOff (p2 hND)
+  -- From Nice ∨ NoDeadline and ¬NoDeadline, deduce Nice
+  have hNice : Nice := by
+    cases p3 with
+    | inl hN => exact hN
+    | inr hND => exact False.elim (hNotND hND)
+  -- Chain the implications to get Relaxing
+  have hHike : Hike := p1 hNice
+  have hExplEx : Explore ∧ Exercise := p4 hHike
+  have hRelax : Relaxing := p5 hExplEx
+  exact hRelax
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom WeatherNice : Prop
+axiom NoDeadlines : Prop
+axiom Hike : Prop
+axiom DayOff : Prop
+axiom Explore : Prop
+axiom Exercise : Prop
+axiom RelaxingDay : Prop
+
+-- Premises
+axiom p1 : WeatherNice → Hike
+axiom p2 : NoDeadlines → DayOff
+axiom p3 : WeatherNice ∨ NoDeadlines
+axiom p4 : Hike → (Explore ∧ Exercise)
+axiom p5 : (Explore ∧ Exercise) → RelaxingDay
+
+-- Negation of the conclusion we are asked to analyze:
+-- We try to prove: ¬(¬DayOff → RelaxingDay)
+theorem neg_conclusion : ¬(¬DayOff → RelaxingDay) := by
+  intro h
+  -- Attempting a proof by cases on the disjunction WeatherNice ∨ NoDeadlines
+  cases p3 with
+  | inl w =>
+    have hHike : Hike := p1 w
+    have hEE : Explore ∧ Exercise := p4 hHike
+    have hRelax : RelaxingDay := p5 hEE
+    -- Stuck: cannot derive a contradiction from here
+    sorry
+  | inr d =>
+    have hOff : DayOff := p2 d
+    -- Stuck: we do not have ¬DayOff to apply h, and cannot derive False
+    sorry
+
+-- For reference, the original conclusion (¬DayOff → RelaxingDay) is actually derivable:
+theorem conclusion_true : (¬DayOff → RelaxingDay) := by
+  cases p3 with
+  | inl w =>
+    have hHike : Hike := p1 w
+    have hEE : Explore ∧ Exercise := p4 hHike
+    have hRelax : RelaxingDay := p5 hEE
+    intro _
+    exact hRelax
+  | inr d =>
+    have hOff : DayOff := p2 d
+    intro hNotOff
+    exact False.elim (hNotOff hOff)
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

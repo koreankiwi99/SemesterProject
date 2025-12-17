@@ -1,0 +1,129 @@
+Story ID: 471
+Example ID: 1362
+Premises: All rabbits that can be spotted near the campus are cute. 
+Some turtles can be spotted near the campus. 
+The only animals that can be spotted near the campus are rabbits and squirrels.
+If something is skittish, then it is not calm.
+All the squirrels that can be spotted near the campus are skittish.
+Rockie can be spotted near the campus, and it is calm.
+Conclusion: Rockie is not a turtle.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+constant Animal : Type u
+constant Rabbit Turtle Squirrel Spotted Cute Skittish Calm : Animal → Prop
+constant Rockie : Animal
+
+-- Premises
+axiom A1 : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom A2 : ∃ x, Turtle x ∧ Spotted x
+axiom A3 : ∀ x, Spotted x → (Rabbit x ∨ Squirrel x)
+axiom A4 : ∀ x, Skittish x → ¬ Calm x
+axiom A5 : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom A6 : Spotted Rockie ∧ Calm Rockie
+
+-- Useful derived facts
+lemma Rockie_spotted : Spotted Rockie := And.left A6
+lemma Rockie_calm : Calm Rockie := And.right A6
+
+lemma not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro hS
+  have hSk : Skittish Rockie := by
+    have hSS : Squirrel Rockie ∧ Spotted Rockie := And.intro hS Rockie_spotted
+    exact A5 Rockie hSS
+  have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
+  exact hNotCalm Rockie_calm
+
+lemma rabbit_Rockie : Rabbit Rockie := by
+  have h := A3 Rockie Rockie_spotted
+  cases h with
+  | inl hR => exact hR
+  | inr hSq => exact False.elim (not_squirrel_Rockie hSq)
+
+-- Conclusion (cannot be derived from the given premises)
+theorem goal : ¬ Turtle Rockie := by
+  -- From the given premises, we can deduce that Rockie is not a squirrel and hence (by A3) is a rabbit.
+  -- However, there is no premise asserting that rabbits and turtles are disjoint.
+  -- Therefore, the conclusion ¬ Turtle Rockie does not follow from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Animal : Type
+
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Near : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+
+axiom Rockie : Animal
+
+-- Premises
+-- 1. All rabbits that can be spotted near the campus are cute.
+axiom premise1 : ∀ x : Animal, (Rabbit x ∧ Near x) → Cute x
+
+-- 2. Some turtles can be spotted near the campus.
+axiom premise2 : ∃ x : Animal, Turtle x ∧ Near x
+
+-- 3. The only animals that can be spotted near the campus are rabbits and squirrels.
+axiom premise3 : ∀ x : Animal, Near x → (Rabbit x ∨ Squirrel x)
+
+-- 4. If something is skittish, then it is not calm.
+axiom premise4 : ∀ x : Animal, Skittish x → ¬ Calm x
+
+-- 5. All the squirrels that can be spotted near the campus are skittish.
+axiom premise5 : ∀ x : Animal, (Squirrel x ∧ Near x) → Skittish x
+
+-- 6. Rockie can be spotted near the campus, and it is calm.
+axiom premise6 : Near Rockie ∧ Calm Rockie
+
+-- We aim to prove the negation of the conclusion:
+-- Conclusion: Rockie is not a turtle (¬ Turtle Rockie)
+-- Negation to prove: Turtle Rockie
+theorem negate_conclusion : Turtle Rockie := by
+  -- From premise6
+  have hNear : Near Rockie := And.left premise6
+  have hCalm : Calm Rockie := And.right premise6
+  -- From premise3 and hNear
+  have hRS : Rabbit Rockie ∨ Squirrel Rockie := premise3 Rockie hNear
+  -- Show Rockie cannot be a squirrel (since Rockie is calm)
+  have hNotSquirrel : ¬ Squirrel Rockie := by
+    intro hS
+    have hSk : Skittish Rockie := premise5 Rockie (And.intro hS hNear)
+    have hNotCalm : ¬ Calm Rockie := premise4 Rockie hSk
+    exact hNotCalm hCalm
+  -- Therefore Rockie must be a rabbit
+  have hRabbit : Rabbit Rockie := Or.elim hRS
+    (fun hR => hR)
+    (fun hS => False.elim (hNotSquirrel hS))
+  -- From here, none of the premises allow concluding Turtle Rockie.
+  -- The existential in premise2 only guarantees some turtle is near the campus,
+  -- not that Rockie is a turtle.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

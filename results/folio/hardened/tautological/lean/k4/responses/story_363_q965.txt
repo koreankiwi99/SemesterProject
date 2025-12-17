@@ -1,0 +1,130 @@
+Story ID: 363
+Example ID: 965
+Premises: Not true or true is true. Not false and true is true. True is not false. Not false or false is true. All hydrocarbons are organic compounds .
+All alkanes are hydrocarbons
+All organic compounds are chemical compounds.
+All organic compounds contain carbon.
+No chemical compounds contain only one element.
+The mixture either both is a chemical compound and contains only one element, or neither. 
+Conclusion: The mixture is an alkane and contains carbon.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Thing : Type
+axiom Mixture : Thing
+
+axiom Alkane : Thing → Prop
+axiom Hydrocarbon : Thing → Prop
+axiom Organic : Thing → Prop
+axiom Chemical : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+
+-- Premises
+axiom alkanes_are_hydrocarbons : ∀ x, Alkane x → Hydrocarbon x
+axiom hydrocarbons_are_organic : ∀ x, Hydrocarbon x → Organic x
+axiom organics_are_chemical : ∀ x, Organic x → Chemical x
+axiom organics_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_has_only_one_element : ∀ x, Chemical x → ¬ OnlyOneElement x
+
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom mixture_equiv :
+  (Chemical Mixture ∧ OnlyOneElement Mixture) ∨ (¬ Chemical Mixture ∧ ¬ OnlyOneElement Mixture)
+
+-- The claim to evaluate:
+def Claim : Prop := Alkane Mixture ∧ ContainsCarbon Mixture
+
+-- Useful derived facts
+theorem alkane_implies_chemical : ∀ x, Alkane x → Chemical x := by
+  intro x hA
+  have hH : Hydrocarbon x := alkanes_are_hydrocarbons x hA
+  have hO : Organic x := hydrocarbons_are_organic x hH
+  exact organics_are_chemical x hO
+
+theorem not_chemical_mixture : ¬ Chemical Mixture := by
+  intro hC
+  cases mixture_equiv with
+  | inl h =>
+      -- h : Chemical Mixture ∧ OnlyOneElement Mixture
+      have hNo : ¬ OnlyOneElement Mixture := no_chemical_has_only_one_element Mixture h.left
+      exact hNo h.right
+  | inr h =>
+      -- h : ¬ Chemical Mixture ∧ ¬ OnlyOneElement Mixture
+      exact h.left hC
+
+theorem not_alkane_mixture : ¬ Alkane Mixture := by
+  intro hA
+  exact not_chemical_mixture (alkane_implies_chemical Mixture hA)
+
+-- Therefore, the original claim (Alkane Mixture ∧ ContainsCarbon Mixture) is false.
+theorem negClaim : ¬ Claim := by
+  intro h
+  exact not_alkane_mixture h.left
+</lean>
+
+ANSWER: False
+
+--- Lean Code ---
+axiom Thing : Type
+axiom Mixture : Thing
+
+axiom Alkane : Thing → Prop
+axiom Hydrocarbon : Thing → Prop
+axiom Organic : Thing → Prop
+axiom Chemical : Thing → Prop
+axiom ContainsCarbon : Thing → Prop
+axiom OnlyOneElement : Thing → Prop
+
+-- Premises
+axiom alkanes_are_hydrocarbons : ∀ x, Alkane x → Hydrocarbon x
+axiom hydrocarbons_are_organic : ∀ x, Hydrocarbon x → Organic x
+axiom organics_are_chemical : ∀ x, Organic x → Chemical x
+axiom organics_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_has_only_one_element : ∀ x, Chemical x → ¬ OnlyOneElement x
+
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom mixture_equiv :
+  (Chemical Mixture ∧ OnlyOneElement Mixture) ∨ (¬ Chemical Mixture ∧ ¬ OnlyOneElement Mixture)
+
+-- The claim to evaluate:
+def Claim : Prop := Alkane Mixture ∧ ContainsCarbon Mixture
+
+-- Useful derived facts
+theorem alkane_implies_chemical : ∀ x, Alkane x → Chemical x := by
+  intro x hA
+  have hH : Hydrocarbon x := alkanes_are_hydrocarbons x hA
+  have hO : Organic x := hydrocarbons_are_organic x hH
+  exact organics_are_chemical x hO
+
+theorem not_chemical_mixture : ¬ Chemical Mixture := by
+  intro hC
+  cases mixture_equiv with
+  | inl h =>
+      -- h : Chemical Mixture ∧ OnlyOneElement Mixture
+      have hNo : ¬ OnlyOneElement Mixture := no_chemical_has_only_one_element Mixture h.left
+      exact hNo h.right
+  | inr h =>
+      -- h : ¬ Chemical Mixture ∧ ¬ OnlyOneElement Mixture
+      exact h.left hC
+
+theorem not_alkane_mixture : ¬ Alkane Mixture := by
+  intro hA
+  exact not_chemical_mixture (alkane_implies_chemical Mixture hA)
+
+-- Therefore, the original claim (Alkane Mixture ∧ ContainsCarbon Mixture) is false.
+theorem negClaim : ¬ Claim := by
+  intro h
+  exact not_alkane_mixture h.left
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 1

@@ -1,0 +1,165 @@
+Story ID: 426
+Example ID: 1210
+Premises: True and not false is true. All employees who schedule a meeting with their customers will go to the company building today. 
+Everyone who has lunch in the company building schedules meetings with their customers. 
+Employees have lunch either in the company building or at home.
+If an employee has lunch at home, they are working remotely from home.
+All employees who are in other countries work remotely from home. 
+No managers work remotely from home. 
+James will appear in the company today if and only if he is a manager.
+Conclusion: If James is either a manager or in other countries,  then James does not either has lunch at home or work remotely from home. If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries. [contrapositive is more natural]
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Entities
+axiom James : Person
+
+-- Predicates
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom SchedulesWithCustomers : Person → Prop
+axiom GoToCompanyBuildingToday : Person → Prop
+axiom LunchInCompanyBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountries : Person → Prop
+axiom AppearsInCompanyToday : Person → Prop
+
+-- Premises
+
+-- 1) True and not false is true.
+axiom tautology : True ∧ ¬ False
+
+-- 2) All employees who schedule a meeting with their customers will go to the company building today.
+axiom emp_sched_go_building :
+  ∀ x : Person, Employee x ∧ SchedulesWithCustomers x → GoToCompanyBuildingToday x
+
+-- 3) Everyone who has lunch in the company building schedules meetings with their customers.
+axiom lunch_in_building_sched :
+  ∀ x : Person, LunchInCompanyBuilding x → SchedulesWithCustomers x
+
+-- 4) Employees have lunch either in the company building or at home.
+axiom emp_lunch_building_or_home :
+  ∀ x : Person, Employee x → (LunchInCompanyBuilding x ∨ LunchAtHome x)
+
+-- 5) If an employee has lunch at home, they are working remotely from home.
+axiom emp_lunch_home_remote :
+  ∀ x : Person, Employee x → LunchAtHome x → RemoteFromHome x
+
+-- 6) All employees who are in other countries work remotely from home.
+axiom emp_abroad_remote :
+  ∀ x : Person, Employee x → InOtherCountries x → RemoteFromHome x
+
+-- 7) No managers work remotely from home.
+axiom managers_not_remote :
+  ∀ x : Person, Manager x → ¬ RemoteFromHome x
+
+-- 8) James will appear in the company today iff he is a manager.
+axiom james_appear_iff_manager :
+  AppearsInCompanyToday James ↔ Manager James
+
+-- Conclusion to analyze:
+-- If James is either a manager or in other countries, then James does not either has lunch at home or work remotely from home.
+-- If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries.
+theorem goal :
+  (Manager James ∨ InOtherCountries James) →
+  ¬ (LunchAtHome James ∨ RemoteFromHome James) ∧
+  ((LunchAtHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James)) := by
+  -- Attempt to prove, but this conclusion does not follow from the given premises.
+  -- In particular, from RemoteFromHome James one can derive ¬Manager James (by managers_not_remote),
+  -- but there is no way to derive ¬InOtherCountries James from the premises.
+  -- Moreover, from InOtherCountries James one cannot derive ¬(LunchAtHome James ∨ RemoteFromHome James);
+  -- indeed, if James were an employee, InOtherCountries James would imply RemoteFromHome James.
+  -- Hence the stated conclusion is not provable from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Domain and constants
+axiom Person : Type
+axiom James : Person
+
+-- Predicates
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom InOtherCountries : Person → Prop
+axiom SchedulesWithCustomers : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom GoToCompanyBuildingToday : Person → Prop
+
+-- Premises
+-- (P0) Trivial logical premise (unused)
+axiom tautology : True ∧ ¬False
+
+-- (P1) All employees who schedule a meeting with their customers will go to the company building today.
+axiom premise1 : ∀ x : Person, Employee x → SchedulesWithCustomers x → GoToCompanyBuildingToday x
+
+-- (P2) Everyone who has lunch in the company building schedules meetings with their customers.
+axiom premise2 : ∀ x : Person, LunchInBuilding x → SchedulesWithCustomers x
+
+-- (P3) Employees have lunch either in the company building or at home.
+axiom premise3 : ∀ x : Person, Employee x → (LunchInBuilding x ∨ LunchAtHome x)
+
+-- (P4) If an employee has lunch at home, they are working remotely from home.
+axiom premise4 : ∀ x : Person, Employee x → LunchAtHome x → RemoteFromHome x
+
+-- (P5) All employees who are in other countries work remotely from home.
+axiom premise5 : ∀ x : Person, Employee x → InOtherCountries x → RemoteFromHome x
+
+-- (P6) No managers work remotely from home.
+axiom premise6 : ∀ x : Person, Manager x → ¬RemoteFromHome x
+
+-- (P7) James will appear in the company today iff he is a manager.
+-- We identify "appear in the company today" with "go to the company building today".
+axiom premise7 : GoToCompanyBuildingToday James ↔ Manager James
+
+-- Additional background assumption (natural in context): James is an employee.
+axiom James_is_employee : Employee James
+
+-- Conclusion to analyze (as a single conjunctive statement C):
+-- C :=
+--   ((Manager James ∨ InOtherCountries James) → ¬(LunchAtHome James ∨ RemoteFromHome James))
+--   ∧
+--   ((LunchAtHome James ∨ RemoteFromHome James) → (¬Manager James ∧ ¬InOtherCountries James))
+
+-- We must prove the NEGATION of the conclusion C (i.e., show C is false given the premises).
+theorem neg_conclusion :
+  ¬(
+    ((Manager James ∨ InOtherCountries James) → ¬(LunchAtHome James ∨ RemoteFromHome James))
+    ∧
+    ((LunchAtHome James ∨ RemoteFromHome James) → (¬Manager James ∧ ¬InOtherCountries James))
+  ) := by
+  -- Attempt to derive a contradiction from assuming the conclusion.
+  -- However, from the given premises we cannot force either disjuncts needed to refute
+  -- these implications (we cannot derive Manager James ∨ InOtherCountries James,
+  -- nor can we derive LunchAtHome James ∨ RemoteFromHome James outright).
+  -- The premises are consistent with both branches and do not yield a contradiction.
+  -- Therefore, we cannot complete the proof of the negation from the given premises.
+  -- This proof attempt fails.
+  admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: Unknown
+Correct: No

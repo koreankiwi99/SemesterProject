@@ -1,0 +1,91 @@
+Story ID: 0
+Example ID: 13
+Premises: Oliver decided he wanted to simplify his life starting with his living space. He realized if he cleaned his room regularly, it would stay tidy. And if his room stayed tidy, he would feel peaceful and relaxed there. Oliver either cleans regularly or declutters his belongings, or does both to get organized. If Oliver declutters, he naturally becomes more organized overall. And if he becomes more organized, his life feels simpler.
+Conclusion: If Oliver does not feel peaceful in his living space, then does his life feel simpler?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Clean : Prop
+axiom Tidy : Prop
+axiom Peaceful : Prop
+axiom Declutter : Prop
+axiom Organized : Prop
+axiom Simple : Prop
+
+axiom h1 : Clean → Tidy
+axiom h2 : Tidy → Peaceful
+axiom h3 : Clean ∨ Declutter
+axiom h4 : Declutter → Organized
+axiom h5 : Organized → Simple
+
+theorem goal : (¬ Peaceful) → Simple := by
+  intro hNotPeace
+  have hCD := h3
+  cases hCD with
+  | inl hClean =>
+      have hTidy : Tidy := h1 hClean
+      have hPeace : Peaceful := h2 hTidy
+      have : False := hNotPeace hPeace
+      exact False.elim this
+  | inr hDeclutter =>
+      have hOrg : Organized := h4 hDeclutter
+      exact h5 hOrg
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Clean : Prop
+axiom Tidy : Prop
+axiom Peaceful : Prop
+axiom Declutter : Prop
+axiom Organized : Prop
+axiom Simpler : Prop
+
+axiom clean_imp_tidy : Clean → Tidy
+axiom tidy_imp_peaceful : Tidy → Peaceful
+axiom clean_or_declutter : Clean ∨ Declutter
+axiom declutter_imp_organized : Declutter → Organized
+axiom organized_imp_simpler : Organized → Simpler
+
+-- From the premises, the original conclusion (¬Peaceful → Simpler) is actually provable.
+theorem conclusion_true : (¬Peaceful → Simpler) := by
+  intro notPeaceful
+  -- Clean → Peaceful by composition
+  have clean_imp_peaceful : Clean → Peaceful := fun hc => tidy_imp_peaceful (clean_imp_tidy hc)
+  -- Therefore, ¬Peaceful implies ¬Clean
+  have notClean : ¬Clean := by
+    intro hc
+    exact notPeaceful (clean_imp_peaceful hc)
+  -- From Clean ∨ Declutter and ¬Clean, deduce Declutter
+  have hdeclutter : Declutter := by
+    cases clean_or_declutter with
+    | inl hc => exact False.elim (notClean hc)
+    | inr hd => exact hd
+  -- Declutter → Organized → Simpler
+  exact organized_imp_simpler (declutter_imp_organized hdeclutter)
+
+-- Hence, the negation of the conclusion is incompatible with the premises.
+theorem negation_contradicts : (¬(¬Peaceful → Simpler)) → False := by
+  intro hneg
+  exact hneg conclusion_true
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

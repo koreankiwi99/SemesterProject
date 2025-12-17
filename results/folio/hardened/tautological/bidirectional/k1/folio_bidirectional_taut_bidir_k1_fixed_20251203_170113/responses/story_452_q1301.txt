@@ -1,0 +1,134 @@
+Story ID: 452
+Example ID: 1301
+Premises: Not false or true is not false. All aliens are extraterrestrials.
+If someone is from Mars, then they are an alien.
+No extraterrestrials are human.
+All highly intelligent beings from Earth are humans.
+Marvin is a highly intelligent being.
+Marvin is either from Earth and from Mars, or he is from neither.
+If Marvin is not from Earth, then Marvin is an extraterrestrial.
+Conclusion: Marvin is an alien.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Marvin : Person
+
+axiom Alien : Person → Prop
+axiom Extraterrestrial : Person → Prop
+axiom Human : Person → Prop
+axiom FromMars : Person → Prop
+axiom FromEarth : Person → Prop
+axiom HighlyIntelligent : Person → Prop
+
+-- Premises
+axiom prem1 : True  -- "Not false or true is not false." (a tautology)
+
+axiom prem2 : ∀ x : Person, Alien x → Extraterrestrial x            -- All aliens are extraterrestrials.
+axiom prem3 : ∀ x : Person, FromMars x → Alien x                    -- If someone is from Mars, then they are an alien.
+axiom prem4 : ∀ x : Person, Extraterrestrial x → ¬ Human x          -- No extraterrestrials are human.
+axiom prem5 : ∀ x : Person, (HighlyIntelligent x ∧ FromEarth x) → Human x  -- All highly intelligent beings from Earth are humans.
+axiom prem6 : HighlyIntelligent Marvin                               -- Marvin is a highly intelligent being.
+axiom prem7 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)  -- Marvin: both or neither Earth and Mars.
+axiom prem8 : ¬ FromEarth Marvin → Extraterrestrial Marvin           -- If Marvin is not from Earth, then he's an extraterrestrial.
+
+-- Conclusion: Marvin is an alien.
+theorem goal : Alien Marvin := by
+  cases prem7 with
+  | inl h =>
+    -- From the first case, FromMars Marvin holds, hence Alien Marvin by prem3.
+    have fm : FromMars Marvin := h.right
+    exact prem3 Marvin fm
+  | inr h =>
+    -- From the second case, we only get ¬FromEarth Marvin, hence Extraterrestrial Marvin by prem8,
+    -- but this does not imply Alien Marvin from the given premises.
+    have nfe : ¬ FromEarth Marvin := h.left
+    have et : Extraterrestrial Marvin := prem8 nfe
+    sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Being : Type
+axiom Marvin : Being
+
+axiom Alien : Being → Prop
+axiom Extraterrestrial : Being → Prop
+axiom Human : Being → Prop
+axiom FromEarth : Being → Prop
+axiom FromMars : Being → Prop
+axiom Intelligent : Being → Prop
+
+-- "Not false or true is not false." (encoded as a trivial true axiom)
+axiom taut : True
+
+-- Premises
+axiom all_aliens_extraterrestrials : ∀ x : Being, Alien x → Extraterrestrial x
+axiom from_mars_alien : ∀ x : Being, FromMars x → Alien x
+axiom no_extraterrestrials_human : ∀ x : Being, Extraterrestrial x → ¬ Human x
+axiom intelligent_earth_human : ∀ x : Being, (Intelligent x ∧ FromEarth x) → Human x
+axiom marvin_intelligent : Intelligent Marvin
+axiom marvin_earth_and_mars_or_neither :
+  (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom not_earth_implies_extraterrestrial : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+-- A derived contradiction showing Marvin cannot be both from Earth and from Mars
+theorem not_earth_and_mars : ¬ (FromEarth Marvin ∧ FromMars Marvin) := by
+  intro h
+  have hEarth : FromEarth Marvin := h.left
+  have hMars  : FromMars Marvin := h.right
+  have hAlien : Alien Marvin := from_mars_alien Marvin hMars
+  have hExtra : Extraterrestrial Marvin := all_aliens_extraterrestrials Marvin hAlien
+  have hNotHuman : ¬ Human Marvin := no_extraterrestrials_human Marvin hExtra
+  have hHuman : Human Marvin := by
+    apply intelligent_earth_human Marvin
+    exact And.intro marvin_intelligent hEarth
+  exact hNotHuman hHuman
+
+-- From the disjunction and the above, we get ¬FromEarth Marvin and ¬FromMars Marvin
+theorem not_from_earth : ¬ FromEarth Marvin := by
+  cases marvin_earth_and_mars_or_neither with
+  | inl h =>
+      exact False.elim (not_earth_and_mars h)
+  | inr h =>
+      exact h.left
+
+theorem not_from_mars : ¬ FromMars Marvin := by
+  cases marvin_earth_and_mars_or_neither with
+  | inl h =>
+      exact False.elim (not_earth_and_mars h)
+  | inr h =>
+      exact h.right
+
+-- Negation of the conclusion to analyze: Marvin is not an alien.
+-- Attempted proof (fails with given premises).
+theorem goal : ¬ Alien Marvin := by
+  -- Assume Marvin is an alien and try to derive a contradiction
+  intro hAlien
+  have hExtra : Extraterrestrial Marvin := all_aliens_extraterrestrials Marvin hAlien
+  have hNotHuman : ¬ Human Marvin := no_extraterrestrials_human Marvin hExtra
+  have hNE : ¬ FromEarth Marvin := not_from_earth
+  have hE : Extraterrestrial Marvin := not_earth_implies_extraterrestrial hNE
+  -- No contradiction can be derived from these facts
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

@@ -1,0 +1,125 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d2 (d2_Data)
+Rule: DRD_MT
+
+Context:
+The Sedan and the SUV are cars with anti-lock brakes. Cars with anti-lock brakes usually have electronic stability control. The Sedan may lack electronic stability control even with anti-lock brakes. If the SUV has all-wheel drive, then it probably does not have electronic stability control.
+
+Question:
+Can we conclude the SUV has all-wheel drive?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+inductive Car where
+| Sedan : Car
+| SUV : Car
+
+open Car
+
+structure World where
+  HasABS : Car → Prop
+  HasESC : Car → Prop
+  AWD : Car → Prop
+  TypicallyESC : Car → Prop
+  ProbablyNoESC : Car → Prop
+
+def Premises (w : World) : Prop :=
+  w.HasABS Sedan ∧
+  w.HasABS SUV ∧
+  (∀ c, w.HasABS c → w.TypicallyESC c) ∧
+  (w.AWD SUV → w.ProbablyNoESC SUV)
+
+-- We show it is not the case that, from the premises alone, the SUV has AWD.
+theorem not_conclude_AWD : ¬ (∀ w : World, Premises w → w.AWD SUV) := by
+  intro h
+  -- Build a concrete world satisfying the premises but where the SUV does not have AWD.
+  let w0 : World :=
+    { HasABS := fun _ => True
+    , HasESC := fun _ => False
+    , AWD := fun _ => False
+    , TypicallyESC := fun _ => True
+    , ProbablyNoESC := fun _ => False
+    }
+  have hw0 : Premises w0 := by
+    unfold Premises
+    apply And.intro
+    · exact True.intro
+    apply And.intro
+    · exact True.intro
+    apply And.intro
+    · intro _ _
+      exact True.intro
+    · intro hAWD
+      exact hAWD
+  -- From h we would get w0.AWD SUV, but by construction that's False, contradiction.
+  exact h w0 hw0
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+inductive Car where
+| Sedan : Car
+| SUV : Car
+
+open Car
+
+structure World where
+  HasABS : Car → Prop
+  HasESC : Car → Prop
+  AWD : Car → Prop
+  TypicallyESC : Car → Prop
+  ProbablyNoESC : Car → Prop
+
+def Premises (w : World) : Prop :=
+  w.HasABS Sedan ∧
+  w.HasABS SUV ∧
+  (∀ c, w.HasABS c → w.TypicallyESC c) ∧
+  (w.AWD SUV → w.ProbablyNoESC SUV)
+
+-- We show it is not the case that, from the premises alone, the SUV has AWD.
+theorem not_conclude_AWD : ¬ (∀ w : World, Premises w → w.AWD SUV) := by
+  intro h
+  -- Build a concrete world satisfying the premises but where the SUV does not have AWD.
+  let w0 : World :=
+    { HasABS := fun _ => True
+    , HasESC := fun _ => False
+    , AWD := fun _ => False
+    , TypicallyESC := fun _ => True
+    , ProbablyNoESC := fun _ => False
+    }
+  have hw0 : Premises w0 := by
+    unfold Premises
+    apply And.intro
+    · exact True.intro
+    apply And.intro
+    · exact True.intro
+    apply And.intro
+    · intro _ _
+      exact True.intro
+    · intro hAWD
+      exact hAWD
+  -- From h we would get w0.AWD SUV, but by construction that's False, contradiction.
+  exact h w0 hw0
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: No
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

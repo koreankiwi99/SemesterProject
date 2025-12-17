@@ -1,0 +1,157 @@
+Story ID: 2
+Example ID: 4
+Premises: Not false and true is true. Billings is a city in the state of Montana in U.S.
+The state of Montana includes the cities of Butte, Helena, and Missoula.
+White Sulphur Springs and Butte are cities in the same state in U.S.
+The city of St Pierre is not in the state of Montana.
+Any city in Butte is not in St Pierre.
+A city can only be in one state in U.S.  except for Bristol, Texarkana, Texhoma and Union City.
+Conclusion: Butte and St Pierre are in the same state.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom City : Type
+axiom State : Type
+
+-- Cities
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+-- State
+axiom Montana : State
+
+-- Predicates
+axiom InState : City → State → Prop
+axiom InCity  : City → City → Prop
+
+-- "Same state" relation between two cities
+def SameState (c₁ c₂ : City) : Prop := ∃ s : State, InState c₁ s ∧ InState c₂ s
+
+-- Premises:
+-- Billings is in Montana
+axiom billings_in_montana : InState Billings Montana
+-- Montana includes Butte, Helena, Missoula
+axiom butte_in_montana : InState Butte Montana
+axiom helena_in_montana : InState Helena Montana
+axiom missoula_in_montana : InState Missoula Montana
+-- White Sulphur Springs and Butte are in the same state
+axiom wss_same_butte : SameState WhiteSulphurSprings Butte
+-- St Pierre is not in Montana
+axiom stp_not_in_montana : ¬ InState StPierre Montana
+-- Any city in Butte is not in St Pierre (interpreting "in" between cities)
+axiom city_in_butte_not_in_stp : ∀ c : City, InCity c Butte → ¬ InCity c StPierre
+-- A city can only be in one state in U.S. except for Bristol, Texarkana, Texhoma and Union City.
+axiom unique_state_except :
+  ∀ (c : City) (s₁ s₂ : State),
+    c ≠ Bristol → c ≠ Texarkana → c ≠ Texhoma → c ≠ UnionCity →
+    InState c s₁ → InState c s₂ → s₁ = s₂
+
+-- Distinctness facts ensuring Butte is not one of the exceptions.
+axiom Butte_ne_Bristol : Butte ≠ Bristol
+axiom Butte_ne_Texarkana : Butte ≠ Texarkana
+axiom Butte_ne_Texhoma : Butte ≠ Texhoma
+axiom Butte_ne_UnionCity : Butte ≠ UnionCity
+
+-- The given conclusion (Butte and St Pierre are in the same state) does not follow; in fact, it is false under the premises.
+theorem not_same_state_butte_stp : ¬ SameState Butte StPierre := by
+  intro h
+  rcases h with ⟨s, hButteS, hStPierreS⟩
+  -- By uniqueness of state for Butte (not an exception), any state of Butte equals Montana
+  have h_eq : Montana = s :=
+    unique_state_except Butte Montana s
+      Butte_ne_Bristol Butte_ne_Texarkana Butte_ne_Texhoma Butte_ne_UnionCity
+      butte_in_montana hButteS
+  -- Hence St Pierre would be in Montana, contradicting the premise
+  have : InState StPierre Montana := by
+    simpa [h_eq] using hStPierreS
+  exact stp_not_in_montana this
+
+-- The (invalid) conclusion to analyze would be:
+-- theorem conclusion : SameState Butte StPierre := by
+--   -- Not provable from the given premises (indeed, contradicted by them)
+--   admit
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom City : Type
+axiom State : Type
+
+-- Cities mentioned
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+-- State mentioned
+axiom Montana : State
+
+-- Membership predicate: a city is in a state
+axiom InState : City → State → Prop
+
+-- Premises
+axiom tautology : True  -- "Not false and true is true."
+
+-- "Billings is a city in the state of Montana in U.S."
+axiom billings_in_montana : InState Billings Montana
+
+-- "The state of Montana includes the cities of Butte, Helena, and Missoula."
+axiom butte_in_montana : InState Butte Montana
+axiom helena_in_montana : InState Helena Montana
+axiom missoula_in_montana : InState Missoula Montana
+
+-- "White Sulphur Springs and Butte are cities in the same state in U.S."
+axiom wss_same_state_butte : ∃ s : State, InState WhiteSulphurSprings s ∧ InState Butte s
+
+-- "The city of St Pierre is not in the state of Montana."
+axiom stpierre_not_montana : ¬ InState StPierre Montana
+
+-- "Any city in Butte is not in St Pierre."
+-- Interpreted as: no state contains both Butte and St Pierre.
+axiom no_state_contains_butte_and_stpierre : ∀ s : State, InState Butte s → ¬ InState StPierre s
+
+-- "A city can only be in one state in U.S. except for Bristol, Texarkana, Texhoma and Union City."
+axiom unique_state_except_special :
+  ∀ c : City, ∀ s1 s2 : State, InState c s1 → InState c s2 →
+    (c = Bristol ∨ c = Texarkana ∨ c = Texhoma ∨ c = UnionCity ∨ s1 = s2)
+
+-- We must prove the negation of:
+-- "Butte and St Pierre are in the same state." ≡ ∃ s, InState Butte s ∧ InState StPierre s
+theorem not_same_state_Butte_StPierre : ¬ (∃ s : State, InState Butte s ∧ InState StPierre s) :=
+  fun ⟨s, hs⟩ => (no_state_contains_butte_and_stpierre s hs.left) hs.right
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: Unknown
+Correct: No

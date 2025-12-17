@@ -1,0 +1,90 @@
+Story ID: 259
+Example ID: 703
+Premises: All horses have hooves.
+No humans have hooves.
+Conclusion: Some humans are horses.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We model entities and relevant predicates
+axiom Entity : Type
+axiom Human : Entity → Prop
+axiom Horse : Entity → Prop
+axiom HasHooves : Entity → Prop
+
+-- Premises:
+-- 1) All horses have hooves.
+axiom allHorsesHaveHooves : ∀ x : Entity, Horse x → HasHooves x
+-- 2) No humans have hooves.
+axiom noHumansHaveHooves : ∀ x : Entity, Human x → ¬ HasHooves x
+
+-- A derived consequence of the premises: No human is a horse.
+theorem noHumanIsHorse : ∀ x : Entity, Human x → ¬ Horse x := by
+  intro x hxHuman
+  intro hxHorse
+  have hxHooves : HasHooves x := allHorsesHaveHooves x hxHorse
+  have hxNoHooves : ¬ HasHooves x := noHumansHaveHooves x hxHuman
+  exact hxNoHooves hxHooves
+
+-- Even stronger: There does not exist an entity that is both a human and a horse.
+theorem noHumanHorseExists : ¬ ∃ x : Entity, Human x ∧ Horse x := by
+  intro h
+  rcases h with ⟨x, hxHuman, hxHorse⟩
+  have : ¬ Horse x := noHumanIsHorse x hxHuman
+  exact this hxHorse
+
+-- Conclusion to analyze (claimed): Some humans are horses.
+-- This states the existence of an x that is both Human and Horse.
+-- From the premises we actually derived the negation of this statement above.
+-- Therefore this conclusion does not follow from the premises, and is in fact
+-- inconsistent with them. Proof attempt (expected to fail):
+theorem someHumansAreHorses : ∃ x : Entity, Human x ∧ Horse x := by
+  -- From the premises, we have proved `noHumanHorseExists`,
+  -- i.e., `¬ ∃ x, Human x ∧ Horse x`, which contradicts the goal.
+  -- Hence this goal is not derivable from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Being : Type
+axiom Human : Being → Prop
+axiom Horse : Being → Prop
+axiom HasHooves : Being → Prop
+
+-- Premises
+axiom all_horses_have_hooves : ∀ x : Being, Horse x → HasHooves x
+axiom no_humans_have_hooves : ∀ x : Being, Human x → ¬HasHooves x
+
+-- Negation of the conclusion "Some humans are horses" is "No human is a horse",
+-- i.e., there does not exist an x that is both Human and Horse.
+theorem no_human_is_horse : ¬ (∃ x : Being, Human x ∧ Horse x) := by
+  intro h
+  cases h with
+  | intro x hx =>
+    have hxHuman : Human x := And.left hx
+    have hxHorse : Horse x := And.right hx
+    have hHooves : HasHooves x := all_horses_have_hooves x hxHorse
+    have nHooves : ¬ HasHooves x := no_humans_have_hooves x hxHuman
+    exact nHooves hHooves
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

@@ -1,0 +1,143 @@
+Story ID: 380
+Example ID: 1015
+Premises: True is not false. People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+Conclusion: If Bonnie is either both a young child or teenager who wishes to further her academic career and educational opportunities and chaperones high school dances or neither is a young child nor teenager who wishes to further her academic career and educational opportunities, then Bonnie is either a student who attends the school or is an inactive and disinterested member of the community.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom Club : Person → Prop
+axiom PerformOften : Person → Prop
+axiom AttendEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperone : Person → Prop
+axiom Student : Person → Prop
+axiom YoungChild : Person → Prop
+axiom Teenager : Person → Prop
+axiom WishesFurther : Person → Prop
+
+-- Premises
+axiom true_not_false : True ≠ False
+axiom perf_implies_attend_engaged : ∀ x : Person, Club x ∧ PerformOften x → AttendEngaged x
+axiom club_perform_or_inactive : ∀ x : Person, Club x → (PerformOften x ∨ InactiveDisinterested x)
+axiom chaperone_not_student : ∀ x : Person, Club x ∧ Chaperone x → ¬ Student x
+axiom inactive_chaperone : ∀ x : Person, Club x ∧ InactiveDisinterested x → Chaperone x
+axiom youngOrTeen_wishes_student :
+  ∀ x : Person, Club x ∧ ((YoungChild x ∨ Teenager x) ∧ WishesFurther x) → Student x
+axiom bonnie_status :
+  Club Bonnie ∧ ((AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ Student Bonnie))
+
+-- Conclusion
+theorem conclusion :
+  (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurther Bonnie ∧ Chaperone Bonnie)
+    ∨ ¬ ((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurther Bonnie))
+  → (Student Bonnie ∨ InactiveDisinterested Bonnie) := by
+  intro hAnte
+  have hClub : Club Bonnie := (bonnie_status).left
+  have hDisj : PerformOften Bonnie ∨ InactiveDisinterested Bonnie :=
+    club_perform_or_inactive Bonnie hClub
+  cases hDisj with
+  | inr hInactive =>
+      exact Or.inr hInactive
+  | inl hPerf =>
+      have hAE : AttendEngaged Bonnie :=
+        perf_implies_attend_engaged Bonnie ⟨hClub, hPerf⟩
+      have hCase :
+        (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ Student Bonnie) :=
+        (bonnie_status).right
+      have hStud : Student Bonnie := by
+        cases hCase with
+        | inl hAE_S =>
+            exact hAE_S.right
+        | inr hNotAE_NotS =>
+            have : False := hNotAE_NotS.left hAE
+            exact False.elim this
+      exact Or.inl hStud
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Constants for the specific individual
+axiom Bonnie : Person
+
+-- Predicates
+axiom InClub : Person → Prop
+axiom PerformTalentOften : Person → Prop
+axiom AttendAndEngagedEvents : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom ChaperoneDances : Person → Prop
+axiom StudentAtSchool : Person → Prop
+axiom YoungChild : Person → Prop
+axiom Teenager : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premises formalization
+
+-- People in this club who perform in school talent shows often attend and are very engaged with school events.
+axiom premise1 : ∀ x : Person, InClub x ∧ PerformTalentOften x → AttendAndEngagedEvents x
+
+-- People in this club either perform in school talent shows often or are inactive and disinterested community members.
+axiom premise2 : ∀ x : Person, InClub x → (PerformTalentOften x ∨ InactiveDisinterested x)
+
+-- People in this club who chaperone high school dances are not students who attend the school.
+axiom premise3 : ∀ x : Person, InClub x ∧ ChaperoneDances x → ¬StudentAtSchool x
+
+-- All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+axiom premise4 : ∀ x : Person, InClub x ∧ InactiveDisinterested x → ChaperoneDances x
+
+-- All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school.
+axiom premise5 : ∀ x : Person, InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishesFurtherAcademic x → StudentAtSchool x
+
+-- Bonnie is in this club
+axiom premise6 : InClub Bonnie
+
+-- Bonnie either both attends and is very engaged with school events and is a student, or does not attend/engage and is not a student.
+axiom premise7 : (AttendAndEngagedEvents Bonnie ∧ StudentAtSchool Bonnie) ∨ (¬AttendAndEngagedEvents Bonnie ∧ ¬StudentAtSchool Bonnie)
+
+-- For reference: the analyzed conclusion (not as a theorem, but to build its negation)
+def AntecedentBonnie : Prop :=
+  ((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherAcademic Bonnie ∧ ChaperoneDances Bonnie)
+  ∨ ¬((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherAcademic Bonnie)
+
+def ConsequentBonnie : Prop :=
+  StudentAtSchool Bonnie ∨ InactiveDisinterested Bonnie
+
+-- We attempt to prove the NEGATION of the conclusion:
+-- ¬(AntecedentBonnie → ConsequentBonnie)
+theorem negated_conclusion : ¬(AntecedentBonnie → ConsequentBonnie) := by
+  -- Attempt: assume the implication and derive a contradiction
+  intro h
+  -- From the given premises, one can actually derive that ConsequentBonnie holds unconditionally,
+  -- so there is no way to obtain a contradiction here.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: Unknown
+Correct: No

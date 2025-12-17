@@ -1,0 +1,113 @@
+Story ID: 184
+Example ID: 531
+Premises: True or true is true. "Stranger Things" is a popular Netflix show.
+If a Netflix show is popular, Karen will binge-watch it.
+If and only if Karen binge-watches a Netflix show, she will download it.
+Karen does not download "Black Mirror."
+"Black Mirror" is a Netflix show.
+If Karen binge-watches a Netflix show, she will share it with Lisa.
+Conclusion: "Black Mirror" is popular.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Show : Type
+axiom StrangerThings : Show
+axiom BlackMirror : Show
+
+axiom Netflix : Show → Prop
+axiom Popular : Show → Prop
+axiom Binge : Show → Prop
+axiom Download : Show → Prop
+axiom ShareWithLisa : Show → Prop
+
+-- Premises
+axiom tautology : True ∨ True
+axiom StrangerThings_is_Netflix : Netflix StrangerThings
+axiom StrangerThings_is_Popular : Popular StrangerThings
+
+-- If a Netflix show is popular, Karen will binge-watch it.
+axiom popular_implies_binge : ∀ s : Show, Netflix s → Popular s → Binge s
+
+-- If and only if Karen binge-watches a Netflix show, she will download it.
+axiom binge_iff_download : ∀ s : Show, Netflix s → (Binge s ↔ Download s)
+
+-- Karen does not download "Black Mirror."
+axiom not_download_BlackMirror : ¬ Download BlackMirror
+
+-- "Black Mirror" is a Netflix show.
+axiom BlackMirror_is_Netflix : Netflix BlackMirror
+
+-- If Karen binge-watches a Netflix show, she will share it with Lisa.
+axiom binge_implies_share : ∀ s : Show, Netflix s → Binge s → ShareWithLisa s
+
+-- From the premises we can actually derive that "Black Mirror" is NOT popular.
+theorem not_popular_BlackMirror : ¬ Popular BlackMirror := by
+  have hN : Netflix BlackMirror := BlackMirror_is_Netflix
+  have hiff : Binge BlackMirror ↔ Download BlackMirror := binge_iff_download BlackMirror hN
+  -- From ¬Download BM and (Binge BM ↔ Download BM), we get ¬Binge BM
+  have h_not_binge : ¬ Binge BlackMirror := by
+    intro hB
+    have hD : Download BlackMirror := hiff.mp hB
+    exact not_download_BlackMirror hD
+  -- Popular BM → Binge BM (since it's a Netflix show)
+  have h_imp : Popular BlackMirror → Binge BlackMirror := popular_implies_binge BlackMirror hN
+  -- Therefore, ¬Popular BM
+  intro hPop
+  exact h_not_binge (h_imp hPop)
+
+-- Conclusion to analyze (as requested): "Black Mirror" is popular.
+theorem conclusion : Popular BlackMirror := by
+  -- This does not follow from the premises; in fact, we have proved its negation above.
+  sorry
+
+-- Optional: show explicitly that the conclusion contradicts the premises.
+theorem conclusion_contradicts_premises : Popular BlackMirror → False := by
+  intro h
+  exact not_popular_BlackMirror h
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Show : Type
+axiom BlackMirror : Show
+
+axiom Netflix : Show → Prop
+axiom Popular : Show → Prop
+axiom Binge : Show → Prop
+axiom Download : Show → Prop
+
+-- Premises used
+axiom premise_pop_imp_binge : ∀ s : Show, Netflix s → Popular s → Binge s
+axiom premise_binge_iff_download : ∀ s : Show, Netflix s → (Binge s ↔ Download s)
+axiom premise_not_download_BM : ¬ Download BlackMirror
+axiom premise_netflix_BM : Netflix BlackMirror
+
+-- Goal: prove the negation of the conclusion: ¬ Popular BlackMirror
+theorem goal : ¬ Popular BlackMirror := by
+  intro hPop
+  have hNet : Netflix BlackMirror := premise_netflix_BM
+  have hBinge : Binge BlackMirror := premise_pop_imp_binge BlackMirror hNet hPop
+  have hIff : Binge BlackMirror ↔ Download BlackMirror := premise_binge_iff_download BlackMirror hNet
+  have hDown : Download BlackMirror := (Iff.mp hIff) hBinge
+  exact premise_not_download_BM hDown
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

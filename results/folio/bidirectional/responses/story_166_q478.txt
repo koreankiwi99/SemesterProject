@@ -1,0 +1,174 @@
+Story ID: 166
+Example ID: 478
+Premises: Pets are allowed in some managed buildings.
+A deposit is required to rent an apartment in a managed building.
+The security deposit can be either equal to the monthly rent at a managed building or more.
+Fluffy is Tom's cat.
+Cats are pets.
+The Olive Garden is a managed building.
+The monthly rent at the Olive Garden is $2000.
+$2000 is more than $1500.
+Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy, and the security deposit is no more than $1500.
+If a managed building allows pets, then people are allowed to move in with a pet. 
+Conclusion: The security deposit at the Olive Garden is either $2000 or more.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Building : Type
+axiom Person : Type
+axiom Animal : Type
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom MonthlyRent : Building → Nat
+axiom SecurityDeposit : Building → Nat
+
+axiom Pet : Animal → Prop
+axiom Cat : Animal → Prop
+axiom AllowedToMoveInWithPet : Person → Animal → Building → Prop
+axiom WillRentApartmentIn : Person → Building → Prop
+axiom Owns : Person → Animal → Prop
+
+axiom OliveGarden : Building
+axiom Tom : Person
+axiom Fluffy : Animal
+
+-- Pets are allowed in some managed buildings.
+axiom some_managed_allows_pets : ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom deposit_eq_or_more :
+  ∀ b : Building, Managed b → (SecurityDeposit b = MonthlyRent b ∨ SecurityDeposit b > MonthlyRent b)
+
+-- Fluffy is Tom's cat.
+axiom owns_fluffy : Owns Tom Fluffy
+axiom fluffy_cat : Cat Fluffy
+
+-- Cats are pets.
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+
+-- The Olive Garden is a managed building.
+axiom og_managed : Managed OliveGarden
+
+-- The monthly rent at the Olive Garden is $2000.
+axiom og_rent_2000 : MonthlyRent OliveGarden = 2000
+
+-- $2000 is more than $1500.
+axiom twoThousand_gt_oneThousandFiveHundred : 2000 > 1500
+
+-- Tom will rent an apartment in a managed building if allowed to move with Fluffy and the deposit is ≤ $1500.
+axiom tom_rent_condition :
+  ∀ b : Building, AllowedToMoveInWithPet Tom Fluffy b ∧ SecurityDeposit b ≤ 1500 →
+    WillRentApartmentIn Tom b ∧ Managed b
+
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom managed_allows_pets_implies_allowed_move_in_with_pet :
+  ∀ b : Building, Managed b ∧ AllowsPets b →
+    ∀ p : Person, ∀ a : Animal, Pet a → AllowedToMoveInWithPet p a b
+
+-- Conclusion: The security deposit at the Olive Garden is either $2000 or more.
+theorem conclusion :
+  SecurityDeposit OliveGarden = 2000 ∨ SecurityDeposit OliveGarden > 2000 := by
+  have h := deposit_eq_or_more OliveGarden og_managed
+  cases h with
+  | inl hEq =>
+      left
+      simpa [og_rent_2000] using hEq
+  | inr hGt =>
+      right
+      simpa [og_rent_2000] using hGt
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Building : Type
+axiom Person : Type
+axiom Animal : Type
+
+-- Specific constants
+axiom OliveGarden : Building
+axiom Tom : Person
+axiom Fluffy : Animal
+
+-- Predicates and relations
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Pet : Animal → Prop
+axiom Cat : Animal → Prop
+axiom Owner : Person → Animal → Prop
+axiom AllowedWith : Person → Animal → Building → Prop
+
+-- Financial data
+axiom MonthlyRent : Building → Nat
+axiom SecurityDeposit : Building → Nat
+
+-- Optional: deposit requirement predicate (from the premise "A deposit is required...")
+axiom DepositRequired : Building → Prop
+
+-- Premises
+
+-- Pets are allowed in some managed buildings.
+axiom some_managed_allows_pets : ∃ b : Building, Managed b ∧ AllowsPets b
+
+-- A deposit is required to rent an apartment in a managed building.
+axiom deposit_required_managed : ∀ b : Building, Managed b → DepositRequired b
+
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+-- Interpreted as: for any managed building, the deposit is equal to rent or greater than rent.
+axiom deposit_policy : ∀ b : Building, Managed b → (SecurityDeposit b = MonthlyRent b ∨ SecurityDeposit b > MonthlyRent b)
+
+-- Fluffy is Tom's cat.
+axiom fluffy_is_cat : Cat Fluffy
+axiom fluffy_owned_by_tom : Owner Tom Fluffy
+
+-- Cats are pets.
+axiom cats_are_pets : ∀ a : Animal, Cat a → Pet a
+
+-- The Olive Garden is a managed building.
+axiom og_managed : Managed OliveGarden
+
+-- The monthly rent at the Olive Garden is $2000.
+axiom og_rent_2000 : MonthlyRent OliveGarden = 2000
+
+-- $2000 is more than $1500.
+axiom two_thousand_gt_1500 : 2000 > 1500
+
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy,
+-- and the security deposit is no more than $1500.
+axiom WillRentManaged : Person → Prop
+axiom rent_condition :
+  (∃ b : Building, Managed b ∧ AllowedWith Tom Fluffy b ∧ SecurityDeposit b ≤ 1500) → WillRentManaged Tom
+
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom allow_with_pet_if_allows_pets :
+  ∀ b : Building, Managed b → AllowsPets b → ∀ p : Person, ∀ a : Animal, Pet a → AllowedWith p a b
+
+-- NEGATION of the conclusion to analyze:
+-- Conclusion: SecurityDeposit OliveGarden is either $2000 or more (i.e., = 2000 or > 2000).
+-- Negation: Not (SecurityDeposit OliveGarden = 2000 or SecurityDeposit OliveGarden > 2000).
+theorem negate_conclusion : ¬(SecurityDeposit OliveGarden = 2000 ∨ SecurityDeposit OliveGarden > 2000) := by
+  -- Attempt to prove the negation from the premises. This is not derivable:
+  -- In fact, from deposit_policy and og_rent_2000 and og_managed, we can derive the original conclusion.
+  -- Therefore, the negation is not provable from these premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

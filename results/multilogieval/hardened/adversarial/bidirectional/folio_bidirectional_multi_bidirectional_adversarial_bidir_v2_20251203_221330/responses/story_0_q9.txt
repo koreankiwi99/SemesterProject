@@ -1,0 +1,82 @@
+Story ID: 0
+Example ID: 9
+Premises: I have some plans coming up this weekend that I'm excited about. I heard the concert venue is offering discounts on drinks.. If my favorite band is playing a concert in town, I'll buy tickets to go see them. The band often sells out their concerts quickly.. I usually ace my exams when I study well in advance.. Also, if I have a big exam coming up, I'll need to stay home and study instead of going out. It looks like either the concert will happen, or I'll have that exam, or perhaps both.
+Conclusion: If I didn't stay home and study, then did I buy concert tickets?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Concert : Prop
+axiom BuyTickets : Prop
+axiom Exam : Prop
+axiom StayHomeStudy : Prop
+
+-- If the concert happens, I buy tickets.
+axiom concert_implies_buy : Concert → BuyTickets
+-- If I have a big exam, I stay home and study.
+axiom exam_implies_stayHome : Exam → StayHomeStudy
+-- Either the concert happens or I have the exam (or both).
+axiom concert_or_exam : Concert ∨ Exam
+
+-- Conclusion: If I didn't stay home and study, then I bought concert tickets.
+theorem buy_if_not_study : (¬ StayHomeStudy) → BuyTickets := by
+  intro hNotS
+  -- From ¬StayHomeStudy and Exam → StayHomeStudy, derive ¬Exam.
+  have hNotE : ¬ Exam := by
+    intro hE
+    exact hNotS (exam_implies_stayHome hE)
+  -- From Concert ∨ Exam and ¬Exam, derive Concert.
+  have hC : Concert := by
+    cases concert_or_exam with
+    | inl hC => exact hC
+    | inr hE => exact False.elim (hNotE hE)
+  -- From Concert → BuyTickets and Concert, conclude BuyTickets.
+  exact concert_implies_buy hC
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom S : Prop  -- I stay home and study
+axiom T : Prop  -- I buy concert tickets
+axiom B : Prop  -- My favorite band is playing a concert in town (the concert happens)
+axiom E : Prop  -- I have a big exam coming up
+
+-- Premises:
+axiom premise_buy_if_band : B → T
+axiom premise_study_if_exam : E → S
+axiom premise_either_concert_or_exam : B ∨ E
+
+-- The conclusion to analyze: ¬S → T
+-- From the premises, we can actually prove the conclusion is true:
+theorem conclusion_true : ¬S → T := by
+  intro hNotS
+  cases premise_either_concert_or_exam with
+  | inl hB =>
+      exact premise_buy_if_band hB
+  | inr hE =>
+      have hS : S := premise_study_if_exam hE
+      exact False.elim (hNotS hS)
+
+-- The requested negation would be: ¬(¬S → T)
+-- But as shown above, the conclusion (¬S → T) is provable, so its negation is not derivable from these premises.
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: No
+Correct: No

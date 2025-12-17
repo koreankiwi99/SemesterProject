@@ -1,0 +1,147 @@
+Story ID: 183
+Example ID: 527
+Premises: If a man is taller than another man, the taller one can block the other's shooting.
+Michael is a man who is taller than everyone else in his class.
+If person x is taller than person y, and person y is taller than person z, then x is taller than z
+Peter is a man who is taller than Michael.
+Michael can block any shooting from a person as long as the person does not jump when shooting.
+Michael cannot block Windy's shooting.
+Every shooter who can jump when shooting is a great shooter.
+Conclusion: Peter is shorter than a man in Michael's class.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Man : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom InClassOf : Person → Person → Prop
+axiom JumpsWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+-- Premises
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom taller_blocking :
+  ∀ x y : Person, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man who is taller than everyone else in his class.
+axiom michael_tallest_in_class :
+  Man Michael ∧ (∀ y : Person, InClassOf y Michael → Taller Michael y)
+
+-- Transitivity of being taller
+axiom taller_trans :
+  ∀ x y z : Person, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom peter_taller_than_michael :
+  Man Peter ∧ Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom michael_blocks_nonjumpers :
+  ∀ p : Person, ¬ JumpsWhenShooting p → CanBlock Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom michael_cannot_block_windy :
+  ¬ CanBlock Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom jumpers_are_great :
+  ∀ p : Person, JumpsWhenShooting p → GreatShooter p
+
+-- Conclusion to analyze: Peter is shorter than a man in Michael's class.
+-- Formalized as: ∃ m, Man m ∧ InClassOf m Michael ∧ Taller m Peter
+theorem conclusion :
+  ∃ m : Person, Man m ∧ InClassOf m Michael ∧ Taller m Peter := by
+  -- Some derived facts (do not lead to the goal)
+  have hMman : Man Michael := (michael_tallest_in_class).1
+  have hM_tallest : ∀ y, InClassOf y Michael → Taller Michael y :=
+    (michael_tallest_in_class).2
+  have hPman : Man Peter := (peter_taller_than_michael).1
+  have hPgtM : Taller Peter Michael := (peter_taller_than_michael).2
+  -- Peter is taller than everyone in Michael's class (by transitivity)
+  have hP_taller_than_class : ∀ y, InClassOf y Michael → Taller Peter y := by
+    intro y hy
+    have hMy : Taller Michael y := hM_tallest y hy
+    exact taller_trans Peter Michael y hPgtM hMy
+  -- Unable to derive existence of someone in Michael's class taller than Peter from given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+axiom Man : Person → Prop
+axiom InClassOf : Person → Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlockShooting : Person → Person → Prop
+axiom JumpsWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- Premises
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom premise1 : ∀ a b : Person, Man a → Man b → Taller a b → CanBlockShooting a b
+-- Michael is a man who is taller than everyone else in his class.
+axiom premise2a : Man Michael
+axiom premise2b : ∀ x : Person, InClassOf x Michael → Taller Michael x
+-- If x is taller than y and y taller than z, then x taller than z.
+axiom premise3 : ∀ x y z : Person, Taller x y → Taller y z → Taller x z
+-- Peter is a man who is taller than Michael.
+axiom premise4a : Man Peter
+axiom premise4b : Taller Peter Michael
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom premise5 : ∀ x : Person, ¬ JumpsWhenShooting x → CanBlockShooting Michael x
+-- Michael cannot block Windy's shooting.
+axiom premise6 : ¬ CanBlockShooting Michael Windy
+-- Every shooter who can jump when shooting is a great shooter.
+axiom premise7 : ∀ x : Person, JumpsWhenShooting x → GreatShooter x
+
+-- Natural property of "taller than": irreflexive (no one is taller than themselves)
+axiom taller_irrefl : ∀ x : Person, ¬ Taller x x
+
+def Shorter (x y : Person) : Prop := Taller y x
+
+-- Negation of the conclusion: It is not the case that Peter is shorter than a man in Michael's class.
+theorem goal : ¬ ∃ m : Person, Man m ∧ InClassOf m Michael ∧ Shorter Peter m := by
+  intro h
+  cases h with
+  | intro m h1 =>
+    cases h1 with
+    | intro hmMan h2 =>
+      cases h2 with
+      | intro hmClass hShort =>
+        have hMm : Taller Michael m := premise2b m hmClass
+        have hPm : Taller Peter m := premise3 Peter Michael m premise4b hMm
+        have hmp : Taller m Peter := hShort
+        have hpp : Taller Peter Peter := premise3 Peter m Peter hPm hmp
+        have contra := taller_irrefl Peter
+        exact contra hpp
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

@@ -1,0 +1,128 @@
+Story ID: 319
+Example ID: 808
+Premises: True is not false. Not true and false is false. Not false is true. Not false and false is false. No baked sweets are spicy.
+All cupcakes are baked sweets.
+All mala hotpots are spicy.
+All products from Baked by Melissa are cupcakes.
+Dried Thai chilies are spicy or mala hotpots or not baked sweets.
+Conclusion: Dried Thai chilies are neither products of Baked by Melissa nor baked sweets.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Entity : Type
+
+-- Individuals and predicates
+axiom DriedThaiChilies : Entity
+axiom BakedSweet : Entity → Prop
+axiom Spicy : Entity → Prop
+axiom Cupcake : Entity → Prop
+axiom MalaHotpot : Entity → Prop
+axiom FromBakedByMelissa : Entity → Prop
+
+-- Premises
+axiom no_baked_sweets_are_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+axiom all_cupcakes_are_baked_sweets : ∀ x, Cupcake x → BakedSweet x
+axiom all_mala_hotpots_are_spicy : ∀ x, MalaHotpot x → Spicy x
+axiom all_BBM_products_are_cupcakes : ∀ x, FromBakedByMelissa x → Cupcake x
+axiom DTC_spicy_or_mala_or_not_baked :
+  Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
+
+-- Conclusion: Dried Thai chilies are neither products of Baked by Melissa nor baked sweets.
+theorem conclusion :
+  ¬ FromBakedByMelissa DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies := by
+  -- First, show ¬ BakedSweet DriedThaiChilies
+  have not_bs : ¬ BakedSweet DriedThaiChilies := by
+    cases DTC_spicy_or_mala_or_not_baked with
+    | inl hSpicy =>
+        -- If spicy, then not baked sweet by "no baked sweets are spicy"
+        intro hbs
+        have notSp := no_baked_sweets_are_spicy DriedThaiChilies hbs
+        exact notSp hSpicy
+    | inr h =>
+        cases h with
+        | inl hMala =>
+            -- If mala hotpot, then spicy, hence not baked sweet
+            have hSpicy := all_mala_hotpots_are_spicy DriedThaiChilies hMala
+            intro hbs
+            have notSp := no_baked_sweets_are_spicy DriedThaiChilies hbs
+            exact notSp hSpicy
+        | inr hNotBaked =>
+            -- Directly not baked sweet
+            exact hNotBaked
+  -- Second, show ¬ FromBakedByMelissa DriedThaiChilies
+  have bbm_implies_bs : ∀ x, FromBakedByMelissa x → BakedSweet x := by
+    intro x hbbm
+    have hc : Cupcake x := all_BBM_products_are_cupcakes x hbbm
+    exact all_cupcakes_are_baked_sweets x hc
+  have not_bbm : ¬ FromBakedByMelissa DriedThaiChilies := by
+    intro hbbm
+    have hbs : BakedSweet DriedThaiChilies := bbm_implies_bs DriedThaiChilies hbbm
+    exact not_bs hbs
+  exact And.intro not_bbm not_bs
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Entity : Type
+
+-- Individuals and predicates
+axiom DriedThaiChilies : Entity
+axiom BakedSweet : Entity → Prop
+axiom Spicy : Entity → Prop
+axiom Cupcake : Entity → Prop
+axiom MalaHotpot : Entity → Prop
+axiom FromBakedByMelissa : Entity → Prop
+
+-- Premises
+axiom no_baked_sweets_are_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+axiom all_cupcakes_are_baked_sweets : ∀ x, Cupcake x → BakedSweet x
+axiom all_mala_hotpots_are_spicy : ∀ x, MalaHotpot x → Spicy x
+axiom all_BBM_products_are_cupcakes : ∀ x, FromBakedByMelissa x → Cupcake x
+axiom DTC_spicy_or_mala_or_not_baked :
+  Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
+
+-- Conclusion: Dried Thai chilies are neither products of Baked by Melissa nor baked sweets.
+theorem conclusion :
+  ¬ FromBakedByMelissa DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies := by
+  -- First, show ¬ BakedSweet DriedThaiChilies
+  have not_bs : ¬ BakedSweet DriedThaiChilies := by
+    cases DTC_spicy_or_mala_or_not_baked with
+    | inl hSpicy =>
+        -- If spicy, then not baked sweet by "no baked sweets are spicy"
+        intro hbs
+        have notSp := no_baked_sweets_are_spicy DriedThaiChilies hbs
+        exact notSp hSpicy
+    | inr h =>
+        cases h with
+        | inl hMala =>
+            -- If mala hotpot, then spicy, hence not baked sweet
+            have hSpicy := all_mala_hotpots_are_spicy DriedThaiChilies hMala
+            intro hbs
+            have notSp := no_baked_sweets_are_spicy DriedThaiChilies hbs
+            exact notSp hSpicy
+        | inr hNotBaked =>
+            -- Directly not baked sweet
+            exact hNotBaked
+  -- Second, show ¬ FromBakedByMelissa DriedThaiChilies
+  have bbm_implies_bs : ∀ x, FromBakedByMelissa x → BakedSweet x := by
+    intro x hbbm
+    have hc : Cupcake x := all_BBM_products_are_cupcakes x hbbm
+    exact all_cupcakes_are_baked_sweets x hc
+  have not_bbm : ¬ FromBakedByMelissa DriedThaiChilies := by
+    intro hbbm
+    have hbs : BakedSweet DriedThaiChilies := bbm_implies_bs DriedThaiChilies hbbm
+    exact not_bs hbs
+  exact And.intro not_bbm not_bs
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

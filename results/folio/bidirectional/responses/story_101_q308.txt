@@ -1,0 +1,127 @@
+Story ID: 101
+Example ID: 308
+Premises: Ailton Silva, born in 1995, is commonly known as Ailton.
+Ailton is a football player who was loaned out to Braga.
+Ailton Silva is a Brazilian footballer who plays for Náutico.
+Náutico is a football club along with Braga.
+Fluminense is a football club.
+Conclusion: Ailton Silva was loaned out to a football club.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Entity : Type
+axiom AiltonSilva : Entity
+axiom Ailton : Entity
+axiom Braga : Entity
+axiom Nautico : Entity
+axiom Fluminense : Entity
+
+-- Predicates/Relations
+axiom FootballClub : Entity → Prop
+axiom Player : Entity → Prop
+axiom Brazilian : Entity → Prop
+axiom PlaysFor : Entity → Entity → Prop
+axiom LoanedTo : Entity → Entity → Prop
+
+-- Premises
+-- Ailton Silva, born in 1995, is commonly known as Ailton (we model this as identity)
+axiom alias_eq : AiltonSilva = Ailton
+
+-- Ailton is a football player who was loaned out to Braga.
+axiom prem_player_Ailton : Player Ailton
+axiom prem_loan_Ailton_Braga : LoanedTo Ailton Braga
+
+-- Ailton Silva is a Brazilian footballer who plays for Náutico.
+axiom prem_brazilian_AS : Brazilian AiltonSilva
+axiom prem_player_AS : Player AiltonSilva
+axiom prem_playsfor_AS_Nautico : PlaysFor AiltonSilva Nautico
+
+-- Náutico is a football club along with Braga.
+axiom club_Nautico : FootballClub Nautico
+axiom club_Braga : FootballClub Braga
+
+-- Fluminense is a football club.
+axiom club_Fluminense : FootballClub Fluminense
+
+-- Conclusion: Ailton Silva was loaned out to a football club.
+theorem conclusion : ∃ c : Entity, FootballClub c ∧ LoanedTo AiltonSilva c := by
+  have alias_eq' : Ailton = AiltonSilva := Eq.symm alias_eq
+  refine ⟨Braga, ?_, ?_⟩
+  · exact club_Braga
+  · simpa [alias_eq'] using prem_loan_Ailton_Braga
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Club : Type
+
+-- Entities
+axiom AiltonSilva : Person
+axiom Ailton : Person
+
+axiom Braga : Club
+axiom Nautico : Club
+axiom Fluminense : Club
+
+-- Predicates/relations
+axiom FootballPlayer : Person → Prop
+axiom Brazilian : Person → Prop
+axiom PlaysFor : Person → Club → Prop
+axiom FootballClub : Club → Prop
+axiom LoanedOutTo : Person → Club → Prop
+
+-- Premises
+-- Ailton Silva, born in 1995, is commonly known as Ailton.
+axiom alias_Ailton : Ailton = AiltonSilva
+
+-- Ailton is a football player who was loaned out to Braga.
+axiom premise1_player_loan : FootballPlayer Ailton ∧ LoanedOutTo Ailton Braga
+
+-- Ailton Silva is a Brazilian footballer who plays for Náutico.
+axiom premise2_brazilian_plays : Brazilian AiltonSilva ∧ PlaysFor AiltonSilva Nautico
+
+-- Náutico is a football club along with Braga.
+axiom premise3_clubs : FootballClub Nautico ∧ FootballClub Braga
+
+-- Fluminense is a football club.
+axiom premise4_flu : FootballClub Fluminense
+
+-- Derived fact: Ailton was loaned to Braga.
+lemma loaned_Ailton_Braga : LoanedOutTo Ailton Braga := by
+  exact And.right premise1_player_loan
+
+-- We attempt to prove the negation of the conclusion:
+-- Conclusion: ∃ c : Club, FootballClub c ∧ LoanedOutTo AiltonSilva c
+-- Negation: ¬ (∃ c : Club, FootballClub c ∧ LoanedOutTo AiltonSilva c)
+theorem negate_conclusion : ¬ (∃ c : Club, FootballClub c ∧ LoanedOutTo AiltonSilva c) := by
+  intro h
+  -- From the premises we can actually produce a witness (Braga) showing the existential is true.
+  have hb : FootballClub Braga := And.right premise3_clubs
+  have hloan : LoanedOutTo AiltonSilva Braga := by
+    simpa [alias_Ailton] using loaned_Ailton_Braga
+  have hexists : ∃ c : Club, FootballClub c ∧ LoanedOutTo AiltonSilva c := ⟨Braga, hb, hloan⟩
+  -- Unable to derive a contradiction from h and the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: True
+Correct: No

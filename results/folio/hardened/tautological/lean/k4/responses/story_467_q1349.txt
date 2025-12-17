@@ -1,0 +1,133 @@
+Story ID: 467
+Example ID: 1349
+Premises: Not true and true is false. Not false is true. True and true is not false. Not false and false is false. All of Peter's pets that are mammals are also animals.
+All monkeys are mammals. 
+Peter's pets are all either monkeys or birds. 
+Peter's birds can fly.
+All animals that are Peter's pets can breathe.
+If Peter's pet can fly, then it has wings.
+Rock is Peter's pet.
+Rock can fly, or Rock is a bird, or Rock cannot breathe. 
+Conclusion: Rock has wings.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Entity : Type
+
+axiom Pet : Entity → Prop
+axiom Mammal : Entity → Prop
+axiom Animal : Entity → Prop
+axiom Monkey : Entity → Prop
+axiom Bird : Entity → Prop
+axiom CanFly : Entity → Prop
+axiom CanBreathe : Entity → Prop
+axiom HasWings : Entity → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom pets_mammals_are_animals : ∀ x : Entity, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom monkeys_are_mammals : ∀ x : Entity, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom pets_are_monkeys_or_birds : ∀ x : Entity, Pet x → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom peters_birds_can_fly : ∀ x : Entity, Pet x ∧ Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom animals_pets_can_breathe : ∀ x : Entity, Animal x ∧ Pet x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom pet_can_fly_has_wings : ∀ x : Entity, Pet x ∧ CanFly x → HasWings x
+
+axiom Rock : Entity
+axiom rock_is_pet : Pet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ (Bird Rock ∨ ¬ CanBreathe Rock)
+
+theorem Rock_has_wings : HasWings Rock := by
+  have hpet : Pet Rock := rock_is_pet
+  have wings_from_fly : CanFly Rock → HasWings Rock :=
+    fun hf => pet_can_fly_has_wings Rock ⟨hpet, hf⟩
+  have wings_from_bird : Bird Rock → HasWings Rock :=
+    fun hb => wings_from_fly (peters_birds_can_fly Rock ⟨hpet, hb⟩)
+  cases rock_fly_or_bird_or_not_breathe with
+  | inl hf =>
+      exact wings_from_fly hf
+  | inr h =>
+      cases h with
+      | inl hb =>
+          exact wings_from_bird hb
+      | inr hnotbreathe =>
+          have hmb : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock hpet
+          cases hmb with
+          | inl hm =>
+              have hmam : Mammal Rock := monkeys_are_mammals Rock hm
+              have han : Animal Rock := pets_mammals_are_animals Rock ⟨hpet, hmam⟩
+              have hbr : CanBreathe Rock := animals_pets_can_breathe Rock ⟨han, hpet⟩
+              exact False.elim (hnotbreathe hbr)
+          | inr hb =>
+              exact wings_from_bird hb
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Entity : Type
+
+axiom Pet : Entity → Prop
+axiom Mammal : Entity → Prop
+axiom Animal : Entity → Prop
+axiom Monkey : Entity → Prop
+axiom Bird : Entity → Prop
+axiom CanFly : Entity → Prop
+axiom CanBreathe : Entity → Prop
+axiom HasWings : Entity → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom pets_mammals_are_animals : ∀ x : Entity, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom monkeys_are_mammals : ∀ x : Entity, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom pets_are_monkeys_or_birds : ∀ x : Entity, Pet x → (Monkey x ∨ Bird x)
+-- Peter's birds can fly.
+axiom peters_birds_can_fly : ∀ x : Entity, Pet x ∧ Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom animals_pets_can_breathe : ∀ x : Entity, Animal x ∧ Pet x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom pet_can_fly_has_wings : ∀ x : Entity, Pet x ∧ CanFly x → HasWings x
+
+axiom Rock : Entity
+axiom rock_is_pet : Pet Rock
+axiom rock_fly_or_bird_or_not_breathe : CanFly Rock ∨ (Bird Rock ∨ ¬ CanBreathe Rock)
+
+theorem Rock_has_wings : HasWings Rock := by
+  have hpet : Pet Rock := rock_is_pet
+  have wings_from_fly : CanFly Rock → HasWings Rock :=
+    fun hf => pet_can_fly_has_wings Rock ⟨hpet, hf⟩
+  have wings_from_bird : Bird Rock → HasWings Rock :=
+    fun hb => wings_from_fly (peters_birds_can_fly Rock ⟨hpet, hb⟩)
+  cases rock_fly_or_bird_or_not_breathe with
+  | inl hf =>
+      exact wings_from_fly hf
+  | inr h =>
+      cases h with
+      | inl hb =>
+          exact wings_from_bird hb
+      | inr hnotbreathe =>
+          have hmb : Monkey Rock ∨ Bird Rock := pets_are_monkeys_or_birds Rock hpet
+          cases hmb with
+          | inl hm =>
+              have hmam : Mammal Rock := monkeys_are_mammals Rock hm
+              have han : Animal Rock := pets_mammals_are_animals Rock ⟨hpet, hmam⟩
+              have hbr : CanBreathe Rock := animals_pets_can_breathe Rock ⟨han, hpet⟩
+              exact False.elim (hnotbreathe hbr)
+          | inr hb =>
+              exact wings_from_bird hb
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

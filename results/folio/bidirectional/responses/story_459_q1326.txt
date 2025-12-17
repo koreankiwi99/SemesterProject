@@ -1,0 +1,146 @@
+Story ID: 459
+Example ID: 1326
+Premises: Jane does not like any animals that bark.
+All dogs are animals that bark.
+Jane likes all animals that jump.
+If an animal has legs, then it jumps.
+If an animal is terricolous, then it has legs. 
+KiKi is an animal.
+If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+Conclusion: KiKi does not bark and he is not a dog.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Being : Type
+axiom Jane : Being
+axiom KiKi : Being
+
+axiom Animal : Being → Prop
+axiom Barks : Being → Prop
+axiom Dog : Being → Prop
+axiom Jumps : Being → Prop
+axiom HasLegs : Being → Prop
+axiom Terricolous : Being → Prop
+axiom Likes : Being → Being → Prop
+
+-- Premises
+axiom p1 : ∀ x : Being, Animal x → Barks x → ¬ Likes Jane x
+axiom p2 : ∀ x : Being, Dog x → Animal x ∧ Barks x
+axiom p3 : ∀ x : Being, Animal x → Jumps x → Likes Jane x
+axiom p4 : ∀ x : Being, Animal x → HasLegs x → Jumps x
+axiom p5 : ∀ x : Being, Animal x → Terricolous x → HasLegs x
+axiom p6 : Animal KiKi
+axiom p7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Conclusion: KiKi does not bark and he is not a dog.
+theorem goal : ¬ Barks KiKi ∧ ¬ Dog KiKi := by
+  -- From not having legs and not jumping, p7 yields terricolous or legs,
+  -- which in either case contradicts not having legs; hence ¬¬ Jumps if ¬ HasLegs.
+  have notnotJump_of_notLegs : ¬ HasLegs KiKi → ¬¬ Jumps KiKi :=
+    fun hNL =>
+      fun hNJ =>
+        match p7 ⟨hNJ, hNL⟩ with
+        | Or.inl hT =>
+            show False from hNL (p5 KiKi p6 hT)
+        | Or.inr hHL =>
+            show False from hNL hHL
+  -- Hence KiKi jumps (either has legs hence jumps, or doesn't have legs hence ¬¬Jumps).
+  have hJump : Jumps KiKi :=
+    match Classical.em (HasLegs KiKi) with
+    | Or.inl hL =>
+        p4 KiKi p6 hL
+    | Or.inr hNL =>
+        Classical.not_not.mp (notnotJump_of_notLegs hNL)
+  -- Jane likes any animal that jumps, so she likes KiKi.
+  have hLike : Likes Jane KiKi := p3 KiKi p6 hJump
+  -- If KiKi barked, Jane would not like KiKi, contradiction.
+  have hNotBark : ¬ Barks KiKi :=
+    fun hB => (p1 KiKi p6 hB) hLike
+  -- If KiKi were a dog, then it would bark; contradiction with ¬Barks.
+  have hNotDog : ¬ Dog KiKi :=
+    fun hDog =>
+      let hAB := p2 KiKi hDog
+      show False from hNotBark hAB.right
+  exact And.intro hNotBark hNotDog
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom Person : Type
+axiom Jane : Person
+axiom KiKi : Entity
+
+axiom Animal : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Bark : Entity → Prop
+axiom Jumps : Entity → Prop
+axiom Legs : Entity → Prop
+axiom Terricolous : Entity → Prop
+axiom Like : Person → Entity → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Entity, (Animal x ∧ Bark x) → ¬Like Jane x
+axiom premise2 : ∀ x : Entity, Dog x → (Animal x ∧ Bark x)
+axiom premise3 : ∀ x : Entity, (Animal x ∧ Jumps x) → Like Jane x
+axiom premise4 : ∀ x : Entity, (Animal x ∧ Legs x) → Jumps x
+axiom premise5 : ∀ x : Entity, (Animal x ∧ Terricolous x) → Legs x
+axiom premise6 : Animal KiKi
+axiom premise7 : (¬Jumps KiKi ∧ ¬Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+-- Negation of the conclusion to analyze: ¬(¬Bark KiKi ∧ ¬Dog KiKi)
+theorem negConclusion : ¬(¬Bark KiKi ∧ ¬Dog KiKi) := by
+  intro h
+  have hAnimal : Animal KiKi := premise6
+  -- Derive that KiKi jumps
+  have hJump : Jumps KiKi := by
+    classical
+    by_cases hL : Legs KiKi
+    · have : Jumps KiKi := premise4 KiKi ⟨hAnimal, hL⟩
+      exact this
+    · by_cases hJ : Jumps KiKi
+      · exact hJ
+      · have hdisj : Terricolous KiKi ∨ Legs KiKi :=
+          premise7 ⟨hJ, hL⟩
+        cases hdisj with
+        | inl hT =>
+            have hLegs : Legs KiKi := premise5 KiKi ⟨hAnimal, hT⟩
+            exact False.elim (hL hLegs)
+        | inr hL2 =>
+            exact False.elim (hL hL2)
+  have hLike : Like Jane KiKi := premise3 KiKi ⟨hAnimal, hJump⟩
+  have hNotBark : ¬Bark KiKi := by
+    intro hB
+    have hNotLike : ¬Like Jane KiKi := premise1 KiKi ⟨hAnimal, hB⟩
+    exact hNotLike hLike
+  have hNotDog : ¬Dog KiKi := by
+    intro hDog
+    have hAB : Animal KiKi ∧ Bark KiKi := premise2 KiKi hDog
+    have hNotLike : ¬Like Jane KiKi := premise1 KiKi hAB
+    exact hNotLike hLike
+  -- At this point, we have ¬Bark KiKi and ¬Dog KiKi, consistent with h.
+  -- Unable to derive a contradiction from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

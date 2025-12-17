@@ -1,0 +1,186 @@
+Story ID: 426
+Example ID: 1210
+Premises: True and not false is true. All employees who schedule a meeting with their customers will go to the company building today. 
+Everyone who has lunch in the company building schedules meetings with their customers. 
+Employees have lunch either in the company building or at home.
+If an employee has lunch at home, they are working remotely from home.
+All employees who are in other countries work remotely from home. 
+No managers work remotely from home. 
+James will appear in the company today if and only if he is a manager.
+Conclusion: If James is either a manager or in other countries,  then James does not either has lunch at home or work remotely from home. If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries. [contrapositive is more natural]
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom InOtherCountries : Person → Prop
+axiom Schedules : Person → Prop
+axiom AtCompanyToday : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+
+-- All employees who schedule a meeting with their customers will go to the company building today.
+axiom sched_go_building :
+  ∀ p : Person, (Employee p ∧ Schedules p) → AtCompanyToday p
+
+-- Everyone who has lunch in the company building schedules meetings with their customers.
+axiom lunch_building_sched :
+  ∀ p : Person, LunchInBuilding p → Schedules p
+
+-- Employees have lunch either in the company building or at home.
+axiom employees_lunch_either :
+  ∀ p : Person, Employee p → (LunchInBuilding p ∨ LunchAtHome p)
+
+-- If an employee has lunch at home, they are working remotely from home.
+axiom lunch_home_remote :
+  ∀ p : Person, (Employee p ∧ LunchAtHome p) → RemoteFromHome p
+
+-- All employees who are in other countries work remotely from home.
+axiom employees_in_other_remote :
+  ∀ p : Person, (Employee p ∧ InOtherCountries p) → RemoteFromHome p
+
+-- No managers work remotely from home.
+axiom no_managers_remote :
+  ∀ p : Person, Manager p → ¬ RemoteFromHome p
+
+-- James will appear in the company today iff he is a manager.
+axiom james_appear_iff_manager :
+  AtCompanyToday James ↔ Manager James
+
+-- If James is either a manager or in other countries, then James does not either have lunch at home or work remotely from home.
+axiom james_mgr_or_foreign_imp_not_lunch_or_remote :
+  (Manager James ∨ InOtherCountries James) → ¬ (LunchAtHome James ∨ RemoteFromHome James)
+
+-- If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries.
+axiom james_lunch_or_remote_imp_not_mgr_and_not_foreign :
+  (LunchAtHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James)
+
+-- "True and not false is true."
+theorem true_and_not_false : True ∧ ¬ False := by
+  refine And.intro ?left ?right
+  · exact True.intro
+  · intro hFalse
+    exact hFalse.elim
+
+-- Derived helper about James: if James is a manager, he can't have lunch at home or be remote.
+theorem james_not_lunch_or_remote_of_manager :
+  Manager James → ¬ (LunchAtHome James ∨ RemoteFromHome James) := by
+  intro hM
+  exact james_mgr_or_foreign_imp_not_lunch_or_remote (Or.inl hM)
+
+-- Main goal: If James is an employee and a manager, he will be at the company today.
+theorem goal : Employee James → Manager James → AtCompanyToday James := by
+  intro hE hM
+  have hNotLH_orR : ¬ (LunchAtHome James ∨ RemoteFromHome James) :=
+    james_not_lunch_or_remote_of_manager hM
+  have lunch_choice : LunchInBuilding James ∨ LunchAtHome James :=
+    employees_lunch_either James hE
+  have not_LH : ¬ LunchAtHome James := by
+    intro hLH
+    exact hNotLH_orR (Or.inl hLH)
+  have hLIB : LunchInBuilding James := by
+    cases lunch_choice with
+    | inl hlib => exact hlib
+    | inr hLH => exact False.elim (not_LH hLH)
+  have hSched : Schedules James := lunch_building_sched James hLIB
+  have hAt : AtCompanyToday James := sched_go_building James ⟨hE, hSched⟩
+  exact hAt
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom InOtherCountries : Person → Prop
+axiom Schedules : Person → Prop
+axiom AtCompanyToday : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+
+-- All employees who schedule a meeting with their customers will go to the company building today.
+axiom sched_go_building :
+  ∀ p : Person, (Employee p ∧ Schedules p) → AtCompanyToday p
+
+-- Everyone who has lunch in the company building schedules meetings with their customers.
+axiom lunch_building_sched :
+  ∀ p : Person, LunchInBuilding p → Schedules p
+
+-- Employees have lunch either in the company building or at home.
+axiom employees_lunch_either :
+  ∀ p : Person, Employee p → (LunchInBuilding p ∨ LunchAtHome p)
+
+-- If an employee has lunch at home, they are working remotely from home.
+axiom lunch_home_remote :
+  ∀ p : Person, (Employee p ∧ LunchAtHome p) → RemoteFromHome p
+
+-- All employees who are in other countries work remotely from home.
+axiom employees_in_other_remote :
+  ∀ p : Person, (Employee p ∧ InOtherCountries p) → RemoteFromHome p
+
+-- No managers work remotely from home.
+axiom no_managers_remote :
+  ∀ p : Person, Manager p → ¬ RemoteFromHome p
+
+-- James will appear in the company today iff he is a manager.
+axiom james_appear_iff_manager :
+  AtCompanyToday James ↔ Manager James
+
+-- If James is either a manager or in other countries, then James does not either have lunch at home or work remotely from home.
+axiom james_mgr_or_foreign_imp_not_lunch_or_remote :
+  (Manager James ∨ InOtherCountries James) → ¬ (LunchAtHome James ∨ RemoteFromHome James)
+
+-- If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries.
+axiom james_lunch_or_remote_imp_not_mgr_and_not_foreign :
+  (LunchAtHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James)
+
+-- "True and not false is true."
+theorem true_and_not_false : True ∧ ¬ False := by
+  refine And.intro ?left ?right
+  · exact True.intro
+  · intro hFalse
+    exact hFalse.elim
+
+-- Derived helper about James: if James is a manager, he can't have lunch at home or be remote.
+theorem james_not_lunch_or_remote_of_manager :
+  Manager James → ¬ (LunchAtHome James ∨ RemoteFromHome James) := by
+  intro hM
+  exact james_mgr_or_foreign_imp_not_lunch_or_remote (Or.inl hM)
+
+-- Main goal: If James is an employee and a manager, he will be at the company today.
+theorem goal : Employee James → Manager James → AtCompanyToday James := by
+  intro hE hM
+  have hNotLH_orR : ¬ (LunchAtHome James ∨ RemoteFromHome James) :=
+    james_not_lunch_or_remote_of_manager hM
+  have lunch_choice : LunchInBuilding James ∨ LunchAtHome James :=
+    employees_lunch_either James hE
+  have not_LH : ¬ LunchAtHome James := by
+    intro hLH
+    exact hNotLH_orR (Or.inl hLH)
+  have hLIB : LunchInBuilding James := by
+    cases lunch_choice with
+    | inl hlib => exact hlib
+    | inr hLH => exact False.elim (not_LH hLH)
+  have hSched : Schedules James := lunch_building_sched James hLIB
+  have hAt : AtCompanyToday James := sched_go_building James ⟨hE, hSched⟩
+  exact hAt
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

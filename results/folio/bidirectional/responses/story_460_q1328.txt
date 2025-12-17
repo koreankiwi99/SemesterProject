@@ -1,0 +1,120 @@
+Story ID: 460
+Example ID: 1328
+Premises: If a film is appropriate for people of all ages, then children can watch it without guidance from parents.
+If a film contains excessive erotic and violent content, children cannot watch it without guidance from their parents.
+If a film is rated General Audience, then it is appropriate for people of all ages.
+All family-friendly animated films are rated General Audience.
+All movies in the Frozen series are family-friendly animated films.
+“Hachi: A dog’s Tale” is a film.
+“Hachi: A dog’s Tale”  is either a family-friendly animated film or is appropriate for people of all ages. 
+Conclusion: "Hachi: A dog's Tale" contains excessive erotic and violent content or is in the "Frozen" series or both.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Film : Type
+axiom Hachi : Film
+
+axiom AppropriateAllAges : Film → Prop
+axiom ChildrenCanWatchWithoutGuidance : Film → Prop
+axiom ExcessiveEroticViolent : Film → Prop
+axiom RatedGeneralAudience : Film → Prop
+axiom FamilyFriendlyAnimated : Film → Prop
+axiom FrozenSeries : Film → Prop
+
+-- Premises
+axiom premise1 : ∀ f : Film, AppropriateAllAges f → ChildrenCanWatchWithoutGuidance f
+axiom premise2 : ∀ f : Film, ExcessiveEroticViolent f → ¬ ChildrenCanWatchWithoutGuidance f
+axiom premise3 : ∀ f : Film, RatedGeneralAudience f → AppropriateAllAges f
+axiom premise4 : ∀ f : Film, FamilyFriendlyAnimated f → RatedGeneralAudience f
+axiom premise5 : ∀ f : Film, FrozenSeries f → FamilyFriendlyAnimated f
+axiom premise6 : True  -- “Hachi: A dog’s Tale” is a film (modeled trivially)
+axiom premise7 : FamilyFriendlyAnimated Hachi ∨ AppropriateAllAges Hachi
+
+-- Conclusion to analyze:
+-- "Hachi: A dog's Tale" contains excessive erotic and violent content or is in the "Frozen" series or both.
+theorem conclusion : ExcessiveEroticViolent Hachi ∨ FrozenSeries Hachi := by
+  -- From premise7, Hachi is either family-friendly animated or appropriate for all ages.
+  -- In either case, it is appropriate for all ages, hence children can watch without guidance.
+  have hApp : AppropriateAllAges Hachi :=
+    Or.elim premise7
+      (fun hffa => premise3 Hachi (premise4 Hachi hffa))
+      (fun happ => happ)
+  have hCan : ChildrenCanWatchWithoutGuidance Hachi := premise1 Hachi hApp
+  -- Therefore, Hachi cannot contain excessive erotic and violent content.
+  have hNotExcess : ¬ ExcessiveEroticViolent Hachi := by
+    intro hEx
+    have hNotCan : ¬ ChildrenCanWatchWithoutGuidance Hachi := premise2 Hachi hEx
+    exact hNotCan hCan
+  -- However, from ¬ExcessiveEroticViolent Hachi we cannot derive the desired disjunction
+  -- ExcessiveEroticViolent Hachi ∨ FrozenSeries Hachi without additional information.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Film : Type
+axiom AppropriateAllAges : Film → Prop
+axiom ChildrenCanWatchWithoutGuidance : Film → Prop
+axiom ContainsExcessiveEroticViolentContent : Film → Prop
+axiom RatedGeneralAudience : Film → Prop
+axiom FamilyFriendlyAnimated : Film → Prop
+axiom InFrozenSeries : Film → Prop
+axiom Hachi : Film
+
+-- Premises
+axiom premise1 : ∀ f : Film, AppropriateAllAges f → ChildrenCanWatchWithoutGuidance f
+axiom premise2 : ∀ f : Film, ContainsExcessiveEroticViolentContent f → ¬ ChildrenCanWatchWithoutGuidance f
+axiom premise3 : ∀ f : Film, RatedGeneralAudience f → AppropriateAllAges f
+axiom premise4 : ∀ f : Film, FamilyFriendlyAnimated f → RatedGeneralAudience f
+axiom premise5 : ∀ f : Film, InFrozenSeries f → FamilyFriendlyAnimated f
+axiom premise6 : True -- "Hachi is a film" (already captured by Hachi : Film)
+axiom premise7 : FamilyFriendlyAnimated Hachi ∨ AppropriateAllAges Hachi
+
+-- Derived: Hachi can be watched by children without guidance
+theorem hachi_CanWatchWithoutGuidance : ChildrenCanWatchWithoutGuidance Hachi := by
+  cases premise7 with
+  | inl hFF =>
+      have hGA : RatedGeneralAudience Hachi := premise4 _ hFF
+      have hAllAges : AppropriateAllAges Hachi := premise3 _ hGA
+      exact premise1 _ hAllAges
+  | inr hAllAges =>
+      exact premise1 _ hAllAges
+
+-- Derived: Hachi does not contain excessive erotic and violent content
+theorem not_EVC_Hachi : ¬ ContainsExcessiveEroticViolentContent Hachi := by
+  intro hEVC
+  have hNotCWG : ¬ ChildrenCanWatchWithoutGuidance Hachi := premise2 _ hEVC
+  have hCWG : ChildrenCanWatchWithoutGuidance Hachi := hachi_CanWatchWithoutGuidance
+  exact hNotCWG hCWG
+
+-- Negation of the conclusion: it's not the case that Hachi has EVC or is in the Frozen series.
+theorem neg_conclusion : ¬ (ContainsExcessiveEroticViolentContent Hachi ∨ InFrozenSeries Hachi) := by
+  intro h
+  cases h with
+  | inl hEVC =>
+      exact not_EVC_Hachi hEVC
+  | inr hFrozen =>
+      -- From being in the Frozen series we can only derive family-friendly → GA → all ages → CWG,
+      -- which is consistent with the premises. No contradiction arises.
+      sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: Unknown
+Correct: No

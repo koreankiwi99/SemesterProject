@@ -1,0 +1,128 @@
+Story ID: 361
+Example ID: 959
+Premises: If people spill a lot of food on their clothing, then they are not notably tidy.
+All clumsy foodies who go out frequently to find new food restaurants to try are people who spill a lot of food on their clothing.
+If people are cleanly, then they are notably tidy.
+If people value order and spotlessness, then they are cleanly.
+All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+Peter is either a person who spills a lot of food on his clothing and is cleanly, or a person who does not spill a lot of food on his clothing and is not cleanly
+Conclusion: Peter is either a  clumsy foodie who goes out frequently to find new food restaurants to try or he is someone whose family prioritizes order and spotlessness.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Peter : Person
+
+-- Predicates
+axiom Spills : Person → Prop                      -- spills a lot of food on their clothing
+axiom Tidy : Person → Prop                        -- notably tidy
+axiom ClumsyFoodieExplorer : Person → Prop        -- clumsy foodie who goes out frequently to find new food restaurants to try
+axiom Cleanly : Person → Prop                     -- cleanly
+axiom ValuesOrderSpotlessness : Person → Prop     -- values order and spotlessness
+axiom FamilyPrioritizesOrderSpotlessness : Person → Prop  -- family prioritizes order and spotlessness
+
+-- Premises
+axiom spill_implies_not_tidy :
+  ∀ x : Person, Spills x → ¬ Tidy x
+
+axiom cfe_implies_spills :
+  ∀ x : Person, ClumsyFoodieExplorer x → Spills x
+
+axiom cleanly_implies_tidy :
+  ∀ x : Person, Cleanly x → Tidy x
+
+axiom values_implies_cleanly :
+  ∀ x : Person, ValuesOrderSpotlessness x → Cleanly x
+
+axiom family_implies_values :
+  ∀ x : Person, FamilyPrioritizesOrderSpotlessness x → ValuesOrderSpotlessness x
+
+axiom peter_disjunction :
+  (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- Conclusion to prove:
+-- Peter is either a clumsy foodie who goes out frequently to find new food restaurants to try
+-- or he is someone whose family prioritizes order and spotlessness.
+theorem conclusion :
+  ClumsyFoodieExplorer Peter ∨ FamilyPrioritizesOrderSpotlessness Peter := by
+  -- Attempt a case analysis on Peter's given disjunction
+  cases peter_disjunction with
+  | inl h =>
+      -- h.left : Spills Peter, h.right : Cleanly Peter
+      have ht : Tidy Peter := cleanly_implies_tidy Peter h.right
+      have hnt : ¬ Tidy Peter := spill_implies_not_tidy Peter h.left
+      exact False.elim (hnt ht)
+  | inr h =>
+      -- h.left : ¬ Spills Peter, h.right : ¬ Cleanly Peter
+      -- From here, none of the given premises allow deriving either disjunct of the goal.
+      -- We are stuck in this branch.
+      sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Peter : Person
+
+axiom SpillLots : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpotlessness : Person → Prop
+axiom FamilyPrioritizesOrderSpotlessness : Person → Prop
+axiom ClumsyFoodieWhoGoesOutFrequently : Person → Prop
+
+axiom premise1 : ∀ x : Person, SpillLots x → ¬ NotablyTidy x
+axiom premise2 : ∀ x : Person, ClumsyFoodieWhoGoesOutFrequently x → SpillLots x
+axiom premise3 : ∀ x : Person, Cleanly x → NotablyTidy x
+axiom premise4 : ∀ x : Person, ValuesOrderSpotlessness x → Cleanly x
+axiom premise5 : ∀ x : Person, FamilyPrioritizesOrderSpotlessness x → ValuesOrderSpotlessness x
+axiom premise6 : (SpillLots Peter ∧ Cleanly Peter) ∨ (¬ SpillLots Peter ∧ ¬ Cleanly Peter)
+
+theorem goal_negation : ¬ (ClumsyFoodieWhoGoesOutFrequently Peter ∨ FamilyPrioritizesOrderSpotlessness Peter) := by
+  have hNotBoth : ¬ (SpillLots Peter ∧ Cleanly Peter) := by
+    intro h
+    have hS : SpillLots Peter := h.left
+    have hC : Cleanly Peter := h.right
+    have hT : NotablyTidy Peter := premise3 Peter hC
+    have hNotT : ¬ NotablyTidy Peter := premise1 Peter hS
+    exact hNotT hT
+  have hNotS_and_hNotC : (¬ SpillLots Peter ∧ ¬ Cleanly Peter) := by
+    cases premise6 with
+    | inl h =>
+        exact False.elim (hNotBoth h)
+    | inr h =>
+        exact h
+  have hNotS : ¬ SpillLots Peter := hNotS_and_hNotC.left
+  have hNotC : ¬ Cleanly Peter := hNotS_and_hNotC.right
+  intro h
+  cases h with
+  | inl hCF =>
+      have hS : SpillLots Peter := premise2 Peter hCF
+      exact hNotS hS
+  | inr hFam =>
+      have hVO : ValuesOrderSpotlessness Peter := premise5 Peter hFam
+      have hC : Cleanly Peter := premise4 Peter hVO
+      exact hNotC hC
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

@@ -1,0 +1,95 @@
+Story ID: 0
+Example ID: 2
+Premises: Jim prefers to drink iced tea while relaxing in the sun.. The swimming pool is located in Jim's backyard.. Jim knows that if he waters his lawn, the grass will stay green. He also knows that if it is hot and sunny outside, he will go swimming to cool off. Either Jim watered the lawn, or he did not go swimming, or he watered the lawn and did not go swimming.. Jim often mows his lawn on weekends.
+Conclusion: If it was hot and sunny outside, then did Jim's lawn stay green?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom HotAndSunny : Prop
+axiom Swimming : Prop
+axiom WateredLawn : Prop
+axiom GrassGreen : Prop
+
+axiom watered_implies_green : WateredLawn → GrassGreen
+axiom hot_implies_swimming : HotAndSunny → Swimming
+axiom lawn_or_not_swim_or_both : WateredLawn ∨ ¬ Swimming ∨ (WateredLawn ∧ ¬ Swimming)
+
+theorem goal : HotAndSunny → GrassGreen := by
+  intro hs
+  have swim : Swimming := hot_implies_swimming hs
+  cases lawn_or_not_swim_or_both with
+  | inl hW => exact watered_implies_green hW
+  | inr h =>
+    cases h with
+    | inl hnotS => exact False.elim (hnotS swim)
+    | inr hWnS => exact watered_implies_green hWnS.left
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom HotSunny : Prop
+axiom Watered : Prop
+axiom LawnGreen : Prop
+axiom Swim : Prop
+
+-- Extra contextual premises (not logically relevant to the conclusion)
+axiom PrefersIcedTeaRelaxSun : Prop
+axiom SwimmingPoolInBackyard : Prop
+axiom MowsLawnOnWeekendsOften : Prop
+
+axiom premise_prefers : PrefersIcedTeaRelaxSun
+axiom premise_pool : SwimmingPoolInBackyard
+axiom premise_mows : MowsLawnOnWeekendsOften
+
+-- Main logical premises
+axiom premise_watered_green : Watered → LawnGreen
+axiom premise_hotSunny_swim : HotSunny → Swim
+axiom premise_disj : Watered ∨ ¬Swim ∨ (Watered ∧ ¬Swim)
+
+-- From the premises we can actually prove the original conclusion is TRUE:
+-- If it is hot and sunny outside, then Jim's lawn stays green.
+theorem conclusion_true : HotSunny → LawnGreen := by
+  intro hs
+  have d := premise_disj
+  cases d with
+  | inl w =>
+    exact premise_watered_green w
+  | inr rest =>
+    cases rest with
+    | inl notS =>
+      have s : Swim := premise_hotSunny_swim hs
+      exact False.elim (notS s)
+    | inr both =>
+      exact premise_watered_green both.left
+
+-- Requested NEGATION of the conclusion:
+-- We attempt to prove: ¬(HotSunny → LawnGreen).
+theorem goal_negation : ¬(HotSunny → LawnGreen) := by
+  -- Attempt to prove the negation, but it is not derivable from the premises above,
+  -- since the implication HotSunny → LawnGreen holds (see conclusion_true).
+  intro h
+  -- We would need to derive False from h : HotSunny → LawnGreen,
+  -- but this contradicts the derived theorem `conclusion_true`.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: No
+Correct: No

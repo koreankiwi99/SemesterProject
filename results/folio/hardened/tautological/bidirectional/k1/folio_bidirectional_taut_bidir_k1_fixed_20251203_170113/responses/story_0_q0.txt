@@ -1,0 +1,139 @@
+Story ID: 0
+Example ID: 0
+Premises: Not true and true is false. There are six types of wild turkeys: Eastern wild turkey, Osceola wild turkey, Gould’s wild turkey, Merriam’s wild turkey, Rio Grande wild turkey, and Ocellated wild turkey.
+Tom is not an Eastern wild turkey.
+Tom is not an Osceola wild turkey.
+Tom is not a Gould's wild turkey.
+Tom is neither a Merriam's wild turkey nor a Rio Grande wild turkey.
+Tom is a wild turkey.
+Conclusion: Tom is an Ocellated wild turkey.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Individual : Type
+axiom Tom : Individual
+
+axiom WildTurkey : Individual → Prop
+axiom Eastern : Individual → Prop
+axiom Osceola : Individual → Prop
+axiom Gould : Individual → Prop
+axiom Merriam : Individual → Prop
+axiom RioGrande : Individual → Prop
+axiom Ocellated : Individual → Prop
+
+-- Every wild turkey is one of the six types (exhaustive)
+axiom six_types :
+  ∀ x, WildTurkey x →
+    (Eastern x ∨ (Osceola x ∨ (Gould x ∨ (Merriam x ∨ (RioGrande x ∨ Ocellated x)))))
+
+-- Tom-specific premises
+axiom Tom_is_WildTurkey : WildTurkey Tom
+axiom not_Eastern_Tom : ¬ Eastern Tom
+axiom not_Osceola_Tom : ¬ Osceola Tom
+axiom not_Gould_Tom : ¬ Gould Tom
+axiom not_Merriam_Tom : ¬ Merriam Tom
+axiom not_RioGrande_Tom : ¬ RioGrande Tom
+
+theorem conclusion : Ocellated Tom := by
+  have h := six_types Tom Tom_is_WildTurkey
+  have h1 :
+      (Osceola Tom ∨ (Gould Tom ∨ (Merriam Tom ∨ (RioGrande Tom ∨ Ocellated Tom)))) :=
+    Or.resolve_left h not_Eastern_Tom
+  have h2 : (Gould Tom ∨ (Merriam Tom ∨ (RioGrande Tom ∨ Ocellated Tom))) :=
+    Or.resolve_left h1 not_Osceola_Tom
+  have h3 : (Merriam Tom ∨ (RioGrande Tom ∨ Ocellated Tom)) :=
+    Or.resolve_left h2 not_Gould_Tom
+  have h4 : (RioGrande Tom ∨ Ocellated Tom) :=
+    Or.resolve_left h3 not_Merriam_Tom
+  exact Or.resolve_left h4 not_RioGrande_Tom
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Turkey : Type
+axiom Tom : Turkey
+
+axiom Eastern : Turkey → Prop
+axiom Osceola : Turkey → Prop
+axiom Gould : Turkey → Prop
+axiom Merriam : Turkey → Prop
+axiom RioGrande : Turkey → Prop
+axiom Ocellated : Turkey → Prop
+axiom WildTurkey : Turkey → Prop
+
+-- Exhaustiveness of the six types for wild turkeys
+axiom six_types_exhaustive :
+  ∀ t : Turkey, WildTurkey t →
+    Eastern t ∨ Osceola t ∨ Gould t ∨ Merriam t ∨ RioGrande t ∨ Ocellated t
+
+-- Tom's specific information
+axiom not_Eastern_Tom : ¬ Eastern Tom
+axiom not_Osceola_Tom : ¬ Osceola Tom
+axiom not_Gould_Tom : ¬ Gould Tom
+axiom not_Merriam_Tom : ¬ Merriam Tom
+axiom not_RioGrande_Tom : ¬ RioGrande Tom
+axiom wild_Tom : WildTurkey Tom
+
+-- Attempt to prove the negation of the conclusion: Tom is NOT an Ocellated wild turkey
+theorem not_Ocellated_Tom : ¬ Ocellated Tom := by
+  intro hOcc
+  have disj := six_types_exhaustive Tom wild_Tom
+  cases disj with
+  | inl hE => exact not_Eastern_Tom hE
+  | inr rest1 =>
+    cases rest1 with
+    | inl hO => exact not_Osceola_Tom hO
+    | inr rest2 =>
+      cases rest2 with
+      | inl hG => exact not_Gould_Tom hG
+      | inr rest3 =>
+        cases rest3 with
+        | inl hM => exact not_Merriam_Tom hM
+        | inr rest4 =>
+          cases rest4 with
+          | inl hR => exact not_RioGrande_Tom hR
+          | inr hOc =>
+            -- Stuck: from here we only have Ocellated Tom, which does not contradict any premise.
+            -- Hence we cannot derive False to conclude ¬ Ocellated Tom.
+            sorry
+
+-- For reference, from the premises one can actually derive that Tom IS Ocellated:
+theorem is_Ocellated_Tom : Ocellated Tom := by
+  have disj := six_types_exhaustive Tom wild_Tom
+  cases disj with
+  | inl hE => exact False.elim (not_Eastern_Tom hE)
+  | inr rest1 =>
+    cases rest1 with
+    | inl hO => exact False.elim (not_Osceola_Tom hO)
+    | inr rest2 =>
+      cases rest2 with
+      | inl hG => exact False.elim (not_Gould_Tom hG)
+      | inr rest3 =>
+        cases rest3 with
+        | inl hM => exact False.elim (not_Merriam_Tom hM)
+        | inr rest4 =>
+          cases rest4 with
+          | inl hR => exact False.elim (not_RioGrande_Tom hR)
+          | inr hOc => exact hOc
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: Unknown
+Correct: No

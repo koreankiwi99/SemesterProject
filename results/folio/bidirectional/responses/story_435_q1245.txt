@@ -1,0 +1,127 @@
+Story ID: 435
+Example ID: 1245
+Premises: None of the students who currently work in the library are from the computer science department. 
+All of the students with part-time jobs offered by the university currently work in the library. 
+All of the students who are taking the database course are from the computer science department. 
+All of the students taking a class with Professor David are taking the database course. 
+All students working in the lab are taking a class with Professor David.
+James is a student working in the lab. 
+James doesn't work in the lab or have a part-time job offered by the university.
+Conclusion: James does not have a part-time job offered by the university.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Student : Type
+axiom James : Student
+
+axiom WorksInLibrary : Student → Prop
+axiom FromCS : Student → Prop
+axiom HasUniPartTimeJob : Student → Prop
+axiom TakingDatabaseCourse : Student → Prop
+axiom TakingClassWithDavid : Student → Prop
+axiom WorkingInLab : Student → Prop
+
+-- Premises
+-- 1. None of the students who currently work in the library are from the CS department.
+axiom premise1 : ∀ s : Student, WorksInLibrary s → ¬ FromCS s
+-- 2. All students with university part-time jobs currently work in the library.
+axiom premise2 : ∀ s : Student, HasUniPartTimeJob s → WorksInLibrary s
+-- 3. All students taking the database course are from CS.
+axiom premise3 : ∀ s : Student, TakingDatabaseCourse s → FromCS s
+-- 4. All students taking a class with Professor David are taking the database course.
+axiom premise4 : ∀ s : Student, TakingClassWithDavid s → TakingDatabaseCourse s
+-- 5. All students working in the lab are taking a class with Professor David.
+axiom premise5 : ∀ s : Student, WorkingInLab s → TakingClassWithDavid s
+-- 6. James is working in the lab.
+axiom premise6 : WorkingInLab James
+-- 7. James doesn't work in the lab or have a university part-time job (formalized here as a disjunction).
+axiom premise7 : ¬ WorkingInLab James ∨ ¬ HasUniPartTimeJob James
+
+-- Conclusion: James does not have a university part-time job.
+theorem goal : ¬ HasUniPartTimeJob James := by
+  intro hJob
+  -- From having a uni part-time job, James works in the library.
+  have hLib : WorksInLibrary James := premise2 James hJob
+  -- Library workers are not from CS.
+  have hNotCS : ¬ FromCS James := premise1 James hLib
+  -- From working in the lab, James takes David's class, hence the DB course, hence is from CS.
+  have hLab : WorkingInLab James := premise6
+  have hDavid : TakingClassWithDavid James := premise5 James hLab
+  have hDB : TakingDatabaseCourse James := premise4 James hDavid
+  have hCS : FromCS James := premise3 James hDB
+  -- Contradiction: FromCS James and ¬ FromCS James.
+  exact hNotCS hCS
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Student : Type
+axiom James : Student
+
+axiom WorksLibrary : Student → Prop
+axiom WorksLab : Student → Prop
+axiom PartTime : Student → Prop
+axiom FromCS : Student → Prop
+axiom TakesDB : Student → Prop
+axiom ClassWithDavid : Student → Prop
+
+-- Premises
+-- 1. None of the students who currently work in the library are from the computer science department.
+axiom premise1 : ∀ x : Student, WorksLibrary x → ¬ FromCS x
+-- 2. All of the students with part-time jobs offered by the university currently work in the library.
+axiom premise2 : ∀ x : Student, PartTime x → WorksLibrary x
+-- 3. All of the students who are taking the database course are from the computer science department.
+axiom premise3 : ∀ x : Student, TakesDB x → FromCS x
+-- 4. All of the students taking a class with Professor David are taking the database course.
+axiom premise4 : ∀ x : Student, ClassWithDavid x → TakesDB x
+-- 5. All students working in the lab are taking a class with Professor David.
+axiom premise5 : ∀ x : Student, WorksLab x → ClassWithDavid x
+-- 6. James is a student working in the lab.
+axiom premise6 : WorksLab James
+-- 7. James doesn't work in the lab or have a part-time job offered by the university.
+axiom premise7 : ¬WorksLab James ∨ ¬PartTime James
+
+-- Useful derived fact: James is from the computer science department.
+theorem csJames : FromCS James := by
+  have wl : WorksLab James := premise6
+  have hCD : ClassWithDavid James := premise5 James wl
+  have hDB : TakesDB James := premise4 James hCD
+  exact premise3 James hDB
+
+-- In fact, from (6) and (7) we can derive that James does not have a part-time job.
+theorem conclusion_true : ¬PartTime James := by
+  have wl : WorksLab James := premise6
+  cases premise7 with
+  | inl notWL =>
+      exfalso
+      exact notWL wl
+  | inr notPT =>
+      exact notPT
+
+-- NEGATION of the conclusion to analyze would be: James has a part-time job.
+-- Attempt to prove this negation (expected to fail given the premises).
+theorem negation_of_conclusion : PartTime James := by
+  -- This goal is not derivable from the premises; in fact, we proved ¬PartTime James above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

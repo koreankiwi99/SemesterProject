@@ -1,0 +1,119 @@
+Story ID: 0
+Example ID: combo4_q1
+Premises: If Kevin submits the financial report to the board, then the board reviews the financial report. If the board reviews the financial report, then the budget is approved for the next quarter. The finance team knows that either Kevin submits the financial report or the team conducts a detailed audit, or both. If the finance team conducts a detailed audit, then the audit discovers discrepancies. If the IT department updates the accounting software, then the accuracy of financial projections improves. The team also believes that either they conduct a detailed audit or the accuracy of financial projections does not improve, or both. If the audit discovers discrepancies, then the financial strategy is revised with accurate data.
+Conclusion: If the budget was not approved for the next quarter and the IT department updated the accounting software, was the financial strategy revised with accurate data?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom KevinSubmits : Prop
+axiom BoardReviews : Prop
+axiom BudgetApproved : Prop
+axiom DetailedAudit : Prop
+axiom Discrepancies : Prop
+axiom ITUpdates : Prop
+axiom AccuracyImproves : Prop
+axiom StrategyRevised : Prop
+
+axiom p1 : KevinSubmits → BoardReviews
+axiom p2 : BoardReviews → BudgetApproved
+axiom p3 : KevinSubmits ∨ DetailedAudit
+axiom p4 : DetailedAudit → Discrepancies
+axiom p5 : ITUpdates → AccuracyImproves
+axiom p6 : DetailedAudit ∨ ¬AccuracyImproves
+axiom p7 : Discrepancies → StrategyRevised
+
+theorem goal : (¬BudgetApproved ∧ ITUpdates) → StrategyRevised := by
+  intro h
+  have hNotApproved : ¬BudgetApproved := h.left
+  have hNotReviewed : ¬BoardReviews := by
+    intro hb
+    exact hNotApproved (p2 hb)
+  have hNotKevin : ¬KevinSubmits := by
+    intro hk
+    exact hNotReviewed (p1 hk)
+  have hAudit : DetailedAudit := by
+    cases p3 with
+    | inl hk =>
+        exact False.elim (hNotKevin hk)
+    | inr hd =>
+        exact hd
+  have hDisc : Discrepancies := p4 hAudit
+  exact p7 hDisc
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom KevinSubmitsFinancialReport : Prop
+axiom BoardReviewsFinancialReport : Prop
+axiom BudgetApprovedNextQuarter : Prop
+axiom FinanceTeamConductsDetailedAudit : Prop
+axiom AuditDiscoversDiscrepancies : Prop
+axiom ITUpdatesAccountingSoftware : Prop
+axiom AccuracyOfFinancialProjectionsImproves : Prop
+axiom FinancialStrategyRevisedWithAccurateData : Prop
+
+-- Premises
+axiom premise1 : KevinSubmitsFinancialReport → BoardReviewsFinancialReport
+axiom premise2 : BoardReviewsFinancialReport → BudgetApprovedNextQuarter
+axiom premise3 : KevinSubmitsFinancialReport ∨ FinanceTeamConductsDetailedAudit
+axiom premise4 : FinanceTeamConductsDetailedAudit → AuditDiscoversDiscrepancies
+axiom premise5 : ITUpdatesAccountingSoftware → AccuracyOfFinancialProjectionsImproves
+axiom premise6 : FinanceTeamConductsDetailedAudit ∨ ¬AccuracyOfFinancialProjectionsImproves
+axiom premise7 : AuditDiscoversDiscrepancies → FinancialStrategyRevisedWithAccurateData
+
+-- The original conclusion (to analyze) is actually derivable from the premises:
+-- If (¬BudgetApprovedNextQuarter ∧ ITUpdatesAccountingSoftware) then FinancialStrategyRevisedWithAccurateData.
+theorem conclusion_true :
+  ((¬BudgetApprovedNextQuarter) ∧ ITUpdatesAccountingSoftware) → FinancialStrategyRevisedWithAccurateData := by
+  intro h
+  have it : ITUpdatesAccountingSoftware := And.right h
+  have ai : AccuracyOfFinancialProjectionsImproves := premise5 it
+  -- From (FinanceTeamConductsDetailedAudit ∨ ¬AccuracyOfFinancialProjectionsImproves) and ai, deduce FinanceTeamConductsDetailedAudit
+  have da : FinanceTeamConductsDetailedAudit := by
+    cases premise6 with
+    | inl hda => exact hda
+    | inr hnot =>
+        exact False.elim (hnot ai)
+  have disc : AuditDiscoversDiscrepancies := premise4 da
+  exact premise7 disc
+
+-- Therefore, its negation is not provable from the premises. In fact we can prove ¬¬(conclusion).
+theorem not_neg_conclusion :
+  ¬¬(((¬BudgetApprovedNextQuarter) ∧ ITUpdatesAccountingSoftware) → FinancialStrategyRevisedWithAccurateData) := by
+  intro hneg
+  apply hneg
+  intro h
+  have it : ITUpdatesAccountingSoftware := And.right h
+  have ai : AccuracyOfFinancialProjectionsImproves := premise5 it
+  have da : FinanceTeamConductsDetailedAudit := by
+    cases premise6 with
+    | inl hda => exact hda
+    | inr hnot => exact False.elim (hnot ai)
+  have disc : AuditDiscoversDiscrepancies := premise4 da
+  exact premise7 disc
+
+-- Target (requested but unprovable from the given premises):
+-- theorem neg_goal : ¬(((¬BudgetApprovedNextQuarter) ∧ ITUpdatesAccountingSoftware) → FinancialStrategyRevisedWithAccurateData) := by
+--   -- This is not derivable because 'conclusion_true' provides the implication.
+--   -- Hence this goal is impossible under the stated premises.
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Unknown
+Prediction: Yes
+Correct: No

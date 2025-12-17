@@ -1,0 +1,95 @@
+Story ID: 191
+Example ID: 547
+Premises: A natural language processing task can be categorized as either a language generation task or a language understanding task.
+If the output of a natural language processing task is a text sequence, then it is a language generation task.
+Machine translation is a natural language processing task.
+The output of machine translation is a text sequence.
+Conclusion: Machine translation is a language understanding task.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Task : Type
+axiom MachineTranslation : Task
+
+axiom NLP : Task → Prop
+axiom LangGen : Task → Prop
+axiom LangUnd : Task → Prop
+axiom OutputText : Task → Prop
+
+-- Premises
+axiom categorization : ∀ t : Task, NLP t → (LangGen t ∨ LangUnd t)
+axiom output_implies_generation : ∀ t : Task, OutputText t → LangGen t
+axiom mt_is_nlp : NLP MachineTranslation
+axiom mt_output_text : OutputText MachineTranslation
+
+-- Conclusion to prove: Machine translation is a language understanding task.
+theorem goal : LangUnd MachineTranslation := by
+  -- From the output being a text sequence, we can derive it's a generation task.
+  have hGen : LangGen MachineTranslation :=
+    output_implies_generation MachineTranslation mt_output_text
+  -- From being an NLP task, it's either generation or understanding.
+  have hEither : LangGen MachineTranslation ∨ LangUnd MachineTranslation :=
+    categorization MachineTranslation mt_is_nlp
+  -- However, from these premises we cannot derive that it is understanding.
+  -- The information only ensures it is generation (and possibly understanding,
+  -- but not necessarily), so the desired conclusion does not follow.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom NLPTask : Type
+axiom MachineTranslation : NLPTask
+
+axiom NLP : NLPTask → Prop
+axiom LangGen : NLPTask → Prop
+axiom LangUnd : NLPTask → Prop
+axiom OutputTextSeq : NLPTask → Prop
+
+-- Premise 1: Any NLP task is exclusively either language generation or language understanding
+axiom premise1 :
+  ∀ t : NLPTask, NLP t → ((LangGen t ∧ ¬ LangUnd t) ∨ (LangUnd t ∧ ¬ LangGen t))
+
+-- Premise 2: If a task's output is a text sequence, then it is a language generation task
+axiom premise2 : ∀ t : NLPTask, OutputTextSeq t → LangGen t
+
+-- Premise 3: Machine translation is an NLP task
+axiom premise3 : NLP MachineTranslation
+
+-- Premise 4: The output of machine translation is a text sequence
+axiom premise4 : OutputTextSeq MachineTranslation
+
+-- Goal: Negation of the conclusion: Machine translation is NOT a language understanding task
+theorem not_LangUnd_MT : ¬ LangUnd MachineTranslation := by
+  have lg : LangGen MachineTranslation := premise2 MachineTranslation premise4
+  have disj :
+      (LangGen MachineTranslation ∧ ¬ LangUnd MachineTranslation) ∨
+      (LangUnd MachineTranslation ∧ ¬ LangGen MachineTranslation) :=
+    premise1 MachineTranslation premise3
+  cases disj with
+  | inl h =>
+      exact h.right
+  | inr h =>
+      have contra : False := h.right lg
+      exact False.elim contra
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

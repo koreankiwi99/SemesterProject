@@ -1,0 +1,59 @@
+[
+  {
+    "example_id": 1209,
+    "story_id": 426,
+    "premises": "All employees who schedule a meeting with their customers will go to the company building today. \nEveryone who has lunch in the company building schedules meetings with their customers. \nEmployees have lunch either in the company building or at home.\nIf an employee has lunch at home, they are working remotely from home.\nAll employees who are in other countries work remotely from home. \nNo managers work remotely from home. \nJames will appear in the company today if and only if he is a manager.",
+    "conclusion": "James does not have lunch in the company.",
+    "ground_truth": "Unknown",
+    "prediction": "False",
+    "stage1_answer": "False",
+    "stage2_answer": "False",
+    "num_cycles": 1,
+    "lean_code": "-- Domain and individuals\naxiom Person : Type\naxiom James : Person\n\n-- Predicates\naxiom Employee : Person \u2192 Prop\naxiom SchedulesWithCustomers : Person \u2192 Prop\naxiom GoToCompanyBuildingToday : Person \u2192 Prop\naxiom LunchInBuilding : Person \u2192 Prop\naxiom LunchAtHome : Person \u2192 Prop\naxiom RemoteFromHome : Person \u2192 Prop\naxiom InOtherCountries : Person \u2192 Prop\naxiom Manager : Person \u2192 Prop\naxiom Appear : Person \u2192 Prop\n\n-- Premises from the textual context\naxiom emp_sched_go :\n  \u2200 x : Person, Employee x \u2227 SchedulesWithCustomers x \u2192 GoToCompanyBuildingToday x\naxiom lunch_in_building_schedules :\n  \u2200 x : Person, LunchInBuilding x \u2192 SchedulesWithCustomers x\naxiom employees_lunch_either :\n  \u2200 x : Person, Employee x \u2192 (LunchInBuilding x \u2228 LunchAtHome x)\naxiom lunch_at_home_remote :\n  \u2200 x : Person, Employee x \u2227 LunchAtHome x \u2192 RemoteFromHome x\naxiom employees_abroad_remote :\n  \u2200 x : Person, Employee x \u2227 InOtherCountries x \u2192 RemoteFromHome x\naxiom managers_not_remote :\n  \u2200 x : Person, Manager x \u2192 \u00ac RemoteFromHome x\naxiom appear_iff_manager_James :\n  Appear James \u2194 Manager James\n\n-- Additional facts used in the reasoning\naxiom James_is_employee : Employee James\naxiom James_not_lunch_in_company : \u00ac LunchInBuilding James\n\n-- Goal: James will not appear in the company today\ntheorem not_appear_James : \u00ac Appear James := by\n  -- From employees_lunch_either and not lunch in building, deduce lunch at home\n  have h_or : LunchInBuilding James \u2228 LunchAtHome James :=\n    (employees_lunch_either James) James_is_employee\n  have h_lunch_home : LunchAtHome James :=\n    Or.resolve_left h_or James_not_lunch_in_company\n  -- From lunch at home (and employee), deduce remote from home\n  have h_remote : RemoteFromHome James :=\n    (lunch_at_home_remote James) \u27e8James_is_employee, h_lunch_home\u27e9\n  -- From managers_not_remote, deduce James is not a manager\n  have h_not_manager : \u00ac Manager James := by\n    intro hM\n    have h_nr : \u00ac RemoteFromHome James := (managers_not_remote James) hM\n    exact h_nr h_remote\n  -- From appear \u2194 manager, get appear \u2192 manager\n  have h_imp : Appear James \u2192 Manager James := Iff.mp appear_iff_manager_James\n  -- Conclude \u00ac Appear James by modus tollens\n  intro hA\n  exact h_not_manager (h_imp hA)",
+    "lean_verification": {
+      "success": true,
+      "env": 7,
+      "errors": [],
+      "warnings": [],
+      "all_messages": []
+    }
+  },
+  {
+    "example_id": 658,
+    "story_id": 232,
+    "premises": "Beijing is the capital of the People's Republic of China. \nBeijing is the capital city of the world's most populous nation.\nBeijing is located in Northern China.\nBeijing hosted the 2008 Summer Olympics and 2008 Summer Paralympics Games.\nBeijing has hosted the Summer and Winter Olympics and the Summer and Winter Paralympics.\nMany of Beijing's 91 universities consistently rank among the best universities in the world.",
+    "conclusion": "Beijing is located in southern China.",
+    "ground_truth": "Unknown",
+    "prediction": "False",
+    "stage1_answer": "False",
+    "stage2_answer": "False",
+    "num_cycles": 1,
+    "lean_code": "axiom Place : Type\naxiom Beijing : Place\n\n-- Predicates for regional location\naxiom Northern : Place \u2192 Prop\naxiom Southern : Place \u2192 Prop\n\n-- Premises from the textual context\naxiom P1 : Northern Beijing\n\n-- Rule: Northern and Southern are mutually exclusive\naxiom R : \u2200 x : Place, Northern x \u2192 \u00ac Southern x\n\n-- From P1 and R, conclude that Beijing is not in southern China\ntheorem not_southern_Beijing : \u00ac Southern Beijing := by\n  exact (R Beijing) P1",
+    "lean_verification": {
+      "success": true,
+      "env": 47,
+      "errors": [],
+      "warnings": [],
+      "all_messages": []
+    }
+  },
+  {
+    "example_id": 1011,
+    "story_id": 379,
+    "premises": "People who are born in a multiple birth with siblings spend a lot of time hanging out with and playing with their siblings.\nIf people have siblings who were born together, then they were born in a multiple birth.\nIf people complain often about annoying siblings, then they have siblings who were born together.\nIf people live at home, then they do not live with strangers.\nIf people spend a lot of time hanging out with and playing with their siblings, then they often live at home. \nLuke either is a baby born in a multiple birth and live with strangers, or is not a baby born in a multiple birth and does not live with strangers",
+    "conclusion": "Luke spends a lot of time hanging out and playing with his siblings.",
+    "ground_truth": "Unknown",
+    "prediction": "False",
+    "stage1_answer": "False",
+    "stage2_answer": "False",
+    "num_cycles": 1,
+    "lean_code": "axiom Person : Type\naxiom Luke : Person\n\n-- Predicates\naxiom MB : Person \u2192 Prop          -- born in a multiple birth\naxiom Spend : Person \u2192 Prop       -- spends a lot of time with siblings\naxiom Home  : Person \u2192 Prop       -- lives at home\naxiom Stranger : Person \u2192 Prop    -- lives with strangers\n\n-- Premises\naxiom mb_to_spend : \u2200 x : Person, MB x \u2192 Spend x\naxiom spend_to_home  : \u2200 x : Person, Spend x \u2192 Home x\naxiom home_to_not_stranger : \u2200 x : Person, Home x \u2192 \u00ac Stranger x\naxiom luke_equiv : (MB Luke \u2227 Stranger Luke) \u2228 (\u00ac MB Luke \u2227 \u00ac Stranger Luke)\naxiom spend_Luke : Spend Luke\n\n-- Derived conclusions\ntheorem luke_not_S : \u00ac Stranger Luke := by\n  have hH : Home Luke := spend_to_home Luke spend_Luke\n  exact home_to_not_stranger Luke hH\n\ntheorem luke_not_MB : \u00ac MB Luke := by\n  have hnotS : \u00ac Stranger Luke := luke_not_S\n  cases luke_equiv with\n  | inl h =>\n      -- h : MB Luke \u2227 Stranger Luke\n      exact False.elim (hnotS h.right)\n  | inr h =>\n      -- h : \u00ac MB Luke \u2227 \u00ac Stranger Luke\n      exact h.left\n\ntheorem luke_not_MB_and_not_S : \u00ac MB Luke \u2227 \u00ac Stranger Luke :=\n  And.intro luke_not_MB luke_not_S",
+    "lean_verification": {
+      "success": true,
+      "env": 6,
+      "errors": [],
+      "warnings": [],
+      "all_messages": []
+    }
+  }
+]

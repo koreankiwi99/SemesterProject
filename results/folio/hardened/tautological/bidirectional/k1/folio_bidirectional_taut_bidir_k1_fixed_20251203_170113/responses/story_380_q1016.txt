@@ -1,0 +1,163 @@
+Story ID: 380
+Example ID: 1016
+Premises: Not false and false is false. People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+Conclusion: If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEvents : Person → Prop
+axiom EngagedEvents : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom StudentAttendsSchool : Person → Prop
+axiom YoungOrTeen : Person → Prop
+axiom WishesFurtherAcademic : Person → Prop
+
+-- Premise: "Not false and false is false."
+axiom P0 : (¬ False) ∧ (False = False)
+
+-- Premise: People in this club who perform in school talent shows often attend and are very engaged with school events.
+axiom P1 : ∀ x : Person, InClub x ∧ PerformsOften x → AttendsEvents x ∧ EngagedEvents x
+
+-- Premise: People in this club either perform in school talent shows often or are inactive and disinterested community members.
+axiom P2 : ∀ x : Person, InClub x → (PerformsOften x ∨ InactiveDisinterested x)
+
+-- Premise: People in this club who chaperone high school dances are not students who attend the school.
+axiom P3 : ∀ x : Person, InClub x ∧ ChaperonesDances x → ¬ StudentAttendsSchool x
+
+-- Premise: All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+axiom P4 : ∀ x : Person, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+
+-- Premise: All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school.
+axiom P5 : ∀ x : Person, InClub x ∧ YoungOrTeen x ∧ WishesFurtherAcademic x → StudentAttendsSchool x
+
+-- Premise about Bonnie:
+-- Bonnie is in the club, and either (attends ∧ engaged ∧ student) or ¬(attends ∧ engaged ∧ ¬student).
+axiom P6 :
+  InClub Bonnie ∧
+    ((AttendsEvents Bonnie ∧ EngagedEvents Bonnie ∧ StudentAttendsSchool Bonnie) ∨
+     ¬(AttendsEvents Bonnie ∧ EngagedEvents Bonnie ∧ ¬ StudentAttendsSchool Bonnie))
+
+-- Some derived facts showing the structure of the premises
+
+lemma inClubBonnie : InClub Bonnie := by
+  exact And.left P6
+
+-- From the club premises, the antecedent in the goal is actually guaranteed to be true.
+lemma antecedent_true :
+  ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie) := by
+  have h := P2 Bonnie inClubBonnie
+  cases h with
+  | inl hPerf =>
+      -- If Bonnie performs often, then (¬chaperone → performs) holds trivially.
+      exact Or.inr (fun _ => hPerf)
+  | inr hInact =>
+      -- If Bonnie is inactive, then she chaperones (by P4).
+      have hCh : ChaperonesDances Bonnie := P4 Bonnie ⟨inClubBonnie, hInact⟩
+      exact Or.inl hCh
+
+-- If the conclusion's RHS holds (young ∧ wishes ∧ inactive), it contradicts the premises.
+lemma conclusion_contradiction :
+  (YoungOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie ∧ InactiveDisinterested Bonnie) → False := by
+  intro h
+  have hY : YoungOrTeen Bonnie := And.left h
+  have hW : WishesFurtherAcademic Bonnie := And.left (And.right h)
+  have hI : InactiveDisinterested Bonnie := And.right (And.right h)
+  have hStud : StudentAttendsSchool Bonnie := P5 Bonnie ⟨inClubBonnie, hY, hW⟩
+  have hCh : ChaperonesDances Bonnie := P4 Bonnie ⟨inClubBonnie, hI⟩
+  have hNotStud : ¬ StudentAttendsSchool Bonnie := P3 Bonnie ⟨inClubBonnie, hCh⟩
+  exact hNotStud hStud
+
+-- Goal (to analyze): 
+-- If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often,
+-- then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities
+-- and an inactive and disinterested member of the community.
+theorem goal :
+  (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsOften Bonnie)) →
+  (YoungOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie ∧ InactiveDisinterested Bonnie) := by
+  intro h
+  -- Attempting to derive the strong conclusion from the given premises fails:
+  -- As shown above, the RHS would lead to a contradiction with P3 and P5 together with P4 and P6.
+  -- Hence no derivation is possible from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsTalentOften : Person → Prop
+axiom AttendEngagedEvents : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom ChaperonesDances : Person → Prop
+axiom StudentAtSchool : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesFurtherAcademics : Person → Prop
+
+axiom prem1 : ∀ x : Person, InClub x ∧ PerformsTalentOften x → AttendEngagedEvents x
+axiom prem2 : ∀ x : Person, InClub x → (PerformsTalentOften x ∨ InactiveDisinterested x)
+axiom prem3 : ∀ x : Person, InClub x ∧ ChaperonesDances x → ¬ StudentAtSchool x
+axiom prem4 : ∀ x : Person, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+axiom prem5 : ∀ x : Person, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademics x → StudentAtSchool x
+axiom prem6 : InClub Bonnie ∧ ((AttendEngagedEvents Bonnie ∧ StudentAtSchool Bonnie) ∨ (¬AttendEngagedEvents Bonnie ∧ ¬StudentAtSchool Bonnie))
+
+theorem neg_conclusion :
+  ¬ (
+    (ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsTalentOften Bonnie))
+    →
+    ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademics Bonnie) ∧ InactiveDisinterested Bonnie)
+  ) := by
+  intro hImp
+  have hClub : InClub Bonnie := (prem6).left
+  have hAnte : ChaperonesDances Bonnie ∨ (¬ ChaperonesDances Bonnie → PerformsTalentOften Bonnie) := by
+    have h := prem2 Bonnie hClub
+    cases h with
+    | inl hPerf =>
+      exact Or.inr (fun _ => hPerf)
+    | inr hInact =>
+      have hCh : ChaperonesDances Bonnie := prem4 Bonnie ⟨hClub, hInact⟩
+      exact Or.inl hCh
+  have hNotCons : ¬ ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademics Bonnie) ∧ InactiveDisinterested Bonnie) := by
+    intro hCons
+    have hYW := hCons.left
+    have hInact := hCons.right
+    have hStud : StudentAtSchool Bonnie := prem5 Bonnie ⟨hClub, hYW.left, hYW.right⟩
+    have hCh : ChaperonesDances Bonnie := prem4 Bonnie ⟨hClub, hInact⟩
+    have hNotStud : ¬ StudentAtSchool Bonnie := prem3 Bonnie ⟨hClub, hCh⟩
+    exact hNotStud hStud
+  exact hNotCons (hImp hAnte)
+
+Verification Success: False
+Errors: ['Memory usage is too high. We attempted to restart the Lean server 5 times without success.']
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: Unknown
+Correct: No

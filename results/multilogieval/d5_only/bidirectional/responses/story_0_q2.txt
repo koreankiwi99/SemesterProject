@@ -1,0 +1,94 @@
+Story ID: 0
+Example ID: 2
+Premises: Jim makes sure to water his vegetable garden every day. He knows if he waters the plants daily, they will grow big and healthy. It is now chili pepper season. Jim decided that if it was chili season, he would pick fresh chili peppers from his garden. Either Jim waters his garden daily or he did not pick fresh chilis this season. Jim knows if his vegetables grow big and healthy, he can use the fresh chilis to make homemade chili sauce. Whenever Jim makes homemade chili sauce, his family really enjoys pouring the spicy sauce on dinner.
+Conclusion: If it is chili season, then does Jim's family enjoy homemade chili sauce on dinner?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom WaterDaily : Prop
+axiom GrowBigHealthy : Prop
+axiom ChiliSeason : Prop
+axiom PickFreshChilis : Prop
+axiom MakeHomemadeChiliSauce : Prop
+axiom FamilyEnjoysSauceOnDinner : Prop
+
+-- Premises
+axiom premise_water_daily : WaterDaily
+axiom premise_water_imp_grow : WaterDaily → GrowBigHealthy
+axiom premise_chili_season : ChiliSeason
+axiom premise_season_imp_pick : ChiliSeason → PickFreshChilis
+axiom premise_water_or_not_pick : WaterDaily ∨ ¬ PickFreshChilis
+axiom premise_grow_pick_imp_make : GrowBigHealthy → PickFreshChilis → MakeHomemadeChiliSauce
+axiom premise_make_imp_enjoy : MakeHomemadeChiliSauce → FamilyEnjoysSauceOnDinner
+
+-- Conclusion: If it is chili season, Jim's family enjoys homemade chili sauce on dinner.
+theorem goal : ChiliSeason → FamilyEnjoysSauceOnDinner := by
+  intro hSeason
+  have hPick : PickFreshChilis := premise_season_imp_pick hSeason
+  have hGrow : GrowBigHealthy := premise_water_imp_grow premise_water_daily
+  have hMake : MakeHomemadeChiliSauce := premise_grow_pick_imp_make hGrow hPick
+  exact premise_make_imp_enjoy hMake
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom WaterDaily : Prop
+axiom BigHealthy : Prop
+axiom ChiliSeason : Prop
+axiom PickChilis : Prop
+axiom MakeSauce : Prop
+axiom FamilyEnjoys : Prop
+
+-- Premises
+axiom premise1 : WaterDaily
+axiom premise2 : WaterDaily → BigHealthy
+axiom premise3 : ChiliSeason
+axiom premise4 : ChiliSeason → PickChilis
+axiom premise5 : WaterDaily ∨ ¬PickChilis
+axiom premise6 : BigHealthy ∧ PickChilis → MakeSauce
+axiom premise7 : MakeSauce → FamilyEnjoys
+
+-- We can actually prove the original conclusion from the premises.
+theorem conclusion_true : ChiliSeason → FamilyEnjoys := by
+  intro hSeason
+  have hPick : PickChilis := premise4 hSeason
+  have hWater : WaterDaily :=
+    Or.elim premise5
+      (fun hw => hw)
+      (fun hNotPick => False.elim (hNotPick hPick))
+  have hBig : BigHealthy := premise2 hWater
+  have hSauce : MakeSauce := premise6 ⟨hBig, hPick⟩
+  exact premise7 hSauce
+
+-- Therefore, its negation is refutable (we have ¬¬(ChiliSeason → FamilyEnjoys)).
+theorem not_not_conclusion : ¬¬(ChiliSeason → FamilyEnjoys) := by
+  intro hNeg
+  apply hNeg
+  exact conclusion_true
+
+-- Attempt (cannot succeed given the premises):
+-- theorem negate_conclusion : ¬(ChiliSeason → FamilyEnjoys) := by
+--   -- This is unprovable because we just proved `ChiliSeason → FamilyEnjoys`.
+--   -- No derivation of a contradiction is possible from the premises.
+--   sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

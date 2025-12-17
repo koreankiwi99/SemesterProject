@@ -1,0 +1,137 @@
+Story ID: 380
+Example ID: 1014
+Premises: Not false or false is true. People in this club who perform in school talent shows often attend and are very engaged with school events.
+People in this club either perform in school talent shows often or are inactive and disinterested community members.
+People in this club who chaperone high school dances are not students who attend the school.
+All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school. 
+Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school.
+Conclusion: Bonnie performs in school talent shows often.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+axiom Person : Type u
+axiom InClub : Person → Prop
+axiom PerformOften : Person → Prop
+axiom AttendEvents : Person → Prop
+axiom VeryEngaged : Person → Prop
+axiom Inactive : Person → Prop
+axiom DisinterestedCommunityMember : Person → Prop
+axiom ChaperoneDances : Person → Prop
+axiom StudentAtSchool : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishesToFurtherAcademics : Person → Prop
+axiom Bonnie : Person
+
+-- Premises
+axiom taut : (¬ False) ∨ False
+axiom premise1 : ∀ x, InClub x ∧ PerformOften x → AttendEvents x ∧ VeryEngaged x
+axiom premise2 : ∀ x, InClub x → (PerformOften x ∨ (Inactive x ∧ DisinterestedCommunityMember x))
+axiom premise3 : ∀ x, InClub x ∧ ChaperoneDances x → ¬ StudentAtSchool x
+axiom premise4 : ∀ x, InClub x ∧ Inactive x ∧ DisinterestedCommunityMember x → ChaperoneDances x
+axiom premise5 : ∀ x, InClub x ∧ YoungChildOrTeen x ∧ WishesToFurtherAcademics x → StudentAtSchool x
+axiom bonnie_in_club : InClub Bonnie
+axiom bonnie_info :
+  (AttendEvents Bonnie ∧ VeryEngaged Bonnie ∧ StudentAtSchool Bonnie) ∨
+  ¬(AttendEvents Bonnie ∧ VeryEngaged Bonnie ∧ ¬ StudentAtSchool Bonnie)
+
+-- Conclusion to prove
+theorem goal : PerformOften Bonnie := by
+  -- Attempt proof
+  have hClub : InClub Bonnie := bonnie_in_club
+  have h := premise2 Bonnie hClub
+  cases h with
+  | inl hperf => exact hperf
+  | inr hInactiveDis =>
+      have hCh : ChaperoneDances Bonnie := by
+        apply premise4
+        exact And.intro hClub (And.intro hInactiveDis.left hInactiveDis.right)
+      have hNotStud : ¬ StudentAtSchool Bonnie := by
+        apply premise3
+        exact And.intro hClub hCh
+      -- From bonnie_info, the first case is impossible due to ¬Student
+      cases bonnie_info with
+      | inl hAES =>
+          exact False.elim (hNotStud hAES.right.right)
+      | inr hnot =>
+          -- Cannot proceed to derive a contradiction or performance from remaining information
+          sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Predicates
+axiom InClub : Person → Prop
+axiom PerformOften : Person → Prop
+axiom AE : Person → Prop                -- "attends and is very engaged with school events"
+axiom Inactive : Person → Prop          -- "inactive and disinterested community member"
+axiom Chaperone : Person → Prop         -- "chaperones high school dances"
+axiom Student : Person → Prop           -- "student who attends the school"
+axiom Youth : Person → Prop             -- "young child or teenager"
+axiom WishAcademic : Person → Prop      -- "wishes to further academic careers and educational opportunities"
+
+-- Constant individual
+axiom Bonnie : Person
+
+-- Premises
+axiom premise0 : True
+-- People in this club who perform in school talent shows often attend and are very engaged with school events.
+axiom premise1 : ∀ x : Person, InClub x ∧ PerformOften x → AE x
+-- People in this club either perform often or are inactive/disinterested community members.
+axiom premise2 : ∀ x : Person, InClub x → (PerformOften x ∨ Inactive x)
+-- People in this club who chaperone high school dances are not students who attend the school.
+axiom premise3 : ∀ x : Person, InClub x ∧ Chaperone x → ¬ Student x
+-- All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+axiom premise4 : ∀ x : Person, InClub x ∧ Inactive x → Chaperone x
+-- All young children and teenagers in this club who wish to further their academic careers are students who attend the school.
+axiom premise5 : ∀ x : Person, InClub x ∧ Youth x ∧ WishAcademic x → Student x
+-- Bonnie is in this club and either (both attends+engaged and is a student) or (neither attends+engaged nor student).
+axiom premise6 : InClub Bonnie ∧ ((AE Bonnie ∧ Student Bonnie) ∨ (¬ AE Bonnie ∧ ¬ Student Bonnie))
+
+-- Goal: prove the NEGATION of the conclusion (i.e., show Bonnie does not perform often).
+theorem not_perform : ¬ PerformOften Bonnie := by
+  -- Extract that Bonnie is in the club
+  have hClub : InClub Bonnie := And.left premise6
+  -- Assume for contradiction that Bonnie performs often
+  intro hPerf
+  -- Then Bonnie attends and is very engaged
+  have hAE : AE Bonnie := by
+    apply premise1
+    exact And.intro hClub hPerf
+  -- From Bonnie's disjunction, deduce that Bonnie is a student
+  have hStud : Student Bonnie := by
+    have hdisj : (AE Bonnie ∧ Student Bonnie) ∨ (¬ AE Bonnie ∧ ¬ Student Bonnie) := And.right premise6
+    cases hdisj with
+    | inl h =>
+      exact And.right h
+    | inr h =>
+      -- ¬AE contradicts AE; from False we can derive Student
+      have : False := (And.left h) hAE
+      exact False.elim this
+  -- We are unable to derive a contradiction (such as ¬Student Bonnie) from the given premises under hPerf,
+  -- since we cannot derive Inactive Bonnie (needed to produce Chaperone and hence ¬Student) from the disjunction in premise2.
+  admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

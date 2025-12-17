@@ -1,0 +1,391 @@
+Story ID: 471
+Example ID: 1365
+Premises: Not true or false is not true. All rabbits that can be spotted near the campus are cute. 
+Some turtles can be spotted near the campus. 
+The only animals that can be spotted near the campus are rabbits and squirrels.
+If something is skittish, then it is not calm.
+All the squirrels that can be spotted near the campus are skittish.
+Rockie can be spotted near the campus, and it is calm.
+Conclusion: If Rockie is cute and calm, then Rockie is a skittish turtle.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- We prove the negation of the target statement:
+-- ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  -- Rockie cannot be a squirrel (since Rockie is calm and spotted, and spotted squirrels are skittish → not calm)
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hS =>
+        have hSk : Skittish Rockie :=
+          squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+        have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Therefore Rockie is cute (rabbit and spotted)
+  have hCute : Cute Rockie :=
+    rabbits_spotted_cute Rockie (And.intro hRabbit hSpot)
+  -- From Calm and (Skittish → ¬Calm), we get ¬Skittish
+  have hNotSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+    exact hNotCalm hCalm
+  -- Apply the assumed implication to get the conclusion, then derive a contradiction with ¬Skittish
+  have hConcl : Skittish Rockie ∧ Turtle Rockie := hImp (And.intro hCute hCalm)
+  exact hNotSk hConcl.left
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- We prove the negation of the target statement:
+-- ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  -- Rockie cannot be a squirrel (since Rockie is calm and spotted, and spotted squirrels are skittish → not calm)
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hS =>
+        have hSk : Skittish Rockie :=
+          squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+        have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Therefore Rockie is cute (rabbit and spotted)
+  have hCute : Cute Rockie :=
+    rabbits_spotted_cute Rockie (And.intro hRabbit hSpot)
+  -- From Calm and (Skittish → ¬Calm), we get ¬Skittish
+  have hNotSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+    exact hNotCalm hCalm
+  -- Apply the assumed implication to get the conclusion, then derive a contradiction with ¬Skittish
+  have hConcl : Skittish Rockie ∧ Turtle Rockie := hImp (And.intro hCute hCalm)
+  exact hNotSk hConcl.left
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Memory usage is too high. We attempted to restart the Lean server 5 times without success.
+
+==================================================
+Iteration 2
+==================================================
+<lean>
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- We prove: ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  -- Show Rockie is a rabbit (cannot be a squirrel since Rockie is calm)
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hS =>
+        have hSk : Skittish Rockie :=
+          squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+        have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Therefore Rockie is cute (rabbit and spotted)
+  have hCute : Cute Rockie :=
+    rabbits_spotted_cute Rockie (And.intro hRabbit hSpot)
+  -- Calm ∧ (Skittish → ¬Calm) gives ¬Skittish
+  have hNotSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+    exact hNotCalm hCalm
+  -- Using the assumed implication gives a contradiction
+  have hConcl : Skittish Rockie ∧ Turtle Rockie := hImp (And.intro hCute hCalm)
+  exact hNotSk hConcl.left
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- We prove: ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  -- Show Rockie is a rabbit (cannot be a squirrel since Rockie is calm)
+  have hRabbit : Rabbit Rockie := by
+    cases hDisj with
+    | inl hR => exact hR
+    | inr hS =>
+        have hSk : Skittish Rockie :=
+          squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+        have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+        exact False.elim (hNotCalm hCalm)
+  -- Therefore Rockie is cute (rabbit and spotted)
+  have hCute : Cute Rockie :=
+    rabbits_spotted_cute Rockie (And.intro hRabbit hSpot)
+  -- Calm ∧ (Skittish → ¬Calm) gives ¬Skittish
+  have hNotSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+    exact hNotCalm hCalm
+  -- Using the assumed implication gives a contradiction
+  have hConcl : Skittish Rockie ∧ Turtle Rockie := hImp (And.intro hCute hCalm)
+  exact hNotSk hConcl.left
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Memory usage is too high. We attempted to restart the Lean server 5 times without success.
+
+==================================================
+Iteration 3
+==================================================
+<lean>
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Auxiliary lemmas
+lemma rockie_is_rabbit : Rabbit Rockie := by
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  match hDisj with
+  | Or.inl hR => exact hR
+  | Or.inr hS =>
+      have hSk : Skittish Rockie :=
+        squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+      have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+
+lemma rockie_cute : Cute Rockie :=
+  rabbits_spotted_cute Rockie (And.intro rockie_is_rabbit (And.left rockie_spotted_and_calm))
+
+lemma rockie_not_skittish : ¬ Skittish Rockie := by
+  intro hSk
+  have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+  exact hNotCalm (And.right rockie_spotted_and_calm)
+
+-- We prove the negation of the target statement:
+-- ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hConcl : Skittish Rockie ∧ Turtle Rockie :=
+    hImp (And.intro rockie_cute (And.right rockie_spotted_and_calm))
+  exact rockie_not_skittish hConcl.left
+</lean>
+ANSWER: False
+
+--- Lean Code ---
+-- Types and predicates
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom rabbits_spotted_cute :
+  ∀ x : Animal, Rabbit x ∧ SpottedNearCampus x → Cute x
+axiom exists_turtle_spotted :
+  ∃ x : Animal, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_rabbit_or_squirrel :
+  ∀ x : Animal, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x : Animal, Skittish x → ¬ Calm x
+axiom squirrels_spotted_skittish :
+  ∀ x : Animal, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Auxiliary lemmas
+lemma rockie_is_rabbit : Rabbit Rockie := by
+  have hSpot : SpottedNearCampus Rockie := And.left rockie_spotted_and_calm
+  have hCalm : Calm Rockie := And.right rockie_spotted_and_calm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_rabbit_or_squirrel Rockie hSpot
+  match hDisj with
+  | Or.inl hR => exact hR
+  | Or.inr hS =>
+      have hSk : Skittish Rockie :=
+        squirrels_spotted_skittish Rockie (And.intro hS hSpot)
+      have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+      exact False.elim (hNotCalm hCalm)
+
+lemma rockie_cute : Cute Rockie :=
+  rabbits_spotted_cute Rockie (And.intro rockie_is_rabbit (And.left rockie_spotted_and_calm))
+
+lemma rockie_not_skittish : ¬ Skittish Rockie := by
+  intro hSk
+  have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+  exact hNotCalm (And.right rockie_spotted_and_calm)
+
+-- We prove the negation of the target statement:
+-- ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie))
+theorem negate_goal :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hConcl : Skittish Rockie ∧ Turtle Rockie :=
+    hImp (And.intro rockie_cute (And.right rockie_spotted_and_calm))
+  exact rockie_not_skittish hConcl.left
+
+--- Lean Verification ---
+Success: False
+Errors:
+  - Function expected at
+  Calm Rockie
+but this term has type
+  Prop
+
+Note: Expected a function because this term is being applied to the argument
+  lemma
+  - unexpected token ':'; expected command
+  - Unknown identifier `rockie_cute`
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes
+Total Iterations: 3

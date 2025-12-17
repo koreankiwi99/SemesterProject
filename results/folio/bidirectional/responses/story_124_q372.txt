@@ -1,0 +1,121 @@
+Story ID: 124
+Example ID: 372
+Premises: The Picuris Mountains are a mountain range in New Mexico or Texas.
+Juan de Onate visited the Picuris Mountains.
+The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+There are no mountain ranges in texas that have mines that have been donated.
+Conclusion: The Harding Pegmatite Mine is not located in a mountain range in New Mexico.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+-- Entities and predicates
+axiom MountainRange : Type u
+axiom Mine : Type u
+axiom Person : Type u
+
+axiom Picuris : MountainRange
+axiom Harding : Mine
+axiom Juan : Person
+
+axiom InNM : MountainRange → Prop
+axiom InTX : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+-- Premises
+-- 1. The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom p1 : InNM Picuris ∨ InTX Picuris
+-- 2. Juan de Onate visited the Picuris Mountains.
+axiom p2 : Visited Juan Picuris
+-- 3. The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+axiom p3_loc : LocatedIn Harding Picuris
+axiom p3_don : Donated Harding
+-- 4. There are no mountain ranges in Texas that have mines that have been donated.
+--    (i.e., if a range is in Texas, then any mine located in it is not donated)
+axiom p4 : ∀ r : MountainRange, InTX r → ∀ m : Mine, LocatedIn m r → ¬ Donated m
+
+-- Conclusion to analyze:
+-- "The Harding Pegmatite Mine is not located in a mountain range in New Mexico."
+-- We formalize this as: ¬ ∃ r, InNM r ∧ LocatedIn Harding r
+def Conclusion : Prop := ¬ ∃ r : MountainRange, InNM r ∧ LocatedIn Harding r
+
+-- Derivations from premises
+lemma not_InTX_Picuris : ¬ InTX Picuris := by
+  intro htx
+  have hnd : ¬ Donated Harding := p4 Picuris htx Harding p3_loc
+  exact hnd p3_don
+
+lemma inNM_Picuris : InNM Picuris := by
+  cases p1 with
+  | inl hnm => exact hnm
+  | inr htx =>
+      have : False := (not_InTX_Picuris) htx
+      exact False.elim this
+
+theorem exists_NM_location : ∃ r : MountainRange, InNM r ∧ LocatedIn Harding r := by
+  exact Exists.intro Picuris (And.intro inNM_Picuris p3_loc)
+
+-- Therefore, the analyzed conclusion is false given the premises
+theorem conclusion_false : ¬ Conclusion := by
+  intro h
+  exact h exists_NM_location
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom MountainRange : Type
+axiom Mine : Type
+axiom Person : Type
+
+axiom PicurisMountains : MountainRange
+axiom HardingPegmatiteMine : Mine
+axiom JuanDeOnate : Person
+
+axiom InNewMexico : MountainRange → Prop
+axiom InTexas : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : Person → MountainRange → Prop
+
+-- Premises
+axiom premise1 : InNewMexico PicurisMountains ∨ InTexas PicurisMountains
+axiom premise2 : Visited JuanDeOnate PicurisMountains
+axiom premise3_loc : LocatedIn HardingPegmatiteMine PicurisMountains
+axiom premise3_don : Donated HardingPegmatiteMine
+axiom premise4 : ∀ mr : MountainRange, ∀ m : Mine, InTexas mr → LocatedIn m mr → ¬ Donated m
+
+-- Negation of the conclusion: The Harding Pegmatite Mine IS located in a mountain range in New Mexico.
+theorem goal : ∃ mr : MountainRange, LocatedIn HardingPegmatiteMine mr ∧ InNewMexico mr := by
+  have not_in_texas_Picuris : ¬ InTexas PicurisMountains := by
+    intro htx
+    have hnotdon : ¬ Donated HardingPegmatiteMine := premise4 PicurisMountains HardingPegmatiteMine htx premise3_loc
+    exact hnotdon premise3_don
+  have in_nm_Picuris : InNewMexico PicurisMountains := by
+    cases premise1 with
+    | inl hnm => exact hnm
+    | inr htx => exact False.elim (not_in_texas_Picuris htx)
+  exact Exists.intro PicurisMountains (And.intro premise3_loc in_nm_Picuris)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

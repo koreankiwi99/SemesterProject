@@ -1,0 +1,173 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: nm
+Depth: d4 (d4_Data)
+Rule: d4_1
+
+Context:
+Students and Teachers are individuals in a school. Typically, individuals in a school have books. If a Student studies hard, then the Student gets good grades. If a Teacher is knowledgeable, then the Teacher imparts useful information. Either a Student studies hard or a Teacher is knowledgeable. If a Student has books, then the Student is well-prepared.
+
+Question:
+Can we conclude if a Teacher does not impart useful information, then a Student does not have books?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+/- Domain and predicates -/
+axiom Person : Type
+
+axiom Student : Person → Prop
+axiom Teacher : Person → Prop
+axiom InSchool : Person → Prop
+axiom HasBooks : Person → Prop
+axiom StudiesHard : Person → Prop
+axiom GoodGrades : Person → Prop
+axiom Knowledgeable : Person → Prop
+axiom ImpartsUsefulInfo : Person → Prop
+axiom WellPrepared : Person → Prop
+
+/- Axioms from the textual context -/
+-- Students and Teachers are individuals in a school
+axiom ax_student_in_school : ∀ x : Person, Student x → InSchool x
+axiom ax_teacher_in_school : ∀ x : Person, Teacher x → InSchool x
+
+-- Typically, individuals in a school have books (formalized here as a universal implication)
+axiom ax_typically_books : ∀ x : Person, InSchool x → HasBooks x
+
+-- If a Student studies hard, then the Student gets good grades
+axiom ax_study_good_grades : ∀ x : Person, Student x → StudiesHard x → GoodGrades x
+
+-- If a Teacher is knowledgeable, then the Teacher imparts useful information
+axiom ax_knowledgeable_imparts : ∀ x : Person, Teacher x → Knowledgeable x → ImpartsUsefulInfo x
+
+-- Either a Student studies hard or a Teacher is knowledgeable (existential disjunction)
+axiom ax_disj_either :
+  (∃ x : Person, Student x ∧ StudiesHard x) ∨ (∃ x : Person, Teacher x ∧ Knowledgeable x)
+
+-- If a Student has books, then the Student is well-prepared
+axiom ax_books_prepared : ∀ x : Person, Student x → HasBooks x → WellPrepared x
+
+/- Some derived facts -/
+theorem students_have_books : ∀ x : Person, Student x → HasBooks x := by
+  intro x hx
+  have hxS : InSchool x := ax_student_in_school x hx
+  exact ax_typically_books x hxS
+
+theorem teachers_have_books : ∀ x : Person, Teacher x → HasBooks x := by
+  intro x hx
+  have hxS : InSchool x := ax_teacher_in_school x hx
+  exact ax_typically_books x hxS
+
+/- Target statement and analysis -/
+def Antecedent : Prop := ∃ t : Person, Teacher t ∧ ¬ ImpartsUsefulInfo t
+def Consequent : Prop := ∃ s : Person, Student s ∧ ¬ HasBooks s
+
+-- Under the "typical" axiom formalized as universal, no student lacks books.
+theorem no_student_without_books : ¬ Consequent := by
+  intro h
+  rcases h with ⟨s, hs, nbs⟩
+  have : HasBooks s := students_have_books s hs
+  exact nbs this
+
+-- Hence the target implication is equivalent to the negation of its antecedent,
+-- but the antecedent (existence of a non-imparting teacher) is not determined by the premises.
+theorem target_equiv_neg_antecedent :
+  (Antecedent → Consequent) ↔ ¬ Antecedent := by
+  apply Iff.intro
+  · intro h hA
+    have hC : Consequent := h hA
+    exact no_student_without_books hC
+  · intro hNA hA
+    have : False := hNA hA
+    exact False.elim this
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+/- Domain and predicates -/
+axiom Person : Type
+
+axiom Student : Person → Prop
+axiom Teacher : Person → Prop
+axiom InSchool : Person → Prop
+axiom HasBooks : Person → Prop
+axiom StudiesHard : Person → Prop
+axiom GoodGrades : Person → Prop
+axiom Knowledgeable : Person → Prop
+axiom ImpartsUsefulInfo : Person → Prop
+axiom WellPrepared : Person → Prop
+
+/- Axioms from the textual context -/
+-- Students and Teachers are individuals in a school
+axiom ax_student_in_school : ∀ x : Person, Student x → InSchool x
+axiom ax_teacher_in_school : ∀ x : Person, Teacher x → InSchool x
+
+-- Typically, individuals in a school have books (formalized here as a universal implication)
+axiom ax_typically_books : ∀ x : Person, InSchool x → HasBooks x
+
+-- If a Student studies hard, then the Student gets good grades
+axiom ax_study_good_grades : ∀ x : Person, Student x → StudiesHard x → GoodGrades x
+
+-- If a Teacher is knowledgeable, then the Teacher imparts useful information
+axiom ax_knowledgeable_imparts : ∀ x : Person, Teacher x → Knowledgeable x → ImpartsUsefulInfo x
+
+-- Either a Student studies hard or a Teacher is knowledgeable (existential disjunction)
+axiom ax_disj_either :
+  (∃ x : Person, Student x ∧ StudiesHard x) ∨ (∃ x : Person, Teacher x ∧ Knowledgeable x)
+
+-- If a Student has books, then the Student is well-prepared
+axiom ax_books_prepared : ∀ x : Person, Student x → HasBooks x → WellPrepared x
+
+/- Some derived facts -/
+theorem students_have_books : ∀ x : Person, Student x → HasBooks x := by
+  intro x hx
+  have hxS : InSchool x := ax_student_in_school x hx
+  exact ax_typically_books x hxS
+
+theorem teachers_have_books : ∀ x : Person, Teacher x → HasBooks x := by
+  intro x hx
+  have hxS : InSchool x := ax_teacher_in_school x hx
+  exact ax_typically_books x hxS
+
+/- Target statement and analysis -/
+def Antecedent : Prop := ∃ t : Person, Teacher t ∧ ¬ ImpartsUsefulInfo t
+def Consequent : Prop := ∃ s : Person, Student s ∧ ¬ HasBooks s
+
+-- Under the "typical" axiom formalized as universal, no student lacks books.
+theorem no_student_without_books : ¬ Consequent := by
+  intro h
+  rcases h with ⟨s, hs, nbs⟩
+  have : HasBooks s := students_have_books s hs
+  exact nbs this
+
+-- Hence the target implication is equivalent to the negation of its antecedent,
+-- but the antecedent (existence of a non-imparting teacher) is not determined by the premises.
+theorem target_equiv_neg_antecedent :
+  (Antecedent → Consequent) ↔ ¬ Antecedent := by
+  apply Iff.intro
+  · intro h hA
+    have hC : Consequent := h hA
+    exact no_student_without_books hC
+  · intro hNA hA
+    have : False := hNA hA
+    exact False.elim this
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: No
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

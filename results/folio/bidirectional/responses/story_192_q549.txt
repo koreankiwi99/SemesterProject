@@ -1,0 +1,103 @@
+Story ID: 192
+Example ID: 549
+Premises: International students in the US have either an F1 visa or a J1 visa.
+An international student in the US with an F1 visa needs to apply for CPT or OPT if the student wants to work in the US.
+Mike is an international student.
+Mike needs to apply for CPT if he wants to work in the US.
+Conclusion: Mike has a J1 visa.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Mike : Person
+
+axiom InternationalUS : Person → Prop
+axiom HasF1 : Person → Prop
+axiom HasJ1 : Person → Prop
+axiom WantsWorkUS : Person → Prop
+axiom NeedsCPT : Person → Prop
+axiom NeedsOPT : Person → Prop
+
+-- Premises
+-- 1. International students in the US have either an F1 visa or a J1 visa.
+axiom prem1 : ∀ x : Person, InternationalUS x → (HasF1 x ∨ HasJ1 x)
+
+-- 2. An international student in the US with an F1 visa needs to apply for CPT or OPT if the student wants to work in the US.
+axiom prem2 : ∀ x : Person, InternationalUS x → HasF1 x → WantsWorkUS x → (NeedsCPT x ∨ NeedsOPT x)
+
+-- 3. Mike is an international student.
+axiom prem3 : InternationalUS Mike
+
+-- 4. Mike needs to apply for CPT if he wants to work in the US.
+axiom prem4 : WantsWorkUS Mike → NeedsCPT Mike
+
+-- Goal: Mike has a J1 visa.
+theorem goal : HasJ1 Mike := by
+  have h := prem1 Mike prem3
+  cases h with
+  | inl hF1 =>
+    -- From F1 we can derive: WantsWorkUS Mike → (NeedsCPT Mike ∨ NeedsOPT Mike)
+    have _ := prem2 Mike prem3 hF1
+    -- We also have WantsWorkUS Mike → NeedsCPT Mike, which is consistent with the above.
+    -- However, none of this yields a contradiction or excludes F1, nor does it force J1.
+    sorry
+  | inr hJ1 =>
+    exact hJ1
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Mike : Person
+
+axiom InternationalUS : Person → Prop
+axiom F1 : Person → Prop
+axiom J1 : Person → Prop
+axiom WantsWorkUS : Person → Prop
+axiom NeedsCPT : Person → Prop
+axiom NeedsOPT : Person → Prop
+
+-- Premise 1: International students in the US have either an F1 visa or a J1 visa.
+axiom premise1 : ∀ x : Person, InternationalUS x → (F1 x ∨ J1 x)
+
+-- Premise 2: An international student in the US with an F1 visa needs to apply for CPT or OPT if the student wants to work in the US.
+axiom premise2 : ∀ x : Person, (InternationalUS x ∧ F1 x) → (WantsWorkUS x → (NeedsCPT x ∨ NeedsOPT x))
+
+-- Premise 3: Mike is an international student (in the US).
+axiom premise3 : InternationalUS Mike
+
+-- Premise 4: Mike needs to apply for CPT if he wants to work in the US.
+axiom premise4 : WantsWorkUS Mike → NeedsCPT Mike
+
+-- Negation of the conclusion to analyze: Mike does NOT have a J1 visa.
+theorem not_J1_Mike : ¬ J1 Mike := by
+  intro hJ1
+  -- From premise1 and premise3, we only get F1 Mike ∨ J1 Mike, which is consistent with hJ1.
+  have hDisj : F1 Mike ∨ J1 Mike := by
+    exact premise1 Mike premise3
+  -- From premise4, if Mike wants to work, then he needs CPT; this does not contradict J1 Mike.
+  have hCPT : WantsWorkUS Mike → NeedsCPT Mike := premise4
+  -- There is no way to derive a contradiction from the given premises and hJ1.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

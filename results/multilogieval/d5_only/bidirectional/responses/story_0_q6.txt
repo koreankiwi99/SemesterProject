@@ -1,0 +1,106 @@
+Story ID: 0
+Example ID: 6
+Premises: Abby works hard to take care of her health. She knows that if she drinks plenty of water daily, she will be properly hydrated. Having proper hydration gives Abby high energy levels throughout the day. Abby also understands that either she drinks lots of water, or eats a balanced diet, or does both, to feel her best. Eating a nutritious diet ensures that Abby gets all the nutrients she needs. And by meeting her nutritional needs with food, Abby is able to maintain good overall health.
+Conclusion: If Abby does not experience high energy levels, then does she maintain good health?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom W : Prop        -- Abby drinks plenty of water daily
+axiom H : Prop        -- Abby is properly hydrated
+axiom E : Prop        -- Abby has high energy levels
+axiom B : Prop        -- Abby eats a balanced/nutritious diet
+axiom N : Prop        -- Abby gets all the nutrients she needs
+axiom G : Prop        -- Abby maintains good overall health
+
+-- Premises
+axiom Water_implies_Hydrated : W → H
+axiom Hydrated_implies_Energy : H → E
+axiom Water_or_Balanced : W ∨ B
+axiom Balanced_implies_Nutrients : B → N
+axiom Nutrients_implies_GoodHealth : N → G
+
+-- Conclusion: If Abby does not experience high energy levels, then she maintains good health.
+theorem goal : ¬E → G := by
+  intro notE
+  -- From ¬E and (W → E), derive ¬W
+  have notW : ¬W := by
+    intro w
+    have h : H := Water_implies_Hydrated w
+    have e : E := Hydrated_implies_Energy h
+    exact notE e
+  -- From W ∨ B and ¬W, derive B
+  have b : B :=
+    Or.elim Water_or_Balanced
+      (fun w => False.elim (notW w))
+      (fun b => b)
+  -- From B → N and N → G, conclude G
+  have n : N := Balanced_implies_Nutrients b
+  exact Nutrients_implies_GoodHealth n
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates about Abby
+axiom DrinksWater : Prop
+axiom ProperlyHydrated : Prop
+axiom HighEnergy : Prop
+axiom BalancedDiet : Prop
+axiom GetsAllNutrients : Prop
+axiom MaintainGoodHealth : Prop
+axiom FeelsBest : Prop
+
+-- Premises
+axiom p1 : DrinksWater → ProperlyHydrated
+axiom p2 : ProperlyHydrated → HighEnergy
+axiom p3 : DrinksWater ∨ BalancedDiet
+axiom p4 : BalancedDiet → GetsAllNutrients
+axiom p5 : GetsAllNutrients → MaintainGoodHealth
+
+-- Useful derived facts
+lemma notHighEnergy_implies_notDrinksWater : ¬HighEnergy → ¬DrinksWater := by
+  intro nh
+  intro dw
+  have ph : ProperlyHydrated := p1 dw
+  have he : HighEnergy := p2 ph
+  exact nh he
+
+lemma balancedDiet_from_notHighEnergy : ¬HighEnergy → BalancedDiet := by
+  intro nh
+  have ndw : ¬DrinksWater := notHighEnergy_implies_notDrinksWater nh
+  cases p3 with
+  | inl dw => exact False.elim (ndw dw)
+  | inr bd => exact bd
+
+-- From the premises we can actually prove the original conclusion (the implication) is true
+theorem implication_true : (¬HighEnergy) → MaintainGoodHealth := by
+  intro nh
+  have bd : BalancedDiet := balancedDiet_from_notHighEnergy nh
+  have gn : GetsAllNutrients := p4 bd
+  exact p5 gn
+
+-- Requested: attempt to prove the NEGATION of the conclusion
+theorem goal_negation : ¬((¬HighEnergy) → MaintainGoodHealth) := by
+  -- This is not provable from the premises because we have `implication_true`.
+  -- Proof attempt fails.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: yes
+Prediction: Yes
+Correct: Yes

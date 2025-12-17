@@ -1,0 +1,174 @@
+Story ID: 459
+Example ID: 1326
+Premises: Jane does not like any animals that bark.
+All dogs are animals that bark.
+Jane likes all animals that jump.
+If an animal has legs, then it jumps.
+If an animal is terricolous, then it has legs. 
+KiKi is an animal.
+If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+Conclusion: KiKi does not bark and he is not a dog.
+
+==================================================
+Iteration 1
+==================================================
+<lean>
+-- We model entities (things like animals) and people.
+axiom Entity : Type
+axiom Person : Type
+
+-- Constants for the specific person and entity in the story.
+axiom Jane : Person
+axiom KiKi : Entity
+
+-- Predicates on entities.
+axiom Animal : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Bark : Entity → Prop
+axiom Jump : Entity → Prop
+axiom Legs : Entity → Prop
+axiom Terricolous : Entity → Prop
+
+-- Likes relation between a person and an entity.
+axiom Likes : Person → Entity → Prop
+
+-- 1. Jane does not like any animals that bark.
+axiom Jane_dislikes_animals_that_bark :
+  ∀ x : Entity, (Animal x ∧ Bark x) → ¬ Likes Jane x
+
+-- 2. All dogs are animals that bark.
+axiom dogs_are_animals_that_bark :
+  ∀ x : Entity, Dog x → (Animal x ∧ Bark x)
+
+-- 3. Jane likes all animals that jump.
+axiom Jane_likes_animals_that_jump :
+  ∀ x : Entity, (Animal x ∧ Jump x) → Likes Jane x
+
+-- 4. If an animal has legs, then it jumps.
+axiom animals_with_legs_jump :
+  ∀ x : Entity, (Animal x ∧ Legs x) → Jump x
+
+-- 5. If an animal is terricolous, then it has legs.
+axiom terricolous_animals_have_legs :
+  ∀ x : Entity, (Animal x ∧ Terricolous x) → Legs x
+
+-- 6. KiKi is an animal.
+axiom KiKi_is_animal : Animal KiKi
+
+-- 7. If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom KiKi_neither_jumps_nor_has_legs_imp_terr_or_legs :
+  (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+-- 8. KiKi does not bark and he is not a dog.
+axiom KiKi_not_bark_and_not_dog : (¬ Bark KiKi ∧ ¬ Dog KiKi)
+
+-- Goal: Jane likes KiKi.
+theorem Jane_likes_KiKi : Likes Jane KiKi := by
+  have hAnimal : Animal KiKi := KiKi_is_animal
+  -- We first show that KiKi jumps.
+  have hJump : Jump KiKi := by
+    classical
+    by_cases hLegs : Legs KiKi
+    · -- If KiKi has legs, then as an animal with legs, he jumps.
+      exact animals_with_legs_jump KiKi ⟨hAnimal, hLegs⟩
+    · -- If KiKi does not have legs, we show he must jump.
+      by_cases hJ : Jump KiKi
+      · exact hJ
+      · -- From (¬Jump ∧ ¬Legs), we get Terricolous ∨ Legs; with ¬Legs, deduce Terricolous.
+        have h7 := KiKi_neither_jumps_nor_has_legs_imp_terr_or_legs ⟨hJ, hLegs⟩
+        have hTerr : Terricolous KiKi := by
+          cases h7 with
+          | inl hT => exact hT
+          | inr hL => exact False.elim (hLegs hL)
+        -- Terricolous animal implies has legs, contradiction.
+        have hHaveLegs := terricolous_animals_have_legs KiKi ⟨hAnimal, hTerr⟩
+        exact False.elim (hLegs hHaveLegs)
+  -- Since KiKi is an animal that jumps, Jane likes KiKi.
+  exact Jane_likes_animals_that_jump KiKi ⟨hAnimal, hJump⟩
+</lean>
+ANSWER: True
+
+--- Lean Code ---
+-- We model entities (things like animals) and people.
+axiom Entity : Type
+axiom Person : Type
+
+-- Constants for the specific person and entity in the story.
+axiom Jane : Person
+axiom KiKi : Entity
+
+-- Predicates on entities.
+axiom Animal : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Bark : Entity → Prop
+axiom Jump : Entity → Prop
+axiom Legs : Entity → Prop
+axiom Terricolous : Entity → Prop
+
+-- Likes relation between a person and an entity.
+axiom Likes : Person → Entity → Prop
+
+-- 1. Jane does not like any animals that bark.
+axiom Jane_dislikes_animals_that_bark :
+  ∀ x : Entity, (Animal x ∧ Bark x) → ¬ Likes Jane x
+
+-- 2. All dogs are animals that bark.
+axiom dogs_are_animals_that_bark :
+  ∀ x : Entity, Dog x → (Animal x ∧ Bark x)
+
+-- 3. Jane likes all animals that jump.
+axiom Jane_likes_animals_that_jump :
+  ∀ x : Entity, (Animal x ∧ Jump x) → Likes Jane x
+
+-- 4. If an animal has legs, then it jumps.
+axiom animals_with_legs_jump :
+  ∀ x : Entity, (Animal x ∧ Legs x) → Jump x
+
+-- 5. If an animal is terricolous, then it has legs.
+axiom terricolous_animals_have_legs :
+  ∀ x : Entity, (Animal x ∧ Terricolous x) → Legs x
+
+-- 6. KiKi is an animal.
+axiom KiKi_is_animal : Animal KiKi
+
+-- 7. If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom KiKi_neither_jumps_nor_has_legs_imp_terr_or_legs :
+  (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+-- 8. KiKi does not bark and he is not a dog.
+axiom KiKi_not_bark_and_not_dog : (¬ Bark KiKi ∧ ¬ Dog KiKi)
+
+-- Goal: Jane likes KiKi.
+theorem Jane_likes_KiKi : Likes Jane KiKi := by
+  have hAnimal : Animal KiKi := KiKi_is_animal
+  -- We first show that KiKi jumps.
+  have hJump : Jump KiKi := by
+    classical
+    by_cases hLegs : Legs KiKi
+    · -- If KiKi has legs, then as an animal with legs, he jumps.
+      exact animals_with_legs_jump KiKi ⟨hAnimal, hLegs⟩
+    · -- If KiKi does not have legs, we show he must jump.
+      by_cases hJ : Jump KiKi
+      · exact hJ
+      · -- From (¬Jump ∧ ¬Legs), we get Terricolous ∨ Legs; with ¬Legs, deduce Terricolous.
+        have h7 := KiKi_neither_jumps_nor_has_legs_imp_terr_or_legs ⟨hJ, hLegs⟩
+        have hTerr : Terricolous KiKi := by
+          cases h7 with
+          | inl hT => exact hT
+          | inr hL => exact False.elim (hLegs hL)
+        -- Terricolous animal implies has legs, contradiction.
+        have hHaveLegs := terricolous_animals_have_legs KiKi ⟨hAnimal, hTerr⟩
+        exact False.elim (hLegs hHaveLegs)
+  -- Since KiKi is an animal that jumps, Jane likes KiKi.
+  exact Jane_likes_animals_that_jump KiKi ⟨hAnimal, hJump⟩
+
+--- Lean Verification ---
+Success: True
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes
+Total Iterations: 1

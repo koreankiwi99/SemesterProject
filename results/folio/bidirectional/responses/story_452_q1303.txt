@@ -1,0 +1,132 @@
+Story ID: 452
+Example ID: 1303
+Premises: All aliens are extraterrestrials.
+If someone is from Mars, then they are an alien.
+No extraterrestrials are human.
+All highly intelligent beings from Earth are humans.
+Marvin is a highly intelligent being.
+Marvin is either from Earth and from Mars, or he is from neither.
+If Marvin is not from Earth, then Marvin is an extraterrestrial.
+Conclusion: If Marvin is not from Mars, then Marvin is a human.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+axiom Being : Type u
+
+axiom Alien : Being → Prop
+axiom Extraterrestrial : Being → Prop
+axiom Human : Being → Prop
+axiom HighlyIntelligent : Being → Prop
+axiom FromEarth : Being → Prop
+axiom FromMars : Being → Prop
+
+axiom Marvin : Being
+
+-- Premises
+axiom A1 : ∀ x : Being, Alien x → Extraterrestrial x
+axiom A2 : ∀ x : Being, FromMars x → Alien x
+axiom A3 : ∀ x : Being, Extraterrestrial x → ¬ Human x
+axiom A4 : ∀ x : Being, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom A5 : HighlyIntelligent Marvin
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom A7 : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+-- A derived consequence of the premises:
+-- If Marvin is not from Mars, then Marvin is not human.
+theorem notHuman_of_notMars : ¬ FromMars Marvin → ¬ Human Marvin := by
+  intro hNotMars
+  -- From the dichotomy about Marvin's origins, deduce ¬ FromEarth Marvin
+  have hNotEarth : ¬ FromEarth Marvin := by
+    cases A6 with
+    | inl hEM =>
+      -- hEM : FromEarth Marvin ∧ FromMars Marvin
+      have hM : FromMars Marvin := hEM.right
+      have hFalse : False := hNotMars hM
+      exact False.elim hFalse
+    | inr hNotENotM =>
+      exact hNotENotM.left
+  -- From ¬ FromEarth Marvin, Marvin is an extraterrestrial
+  have hET : Extraterrestrial Marvin := A7 hNotEarth
+  -- No extraterrestrials are human
+  exact A3 Marvin hET
+
+-- Conclusion to analyze (requested):
+theorem goal : ¬ FromMars Marvin → Human Marvin := by
+  -- Attempt to prove the goal. However, from notHuman_of_notMars we derive the opposite.
+  -- Therefore, this conclusion does not follow from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Being : Type
+axiom Marvin : Being
+
+axiom Alien : Being → Prop
+axiom Extraterrestrial : Being → Prop
+axiom Human : Being → Prop
+axiom FromMars : Being → Prop
+axiom FromEarth : Being → Prop
+axiom HighlyIntelligent : Being → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Being, Alien x → Extraterrestrial x
+axiom premise2 : ∀ x : Being, FromMars x → Alien x
+axiom premise3 : ∀ x : Being, Extraterrestrial x → ¬Human x
+axiom premise4 : ∀ x : Being, HighlyIntelligent x → FromEarth x → Human x
+axiom premise5 : HighlyIntelligent Marvin
+axiom premise6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom premise7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- We prove the negation of the conclusion:
+-- Negation of: (¬FromMars Marvin) → Human Marvin
+theorem goal : ¬((¬FromMars Marvin) → Human Marvin) := by
+  -- First, show that FromEarth ∧ FromMars leads to a contradiction (Human ∧ ¬Human)
+  have not_both : ¬(FromEarth Marvin ∧ FromMars Marvin) := by
+    intro h
+    have hFE : FromEarth Marvin := h.left
+    have hFM : FromMars Marvin := h.right
+    have hHuman : Human Marvin := premise4 Marvin premise5 hFE
+    have hAlien : Alien Marvin := premise2 Marvin hFM
+    have hExtra : Extraterrestrial Marvin := premise1 Marvin hAlien
+    have hNotHuman : ¬Human Marvin := premise3 Marvin hExtra
+    exact hNotHuman hHuman
+  -- From the disjunction, get ¬FromEarth ∧ ¬FromMars
+  have notE_notM : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+    cases premise6 with
+    | inl hBoth =>
+        exact False.elim (not_both hBoth)
+    | inr hNone =>
+        exact hNone
+  have hNotEarth : ¬FromEarth Marvin := notE_notM.left
+  have hNotMars : ¬FromMars Marvin := notE_notM.right
+  -- From ¬FromEarth, get Extraterrestrial, hence ¬Human
+  have hExtra : Extraterrestrial Marvin := premise7 hNotEarth
+  have hNotHuman : ¬Human Marvin := premise3 Marvin hExtra
+  -- Now refute the implication using hNotMars and hNotHuman
+  intro hImp
+  have hHuman : Human Marvin := hImp hNotMars
+  exact hNotHuman hHuman
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: False
+Prediction: False
+Correct: Yes

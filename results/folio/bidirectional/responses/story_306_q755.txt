@@ -1,0 +1,97 @@
+Story ID: 306
+Example ID: 755
+Premises: If a restaurant is listed in Yelp’s recommendations, then the restaurant has not received many negative reviews.
+All restaurants with a rating greater than four are listed in Yelp’s recommendations.
+Some restaurants that do not provide take-out service receive many negative reviews.
+All restaurants that are popular among local residents have ratings greater than four.
+The Hamden Plaza Subway store has a rating greater than four, or it is popular among local residents.
+Conclusion: The Hamden Plaza Subway store provides take-out service or does not receive many negative reviews.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Restaurant : Type
+axiom HPSubway : Restaurant
+
+axiom Listed : Restaurant → Prop
+axiom ManyNegReviews : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom ProvidesTakeOut : Restaurant → Prop
+axiom PopularLocal : Restaurant → Prop
+
+-- Premises
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNegReviews r
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+axiom premise3 : ∃ r : Restaurant, ¬ ProvidesTakeOut r ∧ ManyNegReviews r
+axiom premise4 : ∀ r : Restaurant, PopularLocal r → RatingGT4 r
+axiom premise5 : RatingGT4 HPSubway ∨ PopularLocal HPSubway
+
+theorem goal : ProvidesTakeOut HPSubway ∨ ¬ ManyNegReviews HPSubway := by
+  have hNotMany : ¬ ManyNegReviews HPSubway := by
+    cases premise5 with
+    | inl hRate =>
+        have hListed : Listed HPSubway := premise2 HPSubway hRate
+        exact premise1 HPSubway hListed
+    | inr hPopular =>
+        have hRate : RatingGT4 HPSubway := premise4 HPSubway hPopular
+        have hListed : Listed HPSubway := premise2 HPSubway hRate
+        exact premise1 HPSubway hListed
+  exact Or.inr hNotMany
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Restaurant : Type
+axiom HamdenSubway : Restaurant
+
+axiom Listed : Restaurant → Prop
+axiom ManyNegativeReviews : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom ProvidesTakeout : Restaurant → Prop
+axiom PopularLocal : Restaurant → Prop
+
+-- Premises
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNegativeReviews r
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+axiom premise3 : ∃ r : Restaurant, ¬ ProvidesTakeout r ∧ ManyNegativeReviews r
+axiom premise4 : ∀ r : Restaurant, PopularLocal r → RatingGT4 r
+axiom premise5 : RatingGT4 HamdenSubway ∨ PopularLocal HamdenSubway
+
+-- Derive that HamdenSubway does not receive many negative reviews
+lemma hamden_not_many : ¬ ManyNegativeReviews HamdenSubway := by
+  have hRating : RatingGT4 HamdenSubway := by
+    cases premise5 with
+    | inl h => exact h
+    | inr hpop => exact premise4 _ hpop
+  have hListed : Listed HamdenSubway := premise2 _ hRating
+  exact premise1 _ hListed
+
+-- Therefore, the original conclusion actually holds
+theorem conclusion_true : ProvidesTakeout HamdenSubway ∨ ¬ ManyNegativeReviews HamdenSubway := by
+  exact Or.inr hamden_not_many
+
+-- Attempt to prove the NEGATION of the conclusion (which is actually false given the premises)
+theorem negation_of_conclusion : ¬ (ProvidesTakeout HamdenSubway ∨ ¬ ManyNegativeReviews HamdenSubway) := by
+  -- This is not provable from the premises because we have already derived ¬ ManyNegativeReviews HamdenSubway.
+  -- Hence the disjunction in the conclusion is true, making its negation false.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: True
+Correct: Yes

@@ -1,0 +1,111 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: pl
+Depth: d3 (d3_Data)
+Rule: DD_DS_MT
+
+Context:
+Miriam wants to make dinner and dessert but needs to check if she has the ingredients. If the recipe only requires pantry staples, Miriam can make dinner tonight. If she went grocery shopping this week, she'll also bake cookies for dessert. Either she won't make dinner or she won't bake cookies, or she'll do neither. She checks the fridge to see if she has dairy products. She knows that if milk and eggs are there, then she went grocery shopping this week.
+
+Question:
+If the recipe only requires pantry staples, are milk and eggs in the refrigerator?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom P : Prop -- Recipe requires only pantry staples
+axiom D : Prop -- Miriam can make dinner tonight
+axiom G : Prop -- She went grocery shopping this week
+axiom C : Prop -- She'll bake cookies for dessert
+axiom E : Prop -- Milk and eggs are in the refrigerator
+
+axiom h1 : P → D
+axiom h2 : G → C
+axiom h3 : (¬ D ∨ ¬ C) ∨ (¬ D ∧ ¬ C)
+axiom h4 : E → G
+
+-- From the premises we can derive that if the recipe only requires pantry staples,
+-- then milk and eggs are not in the refrigerator.
+theorem not_in_fridge : P → ¬ E := by
+  intro p
+  have d : D := h1 p
+  -- From the disjunction, get ¬D ∨ ¬C
+  have nd_or_nc : ¬ D ∨ ¬ C := by
+    cases h3 with
+    | inl h => exact h
+    | inr hAnd => exact Or.inl hAnd.left
+  -- Using D, this yields ¬C
+  have notC : ¬ C := by
+    cases nd_or_nc with
+    | inl nd =>
+        intro c
+        exact False.elim (nd d)
+    | inr nc =>
+        exact nc
+  -- From ¬C and G → C, infer ¬G
+  have notG : ¬ G := by
+    intro g
+    exact notC (h2 g)
+  -- From ¬G and E → G, infer ¬E
+  intro e
+  exact notG (h4 e)
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom P : Prop -- Recipe requires only pantry staples
+axiom D : Prop -- Miriam can make dinner tonight
+axiom G : Prop -- She went grocery shopping this week
+axiom C : Prop -- She'll bake cookies for dessert
+axiom E : Prop -- Milk and eggs are in the refrigerator
+
+axiom h1 : P → D
+axiom h2 : G → C
+axiom h3 : (¬ D ∨ ¬ C) ∨ (¬ D ∧ ¬ C)
+axiom h4 : E → G
+
+-- From the premises we can derive that if the recipe only requires pantry staples,
+-- then milk and eggs are not in the refrigerator.
+theorem not_in_fridge : P → ¬ E := by
+  intro p
+  have d : D := h1 p
+  -- From the disjunction, get ¬D ∨ ¬C
+  have nd_or_nc : ¬ D ∨ ¬ C := by
+    cases h3 with
+    | inl h => exact h
+    | inr hAnd => exact Or.inl hAnd.left
+  -- Using D, this yields ¬C
+  have notC : ¬ C := by
+    cases nd_or_nc with
+    | inl nd =>
+        intro c
+        exact False.elim (nd d)
+    | inr nc =>
+        exact nc
+  -- From ¬C and G → C, infer ¬G
+  have notG : ¬ G := by
+    intro g
+    exact notC (h2 g)
+  -- From ¬G and E → G, infer ¬E
+  intro e
+  exact notG (h4 e)
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: No
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

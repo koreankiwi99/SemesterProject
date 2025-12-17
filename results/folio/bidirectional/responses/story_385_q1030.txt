@@ -1,0 +1,127 @@
+Story ID: 385
+Example ID: 1030
+Premises: If someone is ranked highly by the Women's Tennis Association, then they are one of the most active players in major tennis. 
+Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the Women's Tennis Association.
+All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+All tennis players at Roland Garros 2022 are either female or male.
+All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+If Coco Gauff is ranked highly by the Women's Tennis Association or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+Coco Gauff is at Roland Garros 2022.
+Conclusion: Coco Gauff has lost to Rafael Nadal.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Coco : Person
+
+axiom AtRG2022 : Person → Prop
+axiom Female : Person → Prop
+axiom Male : Person → Prop
+axiom RankedWTA : Person → Prop
+axiom MostActiveMajor : Person → Prop
+axiom LostToIgaRG2022 : Person → Prop
+axiom LostToNadal : Person → Prop
+
+-- Premise 1: Ranked by WTA → Most active in major tennis
+axiom ranked_implies_active : ∀ x : Person, RankedWTA x → MostActiveMajor x
+
+-- Premise 2: Lost to Iga at RG 2022 → Ranked by WTA
+axiom lostIga_implies_ranked : ∀ x : Person, LostToIgaRG2022 x → RankedWTA x
+
+-- Premise 3: Female at RG 2022 → Lost to Iga
+axiom female_atRG_lostIga : ∀ x : Person, Female x ∧ AtRG2022 x → LostToIgaRG2022 x
+
+-- Premise 4: At RG 2022 → Female or Male
+axiom atRG_female_or_male : ∀ x : Person, AtRG2022 x → Female x ∨ Male x
+
+-- Premise 5: Male at RG 2022 → Lost to Nadal
+axiom male_atRG_lostNadal : ∀ x : Person, Male x ∧ AtRG2022 x → LostToNadal x
+
+-- Premise 6: (Coco ranked by WTA or Coco lost to Nadal) → Coco is not (male at RG 2022)
+axiom coco_ranked_or_nadal_implies_not_male_atRG :
+  (RankedWTA Coco ∨ LostToNadal Coco) → ¬ (Male Coco ∧ AtRG2022 Coco)
+
+-- Premise 7: Coco is at RG 2022
+axiom coco_atRG : AtRG2022 Coco
+
+-- Conclusion: Coco lost to Nadal
+theorem coco_lost_to_nadal : LostToNadal Coco := by
+  have hRG : AtRG2022 Coco := coco_atRG
+  have hdisj : Female Coco ∨ Male Coco := atRG_female_or_male Coco hRG
+  cases hdisj with
+  | inl hF =>
+      have hLostIga : LostToIgaRG2022 Coco := female_atRG_lostIga Coco ⟨hF, hRG⟩
+      have hRanked : RankedWTA Coco := lostIga_implies_ranked Coco hLostIga
+      have hNotMaleAtRG : ¬ (Male Coco ∧ AtRG2022 Coco) :=
+        coco_ranked_or_nadal_implies_not_male_atRG (Or.inl hRanked)
+      have hNotMale : ¬ Male Coco := by
+        intro hM
+        apply hNotMaleAtRG
+        exact And.intro hM hRG
+      -- Stuck: cannot derive LostToNadal Coco from these
+      sorry
+  | inr hM =>
+      exact male_atRG_lostNadal Coco ⟨hM, hRG⟩
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Player : Type
+axiom CocoGauff : Player
+
+axiom RankedHighlyWTA : Player → Prop
+axiom MostActiveMajor : Player → Prop
+axiom LostToSwiatekRG22 : Player → Prop
+axiom FemaleRG22 : Player → Prop
+axiom MaleRG22 : Player → Prop
+axiom LostToNadalRG22 : Player → Prop
+axiom AtRG22 : Player → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Player, RankedHighlyWTA x → MostActiveMajor x
+axiom premise2 : ∀ x : Player, LostToSwiatekRG22 x → RankedHighlyWTA x
+axiom premise3 : ∀ x : Player, FemaleRG22 x → LostToSwiatekRG22 x
+axiom premise4 : ∀ x : Player, AtRG22 x → (FemaleRG22 x ∨ MaleRG22 x)
+axiom premise5 : ∀ x : Player, MaleRG22 x → LostToNadalRG22 x
+axiom premise6 : (RankedHighlyWTA CocoGauff ∨ LostToNadalRG22 CocoGauff) → ¬MaleRG22 CocoGauff
+axiom premise7 : AtRG22 CocoGauff
+
+-- Goal: Prove the NEGATION of the conclusion (i.e., show that Coco Gauff did NOT lose to Rafael Nadal)
+theorem not_lost_to_nadal_CocoGauff : ¬LostToNadalRG22 CocoGauff := by
+  intro hLost
+  have hAt : AtRG22 CocoGauff := premise7
+  have hFemOrMale : FemaleRG22 CocoGauff ∨ MaleRG22 CocoGauff := premise4 _ hAt
+  have hNotMale : ¬MaleRG22 CocoGauff := premise6 (Or.inr hLost)
+  have hFemale : FemaleRG22 CocoGauff := by
+    cases hFemOrMale with
+    | inl hF => exact hF
+    | inr hM => exact False.elim (hNotMale hM)
+  have hLostToIga : LostToSwiatekRG22 CocoGauff := premise3 _ hFemale
+  have hRanked : RankedHighlyWTA CocoGauff := premise2 _ hLostToIga
+  have _ : ¬MaleRG22 CocoGauff := premise6 (Or.inl hRanked)
+  -- Unable to derive a contradiction from the assumption hLost.
+  -- The premises do not forbid a female player from also having lost to Rafael Nadal.
+  -- Therefore, the negation cannot be proven from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

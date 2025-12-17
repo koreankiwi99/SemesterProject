@@ -1,0 +1,146 @@
+Story ID: 460
+Example ID: 1329
+Premises: If a film is appropriate for people of all ages, then children can watch it without guidance from parents.
+If a film contains excessive erotic and violent content, children cannot watch it without guidance from their parents.
+If a film is rated General Audience, then it is appropriate for people of all ages.
+All family-friendly animated films are rated General Audience.
+All movies in the Frozen series are family-friendly animated films.
+“Hachi: A dog’s Tale” is a film.
+“Hachi: A dog’s Tale”  is either a family-friendly animated film or is appropriate for people of all ages. 
+Conclusion: "Hachi: A dog's Tale" either contains excessive erotic and violent content and is a film in the "Frozen" series, or it neither contains excessive erotic and violent content nor is a film in the "Frozen" series.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Movie : Type
+axiom Hachi : Movie
+
+axiom Film : Movie → Prop
+axiom Appropriate : Movie → Prop
+axiom CanWatch : Movie → Prop
+axiom Excessive : Movie → Prop
+axiom RatedGA : Movie → Prop
+axiom FamilyFriendly : Movie → Prop
+axiom FrozenSeries : Movie → Prop
+
+-- Premises
+axiom P1 : ∀ m : Movie, Appropriate m → CanWatch m
+axiom P2 : ∀ m : Movie, Excessive m → ¬ CanWatch m
+axiom P3 : ∀ m : Movie, RatedGA m → Appropriate m
+axiom P4 : ∀ m : Movie, FamilyFriendly m → RatedGA m
+axiom P5 : ∀ m : Movie, FrozenSeries m → FamilyFriendly m
+axiom P6 : Film Hachi
+axiom P7 : FamilyFriendly Hachi ∨ Appropriate Hachi
+
+-- From P7, P4, P3, P1, we can conclude children can watch Hachi
+lemma canWatchHachi : CanWatch Hachi := by
+  cases P7 with
+  | inl hFF =>
+      exact P1 Hachi (P3 Hachi (P4 Hachi hFF))
+  | inr hApp =>
+      exact P1 Hachi hApp
+
+-- From P2 and canWatchHachi, conclude Hachi does not contain excessive erotic and violent content
+lemma notExcessiveHachi : ¬ Excessive Hachi := by
+  intro hExc
+  have hNotCan : ¬ CanWatch Hachi := P2 Hachi hExc
+  exact hNotCan canWatchHachi
+
+-- Target conclusion
+theorem goal :
+  (Excessive Hachi ∧ FrozenSeries Hachi) ∨ (¬ Excessive Hachi ∧ ¬ FrozenSeries Hachi) := by
+  -- We can derive ¬ Excessive Hachi, but we have no information to conclude ¬ FrozenSeries Hachi.
+  -- Thus the disjunction requested does not follow from the premises.
+  have hNotExc : ¬ Excessive Hachi := notExcessiveHachi
+  apply Or.inr
+  apply And.intro
+  · exact hNotExc
+  · sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Film : Type
+
+-- Predicates
+axiom AppropriateForAllAges : Film → Prop
+axiom ChildrenCanWatchWithoutGuidance : Film → Prop
+axiom ContainsExcessiveEroticAndViolentContent : Film → Prop
+axiom RatedGeneralAudience : Film → Prop
+axiom FamilyFriendlyAnimated : Film → Prop
+axiom InFrozenSeries : Film → Prop
+
+-- Constant for the specific film
+axiom HachiADogsTale : Film
+
+-- Premises
+axiom premise1 :
+  ∀ f : Film, AppropriateForAllAges f → ChildrenCanWatchWithoutGuidance f
+axiom premise2 :
+  ∀ f : Film, ContainsExcessiveEroticAndViolentContent f → ¬ ChildrenCanWatchWithoutGuidance f
+axiom premise3 :
+  ∀ f : Film, RatedGeneralAudience f → AppropriateForAllAges f
+axiom premise4 :
+  ∀ f : Film, FamilyFriendlyAnimated f → RatedGeneralAudience f
+axiom premise5 :
+  ∀ f : Film, InFrozenSeries f → FamilyFriendlyAnimated f
+-- "Hachi: A dog's Tale" is a film is captured by HachiADogsTale : Film
+axiom premise7 :
+  FamilyFriendlyAnimated HachiADogsTale ∨ AppropriateForAllAges HachiADogsTale
+
+-- Useful derived facts
+lemma canWatch_Hachi : ChildrenCanWatchWithoutGuidance HachiADogsTale := by
+  cases premise7 with
+  | inl hFF =>
+      have hGA : RatedGeneralAudience HachiADogsTale :=
+        premise4 _ hFF
+      have hApp : AppropriateForAllAges HachiADogsTale :=
+        premise3 _ hGA
+      exact premise1 _ hApp
+  | inr hApp =>
+      exact premise1 _ hApp
+
+lemma notContains_Hachi : ¬ ContainsExcessiveEroticAndViolentContent HachiADogsTale := by
+  intro hC
+  have hNotCan : ¬ ChildrenCanWatchWithoutGuidance HachiADogsTale :=
+    premise2 _ hC
+  exact hNotCan canWatch_Hachi
+
+-- Negation of the conclusion we are asked to analyze
+-- Conclusion: (C ∧ F) ∨ (¬C ∧ ¬F), where
+-- C := ContainsExcessiveEroticAndViolentContent HachiADogsTale
+-- F := InFrozenSeries HachiADogsTale
+-- We try to prove its negation: ¬ ((C ∧ F) ∨ (¬C ∧ ¬F))
+theorem negate_conclusion :
+  ¬ ((ContainsExcessiveEroticAndViolentContent HachiADogsTale ∧ InFrozenSeries HachiADogsTale)
+     ∨
+     (¬ ContainsExcessiveEroticAndViolentContent HachiADogsTale ∧ ¬ InFrozenSeries HachiADogsTale)) := by
+  intro h
+  cases h with
+  | inl hCF =>
+      -- Left disjunct: contradiction with ¬C
+      exact notContains_Hachi hCF.left
+  | inr hN =>
+      -- Right disjunct: we only get ¬C (which we already have), and ¬F, which does not contradict premises.
+      -- No contradiction can be derived from the given premises.
+      sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: True
+Prediction: Unknown
+Correct: No

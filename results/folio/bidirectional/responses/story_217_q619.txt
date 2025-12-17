@@ -1,0 +1,108 @@
+Story ID: 217
+Example ID: 619
+Premises: If George likes music, he wants to compose.
+If George has access to a program, he can compose.
+If George can compose and wants to compose, he will compose.
+Conclusion: If George will not compose, George can not compose.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We model the scenario propositionally (no need for individuals beyond George).
+axiom LikesMusic : Prop        -- George likes music
+axiom WantsCompose : Prop      -- George wants to compose
+axiom HasAccessProgram : Prop  -- George has access to a program
+axiom CanCompose : Prop        -- George can compose
+axiom WillCompose : Prop       -- George will compose
+
+-- Premises
+axiom premise1 : LikesMusic → WantsCompose
+axiom premise2 : HasAccessProgram → CanCompose
+axiom premise3 : (CanCompose ∧ WantsCompose) → WillCompose
+
+open Classical
+
+-- From premise3, we can derive a weaker consequence:
+-- If George will not compose, then it is not the case that he both can compose and wants to compose.
+-- In classical logic, this yields: ¬WillCompose → (¬CanCompose ∨ ¬WantsCompose).
+theorem notWill_implies_notCan_or_notWants : ¬WillCompose → (¬CanCompose ∨ ¬WantsCompose) := by
+  intro hNotWill
+  have hNotAnd : ¬(CanCompose ∧ WantsCompose) := by
+    intro hAnd
+    apply hNotWill
+    exact premise3 hAnd
+  -- Use classical reasoning to turn ¬(A ∧ B) into ¬A ∨ ¬B
+  by_cases hC : CanCompose
+  · -- If CanCompose holds, then ¬WantsCompose must hold
+    have : ¬WantsCompose := by
+      intro hW
+      apply hNotAnd
+      exact And.intro hC hW
+    exact Or.inr this
+  · -- If CanCompose does not hold, we conclude ¬CanCompose
+    exact Or.inl hC
+
+-- Conclusion to analyze: If George will not compose, George cannot compose.
+-- Attempted proof: This does not follow from the premises, because from premise3 we only get
+-- ¬WillCompose → (¬CanCompose ∨ ¬WantsCompose), and without an assumption that WantsCompose holds,
+-- we cannot derive ¬CanCompose alone.
+theorem conclusion : ¬WillCompose → ¬CanCompose := by
+  intro hNotWill
+  -- From the weaker lemma we only obtain a disjunction:
+  have h := notWill_implies_notCan_or_notWants hNotWill
+  cases h with
+  | inl hNotCan =>
+      exact hNotCan
+  | inr hNotWants =>
+      -- Stuck: cannot derive ¬CanCompose from ¬WantsCompose with the given premises.
+      -- Therefore, the desired conclusion is not derivable from the premises.
+      sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom George : Person
+
+axiom LikesMusic : Person → Prop
+axiom WantsToCompose : Person → Prop
+axiom HasAccessToProgram : Person → Prop
+axiom CanCompose : Person → Prop
+axiom WillCompose : Person → Prop
+
+-- Premises
+axiom premise1 : LikesMusic George → WantsToCompose George
+axiom premise2 : HasAccessToProgram George → CanCompose George
+axiom premise3 : (CanCompose George ∧ WantsToCompose George) → WillCompose George
+
+-- Negation of the conclusion to analyze:
+-- Conclusion: If George will not compose, George cannot compose.
+-- Formalization: (¬WillCompose George) → (¬CanCompose George)
+-- Negation: ¬((¬WillCompose George) → (¬CanCompose George))
+theorem neg_conclusion : ¬((¬WillCompose George) → (¬CanCompose George)) := by
+  -- Attempt to derive a contradiction from assuming the conclusion.
+  -- However, the given premises do not provide enough information to derive
+  -- ¬(¬WillCompose → ¬CanCompose). In particular, proving ¬(A → B) requires
+  -- establishing A ∧ ¬B, i.e., (¬WillCompose George) ∧ (CanCompose George),
+  -- which cannot be obtained from the premises alone.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

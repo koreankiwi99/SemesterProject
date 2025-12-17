@@ -1,0 +1,122 @@
+Story ID: 0
+Example ID: combo5_q2
+Premises: If the author submits the complete manuscript, then the editor reviews the manuscript. If the publisher approves the book proposal, then the book is officially accepted for publication. Either the editor does not review the manuscript, or the book is not officially accepted for publication, or both. If the author attends writing workshops, then the author's writing style improves. If the author's writing style improves, then the book's critical reception improves. Either the author attends writing workshops, or the literary agent arranges additional feedback sessions, or both. If the literary agent arranges additional feedback sessions, then the author receives targeted editorial advice. If the author receives targeted editorial advice, then the book becomes a bestseller.
+Conclusion: If the author submits the complete manuscript and the book's critical reception does not improve, does the book become a bestseller?
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Submit : Prop
+axiom EditorReviews : Prop
+axiom PublisherApproves : Prop
+axiom Accepted : Prop
+axiom Workshops : Prop
+axiom StyleImproves : Prop
+axiom CritReceptionImproves : Prop
+axiom FeedbackSessions : Prop
+axiom TargetedAdvice : Prop
+axiom Bestseller : Prop
+
+-- Premises
+axiom submit_implies_review : Submit → EditorReviews
+axiom approve_implies_accept : PublisherApproves → Accepted
+axiom not_review_or_not_accept : ¬EditorReviews ∨ ¬Accepted
+axiom workshops_improve_style : Workshops → StyleImproves
+axiom style_improves_crit : StyleImproves → CritReceptionImproves
+axiom workshops_or_feedback : Workshops ∨ FeedbackSessions
+axiom feedback_implies_advice : FeedbackSessions → TargetedAdvice
+axiom advice_implies_bestseller : TargetedAdvice → Bestseller
+
+-- Conclusion
+theorem goal : (Submit ∧ ¬CritReceptionImproves) → Bestseller := by
+  intro h
+  have h_not_ci : ¬CritReceptionImproves := h.right
+  have hwf := workshops_or_feedback
+  cases hwf with
+  | inl hw =>
+    have hs : StyleImproves := workshops_improve_style hw
+    have hc : CritReceptionImproves := style_improves_crit hs
+    exact False.elim (h_not_ci hc)
+  | inr hf =>
+    have ht : TargetedAdvice := feedback_implies_advice hf
+    exact advice_implies_bestseller ht
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities as propositions
+axiom SubmitsCompleteManuscript : Prop        -- S
+axiom EditorReviewsManuscript : Prop          -- R
+axiom PublisherApprovesProposal : Prop        -- Pp
+axiom OfficiallyAccepted : Prop               -- A
+axiom AttendsWorkshops : Prop                 -- W
+axiom WritingStyleImproves : Prop             -- I
+axiom CriticalReceptionImproves : Prop        -- C
+axiom AgentArrangesFeedback : Prop            -- F
+axiom ReceivesTargetedAdvice : Prop           -- E
+axiom BecomesBestseller : Prop                -- B
+
+-- Premises
+axiom premise1 : SubmitsCompleteManuscript → EditorReviewsManuscript
+axiom premise2 : PublisherApprovesProposal → OfficiallyAccepted
+axiom premise3 : ¬EditorReviewsManuscript ∨ ¬OfficiallyAccepted
+axiom premise4 : AttendsWorkshops → WritingStyleImproves
+axiom premise5 : WritingStyleImproves → CriticalReceptionImproves
+axiom premise6 : AttendsWorkshops ∨ AgentArrangesFeedback
+axiom premise7 : AgentArrangesFeedback → ReceivesTargetedAdvice
+axiom premise8 : ReceivesTargetedAdvice → BecomesBestseller
+
+-- Useful derived fact: If the author submits, then the book is not officially accepted.
+-- This follows because submission implies review; together with (¬review ∨ ¬accepted),
+-- review being true forces ¬accepted.
+theorem submit_implies_not_accepted : SubmitsCompleteManuscript → ¬OfficiallyAccepted := by
+  intro hs
+  have hr : EditorReviewsManuscript := premise1 hs
+  cases premise3 with
+  | inl hnotR =>
+      have : False := hnotR hr
+      exact False.elim this
+  | inr hnotA =>
+      exact hnotA
+
+-- Negation of the conclusion to analyze:
+-- We attempt to prove: ¬((SubmitsCompleteManuscript ∧ ¬CriticalReceptionImproves) → BecomesBestseller)
+theorem goal : ¬((SubmitsCompleteManuscript ∧ ¬CriticalReceptionImproves) → BecomesBestseller) := by
+  intro h
+  -- Attempt to derive a contradiction from the premises and h.
+  -- From the disjunction premise6, we split cases:
+  cases premise6 with
+  | inl hw =>
+      -- In this branch, workshops imply style improves, hence critical reception improves,
+      -- contradicting the antecedent's ¬CriticalReceptionImproves if we had it. However,
+      -- we do not have SubmitsCompleteManuscript ∧ ¬CriticalReceptionImproves available from premises.
+      have hi : WritingStyleImproves := premise4 hw
+      have hc : CriticalReceptionImproves := premise5 hi
+      -- No direct path to a contradiction with h without establishing the antecedent and ¬B.
+      admit
+  | inr hf =>
+      -- In this branch, feedback leads to targeted advice and thus bestseller, but again
+      -- we lack a way to produce the antecedent and also ¬BecomesBestseller to contradict h.
+      have he : ReceivesTargetedAdvice := premise7 hf
+      have hb : BecomesBestseller := premise8 he
+      admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Unknown
+Prediction: Yes
+Correct: No

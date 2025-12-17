@@ -1,0 +1,159 @@
+Multi-LogiEval Question with Lean Verification
+================================================================================
+
+Logic Type: pl
+Depth: d2 (d2_Data)
+Rule: DD_DS
+
+Context:
+If Dan followed the tutorial carefully, he was able to write the program. If the instructions were clear, any beginner could write the program. However, either Dan wasn't able to write the program or any beginner couldn't write it, or maybe Dan wasn't able to write it and any beginner couldn't write it.
+
+Question:
+If Dan followed the tutorial carefully, were the instructions clear?
+
+================================================================================
+Iterations:
+================================================================================
+
+--- Iteration 1 ---
+
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Dan : Person
+axiom Beginner : Person → Prop
+axiom FollowedCarefully : Person → Prop
+axiom AbleWrite : Person → Prop
+axiom InstructionsClear : Prop
+
+-- Premises from the text
+axiom p1 : FollowedCarefully Dan → AbleWrite Dan
+axiom p2 : InstructionsClear → ∀ x : Person, Beginner x → AbleWrite x
+axiom p3 :
+  (¬ AbleWrite Dan) ∨
+  (∀ x : Person, Beginner x → ¬ AbleWrite x) ∨
+  ((¬ AbleWrite Dan) ∧ (∀ x : Person, Beginner x → ¬ AbleWrite x))
+
+-- From the disjunction and the fact that Dan can write if he followed,
+-- we can conclude: if Dan followed, then every beginner cannot write.
+theorem beginners_cannot_if_dan_followed :
+  FollowedCarefully Dan → ∀ x : Person, Beginner x → ¬ AbleWrite x := by
+  intro hFollow
+  have hAbleDan : AbleWrite Dan := p1 hFollow
+  have hdisj := p3
+  cases hdisj with
+  | inl hA =>
+      -- hA : ¬ AbleWrite Dan, contradiction with hAbleDan
+      have f : False := hA hAbleDan
+      intro x hx hax
+      exact False.elim f
+  | inr hrest =>
+      cases hrest with
+      | inl hB =>
+          -- hB : ∀ x, Beginner x → ¬ AbleWrite x
+          exact hB
+      | inr hAB =>
+          -- hAB : (¬ AbleWrite Dan) ∧ (∀ x, Beginner x → ¬ AbleWrite x)
+          exact hAB.right
+
+-- If Dan followed and the instructions were clear, then there are no beginners.
+theorem no_beginners_if_followed_and_clear :
+  FollowedCarefully Dan → InstructionsClear → ∀ x : Person, ¬ Beginner x := by
+  intro hFollow hClear
+  have hCannot := beginners_cannot_if_dan_followed hFollow
+  have hCan : ∀ x : Person, Beginner x → AbleWrite x := p2 hClear
+  intro x
+  intro hBeg
+  have hCanx : AbleWrite x := hCan x hBeg
+  have hNotCanx : ¬ AbleWrite x := hCannot x hBeg
+  exact hNotCanx hCanx
+
+-- If Dan followed and there exists a beginner, then the instructions were not clear.
+theorem not_clear_if_followed_and_exists_beginner :
+  FollowedCarefully Dan → (∃ x : Person, Beginner x) → ¬ InstructionsClear := by
+  intro hFollow hex
+  intro hClear
+  cases hex with
+  | intro x hBeg =>
+      have hCannot := beginners_cannot_if_dan_followed hFollow
+      have hCan : AbleWrite x := (p2 hClear) x hBeg
+      have hNotCan : ¬ AbleWrite x := hCannot x hBeg
+      exact hNotCan hCan
+</lean>
+ANSWER: No
+
+Extracted Lean Code:
+----------------------------------------
+axiom Person : Type
+axiom Dan : Person
+axiom Beginner : Person → Prop
+axiom FollowedCarefully : Person → Prop
+axiom AbleWrite : Person → Prop
+axiom InstructionsClear : Prop
+
+-- Premises from the text
+axiom p1 : FollowedCarefully Dan → AbleWrite Dan
+axiom p2 : InstructionsClear → ∀ x : Person, Beginner x → AbleWrite x
+axiom p3 :
+  (¬ AbleWrite Dan) ∨
+  (∀ x : Person, Beginner x → ¬ AbleWrite x) ∨
+  ((¬ AbleWrite Dan) ∧ (∀ x : Person, Beginner x → ¬ AbleWrite x))
+
+-- From the disjunction and the fact that Dan can write if he followed,
+-- we can conclude: if Dan followed, then every beginner cannot write.
+theorem beginners_cannot_if_dan_followed :
+  FollowedCarefully Dan → ∀ x : Person, Beginner x → ¬ AbleWrite x := by
+  intro hFollow
+  have hAbleDan : AbleWrite Dan := p1 hFollow
+  have hdisj := p3
+  cases hdisj with
+  | inl hA =>
+      -- hA : ¬ AbleWrite Dan, contradiction with hAbleDan
+      have f : False := hA hAbleDan
+      intro x hx hax
+      exact False.elim f
+  | inr hrest =>
+      cases hrest with
+      | inl hB =>
+          -- hB : ∀ x, Beginner x → ¬ AbleWrite x
+          exact hB
+      | inr hAB =>
+          -- hAB : (¬ AbleWrite Dan) ∧ (∀ x, Beginner x → ¬ AbleWrite x)
+          exact hAB.right
+
+-- If Dan followed and the instructions were clear, then there are no beginners.
+theorem no_beginners_if_followed_and_clear :
+  FollowedCarefully Dan → InstructionsClear → ∀ x : Person, ¬ Beginner x := by
+  intro hFollow hClear
+  have hCannot := beginners_cannot_if_dan_followed hFollow
+  have hCan : ∀ x : Person, Beginner x → AbleWrite x := p2 hClear
+  intro x
+  intro hBeg
+  have hCanx : AbleWrite x := hCan x hBeg
+  have hNotCanx : ¬ AbleWrite x := hCannot x hBeg
+  exact hNotCanx hCanx
+
+-- If Dan followed and there exists a beginner, then the instructions were not clear.
+theorem not_clear_if_followed_and_exists_beginner :
+  FollowedCarefully Dan → (∃ x : Person, Beginner x) → ¬ InstructionsClear := by
+  intro hFollow hex
+  intro hClear
+  cases hex with
+  | intro x hBeg =>
+      have hCannot := beginners_cannot_if_dan_followed hFollow
+      have hCan : AbleWrite x := (p2 hClear) x hBeg
+      have hNotCan : ¬ AbleWrite x := hCannot x hBeg
+      exact hNotCan hCan
+----------------------------------------
+
+Lean Verification:
+  Success: True
+
+================================================================================
+Final Result:
+================================================================================
+Ground Truth: No
+Prediction: No
+Correct: ✓ Yes
+Total Iterations: 1
+Final Lean: ✓ Success

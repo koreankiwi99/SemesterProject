@@ -1,0 +1,141 @@
+Story ID: 385
+Example ID: 1030
+Premises: False and not false is false. If someone is ranked highly by the Women's Tennis Association, then they are one of the most active players in major tennis. 
+Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the Women's Tennis Association.
+All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+All tennis players at Roland Garros 2022 are either female or male.
+All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+If Coco Gauff is ranked highly by the Women's Tennis Association or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+Coco Gauff is at Roland Garros 2022.
+Conclusion: Coco Gauff has lost to Rafael Nadal.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom CocoGauff : Person
+
+-- Predicates
+axiom Ranked : Person → Prop
+axiom MostActive : Person → Prop
+axiom LostToIga : Person → Prop
+axiom LostToNadal : Person → Prop
+axiom FemaleRG2022 : Person → Prop
+axiom MaleRG2022 : Person → Prop
+axiom AtRG2022 : Person → Prop
+
+-- Premises
+-- "False and not false is false."
+axiom false_and_not_false_is_false : (False ∧ ¬ False) → False
+
+-- If someone is ranked highly by the WTA, then they are one of the most active players in major tennis.
+axiom ranked_implies_active : ∀ x : Person, Ranked x → MostActive x
+
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom lostIga_implies_ranked : ∀ x : Person, LostToIga x → Ranked x
+
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom femaleRG_lostIga : ∀ x : Person, FemaleRG2022 x → LostToIga x
+
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom rg_players_are_female_or_male : ∀ x : Person, AtRG2022 x → (FemaleRG2022 x ∨ MaleRG2022 x)
+
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom maleRG_lostNadal : ∀ x : Person, MaleRG2022 x → LostToNadal x
+
+-- If Coco Gauff is ranked highly by the WTA or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+axiom coco_high_or_nadal_implies_not_male :
+  (Ranked CocoGauff ∨ LostToNadal CocoGauff) → ¬ (MaleRG2022 CocoGauff)
+
+-- Coco Gauff is at Roland Garros 2022.
+axiom coco_at_rg : AtRG2022 CocoGauff
+
+-- Conclusion: Coco Gauff has lost to Rafael Nadal.
+theorem coco_lost_to_nadal : LostToNadal CocoGauff := by
+  have hfm : FemaleRG2022 CocoGauff ∨ MaleRG2022 CocoGauff :=
+    rg_players_are_female_or_male CocoGauff coco_at_rg
+  cases hfm with
+  | inl hFemale =>
+      have hIga : LostToIga CocoGauff := femaleRG_lostIga CocoGauff hFemale
+      have hRank : Ranked CocoGauff := lostIga_implies_ranked CocoGauff hIga
+      have hNotMale : ¬ MaleRG2022 CocoGauff :=
+        coco_high_or_nadal_implies_not_male (Or.inl hRank)
+      -- From here we only get that Coco is not male; this does not imply she lost to Nadal.
+      -- No premise connects being female (or not male) to losing to Nadal.
+      -- Hence the goal cannot be derived from the given premises.
+      sorry
+  | inr hMale =>
+      exact maleRG_lostNadal CocoGauff hMale
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Specific individual
+axiom Coco : Person
+
+-- Predicates
+axiom AtRG2022 : Person → Prop                  -- is a tennis player at Roland Garros 2022
+axiom Female : Person → Prop
+axiom Male : Person → Prop
+axiom RankedHighWTA : Person → Prop
+axiom MostActiveMajor : Person → Prop
+axiom LostToSwiatekRG2022 : Person → Prop
+axiom LostToNadalRG2022 : Person → Prop
+
+-- Premises
+axiom premise1 : (False ∧ ¬False) → False
+axiom premise2 : ∀ x : Person, RankedHighWTA x → MostActiveMajor x
+axiom premise3 : ∀ x : Person, LostToSwiatekRG2022 x → RankedHighWTA x
+axiom premise4 : ∀ x : Person, AtRG2022 x ∧ Female x → LostToSwiatekRG2022 x
+axiom premise5 : ∀ x : Person, AtRG2022 x → (Female x ∨ Male x)
+axiom premise6 : ∀ x : Person, AtRG2022 x ∧ Male x → LostToNadalRG2022 x
+axiom premise7 : (RankedHighWTA Coco ∨ LostToNadalRG2022 Coco) → ¬(AtRG2022 Coco ∧ Male Coco)
+axiom premise8 : AtRG2022 Coco
+
+-- Goal: prove the negation of the conclusion "Coco Gauff has lost to Rafael Nadal."
+theorem not_Coco_lost_to_Nadal : ¬ LostToNadalRG2022 Coco := by
+  intro hLost
+  -- From the given conditional about Coco, we get she is not a male tennis player at RG 2022.
+  have hNotMaleRG : ¬(AtRG2022 Coco ∧ Male Coco) := premise7 (Or.inr hLost)
+  -- Coco is at RG 2022
+  have hAt : AtRG2022 Coco := premise8
+  -- Every RG 2022 player is either female or male
+  have hSex : Female Coco ∨ Male Coco := premise5 Coco hAt
+  -- Case split
+  cases hSex with
+  | inl hFem =>
+      -- From being female at RG 2022, she lost to Swiatek and is ranked high.
+      have hLostS : LostToSwiatekRG2022 Coco := premise4 Coco ⟨hAt, hFem⟩
+      have hHigh : RankedHighWTA Coco := premise3 Coco hLostS
+      -- From being ranked high, again we only get not (AtRG ∧ Male), which does not contradict hLost.
+      have _ : ¬(AtRG2022 Coco ∧ Male Coco) := premise7 (Or.inl hHigh)
+      -- Stuck: no contradiction with hLost can be derived in this branch from the given premises.
+      admit
+  | inr hMale =>
+      -- If Coco were male at RG 2022, then she lost to Nadal, yielding a contradiction with the "not (AtRG ∧ Male)" fact.
+      have hConj : AtRG2022 Coco ∧ Male Coco := And.intro hAt hMale
+      exact hNotMaleRG hConj
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Correct: Yes

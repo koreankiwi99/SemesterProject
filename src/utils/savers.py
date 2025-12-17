@@ -803,14 +803,15 @@ class FOLIOLeanSaver(BaseSaver):
 class BidirectionalSaver(BaseSaver):
     """Saver for bidirectional verification results."""
 
-    def __init__(self, output_dir="results", prompt_name="bidirectional", resume_dir=None):
+    def __init__(self, output_dir="results", prompt_name="bidirectional", resume_dir=None, dataset_name="bidirectional"):
         super().__init__(output_dir, prompt_name)
+        self.dataset_name = dataset_name
 
         if resume_dir:
             self.base_dir = resume_dir
             print(f"Resuming in existing directory: {self.base_dir}")
         else:
-            self.base_dir = f"{output_dir}/folio_bidirectional_{prompt_name}_{self.timestamp}"
+            self.base_dir = f"{output_dir}/{dataset_name}_{prompt_name}_{self.timestamp}"
             os.makedirs(self.base_dir, exist_ok=True)
 
         self.all_results_file = f"{self.base_dir}/all_results.json"
@@ -828,7 +829,7 @@ class BidirectionalSaver(BaseSaver):
         with open(self.all_results_file, 'w') as f:
             json.dump([], f)
         with open(self.progress_file, 'w') as f:
-            f.write(f"FOLIO Bidirectional Verification - Started at {self.timestamp}\n")
+            f.write(f"{self.dataset_name} Bidirectional Verification - Started at {self.timestamp}\n")
             f.write("=" * 70 + "\n\n")
 
     def save_result(self, result, question_index, total_questions):

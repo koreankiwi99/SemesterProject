@@ -55,6 +55,10 @@ MODEL_PROVIDERS = {
     "o1-preview": "openai",
     "o3-mini": "openai",
     "gpt-5": "openai",
+    "gpt-5-2025-08-07": "openai",
+    "gpt-5-pro": "openai",
+    "gpt-5-pro-2025-10-06": "openai",
+    "gpt-5.1": "openai",
 
     # DeepSeek models (direct)
     "deepseek-chat": "deepseek",

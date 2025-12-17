@@ -122,6 +122,8 @@ def parse_folio_answer(response):
 def parse_proverqa_answer(response):
     """Extract A/B/C answer from ProverQA model response.
 
+    Handles both JSON format (ProverGen style) and plain text format.
+
     Args:
         response: The model's text response
 
@@ -130,6 +132,28 @@ def parse_proverqa_answer(response):
     """
     if not response:
         return 'UNKNOWN'
+
+    # Try JSON parsing first (ProverGen format: {"reasoning": "...", "answer": "A"})
+    import json
+    # Look for JSON with "answer" key
+    json_match = re.search(r'\{[^{}]*"answer"\s*:\s*"([ABC])"[^{}]*\}', response, re.IGNORECASE)
+    if json_match:
+        return json_match.group(1).upper()
+
+    # Try parsing response as JSON
+    try:
+        # Handle case where response starts with JSON
+        json_start = response.find('{')
+        if json_start >= 0:
+            json_end = response.rfind('}') + 1
+            if json_end > json_start:
+                data = json.loads(response[json_start:json_end])
+                if isinstance(data, dict) and 'answer' in data:
+                    answer = str(data['answer']).upper()
+                    if answer in ['A', 'B', 'C']:
+                        return answer
+    except (json.JSONDecodeError, AttributeError, KeyError):
+        pass
 
     # Look for explicit ANSWER: pattern
     answer_match = re.search(r'ANSWER:\s*([ABC])', response, re.IGNORECASE)

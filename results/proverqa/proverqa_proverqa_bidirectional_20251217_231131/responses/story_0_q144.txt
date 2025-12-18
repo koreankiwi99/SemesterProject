@@ -1,0 +1,177 @@
+Story ID: 0
+Example ID: 144
+Premises: For all humans, if they either value quality ingredients or source locally, then they prioritize sustainability. Selah sources locally. Selah creates unique recipes. Peach sources locally. Selah either cares for her community or advocates for social causes, but these two actions are mutually exclusive. If Selah runs a small business, then she either supports local producers or values quality ingredients (or both). If someone prioritizes sustainability, then they care for their community and minimize waste. Peach advocates for social causes. If Selah either supports local farmers or volunteers regularly (but not both), then she cares for her community. Owen enjoys food or is passionate about cooking. Owen shares recipes or respects tradition. Selah shares recipes or respects tradition. Anyone who loves feasting enjoys food. Selah minimizes waste. Selah does not share recipes. If Selah is passionate about cooking, then she creates unique recipes and builds a successful business. Anyone who learns from their ancestors or honors their family legacy respects tradition. Duncan minimizes waste. Selah advocates for social causes. Duncan either cares for her community or advocates for social causes, but these two actions are mutually exclusive. Selah enjoys food or is passionate about cooking. If someone enjoys food, then they appreciate flavors. If Selah values quality ingredients, then she either appreciates flavors or respects tradition (but not both).
+Conclusion: Selah builds a successful business.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Selah : Person
+axiom Peach : Person
+axiom Owen : Person
+axiom Duncan : Person
+
+-- Predicates
+axiom ValueQualityIngredients : Person → Prop
+axiom SourceLocally : Person → Prop
+axiom PrioritizeSustainability : Person → Prop
+axiom CreatesUniqueRecipes : Person → Prop
+axiom SupportsLocalProducers : Person → Prop
+axiom SupportsLocalFarmers : Person → Prop
+axiom CaresForCommunity : Person → Prop
+axiom AdvocatesForSocialCauses : Person → Prop
+axiom MinimizesWaste : Person → Prop
+axiom EnjoysFood : Person → Prop
+axiom PassionateAboutCooking : Person → Prop
+axiom SharesRecipes : Person → Prop
+axiom RespectsTradition : Person → Prop
+axiom LovesFeasting : Person → Prop
+axiom BuildsSuccessfulBusiness : Person → Prop
+axiom LearnsFromAncestors : Person → Prop
+axiom HonorsFamilyLegacy : Person → Prop
+axiom VolunteersRegularly : Person → Prop
+axiom AppreciatesFlavors : Person → Prop
+axiom RunsSmallBusiness : Person → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Person, (ValueQualityIngredients x ∨ SourceLocally x) → PrioritizeSustainability x
+axiom SL_Selah : SourceLocally Selah
+axiom CUR_Selah : CreatesUniqueRecipes Selah
+axiom SL_Peach : SourceLocally Peach
+axiom xor_Selah_CareOrAdv : (CaresForCommunity Selah ∨ AdvocatesForSocialCauses Selah) ∧ ¬(CaresForCommunity Selah ∧ AdvocatesForSocialCauses Selah)
+axiom smallbiz_imp : RunsSmallBusiness Selah → (SupportsLocalProducers Selah ∨ ValueQualityIngredients Selah)
+axiom sustain_imp : ∀ x : Person, PrioritizeSustainability x → CaresForCommunity x ∧ MinimizesWaste x
+axiom ASC_Peach : AdvocatesForSocialCauses Peach
+axiom xorSupportFarmersOrVolunteerImpCare :
+  ((SupportsLocalFarmers Selah ∨ VolunteersRegularly Selah) ∧ ¬(SupportsLocalFarmers Selah ∧ VolunteersRegularly Selah)) →
+  CaresForCommunity Selah
+axiom disj_Owen_enjoys_or_passion : EnjoysFood Owen ∨ PassionateAboutCooking Owen
+axiom disj_Owen_share_or_respect : SharesRecipes Owen ∨ RespectsTradition Owen
+axiom disj_Selah_share_or_respect : SharesRecipes Selah ∨ RespectsTradition Selah
+axiom loves_feasting_imp_enjoys : ∀ x : Person, LovesFeasting x → EnjoysFood x
+axiom MW_Selah : MinimizesWaste Selah
+axiom not_share_Selah : ¬ SharesRecipes Selah
+axiom passion_imp_unique_builds : PassionateAboutCooking Selah → CreatesUniqueRecipes Selah ∧ BuildsSuccessfulBusiness Selah
+axiom learnOrHonor_imp_respect : ∀ x : Person, (LearnsFromAncestors x ∨ HonorsFamilyLegacy x) → RespectsTradition x
+axiom MW_Duncan : MinimizesWaste Duncan
+axiom ASC_Selah : AdvocatesForSocialCauses Selah
+axiom xor_Duncan_CareOrAdv : (CaresForCommunity Duncan ∨ AdvocatesForSocialCauses Duncan) ∧ ¬(CaresForCommunity Duncan ∧ AdvocatesForSocialCauses Duncan)
+axiom disj_Selah_enjoys_or_passion : EnjoysFood Selah ∨ PassionateAboutCooking Selah
+axiom enjoys_imp_appreciates : ∀ x : Person, EnjoysFood x → AppreciatesFlavors x
+axiom VQI_Selah_imp_xor_AF_RT :
+  ValueQualityIngredients Selah →
+  ((AppreciatesFlavors Selah ∨ RespectsTradition Selah) ∧ ¬(AppreciatesFlavors Selah ∧ RespectsTradition Selah))
+
+-- Goal: Selah builds a successful business
+theorem goal : BuildsSuccessfulBusiness Selah := by
+  -- From SourceLocally Selah and ax1, Selah prioritizes sustainability
+  have hPS : PrioritizeSustainability Selah := by
+    apply ax1 Selah
+    exact Or.inr SL_Selah
+  -- From prioritizing sustainability, Selah cares for her community (and minimizes waste)
+  have hCareWaste : CaresForCommunity Selah ∧ MinimizesWaste Selah := sustain_imp Selah hPS
+  have hCare : CaresForCommunity Selah := And.left hCareWaste
+  -- Given Selah advocates for social causes
+  have hAdv : AdvocatesForSocialCauses Selah := ASC_Selah
+  -- From the XOR premise, not both care and advocate
+  have hNotBoth : ¬(CaresForCommunity Selah ∧ AdvocatesForSocialCauses Selah) :=
+    (And.right xor_Selah_CareOrAdv)
+  -- Contradiction
+  have hFalse : False := hNotBoth (And.intro hCare hAdv)
+  -- Explosion: from false, derive the goal
+  exact False.elim hFalse
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Selah : Person
+axiom Peach : Person
+axiom Owen : Person
+axiom Duncan : Person
+
+axiom Human : Person → Prop
+axiom ValuesQualityIngredients : Person → Prop
+axiom SourcesLocally : Person → Prop
+axiom PrioritizesSustainability : Person → Prop
+axiom CreatesUniqueRecipes : Person → Prop
+axiom CaresCommunity : Person → Prop
+axiom AdvocatesSocialCauses : Person → Prop
+axiom RunsSmallBusiness : Person → Prop
+axiom SupportsLocalProducers : Person → Prop
+axiom SupportsLocalFarmers : Person → Prop
+axiom VolunteersRegularly : Person → Prop
+axiom EnjoysFood : Person → Prop
+axiom PassionateCooking : Person → Prop
+axiom SharesRecipes : Person → Prop
+axiom RespectsTradition : Person → Prop
+axiom LovesFeasting : Person → Prop
+axiom MinimizesWaste : Person → Prop
+axiom BuildsSuccessfulBusiness : Person → Prop
+axiom LearnsFromAncestors : Person → Prop
+axiom HonorsFamilyLegacy : Person → Prop
+axiom AppreciatesFlavors : Person → Prop
+
+axiom prem1 : ∀ x : Person, Human x → ((ValuesQualityIngredients x ∨ SourcesLocally x) → PrioritizesSustainability x)
+axiom prem2 : SourcesLocally Selah
+axiom prem3 : CreatesUniqueRecipes Selah
+axiom prem4 : SourcesLocally Peach
+axiom prem5a : CaresCommunity Selah ∨ AdvocatesSocialCauses Selah
+axiom prem5b : ¬ (CaresCommunity Selah ∧ AdvocatesSocialCauses Selah)
+axiom prem6 : RunsSmallBusiness Selah → (SupportsLocalProducers Selah ∨ ValuesQualityIngredients Selah)
+axiom prem7 : ∀ x : Person, PrioritizesSustainability x → (CaresCommunity x ∧ MinimizesWaste x)
+axiom prem8 : AdvocatesSocialCauses Peach
+axiom prem9 : ((SupportsLocalFarmers Selah ∨ VolunteersRegularly Selah) ∧ ¬(SupportsLocalFarmers Selah ∧ VolunteersRegularly Selah)) → CaresCommunity Selah
+axiom prem10 : EnjoysFood Owen ∨ PassionateCooking Owen
+axiom prem11 : SharesRecipes Owen ∨ RespectsTradition Owen
+axiom prem12 : SharesRecipes Selah ∨ RespectsTradition Selah
+axiom prem13 : ∀ x : Person, LovesFeasting x → EnjoysFood x
+axiom prem14 : MinimizesWaste Selah
+axiom prem15 : ¬ SharesRecipes Selah
+axiom prem16 : PassionateCooking Selah → (CreatesUniqueRecipes Selah ∧ BuildsSuccessfulBusiness Selah)
+axiom prem17 : ∀ x : Person, (LearnsFromAncestors x ∨ HonorsFamilyLegacy x) → RespectsTradition x
+axiom prem18 : MinimizesWaste Duncan
+axiom prem19 : AdvocatesSocialCauses Selah
+axiom prem20a : CaresCommunity Duncan ∨ AdvocatesSocialCauses Duncan
+axiom prem20b : ¬ (CaresCommunity Duncan ∧ AdvocatesSocialCauses Duncan)
+axiom prem21 : EnjoysFood Selah ∨ PassionateCooking Selah
+axiom prem22 : ∀ x : Person, EnjoysFood x → AppreciatesFlavors x
+axiom prem23 : ValuesQualityIngredients Selah → ((AppreciatesFlavors Selah ∧ ¬ RespectsTradition Selah) ∨ (RespectsTradition Selah ∧ ¬ AppreciatesFlavors Selah))
+
+axiom humanSelah : Human Selah
+
+theorem neg_conclusion : ¬ BuildsSuccessfulBusiness Selah := by
+  intro hBSB
+  have hPS : PrioritizesSustainability Selah := by
+    apply prem1 Selah humanSelah
+    exact Or.inr prem2
+  have hCC : CaresCommunity Selah := (prem7 Selah hPS).left
+  have hASC : AdvocatesSocialCauses Selah := prem19
+  have hNotBoth : ¬ (CaresCommunity Selah ∧ AdvocatesSocialCauses Selah) := prem5b
+  have hFalse : False := by
+    have : CaresCommunity Selah ∧ AdvocatesSocialCauses Selah := And.intro hCC hASC
+    exact hNotBoth this
+  exact hFalse
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: BOTH_SUCCESS
+Formalization Error Detected: True
+Used Fallback: True
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: Unknown
+Correct: Yes

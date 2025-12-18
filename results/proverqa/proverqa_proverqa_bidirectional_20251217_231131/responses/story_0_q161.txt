@@ -1,0 +1,151 @@
+Story ID: 0
+Example ID: 161
+Premises: If Theo values precision, then he achieves success. Theo either pursues creativity or revolutionizes industries. If Theo improves lives, then he deserves awards. Theo takes risks. If Theo is curious, then he either thinks outside the box or takes risks (but not both). If Theo gains recognition, then he improves lives. If Theo is ambitious, then he is either detail-oriented or values precision, but not both. Theo is either detail-oriented and values precision, or he is curious, but not both. Theo does not deserve awards. If someone pursues creativity, then they think outside the box. Theo does not achieve success.
+Conclusion: Theo is not innovative.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+axiom Person : Type u
+axiom Theo : Person
+
+axiom ValuesPrecision : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom PursuesCreativity : Person → Prop
+axiom RevolutionizesIndustries : Person → Prop
+axiom ImprovesLives : Person → Prop
+axiom DeservesAwards : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom Curious : Person → Prop
+axiom ThinksOutsideBox : Person → Prop
+axiom GainsRecognition : Person → Prop
+axiom Ambitious : Person → Prop
+axiom DetailOriented : Person → Prop
+axiom Innovative : Person → Prop
+
+-- Premises
+axiom a1 : ValuesPrecision Theo → AchievesSuccess Theo
+axiom a2 : PursuesCreativity Theo ∨ RevolutionizesIndustries Theo
+axiom a3 : ImprovesLives Theo → DeservesAwards Theo
+axiom a4 : TakesRisks Theo
+axiom a5 : Curious Theo → ((ThinksOutsideBox Theo ∨ TakesRisks Theo) ∧ ¬(ThinksOutsideBox Theo ∧ TakesRisks Theo))
+axiom a6 : GainsRecognition Theo → ImprovesLives Theo
+axiom a7 : Ambitious Theo → ((DetailOriented Theo ∨ ValuesPrecision Theo) ∧ ¬(DetailOriented Theo ∧ ValuesPrecision Theo))
+axiom a8 : ((DetailOriented Theo ∧ ValuesPrecision Theo) ∨ Curious Theo) ∧ ¬((DetailOriented Theo ∧ ValuesPrecision Theo) ∧ Curious Theo)
+axiom a9 : ¬ DeservesAwards Theo
+axiom a10 : PursuesCreativity Theo → ThinksOutsideBox Theo
+axiom a11 : ¬ AchievesSuccess Theo
+
+-- Some derived consequences
+lemma not_improves : ¬ ImprovesLives Theo := by
+  intro h
+  have : DeservesAwards Theo := a3 h
+  exact a9 this
+
+lemma not_gains : ¬ GainsRecognition Theo := by
+  intro h
+  have : ImprovesLives Theo := a6 h
+  exact not_improves this
+
+-- Target conclusion
+theorem goal : ¬ Innovative Theo := by
+  -- There is no connection between Innovative and the given predicates,
+  -- and the premises are consistent (e.g., in the case Curious Theo holds).
+  -- Hence the conclusion does not follow from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Theo : Person
+
+axiom ValuesPrecision : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom PursuesCreativity : Person → Prop
+axiom RevolutionizesIndustries : Person → Prop
+axiom ImprovesLives : Person → Prop
+axiom DeservesAwards : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom Curious : Person → Prop
+axiom ThinksOutsideBox : Person → Prop
+axiom GainsRecognition : Person → Prop
+axiom Ambitious : Person → Prop
+axiom DetailOriented : Person → Prop
+axiom Innovative : Person → Prop
+
+-- Premises
+axiom p1 : ValuesPrecision Theo → AchievesSuccess Theo
+axiom p2 : PursuesCreativity Theo ∨ RevolutionizesIndustries Theo
+axiom p3 : ImprovesLives Theo → DeservesAwards Theo
+axiom p4 : TakesRisks Theo
+axiom p5 : Curious Theo → ((ThinksOutsideBox Theo ∨ TakesRisks Theo) ∧ ¬(ThinksOutsideBox Theo ∧ TakesRisks Theo))
+axiom p6 : GainsRecognition Theo → ImprovesLives Theo
+axiom p7 : Ambitious Theo → ((DetailOriented Theo ∨ ValuesPrecision Theo) ∧ ¬(DetailOriented Theo ∧ ValuesPrecision Theo))
+axiom p8 : ((DetailOriented Theo ∧ ValuesPrecision Theo) ∨ Curious Theo) ∧ ¬((DetailOriented Theo ∧ ValuesPrecision Theo) ∧ Curious Theo)
+axiom p9 : ¬DeservesAwards Theo
+axiom p10 : ∀ x : Person, PursuesCreativity x → ThinksOutsideBox x
+axiom p11 : ¬AchievesSuccess Theo
+
+-- Goal: negate the conclusion "Theo is not innovative", i.e., prove Innovative Theo
+theorem negate_conclusion : Innovative Theo := by
+  -- From p1 and p11, Theo does not value precision
+  have h_not_vp : ¬ ValuesPrecision Theo := by
+    intro h_vp
+    have : AchievesSuccess Theo := p1 h_vp
+    exact p11 this
+  -- From p8 and ¬(Detail∧VP), deduce Curious Theo
+  have h_xor_cv := p8
+  have h_or : (DetailOriented Theo ∧ ValuesPrecision Theo) ∨ Curious Theo := And.left h_xor_cv
+  have h_cur : Curious Theo := by
+    cases h_or with
+    | inl h_dovp =>
+        exact False.elim (h_not_vp h_dovp.right)
+    | inr hC => exact hC
+  -- From curiosity XOR (TOB, risk) and risk true, deduce ¬TOB
+  have h_xor_tob_risk := p5 h_cur
+  have h_not_both : ¬(ThinksOutsideBox Theo ∧ TakesRisks Theo) := And.right h_xor_tob_risk
+  have h_not_tob : ¬ThinksOutsideBox Theo := by
+    intro h_tob
+    exact h_not_both ⟨h_tob, p4⟩
+  -- If he pursued creativity, he'd think outside the box; hence he does not pursue creativity
+  have h_not_pc : ¬PursuesCreativity Theo := by
+    intro hpc
+    have : ThinksOutsideBox Theo := p10 Theo hpc
+    exact h_not_tob this
+  -- From (PC ∨ RI) and ¬PC, deduce RI
+  have h_ri : RevolutionizesIndustries Theo := by
+    cases p2 with
+    | inl hpc => exact False.elim (h_not_pc hpc)
+    | inr hri => exact hri
+  -- From awards chain and not deserving awards, deduce not improving lives and not gaining recognition
+  have h_not_improves : ¬ImprovesLives Theo := by
+    intro h_imp
+    exact p9 (p3 h_imp)
+  have h_not_recog : ¬GainsRecognition Theo := by
+    intro h_rec
+    exact h_not_improves (p6 h_rec)
+  -- No premise connects these facts to Innovative, so we cannot conclude Innovative Theo from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

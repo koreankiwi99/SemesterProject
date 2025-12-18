@@ -1,0 +1,182 @@
+Story ID: 0
+Example ID: 375
+Premises: Norah lives in a metropolis. Everyone who prefers an urban lifestyle enjoys city life. Norah is either introspective or enjoys socializing, but not both. Norah enjoys socializing or likes crowds. If Norah enjoys art and collects antiques, then she prefers an urban lifestyle. Jadiel is either introspective or enjoys socializing, but not both. Anyone who frequently visits clubs will enjoy nightlife. If Norah lives in a metropolis, then she either enjoys nightlife or loves a serene atmosphere (but not both). If Norah either likes crowds or enjoys nightlife (but not both), then she prefers an urban lifestyle. Everyone either enjoys city life or appreciates nature, but they are not mutually exclusive. Norah either appreciates nature or values knowledge (or both). If Ashlynn lives in a metropolis, then she either enjoys nightlife or loves a serene atmosphere (but not both). Norah loves a serene atmosphere. If Jadiel either likes crowds or enjoys nightlife (but not both), then she prefers an urban lifestyle. Norah is introspective.
+Conclusion: Norah does not value knowledge.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Norah : Person
+axiom Jadiel : Person
+axiom Ashlynn : Person
+
+axiom LivesInMetropolis : Person → Prop
+axiom PrefersUrbanLifestyle : Person → Prop
+axiom EnjoysCityLife : Person → Prop
+axiom Introspective : Person → Prop
+axiom EnjoysSocializing : Person → Prop
+axiom LikesCrowds : Person → Prop
+axiom EnjoysArt : Person → Prop
+axiom CollectsAntiques : Person → Prop
+axiom EnjoysNightlife : Person → Prop
+axiom LovesSereneAtmosphere : Person → Prop
+axiom AppreciatesNature : Person → Prop
+axiom ValuesKnowledge : Person → Prop
+axiom FrequentlyVisitsClubs : Person → Prop
+
+-- Premises
+axiom prem1 : LivesInMetropolis Norah
+axiom prem2 : ∀ x : Person, PrefersUrbanLifestyle x → EnjoysCityLife x
+axiom prem3 : (Introspective Norah ∧ ¬ EnjoysSocializing Norah) ∨ (EnjoysSocializing Norah ∧ ¬ Introspective Norah)
+axiom prem4 : EnjoysSocializing Norah ∨ LikesCrowds Norah
+axiom prem5 : (EnjoysArt Norah ∧ CollectsAntiques Norah) → PrefersUrbanLifestyle Norah
+axiom prem6 : (Introspective Jadiel ∧ ¬ EnjoysSocializing Jadiel) ∨ (EnjoysSocializing Jadiel ∧ ¬ Introspective Jadiel)
+axiom prem7 : ∀ x : Person, FrequentlyVisitsClubs x → EnjoysNightlife x
+axiom prem8 : LivesInMetropolis Norah →
+  ((EnjoysNightlife Norah ∧ ¬ LovesSereneAtmosphere Norah) ∨ (LovesSereneAtmosphere Norah ∧ ¬ EnjoysNightlife Norah))
+axiom prem9 : ((LikesCrowds Norah ∧ ¬ EnjoysNightlife Norah) ∨ (EnjoysNightlife Norah ∧ ¬ LikesCrowds Norah)) → PrefersUrbanLifestyle Norah
+axiom prem10 : ∀ x : Person, EnjoysCityLife x ∨ AppreciatesNature x
+axiom prem11 : AppreciatesNature Norah ∨ ValuesKnowledge Norah
+axiom prem12 : LivesInMetropolis Ashlynn →
+  ((EnjoysNightlife Ashlynn ∧ ¬ LovesSereneAtmosphere Ashlynn) ∨ (LovesSereneAtmosphere Ashlynn ∧ ¬ EnjoysNightlife Ashlynn))
+axiom prem13 : LovesSereneAtmosphere Norah
+axiom prem14 : ((LikesCrowds Jadiel ∧ ¬ EnjoysNightlife Jadiel) ∨ (EnjoysNightlife Jadiel ∧ ¬ LikesCrowds Jadiel)) → PrefersUrbanLifestyle Jadiel
+axiom prem15 : Introspective Norah
+
+-- Conclusion to analyze: Norah does not value knowledge.
+theorem goal : ¬ ValuesKnowledge Norah := by
+  -- Derive ¬ EnjoysNightlife Norah from metropolis XOR and serene fact
+  have hxor := prem8 prem1
+  have notNight : ¬ EnjoysNightlife Norah := by
+    cases hxor with
+    | inl h =>
+      -- h : EnjoysNightlife Norah ∧ ¬ LovesSereneAtmosphere Norah
+      have : False := h.right prem13
+      exact (by intro _; exact False.elim this)
+    | inr h =>
+      -- h : LovesSereneAtmosphere Norah ∧ ¬ EnjoysNightlife Norah
+      exact h.right
+  -- Derive ¬ EnjoysSocializing Norah from XOR and Introspective Norah
+  have notSoc : ¬ EnjoysSocializing Norah := by
+    cases prem3 with
+    | inl h => exact h.right
+    | inr h =>
+      have contra : False := h.right prem15
+      exact (by intro _; exact False.elim contra)
+  -- From (EnjoysSocializing ∨ LikesCrowds) and ¬EnjoysSocializing, deduce LikesCrowds
+  have likesCrowds : LikesCrowds Norah := by
+    cases prem4 with
+    | inl s => exact False.elim (notSoc s)
+    | inr lc => exact lc
+  -- Use XOR premise to get PrefersUrban, then EnjoysCityLife
+  have prefU : PrefersUrbanLifestyle Norah := by
+    apply prem9
+    exact Or.inl ⟨likesCrowds, notNight⟩
+  have _ : EnjoysCityLife Norah := prem2 Norah prefU
+  -- No given premise links ValuesKnowledge to a contradiction; cannot derive ¬ ValuesKnowledge Norah.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Norah : Person
+axiom Jadiel : Person
+axiom Ashlynn : Person
+
+axiom LivesInMetropolis : Person → Prop
+axiom PrefersUrbanLifestyle : Person → Prop
+axiom EnjoysCityLife : Person → Prop
+axiom Introspective : Person → Prop
+axiom EnjoysSocializing : Person → Prop
+axiom LikesCrowds : Person → Prop
+axiom EnjoysArt : Person → Prop
+axiom CollectsAntiques : Person → Prop
+axiom FrequentlyVisitsClubs : Person → Prop
+axiom EnjoysNightlife : Person → Prop
+axiom LovesSereneAtmosphere : Person → Prop
+axiom AppreciatesNature : Person → Prop
+axiom ValuesKnowledge : Person → Prop
+
+-- Premises
+axiom premise1 : LivesInMetropolis Norah
+axiom premise2 : ∀ x : Person, PrefersUrbanLifestyle x → EnjoysCityLife x
+axiom premise3 : (Introspective Norah ∨ EnjoysSocializing Norah) ∧ ¬(Introspective Norah ∧ EnjoysSocializing Norah)
+axiom premise4 : EnjoysSocializing Norah ∨ LikesCrowds Norah
+axiom premise5 : (EnjoysArt Norah ∧ CollectsAntiques Norah) → PrefersUrbanLifestyle Norah
+axiom premise6 : (Introspective Jadiel ∨ EnjoysSocializing Jadiel) ∧ ¬(Introspective Jadiel ∧ EnjoysSocializing Jadiel)
+axiom premise7 : ∀ x : Person, FrequentlyVisitsClubs x → EnjoysNightlife x
+axiom premise8 : LivesInMetropolis Norah → ((EnjoysNightlife Norah ∨ LovesSereneAtmosphere Norah) ∧ ¬(EnjoysNightlife Norah ∧ LovesSereneAtmosphere Norah))
+axiom premise9 : ((LikesCrowds Norah ∨ EnjoysNightlife Norah) ∧ ¬(LikesCrowds Norah ∧ EnjoysNightlife Norah)) → PrefersUrbanLifestyle Norah
+axiom premise10 : ∀ x : Person, EnjoysCityLife x ∨ AppreciatesNature x
+axiom premise11 : AppreciatesNature Norah ∨ ValuesKnowledge Norah
+axiom premise12 : LivesInMetropolis Ashlynn → ((EnjoysNightlife Ashlynn ∨ LovesSereneAtmosphere Ashlynn) ∧ ¬(EnjoysNightlife Ashlynn ∧ LovesSereneAtmosphere Ashlynn))
+axiom premise13 : LovesSereneAtmosphere Norah
+axiom premise14 : ((LikesCrowds Jadiel ∨ EnjoysNightlife Jadiel) ∧ ¬(LikesCrowds Jadiel ∧ EnjoysNightlife Jadiel)) → PrefersUrbanLifestyle Jadiel
+axiom premise15 : Introspective Norah
+
+-- Negation of the conclusion to analyze: we aim to prove that Norah values knowledge
+theorem neg_conclusion : ValuesKnowledge Norah := by
+  -- From "not both" in premise3 and Introspective Norah (premise15), deduce ¬EnjoysSocializing Norah
+  have not_both : ¬(Introspective Norah ∧ EnjoysSocializing Norah) := And.right premise3
+  have hInt : Introspective Norah := premise15
+  have not_social : ¬EnjoysSocializing Norah := by
+    intro hSoc
+    apply not_both
+    exact And.intro hInt hSoc
+
+  -- From "EnjoysSocializing ∨ LikesCrowds" and ¬EnjoysSocializing, deduce LikesCrowds Norah
+  have soc_or_crowd : EnjoysSocializing Norah ∨ LikesCrowds Norah := premise4
+  have hCrowd : LikesCrowds Norah := by
+    cases soc_or_crowd with
+    | inl hSoc =>
+        have : False := not_social hSoc
+        exact False.elim this
+    | inr hC => exact hC
+
+  -- From metropolis and XOR about nightlife vs serene, plus LovesSereneAtmosphere, deduce ¬EnjoysNightlife Norah
+  have xor_nl_sa := premise8 premise1
+  have not_both_nl_sa : ¬(EnjoysNightlife Norah ∧ LovesSereneAtmosphere Norah) := And.right xor_nl_sa
+  have hSerene : LovesSereneAtmosphere Norah := premise13
+  have not_night : ¬EnjoysNightlife Norah := by
+    intro hNight
+    apply not_both_nl_sa
+    exact And.intro hNight hSerene
+
+  -- Build the XOR for (LikesCrowds vs EnjoysNightlife) to get PrefersUrbanLifestyle Norah
+  have xor_crowd_night : (LikesCrowds Norah ∨ EnjoysNightlife Norah) ∧ ¬(LikesCrowds Norah ∧ EnjoysNightlife Norah) := by
+    apply And.intro
+    · exact Or.inl hCrowd
+    · intro both
+      have hn : EnjoysNightlife Norah := And.right both
+      exact not_night hn
+
+  have urban : PrefersUrbanLifestyle Norah := premise9 xor_crowd_night
+  have city : EnjoysCityLife Norah := premise2 Norah urban
+
+  -- From "AppreciatesNature Norah ∨ ValuesKnowledge Norah", attempt to conclude ValuesKnowledge Norah
+  have nature_or_knowledge : AppreciatesNature Norah ∨ ValuesKnowledge Norah := premise11
+
+  -- Unable to derive ValuesKnowledge Norah from the given information
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: Uncertain
+Correct: Yes

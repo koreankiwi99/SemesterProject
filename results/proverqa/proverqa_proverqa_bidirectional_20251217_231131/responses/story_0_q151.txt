@@ -1,0 +1,165 @@
+Story ID: 0
+Example ID: 151
+Premises: If Mia is highly respected, then she is either an expert in her field or charismatic, but not both. Mia is not charismatic. Anyone who has expertise in their field either serves clients well or adeptly navigates complex markets (or both). If someone has high integrity, then they build trust and achieve success. Mia either manages risk or serves clients, but not necessarily both. If Mia is either of high integrity or highly skilled (but not both), then she is highly respected. Mia builds trust. Mia communicates effectively with her clients. Mia does not achieve success. Everyone either navigates complex financial markets or communicates effectively with their clients, but not both is not a requirement. Mia manages risk.
+Conclusion: Mia is not highly skilled.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Mia : Person
+
+-- Predicates
+axiom HighlyRespected : Person → Prop
+axiom Expert : Person → Prop
+axiom Charismatic : Person → Prop
+axiom HighlySkilled : Person → Prop
+axiom HighIntegrity : Person → Prop
+axiom BuildsTrust : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom ManagesRisk : Person → Prop
+axiom ServesClients : Person → Prop
+axiom NavigatesComplexMarkets : Person → Prop
+axiom CommunicatesEffectively : Person → Prop
+
+-- Premises
+-- If Mia is highly respected, then she is either an expert or charismatic, but not both (exclusive or)
+axiom prem1 :
+  HighlyRespected Mia →
+  ((Expert Mia ∨ Charismatic Mia) ∧ ¬(Expert Mia ∧ Charismatic Mia))
+
+-- Mia is not charismatic
+axiom prem2 : ¬ Charismatic Mia
+
+-- Anyone who is an expert either serves clients or navigates complex markets (or both)
+axiom prem3 : ∀ x : Person, Expert x → (ServesClients x ∨ NavigatesComplexMarkets x)
+
+-- If someone has high integrity, then they build trust and achieve success
+axiom prem4 : ∀ x : Person, HighIntegrity x → (BuildsTrust x ∧ AchievesSuccess x)
+
+-- Mia either manages risk or serves clients (inclusive or)
+axiom prem5 : ManagesRisk Mia ∨ ServesClients Mia
+
+-- If Mia is either of high integrity or highly skilled (but not both), then she is highly respected
+axiom prem6 :
+  ((HighIntegrity Mia ∨ HighlySkilled Mia) ∧ ¬(HighIntegrity Mia ∧ HighlySkilled Mia)) → HighlyRespected Mia
+
+-- Mia builds trust
+axiom prem7 : BuildsTrust Mia
+
+-- Mia communicates effectively with her clients
+axiom prem8 : CommunicatesEffectively Mia
+
+-- Mia does not achieve success
+axiom prem9 : ¬ AchievesSuccess Mia
+
+-- Everyone either navigates complex financial markets or communicates effectively (inclusive or)
+axiom prem10 : ∀ x : Person, (NavigatesComplexMarkets x ∨ CommunicatesEffectively x)
+
+-- Mia manages risk
+axiom prem11 : ManagesRisk Mia
+
+-- A useful consequence: Mia is not of high integrity (from prem4 and prem9)
+lemma not_high_integrity : ¬ HighIntegrity Mia := by
+  intro hI
+  have h := prem4 Mia hI
+  exact prem9 (And.right h)
+
+-- Goal: Mia is not highly skilled
+theorem goal : ¬ HighlySkilled Mia := by
+  intro hS
+  -- From not_high_integrity and hS, we get the XOR in prem6, hence Mia is highly respected
+  have hx : (HighIntegrity Mia ∨ HighlySkilled Mia) ∧ ¬(HighIntegrity Mia ∧ HighlySkilled Mia) := by
+    have hnotboth : ¬ (HighIntegrity Mia ∧ HighlySkilled Mia) := by
+      intro hboth
+      exact not_high_integrity hboth.left
+    exact And.intro (Or.inr hS) hnotboth
+  have hHR : HighlyRespected Mia := prem6 hx
+  -- From high respect and not charismatic, deduce she is an expert
+  have hX := prem1 hHR
+  have hEorC : Expert Mia ∨ Charismatic Mia := And.left hX
+  have hE : Expert Mia := by
+    cases hEorC with
+    | inl e => exact e
+    | inr c => exact False.elim (prem2 c)
+  -- From expert, deduce serves clients or navigates
+  have _hSCorNav : ServesClients Mia ∨ NavigatesComplexMarkets Mia := prem3 Mia hE
+  -- No contradiction can be derived from the given premises; the assumption hS does not lead to False.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Mia : Person
+
+axiom HighlyRespected : Person → Prop
+axiom Expert : Person → Prop
+axiom Charismatic : Person → Prop
+axiom HighIntegrity : Person → Prop
+axiom BuildsTrust : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom ServesClientsWell : Person → Prop
+axiom NavigatesComplexMarkets : Person → Prop
+axiom ManagesRisk : Person → Prop
+axiom CommunicatesEffectively : Person → Prop
+axiom HighlySkilled : Person → Prop
+
+-- Premises
+axiom premise1 :
+  HighlyRespected Mia →
+  ((Expert Mia ∨ Charismatic Mia) ∧ ¬(Expert Mia ∧ Charismatic Mia))
+axiom premise2 : ¬ Charismatic Mia
+axiom premise3 : ∀ x : Person, Expert x → (ServesClientsWell x ∨ NavigatesComplexMarkets x)
+axiom premise4 : ∀ x : Person, HighIntegrity x → (BuildsTrust x ∧ AchievesSuccess x)
+axiom premise5 : ManagesRisk Mia ∨ ServesClientsWell Mia
+axiom premise6 :
+  ((HighIntegrity Mia ∨ HighlySkilled Mia) ∧ ¬(HighIntegrity Mia ∧ HighlySkilled Mia)) →
+  HighlyRespected Mia
+axiom premise7 : BuildsTrust Mia
+axiom premise8 : CommunicatesEffectively Mia
+axiom premise9 : ¬ AchievesSuccess Mia
+axiom premise10 : ∀ x : Person, NavigatesComplexMarkets x ∨ CommunicatesEffectively x
+axiom premise11 : ManagesRisk Mia
+
+-- Derived facts
+theorem not_highIntegrity_Mia : ¬ HighIntegrity Mia := by
+  intro hHI
+  have hAS : AchievesSuccess Mia := (premise4 Mia hHI).right
+  exact premise9 hAS
+
+theorem HR_implies_Expert_Mia : HighlyRespected Mia → Expert Mia := by
+  intro hHR
+  have h := premise1 hHR
+  have hdisj : Expert Mia ∨ Charismatic Mia := h.left
+  have _hnotboth : ¬(Expert Mia ∧ Charismatic Mia) := h.right
+  cases hdisj with
+  | inl hE => exact hE
+  | inr hC =>
+      have : False := premise2 hC
+      exact False.elim this
+
+-- Negation of the conclusion: we aim to prove "Mia is highly skilled."
+theorem goal : HighlySkilled Mia := by
+  -- From the given premises, this does not seem derivable.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: Uncertain
+Correct: Yes

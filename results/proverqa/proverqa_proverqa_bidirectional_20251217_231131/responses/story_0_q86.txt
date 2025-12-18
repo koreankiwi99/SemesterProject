@@ -1,0 +1,197 @@
+Story ID: 0
+Example ID: 86
+Premises: Kendra has strong instincts. Anaya is not camouflaged. Forest lives in the rainforest. Forest has unique characteristics. Kendra does not have venom. If Kendra is intelligent, then he is either agile or has strong instincts, but not both. Forest does not have venom. If Kehlani is a carnivorous snake, then he is either stealthy or camouflaged, but not both. Any snake that has stealth or is agile is adaptable. Forest is not camouflaged. Forest is intelligent. Forest has strong instincts. All snakes with unique characteristics attract scientific attention. Kehlani lives in the rainforest. All snakes either move silently or have stealth. If Forest lives in the rainforest, then he is either carnivorous or venomous, but not both. Kehlani has unique characteristics. Kehlani is intelligent. If Forest is a carnivorous snake, then he is either stealthy or camouflaged, but not both. If Forest is intelligent, then he is either agile or has strong instincts, but not both. If Forest is adaptable, then he can survive in harsh environments and attract scientific attention. If Kehlani is adaptable, then he can survive in harsh environments and attract scientific attention.
+Conclusion: Forest can survive in harsh environments.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+set_option maxHeartbeats 400000
+
+axiom Animal : Type
+axiom Kendra : Animal
+axiom Anaya : Animal
+axiom Forest : Animal
+axiom Kehlani : Animal
+
+axiom Snake : Animal → Prop
+axiom StrongInstincts : Animal → Prop
+axiom Camouflaged : Animal → Prop
+axiom LivesRF : Animal → Prop
+axiom Unique : Animal → Prop
+axiom Venomous : Animal → Prop
+axiom Intelligent : Animal → Prop
+axiom Agile : Animal → Prop
+axiom Stealth : Animal → Prop
+axiom Adaptable : Animal → Prop
+axiom AttractSci : Animal → Prop
+axiom MoveSilent : Animal → Prop
+axiom Carnivorous : Animal → Prop
+axiom SurviveHarsh : Animal → Prop
+
+-- Contextual assumptions: the named individuals are snakes
+axiom snakeForest : Snake Forest
+axiom snakeKehlani : Snake Kehlani
+
+-- Premises
+axiom kendraStrong : StrongInstincts Kendra
+axiom anayaNotCam : ¬ Camouflaged Anaya
+axiom forestRF : LivesRF Forest
+axiom forestUnique : Unique Forest
+axiom kendraNoVenom : ¬ Venomous Kendra
+axiom kendraIntImpXOR :
+  Intelligent Kendra → ((Agile Kendra ∨ StrongInstincts Kendra) ∧ ¬ (Agile Kendra ∧ StrongInstincts Kendra))
+axiom forestNoVenom : ¬ Venomous Forest
+axiom kehlaniCarnSnakeImpXOR :
+  (Snake Kehlani ∧ Carnivorous Kehlani) →
+  ((Stealth Kehlani ∨ Camouflaged Kehlani) ∧ ¬ (Stealth Kehlani ∧ Camouflaged Kehlani))
+axiom anySnakeStealthOrAgileAdapt :
+  ∀ x, Snake x → (Stealth x ∨ Agile x) → Adaptable x
+axiom forestNotCam : ¬ Camouflaged Forest
+axiom forestInt : Intelligent Forest
+axiom forestStrong : StrongInstincts Forest
+axiom snakesUniqueAttract :
+  ∀ x, (Snake x ∧ Unique x) → AttractSci x
+axiom kehlaniRF : LivesRF Kehlani
+axiom snakesSilentOrStealth :
+  ∀ x, Snake x → (MoveSilent x ∨ Stealth x)
+axiom forestRFImpXOR :
+  LivesRF Forest →
+  ((Carnivorous Forest ∨ Venomous Forest) ∧ ¬ (Carnivorous Forest ∧ Venomous Forest))
+axiom kehlaniUnique : Unique Kehlani
+axiom kehlaniInt : Intelligent Kehlani
+axiom forestCarnSnakeImpXOR :
+  (Snake Forest ∧ Carnivorous Forest) →
+  ((Stealth Forest ∨ Camouflaged Forest) ∧ ¬ (Stealth Forest ∧ Camouflaged Forest))
+axiom forestIntImpXOR :
+  Intelligent Forest → ((Agile Forest ∨ StrongInstincts Forest) ∧ ¬ (Agile Forest ∧ StrongInstincts Forest))
+axiom forestAdaptImpSurviveAttract :
+  Adaptable Forest → (SurviveHarsh Forest ∧ AttractSci Forest)
+axiom kehlaniAdaptImpSurviveAttract :
+  Adaptable Kehlani → (SurviveHarsh Kehlani ∧ AttractSci Kehlani)
+
+theorem goal : SurviveHarsh Forest := by
+  have hRF : LivesRF Forest := forestRF
+  have hX := forestRFImpXOR hRF
+  have hDisj : Carnivorous Forest ∨ Venomous Forest := And.left hX
+  have hNotVen : ¬ Venomous Forest := forestNoVenom
+  have hCarn : Carnivorous Forest := by
+    cases hDisj with
+    | inl hc => exact hc
+    | inr hv =>
+        have : False := hNotVen hv
+        exact False.elim this
+  have hSnake : Snake Forest := snakeForest
+  have hStealthOrCam_and_notBoth := forestCarnSnakeImpXOR (And.intro hSnake hCarn)
+  have hStealthOrCam : Stealth Forest ∨ Camouflaged Forest := And.left hStealthOrCam_and_notBoth
+  have hNotCam : ¬ Camouflaged Forest := forestNotCam
+  have hStealth : Stealth Forest := by
+    cases hStealthOrCam with
+    | inl s => exact s
+    | inr c =>
+        have : False := hNotCam c
+        exact False.elim this
+  have hAdapt : Adaptable Forest := anySnakeStealthOrAgileAdapt Forest hSnake (Or.inl hStealth)
+  have hSurviveAndAttract := forestAdaptImpSurviveAttract hAdapt
+  exact And.left hSurviveAndAttract
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+-- Basic domain
+axiom Entity : Type u
+axiom Kendra : Entity
+axiom Anaya : Entity
+axiom Forest : Entity
+axiom Kehlani : Entity
+
+-- Predicates
+axiom StrongInstincts : Entity → Prop
+axiom Camouflaged : Entity → Prop
+axiom LivesRainforest : Entity → Prop
+axiom UniqueCharacteristics : Entity → Prop
+axiom HasVenom : Entity → Prop
+axiom Intelligent : Entity → Prop
+axiom Agile : Entity → Prop
+axiom Stealthy : Entity → Prop
+axiom Adaptable : Entity → Prop
+axiom Carnivorous : Entity → Prop
+axiom MoveSilently : Entity → Prop
+axiom AttractsScientificAttention : Entity → Prop
+axiom SurviveHarshEnvironments : Entity → Prop
+
+-- Exclusive or
+def Xor (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+-- Premises
+axiom premise1  : StrongInstincts Kendra
+axiom premise2  : ¬ Camouflaged Anaya
+axiom premise3  : LivesRainforest Forest
+axiom premise4  : UniqueCharacteristics Forest
+axiom premise5  : ¬ HasVenom Kendra
+axiom premise6  : Intelligent Kendra → Xor (Agile Kendra) (StrongInstincts Kendra)
+axiom premise7  : ¬ HasVenom Forest
+axiom premise8  : Carnivorous Kehlani → Xor (Stealthy Kehlani) (Camouflaged Kehlani)
+axiom premise9  : ∀ x : Entity, (Stealthy x ∨ Agile x) → Adaptable x
+axiom premise10 : ¬ Camouflaged Forest
+axiom premise11 : Intelligent Forest
+axiom premise12 : StrongInstincts Forest
+axiom premise13 : ∀ x : Entity, UniqueCharacteristics x → AttractsScientificAttention x
+axiom premise14 : LivesRainforest Kehlani
+axiom premise15 : ∀ x : Entity, MoveSilently x ∨ Stealthy x
+axiom premise16 : LivesRainforest Forest → Xor (Carnivorous Forest) (HasVenom Forest)
+axiom premise17 : UniqueCharacteristics Kehlani
+axiom premise18 : Intelligent Kehlani
+axiom premise19 : Carnivorous Forest → Xor (Stealthy Forest) (Camouflaged Forest)
+axiom premise20 : Intelligent Forest → Xor (Agile Forest) (StrongInstincts Forest)
+axiom premise21 : Adaptable Forest → (SurviveHarshEnvironments Forest ∧ AttractsScientificAttention Forest)
+axiom premise22 : Adaptable Kehlani → (SurviveHarshEnvironments Kehlani ∧ AttractsScientificAttention Kehlani)
+
+-- Helper: from XOR p q and ¬q, derive p
+lemma xorf_elim_left {p q : Prop} (h : Xor p q) (hnq : ¬ q) : p := by
+  have hdisj := h.left
+  cases hdisj with
+  | inl hp => exact hp
+  | inr hq => exact False.elim (hnq hq)
+
+-- From the premises, the conclusion (survival of Forest) actually follows
+theorem survive_Forest : SurviveHarshEnvironments Forest := by
+  have h_xor_cv : Xor (Carnivorous Forest) (HasVenom Forest) := premise16 premise3
+  have h_carn : Carnivorous Forest := xorf_elim_left h_xor_cv premise7
+  have h_xor_sc : Xor (Stealthy Forest) (Camouflaged Forest) := premise19 h_carn
+  have h_stealth : Stealthy Forest := xorf_elim_left h_xor_sc premise10
+  have h_adapt : Adaptable Forest := premise9 Forest (Or.inl h_stealth)
+  have h := premise21 h_adapt
+  exact h.left
+
+-- The negation of the conclusion would lead to a contradiction with the derived result
+theorem negation_of_conclusion_leads_to_contradiction : (¬ SurviveHarshEnvironments Forest) → False := by
+  intro hneg
+  exact hneg survive_Forest
+
+-- Requested goal (negation of the conclusion) is not derivable; the following would be the target:
+-- theorem goal : ¬ SurviveHarshEnvironments Forest := by
+--   -- This is not provable from the given premises, since we proved SurviveHarshEnvironments Forest above.
+--   admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

@@ -1,0 +1,212 @@
+Story ID: 0
+Example ID: 122
+Premises: Taytum eats insects. If Taytum has either aquatic adaptation or terrestrial adaptation (but not both), then she thrives. If Maximo is resilient, then she explores her environments and regenerates quickly. All thriving frogs are resilient. If Duke explores her environment and eats insects, then she is balanced. Taytum either lives in ponds or hibernates seasonally. Inaya either has terrestrial adaptation or hibernates seasonally, but not both. If Taytum has webbed feet, then she either migrates long distances or hibernates seasonally, but not both. If Taytum has strong skin, then she jumps far and explores her environments. If Taytum is resilient, then she explores her environments and regenerates quickly. Taytum does not migrate long distances. Taytum has webbed feet. Taytum either has terrestrial adaptation or hibernates seasonally, but not both. If Taytum explores her environment and eats insects, then she is balanced. Taytum is not balanced. Taytum regenerates quickly. If Taytum has gills or has lungs, then she can thrive.
+Conclusion: Taytum has an aquatic adaptation.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom Taytum : Entity
+axiom Maximo : Entity
+axiom Duke : Entity
+axiom Inaya : Entity
+
+axiom EatsInsects : Entity → Prop
+axiom AquaticAdaptation : Entity → Prop
+axiom TerrestrialAdaptation : Entity → Prop
+axiom Thrives : Entity → Prop
+axiom Resilient : Entity → Prop
+axiom Explores : Entity → Prop
+axiom Regenerates : Entity → Prop
+axiom Balanced : Entity → Prop
+axiom LivesInPonds : Entity → Prop
+axiom Hibernates : Entity → Prop
+axiom WebbedFeet : Entity → Prop
+axiom MigratesLong : Entity → Prop
+axiom StrongSkin : Entity → Prop
+axiom JumpsFar : Entity → Prop
+axiom Gills : Entity → Prop
+axiom Lungs : Entity → Prop
+
+-- Premises
+axiom premise_eats_T : EatsInsects Taytum
+axiom premise_xorAqTer_implies_thrives :
+  ((AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) ∨
+   (TerrestrialAdaptation Taytum ∧ ¬ AquaticAdaptation Taytum)) → Thrives Taytum
+axiom premise_maximo_res : Resilient Maximo → Explores Maximo ∧ Regenerates Maximo
+axiom premise_thrives_resilient_all : ∀ x, Thrives x → Resilient x
+axiom premise_duke_balanced : (Explores Duke ∧ EatsInsects Duke) → Balanced Duke
+axiom premise_t_lives_or_hibernates : LivesInPonds Taytum ∨ Hibernates Taytum
+axiom premise_inaya_xor : ((TerrestrialAdaptation Inaya ∧ ¬ Hibernates Inaya) ∨
+                           (Hibernates Inaya ∧ ¬ TerrestrialAdaptation Inaya))
+axiom premise_webbedfeet_xor :
+  WebbedFeet Taytum →
+    ((MigratesLong Taytum ∧ ¬ Hibernates Taytum) ∨ (Hibernates Taytum ∧ ¬ MigratesLong Taytum))
+axiom premise_strongskin_explores :
+  StrongSkin Taytum → (JumpsFar Taytum ∧ Explores Taytum)
+axiom premise_resilient_explores :
+  Resilient Taytum → (Explores Taytum ∧ Regenerates Taytum)
+axiom premise_not_migrates : ¬ MigratesLong Taytum
+axiom premise_webbedfeet : WebbedFeet Taytum
+axiom premise_t_xor_ter_hib :
+  ((TerrestrialAdaptation Taytum ∧ ¬ Hibernates Taytum) ∨
+   (Hibernates Taytum ∧ ¬ TerrestrialAdaptation Taytum))
+axiom premise_t_explores_eats_balanced :
+  (Explores Taytum ∧ EatsInsects Taytum) → Balanced Taytum
+axiom premise_t_not_balanced : ¬ Balanced Taytum
+axiom premise_t_regenerates : Regenerates Taytum
+axiom premise_gills_or_lungs_thrives :
+  (Gills Taytum ∨ Lungs Taytum) → Thrives Taytum
+
+-- From the premises we can derive that Taytum does not have aquatic adaptation.
+theorem not_aquatic_Taytum : ¬ AquaticAdaptation Taytum := by
+  -- From webbed feet and not migrating, Taytum hibernates
+  have hxor := premise_webbedfeet_xor premise_webbedfeet
+  have h_hib : Hibernates Taytum := by
+    cases hxor with
+    | inl h1 =>
+        -- h1 : MigratesLong T ∧ ¬ Hibernates T contradicts ¬Migrates
+        have hmig : MigratesLong Taytum := h1.left
+        exact False.elim (premise_not_migrates hmig)
+    | inr h2 =>
+        exact h2.left
+  -- From Taytum's XOR between terrestrial adaptation and hibernation, and hibernation, we get ¬ terrestrial
+  have h_notTer : ¬ TerrestrialAdaptation Taytum := by
+    cases premise_t_xor_ter_hib with
+    | inl h1 =>
+        -- h1 : Terrestrial ∧ ¬ Hibernates contradicts h_hib
+        have : ¬ Hibernates Taytum := h1.right
+        exact False.elim (this.elim h_hib)
+    | inr h2 =>
+        exact h2.right
+  -- From not balanced and eats insects, deduce ¬ explores
+  have h_notExplores : ¬ Explores Taytum := by
+    intro hExpl
+    have : Balanced Taytum := premise_t_explores_eats_balanced ⟨hExpl, premise_eats_T⟩
+    exact premise_t_not_balanced this
+  -- From ¬explores, deduce ¬resilient
+  have h_notRes : ¬ Resilient Taytum := by
+    intro hRes
+    have hx := premise_resilient_explores hRes
+    exact h_notExplores hx.left
+  -- From Thrives → Resilient, we get ¬Thrives
+  have h_notThr : ¬ Thrives Taytum := by
+    intro hThr
+    have : Resilient Taytum := premise_thrives_resilient_all Taytum hThr
+    exact h_notRes this
+  -- Therefore, the XOR(Aquatic,Terrestrial) cannot hold
+  have h_notXor : ¬ ((AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) ∨
+                     (TerrestrialAdaptation Taytum ∧ ¬ AquaticAdaptation Taytum)) := by
+    intro h
+    have : Thrives Taytum := premise_xorAqTer_implies_thrives h
+    exact h_notThr this
+  -- Use ¬XOR and ¬Terrestrial to conclude ¬Aquatic
+  intro hAqu
+  have h_conj : (AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) := And.intro hAqu h_notTer
+  have : ((AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) ∨
+           (TerrestrialAdaptation Taytum ∧ ¬ AquaticAdaptation Taytum)) := Or.inl h_conj
+  exact h_notXor this
+
+-- Requested conclusion (not derivable from premises)
+theorem conclusion : AquaticAdaptation Taytum := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Animal : Type
+axiom Taytum : Animal
+axiom Maximo : Animal
+axiom Duke : Animal
+axiom Inaya : Animal
+
+axiom EatsInsects : Animal → Prop
+axiom AquaticAdaptation : Animal → Prop
+axiom TerrestrialAdaptation : Animal → Prop
+axiom Thrives : Animal → Prop
+axiom Resilient : Animal → Prop
+axiom Explores : Animal → Prop
+axiom RegeneratesQuickly : Animal → Prop
+axiom Balanced : Animal → Prop
+axiom LivesInPonds : Animal → Prop
+axiom HibernatesSeasonally : Animal → Prop
+axiom WebbedFeet : Animal → Prop
+axiom MigratesLongDistances : Animal → Prop
+axiom StrongSkin : Animal → Prop
+axiom JumpsFar : Animal → Prop
+axiom HasGills : Animal → Prop
+axiom HasLungs : Animal → Prop
+
+-- Premises
+axiom p1 : EatsInsects Taytum
+axiom p2 : ((AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) ∨ (¬ AquaticAdaptation Taytum ∧ TerrestrialAdaptation Taytum)) → Thrives Taytum
+axiom p3 : Resilient Maximo → (Explores Maximo ∧ RegeneratesQuickly Maximo)
+axiom p4 : ∀ x : Animal, Thrives x → Resilient x
+axiom p5 : (Explores Duke ∧ EatsInsects Duke) → Balanced Duke
+axiom p6 : LivesInPonds Taytum ∨ HibernatesSeasonally Taytum
+axiom p7 : (TerrestrialAdaptation Inaya ∧ ¬ HibernatesSeasonally Inaya) ∨ (¬ TerrestrialAdaptation Inaya ∧ HibernatesSeasonally Inaya)
+axiom p8 : WebbedFeet Taytum → ((MigratesLongDistances Taytum ∧ ¬ HibernatesSeasonally Taytum) ∨ (¬ MigratesLongDistances Taytum ∧ HibernatesSeasonally Taytum))
+axiom p9 : StrongSkin Taytum → (JumpsFar Taytum ∧ Explores Taytum)
+axiom p10 : Resilient Taytum → (Explores Taytum ∧ RegeneratesQuickly Taytum)
+axiom p11 : ¬ MigratesLongDistances Taytum
+axiom p12 : WebbedFeet Taytum
+axiom p13 : (TerrestrialAdaptation Taytum ∧ ¬ HibernatesSeasonally Taytum) ∨ (¬ TerrestrialAdaptation Taytum ∧ HibernatesSeasonally Taytum)
+axiom p14 : (Explores Taytum ∧ EatsInsects Taytum) → Balanced Taytum
+axiom p15 : ¬ Balanced Taytum
+axiom p16 : RegeneratesQuickly Taytum
+axiom p17 : (HasGills Taytum ∨ HasLungs Taytum) → Thrives Taytum
+
+-- Goal: prove the negation of the conclusion "Taytum has an aquatic adaptation"
+theorem not_aquatic : ¬ AquaticAdaptation Taytum := by
+  intro aqt
+  -- From webbed feet and not migrating long distances, deduce hibernation
+  have hxor := p8 p12
+  have hib : HibernatesSeasonally Taytum := by
+    cases hxor with
+    | inl h1 =>
+      have m : MigratesLongDistances Taytum := h1.left
+      have f : False := p11 m
+      exact False.elim f
+    | inr h2 =>
+      exact h2.right
+  -- From Taytum's XOR between terrestrial adaptation and hibernation, and hib, deduce ¬ terrestrial
+  have t_xor : (TerrestrialAdaptation Taytum ∧ ¬ HibernatesSeasonally Taytum) ∨ (¬ TerrestrialAdaptation Taytum ∧ HibernatesSeasonally Taytum) := p13
+  have nTer_and_hib : (¬ TerrestrialAdaptation Taytum ∧ HibernatesSeasonally Taytum) := by
+    cases t_xor with
+    | inl t1 =>
+      have f : False := t1.right hib
+      exact False.elim f
+    | inr t2 =>
+      exact t2
+  have nTer : ¬ TerrestrialAdaptation Taytum := nTer_and_hib.left
+  -- Build the required XOR (Aquatic ∧ ¬Terrestrial) ∨ (¬Aquatic ∧ Terrestrial)
+  have aq_xor : (AquaticAdaptation Taytum ∧ ¬ TerrestrialAdaptation Taytum) ∨ (¬ AquaticAdaptation Taytum ∧ TerrestrialAdaptation Taytum) :=
+    Or.inl ⟨aqt, nTer⟩
+  -- Thus Taytum thrives, hence resilient, hence explores
+  have th : Thrives Taytum := p2 aq_xor
+  have res : Resilient Taytum := p4 Taytum th
+  have ex : Explores Taytum := (p10 res).left
+  -- With eats insects, this implies balanced, contradicting premise p15
+  have bal : Balanced Taytum := p14 ⟨ex, p1⟩
+  exact p15 bal
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

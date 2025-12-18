@@ -1,0 +1,188 @@
+Story ID: 0
+Example ID: 456
+Premises: If someone has charisma and seeks influence, then they can pursue political power. Axel has charisma. Axel promotes justice. Axel either pursues political power or endorses capitalism, but not both. Oaklee promotes justice. For all humans, if they promote justice and value human rights, then they advocate for equality. If Axel hates injustice, then he sympathizes with workers and fights for freedom. If Axel fights injustice or seeks equality, then he supports the proletariat. Axel works in a factory. Axel either endorses capitalism or believes in socialism, but not both. Anyone who works in a factory or lives in poverty can sympathize with workers. Axel seeks influence. Axel lives in poverty. If Axel believes in socialism and supports the proletariat, then he joins the Bolshevik party. Axel values human rights. Anyone who sympathizes with workers and advocates for equality supports the proletariat.
+Conclusion: Axel joins the Bolshevik party.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Axel : Person
+axiom Oaklee : Person
+
+axiom HasCharisma : Person → Prop
+axiom SeeksInfluence : Person → Prop
+axiom PursuesPoliticalPower : Person → Prop
+axiom PromotesJustice : Person → Prop
+axiom EndorsesCapitalism : Person → Prop
+axiom AdvocatesEquality : Person → Prop
+axiom ValuesHumanRights : Person → Prop
+axiom HatesInjustice : Person → Prop
+axiom SympathizesWorkers : Person → Prop
+axiom FightsForFreedom : Person → Prop
+axiom FightsInjustice : Person → Prop
+axiom WorksFactory : Person → Prop
+axiom BelievesSocialism : Person → Prop
+axiom LivesInPoverty : Person → Prop
+axiom SupportsProletariat : Person → Prop
+axiom JoinsBolshevikParty : Person → Prop
+
+-- Premises
+axiom charisma_influence_to_power :
+  ∀ x : Person, (HasCharisma x ∧ SeeksInfluence x) → PursuesPoliticalPower x
+axiom axel_has_charisma : HasCharisma Axel
+axiom axel_promotes_justice : PromotesJustice Axel
+axiom xor_power_or_capitalism :
+  (PursuesPoliticalPower Axel ∨ EndorsesCapitalism Axel) ∧ ¬(PursuesPoliticalPower Axel ∧ EndorsesCapitalism Axel)
+axiom oaklee_promotes_justice : PromotesJustice Oaklee
+axiom justice_and_rights_to_equality :
+  ∀ x : Person, (PromotesJustice x ∧ ValuesHumanRights x) → AdvocatesEquality x
+axiom axel_hates_injustice_imp :
+  HatesInjustice Axel → (SympathizesWorkers Axel ∧ FightsForFreedom Axel)
+axiom axel_fights_or_seeks_to_supports :
+  (FightsInjustice Axel ∨ AdvocatesEquality Axel) → SupportsProletariat Axel
+axiom axel_works_factory : WorksFactory Axel
+axiom xor_capitalism_or_socialism :
+  (EndorsesCapitalism Axel ∨ BelievesSocialism Axel) ∧ ¬(EndorsesCapitalism Axel ∧ BelievesSocialism Axel)
+axiom factory_or_poverty_to_sympathize :
+  ∀ x : Person, (WorksFactory x ∨ LivesInPoverty x) → SympathizesWorkers x
+axiom axel_seeks_influence : SeeksInfluence Axel
+axiom axel_lives_in_poverty : LivesInPoverty Axel
+axiom axel_socialism_and_supports_to_joins :
+  (BelievesSocialism Axel ∧ SupportsProletariat Axel) → JoinsBolshevikParty Axel
+axiom axel_values_human_rights : ValuesHumanRights Axel
+axiom sympathize_and_advocate_to_support :
+  ∀ x : Person, (SympathizesWorkers x ∧ AdvocatesEquality x) → SupportsProletariat x
+
+-- Conclusion: Axel joins the Bolshevik party.
+theorem goal : JoinsBolshevikParty Axel := by
+  -- Axel pursues political power from charisma and seeking influence
+  have h_pp : PursuesPoliticalPower Axel :=
+    charisma_influence_to_power Axel ⟨axel_has_charisma, axel_seeks_influence⟩
+  -- From XOR (capitalism or socialism) and the other XOR, derive that Axel believes in socialism
+  have h_cap_or_soc : EndorsesCapitalism Axel ∨ BelievesSocialism Axel :=
+    And.left xor_capitalism_or_socialism
+  have h_not_pp_and_cap : ¬(PursuesPoliticalPower Axel ∧ EndorsesCapitalism Axel) :=
+    And.right xor_power_or_capitalism
+  have h_soc : BelievesSocialism Axel := by
+    cases h_cap_or_soc with
+    | inl h_cap =>
+        have h_pp_cap : PursuesPoliticalPower Axel ∧ EndorsesCapitalism Axel := ⟨h_pp, h_cap⟩
+        exact False.elim (h_not_pp_and_cap h_pp_cap)
+    | inr h_soc => exact h_soc
+  -- Axel advocates equality from promoting justice and valuing human rights
+  have h_eq : AdvocatesEquality Axel :=
+    justice_and_rights_to_equality Axel ⟨axel_promotes_justice, axel_values_human_rights⟩
+  -- Axel sympathizes with workers from working in a factory (or living in poverty)
+  have h_symp : SympathizesWorkers Axel :=
+    factory_or_poverty_to_sympathize Axel (Or.inl axel_works_factory)
+  -- Hence Axel supports the proletariat
+  have h_supports : SupportsProletariat Axel :=
+    sympathize_and_advocate_to_support Axel ⟨h_symp, h_eq⟩
+  -- Therefore, Axel joins the Bolshevik party
+  exact axel_socialism_and_supports_to_joins ⟨h_soc, h_supports⟩
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Axel Oaklee : Person
+
+axiom Charisma : Person → Prop
+axiom SeeksInfluence : Person → Prop
+axiom PursuesPoliticalPower : Person → Prop
+axiom EndorsesCapitalism : Person → Prop
+axiom PromotesJustice : Person → Prop
+axiom ValuesHumanRights : Person → Prop
+axiom AdvocatesEquality : Person → Prop
+axiom HatesInjustice : Person → Prop
+axiom SympathizesWorkers : Person → Prop
+axiom FightsForFreedom : Person → Prop
+axiom FightsInjustice : Person → Prop
+axiom SeeksEquality : Person → Prop
+axiom SupportsProletariat : Person → Prop
+axiom WorksFactory : Person → Prop
+axiom LivesInPoverty : Person → Prop
+axiom BelievesInSocialism : Person → Prop
+axiom JoinsBolshevikParty : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, Charisma x ∧ SeeksInfluence x → PursuesPoliticalPower x
+axiom premise2 : Charisma Axel
+axiom premise3 : PromotesJustice Axel
+axiom premise4 : (PursuesPoliticalPower Axel ∧ ¬ EndorsesCapitalism Axel) ∨ (EndorsesCapitalism Axel ∧ ¬ PursuesPoliticalPower Axel)
+axiom premise5 : PromotesJustice Oaklee
+axiom premise6 : ∀ x : Person, PromotesJustice x ∧ ValuesHumanRights x → AdvocatesEquality x
+axiom premise7 : HatesInjustice Axel → SympathizesWorkers Axel ∧ FightsForFreedom Axel
+axiom premise8 : (FightsInjustice Axel ∨ SeeksEquality Axel) → SupportsProletariat Axel
+axiom premise9 : WorksFactory Axel
+axiom premise10 : (EndorsesCapitalism Axel ∧ ¬ BelievesInSocialism Axel) ∨ (BelievesInSocialism Axel ∧ ¬ EndorsesCapitalism Axel)
+axiom premise11 : ∀ x : Person, (WorksFactory x ∨ LivesInPoverty x) → SympathizesWorkers x
+axiom premise12 : SeeksInfluence Axel
+axiom premise13 : LivesInPoverty Axel
+axiom premise14 : (BelievesInSocialism Axel ∧ SupportsProletariat Axel) → JoinsBolshevikParty Axel
+axiom premise15 : ValuesHumanRights Axel
+axiom premise16 : ∀ x : Person, (SympathizesWorkers x ∧ AdvocatesEquality x) → SupportsProletariat x
+
+-- Useful derived facts (showing the conclusion actually follows from the premises)
+theorem pursuePowerAxel : PursuesPoliticalPower Axel := by
+  exact premise1 Axel ⟨premise2, premise12⟩
+
+theorem notEndorsesCapitalismAxel : ¬ EndorsesCapitalism Axel := by
+  have hPP := pursuePowerAxel
+  apply Or.elim premise4
+  · intro h
+    exact h.right
+  · intro h
+    have contra : False := h.right hPP
+    exact False.elim contra
+
+theorem believesSocialismAxel : BelievesInSocialism Axel := by
+  apply Or.elim premise10
+  · intro h
+    have contra : False := notEndorsesCapitalismAxel h.left
+    exact False.elim contra
+  · intro h
+    exact h.left
+
+theorem sympathizesAxel : SympathizesWorkers Axel := by
+  have disj : WorksFactory Axel ∨ LivesInPoverty Axel := Or.inl premise9
+  exact premise11 Axel disj
+
+theorem advocatesEqualityAxel : AdvocatesEquality Axel := by
+  exact premise6 Axel ⟨premise3, premise15⟩
+
+theorem supportsProletariatAxel : SupportsProletariat Axel := by
+  exact premise16 Axel ⟨sympathizesAxel, advocatesEqualityAxel⟩
+
+theorem joinsBolsheviksAxel : JoinsBolshevikParty Axel := by
+  exact premise14 ⟨believesSocialismAxel, supportsProletariatAxel⟩
+
+-- Goal: prove the NEGATION of the conclusion (i.e., show the conclusion is false).
+-- This is not derivable from the premises (indeed, the conclusion follows), so the proof attempt fails.
+theorem goal_negation : ¬ JoinsBolshevikParty Axel := by
+  intro h
+  -- From the premises we can derive JoinsBolshevikParty Axel:
+  have h' : JoinsBolshevikParty Axel := joinsBolsheviksAxel
+  -- No contradiction can be derived from h and h', so we cannot proceed.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

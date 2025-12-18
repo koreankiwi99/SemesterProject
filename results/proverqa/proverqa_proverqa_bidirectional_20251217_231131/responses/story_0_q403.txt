@@ -1,0 +1,179 @@
+Story ID: 0
+Example ID: 403
+Premises: Every vulture either consumes remains or eats carrion (or both). If Peyton thrives alone, then she has a strong stomach and is adaptable. All vultures that track carrion have a keen sense of smell. If Peyton flies high, then she either dives steeply or soars effortlessly, but not both. Jonathan either soars effortlessly or tracks carrion, but not both at the same time. Franco dives steeply. Peyton either hunts preys or eats carrion. Peyton either soars effortlessly or tracks carrion, but not both at the same time. Peyton flies high. If Jonathan flies high, then she either dives steeply or soars effortlessly, but not both. All vultures that eat carrion have strong stomachs. Every vulture either scans the open plains or consumes remains, but not necessarily both. Peyton scans the open plains. Peyton dives steeply. Jonathan scans the open plains. If Franco has either a strong stomach or a keen sense of smell (but not both), then she is an effective scavenger. Every vulture either rides the wind or soars effortlessly.
+Conclusion: Peyton is an effective scavenger.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Entity : Type
+
+-- Individuals
+axiom Peyton : Entity
+axiom Jonathan : Entity
+axiom Franco : Entity
+
+-- Predicates
+axiom ConsumesRemains : Entity → Prop
+axiom EatsCarrion : Entity → Prop
+axiom TracksCarrion : Entity → Prop
+axiom KeenSmell : Entity → Prop
+axiom FliesHigh : Entity → Prop
+axiom DivesSteeply : Entity → Prop
+axiom SoarsEffortlessly : Entity → Prop
+axiom HuntsPreys : Entity → Prop
+axiom ScansOpenPlains : Entity → Prop
+axiom StrongStomach : Entity → Prop
+axiom Adaptable : Entity → Prop
+axiom RidesWind : Entity → Prop
+axiom EffectiveScavenger : Entity → Prop
+axiom ThrivesAlone : Entity → Prop
+
+-- Premises (universals interpreted over the whole domain)
+-- 1. Every vulture either consumes remains or eats carrion (or both).
+axiom ax1 : ∀ x : Entity, ConsumesRemains x ∨ EatsCarrion x
+
+-- 2. If Peyton thrives alone, then she has a strong stomach and is adaptable.
+axiom ax2 : ThrivesAlone Peyton → (StrongStomach Peyton ∧ Adaptable Peyton)
+
+-- 3. All vultures that track carrion have a keen sense of smell.
+axiom ax3 : ∀ x : Entity, TracksCarrion x → KeenSmell x
+
+-- 4. If Peyton flies high, then she either dives steeply or soars effortlessly, but not both.
+axiom ax4 : FliesHigh Peyton →
+  ((DivesSteeply Peyton ∨ SoarsEffortlessly Peyton) ∧ ¬(DivesSteeply Peyton ∧ SoarsEffortlessly Peyton))
+
+-- 5. Jonathan either soars effortlessly or tracks carrion, but not both at the same time.
+axiom ax5 : (SoarsEffortlessly Jonathan ∨ TracksCarrion Jonathan) ∧ ¬(SoarsEffortlessly Jonathan ∧ TracksCarrion Jonathan)
+
+-- 6. Franco dives steeply.
+axiom ax6 : DivesSteeply Franco
+
+-- 7. Peyton either hunts preys or eats carrion.
+axiom ax7 : HuntsPreys Peyton ∨ EatsCarrion Peyton
+
+-- 8. Peyton either soars effortlessly or tracks carrion, but not both at the same time.
+axiom ax8 : (SoarsEffortlessly Peyton ∨ TracksCarrion Peyton) ∧ ¬(SoarsEffortlessly Peyton ∧ TracksCarrion Peyton)
+
+-- 9. Peyton flies high.
+axiom ax9 : FliesHigh Peyton
+
+-- 10. If Jonathan flies high, then she either dives steeply or soars effortlessly, but not both.
+axiom ax10 : FliesHigh Jonathan →
+  ((DivesSteeply Jonathan ∨ SoarsEffortlessly Jonathan) ∧ ¬(DivesSteeply Jonathan ∧ SoarsEffortlessly Jonathan))
+
+-- 11. All vultures that eat carrion have strong stomachs.
+axiom ax11 : ∀ x : Entity, EatsCarrion x → StrongStomach x
+
+-- 12. Every vulture either scans the open plains or consumes remains, but not necessarily both.
+axiom ax12 : ∀ x : Entity, ScansOpenPlains x ∨ ConsumesRemains x
+
+-- 13. Peyton scans the open plains.
+axiom ax13 : ScansOpenPlains Peyton
+
+-- 14. Peyton dives steeply.
+axiom ax14 : DivesSteeply Peyton
+
+-- 15. Jonathan scans the open plains.
+axiom ax15 : ScansOpenPlains Jonathan
+
+-- 16. If Franco has either a strong stomach or a keen sense of smell (but not both), then she is an effective scavenger.
+axiom ax16 : ((StrongStomach Franco ∨ KeenSmell Franco) ∧ ¬(StrongStomach Franco ∧ KeenSmell Franco)) → EffectiveScavenger Franco
+
+-- 17. Every vulture either rides the wind or soars effortlessly.
+axiom ax17 : ∀ x : Entity, RidesWind x ∨ SoarsEffortlessly x
+
+-- Goal: Peyton is an effective scavenger.
+theorem goal : EffectiveScavenger Peyton := by
+  -- From ax4 and ax9 and ax14, we can derive ¬SoarsEffortlessly Peyton.
+  have hFH : FliesHigh Peyton := ax9
+  have hxorFS : (DivesSteeply Peyton ∨ SoarsEffortlessly Peyton) ∧ ¬(DivesSteeply Peyton ∧ SoarsEffortlessly Peyton) := ax4 hFH
+  have hDive : DivesSteeply Peyton := ax14
+  have hnot_both : ¬(DivesSteeply Peyton ∧ SoarsEffortlessly Peyton) := And.right hxorFS
+  have hnotSoar : ¬ SoarsEffortlessly Peyton := by
+    intro hS
+    exact hnot_both ⟨hDive, hS⟩
+  -- From ax8 (xor between SoarsEffortlessly and TracksCarrion) and ¬Soars, get TracksCarrion Peyton
+  have hxorST : (SoarsEffortlessly Peyton ∨ TracksCarrion Peyton) ∧ ¬(SoarsEffortlessly Peyton ∧ TracksCarrion Peyton) := ax8
+  have hdisjST : SoarsEffortlessly Peyton ∨ TracksCarrion Peyton := And.left hxorST
+  have hTrack : TracksCarrion Peyton := by
+    cases hdisjST with
+    | inl hs => exact (False.elim (hnotSoar hs))
+    | inr ht => exact ht
+  -- Then from ax3, Peyton has a keen sense of smell.
+  have hKeen : KeenSmell Peyton := ax3 Peyton hTrack
+  -- However, no premise links Peyton's properties to being an effective scavenger.
+  -- The only scavenger rule (ax16) is specific to Franco.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom Peyton : Entity
+axiom Jonathan : Entity
+axiom Franco : Entity
+
+axiom Vulture : Entity → Prop
+axiom ConsumesRemains : Entity → Prop
+axiom EatsCarrion : Entity → Prop
+axiom ThrivesAlone : Entity → Prop
+axiom StrongStomach : Entity → Prop
+axiom Adaptable : Entity → Prop
+axiom TracksCarrion : Entity → Prop
+axiom KeenSmell : Entity → Prop
+axiom FliesHigh : Entity → Prop
+axiom DivesSteeply : Entity → Prop
+axiom SoarsEffortlessly : Entity → Prop
+axiom HuntsPreys : Entity → Prop
+axiom ScansOpenPlains : Entity → Prop
+axiom RidesWind : Entity → Prop
+axiom EffectiveScavenger : Entity → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Entity, Vulture x → (ConsumesRemains x ∨ EatsCarrion x)
+axiom premise2 : ThrivesAlone Peyton → (StrongStomach Peyton ∧ Adaptable Peyton)
+axiom premise3 : ∀ x : Entity, (Vulture x ∧ TracksCarrion x) → KeenSmell x
+axiom premise4 : FliesHigh Peyton → ((DivesSteeply Peyton ∧ ¬SoarsEffortlessly Peyton) ∨ (SoarsEffortlessly Peyton ∧ ¬DivesSteeply Peyton))
+axiom premise5 : (SoarsEffortlessly Jonathan ∧ ¬TracksCarrion Jonathan) ∨ (TracksCarrion Jonathan ∧ ¬SoarsEffortlessly Jonathan)
+axiom premise6 : DivesSteeply Franco
+axiom premise7 : HuntsPreys Peyton ∨ EatsCarrion Peyton
+axiom premise8 : (SoarsEffortlessly Peyton ∧ ¬TracksCarrion Peyton) ∨ (TracksCarrion Peyton ∧ ¬SoarsEffortlessly Peyton)
+axiom premise9 : FliesHigh Peyton
+axiom premise10 : FliesHigh Jonathan → ((DivesSteeply Jonathan ∧ ¬SoarsEffortlessly Jonathan) ∨ (SoarsEffortlessly Jonathan ∧ ¬DivesSteeply Jonathan))
+axiom premise11 : ∀ x : Entity, (Vulture x ∧ EatsCarrion x) → StrongStomach x
+axiom premise12 : ∀ x : Entity, Vulture x → (ScansOpenPlains x ∨ ConsumesRemains x)
+axiom premise13 : ScansOpenPlains Peyton
+axiom premise14 : DivesSteeply Peyton
+axiom premise15 : ScansOpenPlains Jonathan
+axiom premise16 : ((StrongStomach Franco ∧ ¬KeenSmell Franco) ∨ (KeenSmell Franco ∧ ¬StrongStomach Franco)) → EffectiveScavenger Franco
+axiom premise17 : ∀ x : Entity, Vulture x → (RidesWind x ∨ SoarsEffortlessly x)
+
+-- Goal: prove the negation of the conclusion "Peyton is an effective scavenger"
+theorem not_effective_scavenger_Peyton : ¬EffectiveScavenger Peyton := by
+  intro h
+  -- There is no premise connecting EffectiveScavenger Peyton to the given facts,
+  -- so deriving a contradiction is not possible from the provided premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

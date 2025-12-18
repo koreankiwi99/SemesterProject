@@ -1,0 +1,136 @@
+Story ID: 0
+Example ID: 383
+Premises: If someone listens to their heart, then they will find inner peace. If Mariah has creative talent, then she can either achieve fame or find inner peace, but not both. Mariah enjoys solo travel. Mariah trusts her intuition. If Mariah values education, then she has creative talent and expresses emotions. Anyone who trusts their intuition will listen to their heart. If Mariah enjoys solo travel, then she is either open-minded or values her privacy, but not both. Everyone appreciates knowledge or values education. Mariah does not appreciate knowledge. Mariah values her privacy.
+Conclusion: Mariah achieves fame.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Mariah : Person
+
+-- Predicates
+axiom ListensHeart : Person → Prop
+axiom InnerPeace : Person → Prop
+axiom CreativeTalent : Person → Prop
+axiom AchievesFame : Person → Prop
+axiom EnjoysSoloTravel : Person → Prop
+axiom TrustsIntuition : Person → Prop
+axiom ValuesEducation : Person → Prop
+axiom ExpressesEmotions : Person → Prop
+axiom OpenMinded : Person → Prop
+axiom ValuesPrivacy : Person → Prop
+axiom AppreciatesKnowledge : Person → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Person, ListensHeart x → InnerPeace x
+axiom ax2 : CreativeTalent Mariah → ((AchievesFame Mariah ∨ InnerPeace Mariah) ∧ ¬(AchievesFame Mariah ∧ InnerPeace Mariah))
+axiom ax3 : EnjoysSoloTravel Mariah
+axiom ax4 : TrustsIntuition Mariah
+axiom ax5 : ValuesEducation Mariah → (CreativeTalent Mariah ∧ ExpressesEmotions Mariah)
+axiom ax6 : ∀ x : Person, TrustsIntuition x → ListensHeart x
+axiom ax7 : EnjoysSoloTravel Mariah → ((OpenMinded Mariah ∨ ValuesPrivacy Mariah) ∧ ¬(OpenMinded Mariah ∧ ValuesPrivacy Mariah))
+axiom ax8 : ∀ x : Person, AppreciatesKnowledge x ∨ ValuesEducation x
+axiom ax9 : ¬ AppreciatesKnowledge Mariah
+axiom ax10 : ValuesPrivacy Mariah
+
+-- From the premises we can derive that Mariah does not achieve fame.
+theorem not_fame : ¬ AchievesFame Mariah := by
+  -- From "everyone appreciates knowledge or values education" and "Mariah does not appreciate knowledge",
+  -- deduce that Mariah values education.
+  have hVE : ValuesEducation Mariah := by
+    have h := ax8 Mariah
+    cases h with
+    | inl hAK => exact False.elim (ax9 hAK)
+    | inr hVE => exact hVE
+  -- From valuing education, Mariah has creative talent.
+  have hCT_Em := ax5 hVE
+  have hCT : CreativeTalent Mariah := And.left hCT_Em
+  -- From creative talent, we get "fame or inner peace" and "not both".
+  have hxor := ax2 hCT
+  have hNotBoth : ¬ (AchievesFame Mariah ∧ InnerPeace Mariah) := And.right hxor
+  -- From trusting intuition, Mariah listens to her heart, hence finds inner peace.
+  have hListens : ListensHeart Mariah := ax6 Mariah ax4
+  have hIP : InnerPeace Mariah := ax1 Mariah hListens
+  -- If she had fame, together with inner peace we'd contradict "not both".
+  intro hFame
+  exact hNotBoth (And.intro hFame hIP)
+
+-- Requested conclusion (not derivable from the premises)
+theorem goal : AchievesFame Mariah := by
+  -- This cannot be proven from the given premises; in fact, we have shown ¬ AchievesFame Mariah above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Mariah : Person
+
+axiom ListensHeart : Person → Prop
+axiom FindsInnerPeace : Person → Prop
+axiom CreativeTalent : Person → Prop
+axiom AchievesFame : Person → Prop
+axiom EnjoysSoloTravel : Person → Prop
+axiom TrustsIntuition : Person → Prop
+axiom ValuesEducation : Person → Prop
+axiom ExpressesEmotions : Person → Prop
+axiom OpenMinded : Person → Prop
+axiom ValuesPrivacy : Person → Prop
+axiom AppreciatesKnowledge : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, ListensHeart x → FindsInnerPeace x
+axiom premise2 : CreativeTalent Mariah → ((AchievesFame Mariah ∨ FindsInnerPeace Mariah) ∧ ¬(AchievesFame Mariah ∧ FindsInnerPeace Mariah))
+axiom premise3 : EnjoysSoloTravel Mariah
+axiom premise4 : TrustsIntuition Mariah
+axiom premise5 : ValuesEducation Mariah → CreativeTalent Mariah ∧ ExpressesEmotions Mariah
+axiom premise6 : ∀ x : Person, TrustsIntuition x → ListensHeart x
+axiom premise7 : EnjoysSoloTravel Mariah → ((OpenMinded Mariah ∨ ValuesPrivacy Mariah) ∧ ¬(OpenMinded Mariah ∧ ValuesPrivacy Mariah))
+axiom premise8 : ∀ x : Person, AppreciatesKnowledge x ∨ ValuesEducation x
+axiom premise9 : ¬AppreciatesKnowledge Mariah
+axiom premise10 : ValuesPrivacy Mariah
+
+-- Goal: prove the negation of the conclusion "Mariah achieves fame"
+theorem not_fame : ¬AchievesFame Mariah := by
+  -- From "everyone appreciates knowledge or values education" and "Mariah does not appreciate knowledge",
+  -- deduce that Mariah values education.
+  have vEdu : ValuesEducation Mariah := by
+    have disj := premise8 Mariah
+    cases disj with
+    | inl ak =>
+        exact False.elim (premise9 ak)
+    | inr ve =>
+        exact ve
+  -- From valuing education, Mariah has creative talent.
+  have cTalent : CreativeTalent Mariah := (premise5 vEdu).left
+  -- From trusting intuition, Mariah listens to her heart.
+  have lHeart : ListensHeart Mariah := premise6 Mariah premise4
+  -- From listening to her heart, Mariah finds inner peace.
+  have iPeace : FindsInnerPeace Mariah := premise1 Mariah lHeart
+  -- From creative talent, we know not (fame and inner peace).
+  have not_both : ¬(AchievesFame Mariah ∧ FindsInnerPeace Mariah) := (premise2 cTalent).right
+  -- Conclude not fame, since inner peace holds.
+  intro fame
+  apply not_both
+  exact And.intro fame iPeace
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

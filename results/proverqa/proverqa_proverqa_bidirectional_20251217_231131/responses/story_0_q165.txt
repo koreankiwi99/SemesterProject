@@ -1,0 +1,173 @@
+Story ID: 0
+Example ID: 165
+Premises: Jon does not seek medical attention. If Jon has a medical condition, then he will either change his lifestyle or learn methods to prevent future episodes, but not both. Tootsie will prioritize his vocal health. Jon maintains good health. Jon does not have an office job. Ayden does not seek medical attention. Jon is either a performer or has an office job, but not both. Everyone who experiences a health scare either seeks medical attention or has a medical condition (or both). If Jon fears public performance, then he will either quit singing or seek vocal coaching, but not both. Jon experiences a health scare. Ayden experiences a health scare. Julio is either a performer or has an office job, but not both. If Jon is a performer, then he either has vocal problems or maintains good health, but not both. Jon changes his lifestyle.
+Conclusion: If Jon has experienced laryngospasm, then he will either quit singing or learn methods to prevent future episodes, but not both.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+axiom Person : Type
+axiom Jon : Person
+axiom Tootsie : Person
+axiom Ayden : Person
+axiom Julio : Person
+
+axiom SeekMedAttention : Person → Prop
+axiom MedCondition : Person → Prop
+axiom ChangeLifestyle : Person → Prop
+axiom LearnPrevention : Person → Prop
+axiom PrioritizeVocalHealth : Person → Prop
+axiom GoodHealth : Person → Prop
+axiom OfficeJob : Person → Prop
+axiom Performer : Person → Prop
+axiom HealthScare : Person → Prop
+axiom FearsPublicPerformance : Person → Prop
+axiom QuitSinging : Person → Prop
+axiom VocalCoaching : Person → Prop
+axiom VocalProblems : Person → Prop
+axiom Laryngospasm : Person → Prop
+
+def Xor (A B : Prop) : Prop := (A ∧ ¬ B) ∨ (B ∧ ¬ A)
+
+-- Premises
+axiom p1 : ¬ SeekMedAttention Jon
+axiom p2 : MedCondition Jon → Xor (ChangeLifestyle Jon) (LearnPrevention Jon)
+axiom p3 : PrioritizeVocalHealth Tootsie
+axiom p4 : GoodHealth Jon
+axiom p5 : ¬ OfficeJob Jon
+axiom p6 : ¬ SeekMedAttention Ayden
+axiom p7 : Xor (Performer Jon) (OfficeJob Jon)
+axiom p8 : ∀ x : Person, HealthScare x → (SeekMedAttention x ∨ MedCondition x)
+axiom p9 : FearsPublicPerformance Jon → Xor (QuitSinging Jon) (VocalCoaching Jon)
+axiom p10 : HealthScare Jon
+axiom p11 : HealthScare Ayden
+axiom p12 : Xor (Performer Julio) (OfficeJob Julio)
+axiom p13 : Performer Jon → Xor (VocalProblems Jon) (GoodHealth Jon)
+axiom p14 : ChangeLifestyle Jon
+
+-- Conclusion to analyze:
+-- If Jon has experienced laryngospasm, then he will either quit singing or learn methods to prevent future episodes, but not both.
+theorem goal : Laryngospasm Jon → Xor (QuitSinging Jon) (LearnPrevention Jon) := by
+  intro hL
+  -- From health scare and not seeking medical attention, Jon has a medical condition
+  have hHS : HealthScare Jon := p10
+  have hSMorMC : SeekMedAttention Jon ∨ MedCondition Jon := p8 Jon hHS
+  have hMC : MedCondition Jon := by
+    cases hSMorMC with
+    | inl hSM => exact False.elim (p1 hSM)
+    | inr hmc => exact hmc
+  -- From medical condition, Jon must either change lifestyle or learn prevention, but not both
+  have hX : Xor (ChangeLifestyle Jon) (LearnPrevention Jon) := p2 hMC
+  -- Using the fact that Jon changes his lifestyle, deduce he does not learn prevention
+  have hNotLearn : ¬ LearnPrevention Jon := by
+    intro hLearn
+    cases hX with
+    | inl h =>
+      -- (Change ∧ ¬Learn) contradicts hLearn directly
+      exact h.right hLearn
+    | inr h =>
+      -- (Learn ∧ ¬Change) contradicts the given ChangeLifestyle Jon
+      exact (h.right) p14
+  -- To prove the required XOR, it would suffice to show QuitSinging Jon,
+  -- yielding (QuitSinging Jon ∧ ¬ LearnPrevention Jon). However, there is
+  -- no premise relating Laryngospasm to quitting singing or to learning prevention.
+  -- Hence the desired conclusion does not follow from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Jon : Person
+axiom Tootsie : Person
+axiom Ayden : Person
+axiom Julio : Person
+
+-- Predicates
+axiom SeeksMedicalAttention : Person → Prop
+axiom MedicalCondition : Person → Prop
+axiom ChangesLifestyle : Person → Prop
+axiom LearnsPreventionMethods : Person → Prop
+axiom PrioritizesVocalHealth : Person → Prop
+axiom MaintainsGoodHealth : Person → Prop
+axiom OfficeJob : Person → Prop
+axiom Performer : Person → Prop
+axiom ExperiencesHealthScare : Person → Prop
+axiom FearsPublicPerformance : Person → Prop
+axiom QuitsSinging : Person → Prop
+axiom SeeksVocalCoaching : Person → Prop
+axiom ExperiencedLaryngospasm : Person → Prop
+axiom HasVocalProblems : Person → Prop
+
+-- Premises
+axiom p1  : ¬ SeeksMedicalAttention Jon
+axiom p2  : MedicalCondition Jon →
+            ((ChangesLifestyle Jon ∨ LearnsPreventionMethods Jon) ∧
+             ¬(ChangesLifestyle Jon ∧ LearnsPreventionMethods Jon))
+axiom p3  : PrioritizesVocalHealth Tootsie
+axiom p4  : MaintainsGoodHealth Jon
+axiom p5  : ¬ OfficeJob Jon
+axiom p6  : ¬ SeeksMedicalAttention Ayden
+axiom p7  : (Performer Jon ∨ OfficeJob Jon) ∧ ¬(Performer Jon ∧ OfficeJob Jon)
+axiom p8  : ∀ x : Person, ExperiencesHealthScare x → (SeeksMedicalAttention x ∨ MedicalCondition x)
+axiom p9  : FearsPublicPerformance Jon →
+            ((QuitsSinging Jon ∨ SeeksVocalCoaching Jon) ∧
+             ¬(QuitsSinging Jon ∧ SeeksVocalCoaching Jon))
+axiom p10 : ExperiencesHealthScare Jon
+axiom p11 : ExperiencesHealthScare Ayden
+axiom p12 : (Performer Julio ∨ OfficeJob Julio) ∧ ¬(Performer Julio ∧ OfficeJob Julio)
+axiom p13 : Performer Jon →
+            ((HasVocalProblems Jon ∨ MaintainsGoodHealth Jon) ∧
+             ¬(HasVocalProblems Jon ∧ MaintainsGoodHealth Jon))
+axiom p14 : ChangesLifestyle Jon
+
+-- A derived fact: Jon does not learn prevention methods (from health scare -> medical condition and XOR with change)
+theorem not_learns_prevention_Jon : ¬ LearnsPreventionMethods Jon := by
+  -- From p8 and p10, Jon either seeks medical attention or has a medical condition
+  have disj : SeeksMedicalAttention Jon ∨ MedicalCondition Jon := p8 Jon p10
+  -- Using p1 (Jon does not seek medical attention), deduce he has a medical condition
+  have mc : MedicalCondition Jon := by
+    cases disj with
+    | inl s => exact False.elim (p1 s)
+    | inr m => exact m
+  -- From p2 (MC -> (Change or Learn) and not both) and p14 (Change), deduce not Learn
+  have both := p2 mc
+  have not_both : ¬ (ChangesLifestyle Jon ∧ LearnsPreventionMethods Jon) := And.right both
+  intro hLearn
+  exact not_both ⟨p14, hLearn⟩
+
+-- Negation of the conclusion:
+-- Conclusion was: ExperiencedLaryngospasm Jon → ((QuitsSinging Jon ∨ LearnsPreventionMethods Jon) ∧ ¬(QuitsSinging Jon ∧ LearnsPreventionMethods Jon))
+-- We aim to prove its negation:
+theorem negate_conclusion :
+  ¬ (ExperiencedLaryngospasm Jon →
+      ((QuitsSinging Jon ∨ LearnsPreventionMethods Jon) ∧
+       ¬(QuitsSinging Jon ∧ LearnsPreventionMethods Jon))) := by
+  -- We can derive ¬ LearnsPreventionMethods Jon, but we cannot establish ExperiencedLaryngospasm Jon
+  -- nor can we refute QuitsSinging Jon from the given premises.
+  -- Hence we cannot derive a contradiction from assuming the implication holds.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

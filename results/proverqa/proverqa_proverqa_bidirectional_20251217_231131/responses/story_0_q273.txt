@@ -1,0 +1,154 @@
+Story ID: 0
+Example ID: 273
+Premises: Aspyn cultivates her imagination. Aspyn enjoys drawing or has creative talent. If Aspyn has creative talent, then she can either become a professional artist or maintain it only as a hobby, but not both. If Aspyn dedicates her life to art, then she will pursue a full-time career in it. Aspyn values self-expression. Aspyn does not play music. Aspyn either plays music or writes poetry. Aspyn either writes poetry or enjoys drawing, but not both. Aspyn either pursues a full-time career or maintains her art only as a hobby, but not both. If Aspyn values self-expression, then she dedicates her life to art and cultivates imagination.
+Conclusion: Aspyn becomes a professional artist.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom CultivatesImagination : Prop
+axiom EnjoysDrawing : Prop
+axiom CreativeTalent : Prop
+axiom ProfessionalArtist : Prop
+axiom HobbyOnly : Prop
+axiom DedicatesLifeToArt : Prop
+axiom FullTimeCareer : Prop
+axiom ValuesSelfExpression : Prop
+axiom PlaysMusic : Prop
+axiom WritesPoetry : Prop
+
+axiom p1 : CultivatesImagination
+axiom p2 : EnjoysDrawing ∨ CreativeTalent
+axiom p3 : CreativeTalent → ((ProfessionalArtist ∨ HobbyOnly) ∧ ¬(ProfessionalArtist ∧ HobbyOnly))
+axiom p4 : DedicatesLifeToArt → FullTimeCareer
+axiom p5 : ValuesSelfExpression
+axiom p6 : ¬PlaysMusic
+axiom p7 : PlaysMusic ∨ WritesPoetry
+axiom p8 : (WritesPoetry ∨ EnjoysDrawing) ∧ ¬(WritesPoetry ∧ EnjoysDrawing)
+axiom p9 : (FullTimeCareer ∨ HobbyOnly) ∧ ¬(FullTimeCareer ∧ HobbyOnly)
+axiom p10 : ValuesSelfExpression → (DedicatesLifeToArt ∧ CultivatesImagination)
+
+theorem goal : ProfessionalArtist := by
+  -- From not playing music and (plays music ∨ writes poetry), deduce writes poetry
+  have hWrite : WritesPoetry := by
+    cases p7 with
+    | inl hpm => exact False.elim (p6 hpm)
+    | inr hwp => exact hwp
+  -- From XOR(writes poetry, enjoys drawing) and writes poetry, deduce not enjoys drawing
+  have hNoBothWE : ¬(WritesPoetry ∧ EnjoysDrawing) := And.right p8
+  have hNotEnjoy : ¬EnjoysDrawing := by
+    intro hE
+    exact hNoBothWE ⟨hWrite, hE⟩
+  -- From (enjoys drawing ∨ creative talent) and not enjoys drawing, deduce creative talent
+  have hCT : CreativeTalent := by
+    cases p2 with
+    | inl hE => exact False.elim (hNotEnjoy hE)
+    | inr hC => exact hC
+  -- From valuing self-expression, deduce dedication to art, then full-time career
+  have hDed : DedicatesLifeToArt := (p10 p5).left
+  have hFT : FullTimeCareer := p4 hDed
+  -- From XOR(full-time, hobby), and full-time, deduce not hobby-only
+  have hNoBothFH : ¬(FullTimeCareer ∧ HobbyOnly) := And.right p9
+  have hNotHobby : ¬HobbyOnly := by
+    intro hH
+    exact hNoBothFH ⟨hFT, hH⟩
+  -- From creative talent and XOR(professional artist, hobby), and not hobby, deduce professional artist
+  have hPAorH : ProfessionalArtist ∨ HobbyOnly := (p3 hCT).left
+  cases hPAorH with
+  | inl hPA => exact hPA
+  | inr hH => exact False.elim (hNotHobby hH)
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aspyn : Person
+
+-- Predicates
+axiom CultivatesImagination : Person → Prop
+axiom EnjoysDrawing : Person → Prop
+axiom CreativeTalent : Person → Prop
+axiom ProfessionalArtist : Person → Prop
+axiom HobbyOnly : Person → Prop
+axiom DedicatesLifeToArt : Person → Prop
+axiom FullTimeCareer : Person → Prop
+axiom ValuesSelfExpression : Person → Prop
+axiom PlaysMusic : Person → Prop
+axiom WritesPoetry : Person → Prop
+
+-- Premises
+axiom prem1 : CultivatesImagination Aspyn
+axiom prem2 : EnjoysDrawing Aspyn ∨ CreativeTalent Aspyn
+axiom prem3 : CreativeTalent Aspyn → ((ProfessionalArtist Aspyn ∨ HobbyOnly Aspyn) ∧ ¬(ProfessionalArtist Aspyn ∧ HobbyOnly Aspyn))
+axiom prem4 : DedicatesLifeToArt Aspyn → FullTimeCareer Aspyn
+axiom prem5 : ValuesSelfExpression Aspyn
+axiom prem6 : ¬PlaysMusic Aspyn
+axiom prem7 : PlaysMusic Aspyn ∨ WritesPoetry Aspyn
+axiom prem8 : (WritesPoetry Aspyn ∨ EnjoysDrawing Aspyn) ∧ ¬(WritesPoetry Aspyn ∧ EnjoysDrawing Aspyn)
+axiom prem9 : (FullTimeCareer Aspyn ∨ HobbyOnly Aspyn) ∧ ¬(FullTimeCareer Aspyn ∧ HobbyOnly Aspyn)
+axiom prem10 : ValuesSelfExpression Aspyn → (DedicatesLifeToArt Aspyn ∧ CultivatesImagination Aspyn)
+
+-- Some derived lemmas showing the premises' consequences
+
+theorem writesPoetry : WritesPoetry Aspyn := by
+  cases prem7 with
+  | inl pm => exact False.elim (prem6 pm)
+  | inr wp => exact wp
+
+theorem notEnjoysDrawing : ¬EnjoysDrawing Aspyn := by
+  have hnotBoth := (prem8).right
+  have wp := writesPoetry
+  intro ed
+  exact hnotBoth ⟨wp, ed⟩
+
+theorem hasCreativeTalent : CreativeTalent Aspyn := by
+  cases prem2 with
+  | inl ed => exact False.elim (notEnjoysDrawing ed)
+  | inr ct => exact ct
+
+theorem fullTime : FullTimeCareer Aspyn := by
+  have h := prem10 prem5
+  have hDed : DedicatesLifeToArt Aspyn := h.left
+  exact prem4 hDed
+
+theorem notHobby : ¬HobbyOnly Aspyn := by
+  have hnotBoth := (prem9).right
+  have hFT := fullTime
+  intro hH
+  exact hnotBoth ⟨hFT, hH⟩
+
+theorem isProfessionalArtist : ProfessionalArtist Aspyn := by
+  have hct := hasCreativeTalent
+  have hx := prem3 hct
+  have hOr := hx.left
+  have nh := notHobby
+  cases hOr with
+  | inl pa => exact pa
+  | inr hHobby => exact False.elim (nh hHobby)
+
+-- Goal: prove the NEGATION of the conclusion (show the conclusion is false)
+theorem negate_conclusion : ¬ProfessionalArtist Aspyn := by
+  intro h
+  -- Attempt to derive a contradiction, but the premises actually entail ProfessionalArtist Aspyn.
+  -- Proof cannot be completed.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

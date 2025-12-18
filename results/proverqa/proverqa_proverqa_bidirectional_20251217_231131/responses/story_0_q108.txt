@@ -1,0 +1,211 @@
+Story ID: 0
+Example ID: 108
+Premises: Iyla does not become an expert. If Iyla excels in experiments, then she will achieve success. Iyla discovers new properties. Eloise conducts experiments. Christian gains recognition or publishes research (or both). Anyone who has an innovative mind or works hard can excel in experiments. Asher does not become an expert. If Iyla conducts experiments, then she either shares her findings or keeps her notes private, but not both. If Iyla pursues her passion, then she either gains recognition or improves people's lives (or both). Iyla conducts experiments. A renowned alchemist excels in experiments. Christian does not achieve success. Iyla does not achieve success. Iyla makes new findings or publishes research. If Asher excels in experiments, then she will achieve success. Asher discovers new properties. If Iyla discovers new properties and shares her findings, then she becomes an expert. Christian does not leave a lasting impact. Christian either publishes her research or keeps her notes private, but not both. Iyla either publishes her research or keeps her notes private, but not both. If Eloise discovers new properties and shares her findings, then she becomes an expert. Iyla gains recognition or publishes research (or both). If Iyla gathers data or analyzes results, then she will share her findings.
+Conclusion: Iyla does not develop innovative remedies.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Iyla Eloise Christian Asher : Person
+
+-- Predicates
+axiom BecomesExpert : Person → Prop
+axiom ExcelsInExperiments : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom DiscoversNewProperties : Person → Prop
+axiom ConductsExperiments : Person → Prop
+axiom GainsRecognition : Person → Prop
+axiom PublishesResearch : Person → Prop
+axiom HasInnovativeMind : Person → Prop
+axiom WorksHard : Person → Prop
+axiom SharesFindings : Person → Prop
+axiom KeepsNotesPrivate : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom ImprovesLives : Person → Prop
+axiom RenownedAlchemist : Person → Prop
+axiom LeavesLastingImpact : Person → Prop
+axiom GathersData : Person → Prop
+axiom AnalyzesResults : Person → Prop
+axiom MakesNewFindings : Person → Prop
+axiom DevelopsInnovativeRemedies : Person → Prop
+
+-- Premises
+axiom ax1  : ¬ BecomesExpert Iyla
+axiom ax2  : ExcelsInExperiments Iyla → AchievesSuccess Iyla
+axiom ax3  : DiscoversNewProperties Iyla
+axiom ax4  : ConductsExperiments Eloise
+axiom ax5  : GainsRecognition Christian ∨ PublishesResearch Christian
+axiom ax6  : ∀ x, (HasInnovativeMind x ∨ WorksHard x) → ExcelsInExperiments x
+axiom ax7  : ¬ BecomesExpert Asher
+axiom ax8  : ConductsExperiments Iyla → ((SharesFindings Iyla ∨ KeepsNotesPrivate Iyla) ∧ ¬(SharesFindings Iyla ∧ KeepsNotesPrivate Iyla))
+axiom ax9  : PursuesPassion Iyla → (GainsRecognition Iyla ∨ ImprovesLives Iyla)
+axiom ax10 : ConductsExperiments Iyla
+axiom ax11 : ∀ x, RenownedAlchemist x → ExcelsInExperiments x
+axiom ax12 : ¬ AchievesSuccess Christian
+axiom ax13 : ¬ AchievesSuccess Iyla
+axiom ax14 : MakesNewFindings Iyla ∨ PublishesResearch Iyla
+axiom ax15 : ExcelsInExperiments Asher → AchievesSuccess Asher
+axiom ax16 : DiscoversNewProperties Asher
+axiom ax17 : (DiscoversNewProperties Iyla ∧ SharesFindings Iyla) → BecomesExpert Iyla
+axiom ax18 : ¬ LeavesLastingImpact Christian
+axiom ax19 : (PublishesResearch Christian ∧ ¬ KeepsNotesPrivate Christian) ∨ (KeepsNotesPrivate Christian ∧ ¬ PublishesResearch Christian)
+axiom ax20 : (PublishesResearch Iyla ∧ ¬ KeepsNotesPrivate Iyla) ∨ (KeepsNotesPrivate Iyla ∧ ¬ PublishesResearch Iyla)
+axiom ax21 : (DiscoversNewProperties Eloise ∧ SharesFindings Eloise) → BecomesExpert Eloise
+axiom ax22 : GainsRecognition Iyla ∨ PublishesResearch Iyla
+axiom ax23 : (GathersData Iyla ∨ AnalyzesResults Iyla) → SharesFindings Iyla
+
+-- Useful derived facts
+lemma not_excels_iyla : ¬ ExcelsInExperiments Iyla := by
+  intro h
+  have : AchievesSuccess Iyla := ax2 h
+  exact ax13 this
+
+lemma share_or_keep_iyla : (SharesFindings Iyla ∨ KeepsNotesPrivate Iyla) ∧ ¬(SharesFindings Iyla ∧ KeepsNotesPrivate Iyla) :=
+  ax8 ax10
+
+lemma not_publish_iyla : ¬ PublishesResearch Iyla := by
+  intro hpub
+  -- From exclusive-or on publishing vs keeping private for Iyla, derive ¬ keeps
+  have hxor : (PublishesResearch Iyla ∧ ¬ KeepsNotesPrivate Iyla) ∨ (KeepsNotesPrivate Iyla ∧ ¬ PublishesResearch Iyla) := ax20
+  have hnotkeep : ¬ KeepsNotesPrivate Iyla := by
+    apply Or.elim hxor
+    · intro h1; exact h1.right
+    · intro h2
+      have : False := h2.right hpub
+      exact False.elim this
+  -- From shares ∨ keeps and ¬ keeps, get shares
+  have hsk := share_or_keep_iyla
+  have hshare : SharesFindings Iyla := by
+    apply Or.elim hsk.left
+    · intro hs; exact hs
+    · intro hk
+      exact False.elim (hnotkeep hk)
+  -- Then Iyla becomes expert, contradiction
+  have hexpert : BecomesExpert Iyla := ax17 ⟨ax3, hshare⟩
+  exact ax1 hexpert
+
+lemma keep_iyla : KeepsNotesPrivate Iyla := by
+  have hxor : (PublishesResearch Iyla ∧ ¬ KeepsNotesPrivate Iyla) ∨ (KeepsNotesPrivate Iyla ∧ ¬ PublishesResearch Iyla) := ax20
+  apply Or.elim hxor
+  · intro h1
+    exact False.elim (not_publish_iyla h1.left)
+  · intro h2
+    exact h2.left
+
+lemma not_share_iyla : ¬ SharesFindings Iyla := by
+  intro hs
+  have hnotboth := share_or_keep_iyla.right
+  have : SharesFindings Iyla ∧ KeepsNotesPrivate Iyla := And.intro hs keep_iyla
+  exact hnotboth this
+
+-- Target theorem
+theorem goal : ¬ DevelopsInnovativeRemedies Iyla := by
+  -- From the given premises, we can derive several facts (e.g., ¬Publishes, KeepsPrivate, ¬Shares, ¬Excels),
+  -- but there is no premise connecting these to "DevelopsInnovativeRemedies".
+  -- Hence, the conclusion does not follow from the premises provided.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Iyla : Person
+axiom Eloise : Person
+axiom Christian : Person
+axiom Asher : Person
+
+-- Predicates
+axiom Expert : Person → Prop
+axiom Excels : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom DiscoversNewProps : Person → Prop
+axiom ConductsExperiments : Person → Prop
+axiom GainsRecognition : Person → Prop
+axiom PublishesResearch : Person → Prop
+axiom HasInnovativeMind : Person → Prop
+axiom WorksHard : Person → Prop
+axiom SharesFindings : Person → Prop
+axiom KeepsNotesPrivate : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom ImprovesLives : Person → Prop
+axiom RenownedAlchemist : Person → Prop
+axiom LeavesLastingImpact : Person → Prop
+axiom GathersData : Person → Prop
+axiom AnalyzesResults : Person → Prop
+axiom MakesNewFindings : Person → Prop
+axiom DevelopsInnovativeRemedies : Person → Prop
+
+-- Premises
+axiom ax1_Iyla_not_expert : ¬Expert Iyla
+axiom ax2_Iyla_excels_implies_success : Excels Iyla → AchievesSuccess Iyla
+axiom ax3_Iyla_discovers : DiscoversNewProps Iyla
+axiom ax4_Eloise_conducts : ConductsExperiments Eloise
+axiom ax5_Christian_recogn_or_publish : GainsRecognition Christian ∨ PublishesResearch Christian
+axiom ax6_innov_or_work_implies_excel : ∀ x : Person, (HasInnovativeMind x ∨ WorksHard x) → Excels x
+axiom ax7_Asher_not_expert : ¬Expert Asher
+axiom ax8_Iyla_conducts_implies_share_xor_keep :
+  ConductsExperiments Iyla → ((SharesFindings Iyla ∨ KeepsNotesPrivate Iyla) ∧ ¬(SharesFindings Iyla ∧ KeepsNotesPrivate Iyla))
+axiom ax9_Iyla_pursues_implies_rec_or_improves :
+  PursuesPassion Iyla → (GainsRecognition Iyla ∨ ImprovesLives Iyla)
+axiom ax10_Iyla_conducts : ConductsExperiments Iyla
+axiom ax11_renowned_alchemist_excels : ∀ x : Person, RenownedAlchemist x → Excels x
+axiom ax12_Christian_not_success : ¬AchievesSuccess Christian
+axiom ax13_Iyla_not_success : ¬AchievesSuccess Iyla
+axiom ax14_Iyla_finds_or_publishes : MakesNewFindings Iyla ∨ PublishesResearch Iyla
+axiom ax15_Asher_excels_implies_success : Excels Asher → AchievesSuccess Asher
+axiom ax16_Asher_discovers : DiscoversNewProps Asher
+axiom ax17_Iyla_discover_and_share_implies_expert :
+  (DiscoversNewProps Iyla ∧ SharesFindings Iyla) → Expert Iyla
+axiom ax18_Christian_not_lasting_impact : ¬LeavesLastingImpact Christian
+axiom ax19_Christian_publish_xor_keep :
+  (PublishesResearch Christian ∨ KeepsNotesPrivate Christian) ∧ ¬(PublishesResearch Christian ∧ KeepsNotesPrivate Christian)
+axiom ax20_Iyla_publish_xor_keep :
+  (PublishesResearch Iyla ∨ KeepsNotesPrivate Iyla) ∧ ¬(PublishesResearch Iyla ∧ KeepsNotesPrivate Iyla)
+axiom ax21_Eloise_discover_share_implies_expert :
+  (DiscoversNewProps Eloise ∧ SharesFindings Eloise) → Expert Eloise
+axiom ax22_Iyla_recogn_or_publish : GainsRecognition Iyla ∨ PublishesResearch Iyla
+axiom ax23_Iyla_gather_or_analyze_implies_share :
+  (GathersData Iyla ∨ AnalyzesResults Iyla) → SharesFindings Iyla
+
+-- Negation of the conclusion: we try to prove that Iyla DOES develop innovative remedies.
+theorem neg_conclusion : DevelopsInnovativeRemedies Iyla := by
+  -- From conducting experiments, Iyla either shares findings or keeps notes private, but not both.
+  have hXOR := ax8_Iyla_conducts_implies_share_xor_keep ax10_Iyla_conducts
+  have hOr : SharesFindings Iyla ∨ KeepsNotesPrivate Iyla := And.left hXOR
+  cases hOr with
+  | inl hShare =>
+      -- If she shares and has discovered new properties, then she is an expert, contradicting ax1.
+      have hExp : Expert Iyla := ax17_Iyla_discover_and_share_implies_expert ⟨ax3_Iyla_discovers, hShare⟩
+      have : False := ax1_Iyla_not_expert hExp
+      exact False.elim this
+  | inr hKeep =>
+      -- From the publish/keep XOR, keeping notes implies not publishing.
+      have hNotBoth : ¬(PublishesResearch Iyla ∧ KeepsNotesPrivate Iyla) := And.right ax20_Iyla_publish_xor_keep
+      have hNotPublish : ¬PublishesResearch Iyla := by
+        intro hPub
+        exact hNotBoth ⟨hPub, hKeep⟩
+      -- Stuck: no way to conclude DevelopsInnovativeRemedies Iyla from the available premises.
+      sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

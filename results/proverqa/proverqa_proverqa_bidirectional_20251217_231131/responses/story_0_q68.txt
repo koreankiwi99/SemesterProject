@@ -1,0 +1,153 @@
+Story ID: 0
+Example ID: 68
+Premises: Anyone who has passion or seeks opportunities will take risks. Cristian either plays it safe or seeks stability, but not both. For Cristian, either he works hard or prioritizes relaxation, but no one does both. Cristian either prioritizes relaxation or stays active. Cristian either plays it safe or pursues his dreams, but not both. Cristian trusts his instincts. If Cristian takes risks, then he achieves success. Cristian does not seek stability. If Cristian trusts his instincts, then he either works hard or is driven (or both). If someone is driven, then they will seek opportunities. If someone loves music, then they have passion. Anyone who has passion or is motivated will pursue their dreams. Cristian does not stay active.
+Conclusion: Cristian achieves success.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Cristian : Person
+
+axiom Passion : Person → Prop
+axiom SeeksOpportunities : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom PlaysSafe : Person → Prop
+axiom SeeksStability : Person → Prop
+axiom WorksHard : Person → Prop
+axiom PrioritizesRelaxation : Person → Prop
+axiom StaysActive : Person → Prop
+axiom PursuesDreams : Person → Prop
+axiom TrustsInstincts : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom Driven : Person → Prop
+axiom LovesMusic : Person → Prop
+axiom Motivated : Person → Prop
+
+-- Universal premises
+axiom passion_or_seekOpp_implies_risk : ∀ x : Person, (Passion x ∨ SeeksOpportunities x) → TakesRisks x
+axiom driven_implies_seekOpp : ∀ x : Person, Driven x → SeeksOpportunities x
+axiom lovesMusic_implies_passion : ∀ x : Person, LovesMusic x → Passion x
+axiom passion_or_motivated_implies_pursueDreams : ∀ x : Person, (Passion x ∨ Motivated x) → PursuesDreams x
+axiom no_both_work_and_relax : ∀ x : Person, ¬(WorksHard x ∧ PrioritizesRelaxation x)
+
+-- Cristian-specific premises
+axiom ps_or_ss : PlaysSafe Cristian ∨ SeeksStability Cristian
+axiom not_both_ps_ss : ¬(PlaysSafe Cristian ∧ SeeksStability Cristian)
+axiom wh_or_pr : WorksHard Cristian ∨ PrioritizesRelaxation Cristian
+axiom pr_or_sa : PrioritizesRelaxation Cristian ∨ StaysActive Cristian
+axiom ps_or_pd : PlaysSafe Cristian ∨ PursuesDreams Cristian
+axiom not_both_ps_pd : ¬(PlaysSafe Cristian ∧ PursuesDreams Cristian)
+axiom trusts : TrustsInstincts Cristian
+axiom risk_implies_success : TakesRisks Cristian → AchievesSuccess Cristian
+axiom not_seeks_stability : ¬ SeeksStability Cristian
+axiom trust_implies_wh_or_driven : TrustsInstincts Cristian → (WorksHard Cristian ∨ Driven Cristian)
+axiom not_stays_active : ¬ StaysActive Cristian
+
+theorem goal : AchievesSuccess Cristian := by
+  -- From pr_or_sa and not_stays_active, get PrioritizesRelaxation Cristian
+  have hPR : PrioritizesRelaxation Cristian := by
+    cases pr_or_sa with
+    | inl hpr => exact hpr
+    | inr hsa => exact False.elim (not_stays_active hsa)
+  -- From universal no_both_work_and_relax and hPR, get ¬ WorksHard Cristian
+  have hNotWH : ¬ WorksHard Cristian := by
+    intro hwh
+    have hconj : WorksHard Cristian ∧ PrioritizesRelaxation Cristian := And.intro hwh hPR
+    exact no_both_work_and_relax Cristian hconj
+  -- From trusts and trust_implies_wh_or_driven get WorkHard ∨ Driven, then conclude Driven
+  have hWD : WorksHard Cristian ∨ Driven Cristian := trust_implies_wh_or_driven trusts
+  have hDriven : Driven Cristian := by
+    cases hWD with
+    | inl hwh => exact False.elim (hNotWH hwh)
+    | inr hd => exact hd
+  -- Driven implies seeks opportunities
+  have hSeekOpp : SeeksOpportunities Cristian := driven_implies_seekOpp Cristian hDriven
+  -- Passion or seeks opportunities implies takes risks
+  have hTR : TakesRisks Cristian := passion_or_seekOpp_implies_risk Cristian (Or.inr hSeekOpp)
+  -- Taking risks implies success for Cristian
+  exact risk_implies_success hTR
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Cristian : Person
+
+axiom Passion : Person → Prop
+axiom SeeksOpportunities : Person → Prop
+axiom TakeRisks : Person → Prop
+axiom PlaysSafe : Person → Prop
+axiom SeeksStability : Person → Prop
+axiom WorksHard : Person → Prop
+axiom PrioritizesRelaxation : Person → Prop
+axiom StaysActive : Person → Prop
+axiom PursuesDreams : Person → Prop
+axiom TrustsInstincts : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom Driven : Person → Prop
+axiom LovesMusic : Person → Prop
+axiom Motivated : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, (Passion x ∨ SeeksOpportunities x) → TakeRisks x
+axiom premise2a : PlaysSafe Cristian ∨ SeeksStability Cristian
+axiom premise2b : ¬(PlaysSafe Cristian ∧ SeeksStability Cristian)
+axiom premise3a : WorksHard Cristian ∨ PrioritizesRelaxation Cristian
+axiom premise3b : ∀ x : Person, ¬(WorksHard x ∧ PrioritizesRelaxation x)
+axiom premise4 : PrioritizesRelaxation Cristian ∨ StaysActive Cristian
+axiom premise5a : PlaysSafe Cristian ∨ PursuesDreams Cristian
+axiom premise5b : ¬(PlaysSafe Cristian ∧ PursuesDreams Cristian)
+axiom premise6 : TrustsInstincts Cristian
+axiom premise7 : TakeRisks Cristian → AchievesSuccess Cristian
+axiom premise8 : ¬SeeksStability Cristian
+axiom premise9 : TrustsInstincts Cristian → (WorksHard Cristian ∨ Driven Cristian)
+axiom premise10 : ∀ x : Person, Driven x → SeeksOpportunities x
+axiom premise11 : ∀ x : Person, LovesMusic x → Passion x
+axiom premise12 : ∀ x : Person, (Passion x ∨ Motivated x) → PursuesDreams x
+axiom premise13 : ¬StaysActive Cristian
+
+-- From the premises, AchievesSuccess Cristian is actually derivable:
+theorem success_true : AchievesSuccess Cristian := by
+  have hRelaxOrActive : PrioritizesRelaxation Cristian ∨ StaysActive Cristian := premise4
+  have hRelax : PrioritizesRelaxation Cristian :=
+    Or.elim hRelaxOrActive
+      (fun h => h)
+      (fun act => False.elim (premise13 act))
+  have hNoBoth : ¬(WorksHard Cristian ∧ PrioritizesRelaxation Cristian) := premise3b Cristian
+  have hNotWork : ¬WorksHard Cristian := by
+    intro w
+    exact hNoBoth ⟨w, hRelax⟩
+  have hWOorDriven : WorksHard Cristian ∨ Driven Cristian := premise9 premise6
+  have hDriven : Driven Cristian :=
+    Or.elim hWOorDriven
+      (fun w => False.elim (hNotWork w))
+      (fun d => d)
+  have hSeekOpps : SeeksOpportunities Cristian := premise10 Cristian hDriven
+  have hTake : TakeRisks Cristian := premise1 Cristian (Or.inr hSeekOpps)
+  exact premise7 hTake
+
+-- Goal: prove the negation of the conclusion (that Cristian does NOT achieve success)
+theorem goal : ¬AchievesSuccess Cristian := by
+  -- Attempting to prove negation fails since success_true shows AchievesSuccess Cristian
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

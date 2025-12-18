@@ -1,0 +1,186 @@
+Story ID: 0
+Example ID: 379
+Premises: Kiaan does not explain complex concepts. If Kiaan inspires others, then he either makes groundbreaking discoveries or leaves a lasting legacy, but not both. Anyone who makes learning fun inspires others. If Kiaan makes groundbreaking discoveries, then he is a renowned scientist. If Kiaan either publishes research or has an academic honor (but not both), then he is highly respected. If Kiaan is a renowned scientist, then he either has a noble award or an academic honor, but not both. Kiaan either makes learning fun or explains complex concepts. Kiaan pursues lifelong education. Kiaan is not highly respected. Kiaan does not have a noble award. Kiaan either pursues lifelong education or publishes research, but not both.
+Conclusion: Kiaan does not leave a lasting legacy.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Kiaan : Person
+
+-- Predicates
+axiom ExplainsComplex : Person → Prop
+axiom Inspires : Person → Prop
+axiom MakesDiscoveries : Person → Prop
+axiom LeavesLegacy : Person → Prop
+axiom MakesLearningFun : Person → Prop
+axiom RenownedScientist : Person → Prop
+axiom PublishesResearch : Person → Prop
+axiom AcademicHonor : Person → Prop
+axiom HighlyRespected : Person → Prop
+axiom NobleAward : Person → Prop
+axiom PursuesLifelongEducation : Person → Prop
+
+-- Premises
+axiom ax1_not_explain : ¬ ExplainsComplex Kiaan
+axiom ax2_insp_xor_MD_LL :
+  Inspires Kiaan →
+    ((MakesDiscoveries Kiaan ∨ LeavesLegacy Kiaan) ∧ ¬(MakesDiscoveries Kiaan ∧ LeavesLegacy Kiaan))
+axiom ax3_fun_implies_insp : ∀ x : Person, MakesLearningFun x → Inspires x
+axiom ax4_MD_implies_RS : MakesDiscoveries Kiaan → RenownedScientist Kiaan
+axiom ax5_pubxorhonor_implies_respected :
+  ((PublishesResearch Kiaan ∨ AcademicHonor Kiaan) ∧ ¬(PublishesResearch Kiaan ∧ AcademicHonor Kiaan)) → HighlyRespected Kiaan
+axiom ax6_RS_award_xor :
+  RenownedScientist Kiaan →
+    ((NobleAward Kiaan ∨ AcademicHonor Kiaan) ∧ ¬(NobleAward Kiaan ∧ AcademicHonor Kiaan))
+axiom ax7_fun_or_explain : MakesLearningFun Kiaan ∨ ExplainsComplex Kiaan
+axiom ax8_pursues : PursuesLifelongEducation Kiaan
+axiom ax9_not_respected : ¬ HighlyRespected Kiaan
+axiom ax10_not_noble : ¬ NobleAward Kiaan
+axiom ax11_pursues_xor_publishes :
+  (PursuesLifelongEducation Kiaan ∨ PublishesResearch Kiaan) ∧ ¬(PursuesLifelongEducation Kiaan ∧ PublishesResearch Kiaan)
+
+-- Useful derived facts
+
+-- From ax7 and ax1_not_explain, Kiaan makes learning fun
+lemma makesLearningFun_K : MakesLearningFun Kiaan := by
+  cases ax7_fun_or_explain with
+  | inl hmlf => exact hmlf
+  | inr hexp => exact False.elim (ax1_not_explain hexp)
+
+-- Therefore, Kiaan inspires others (ax3)
+lemma inspires_K : Inspires Kiaan := by
+  exact ax3_fun_implies_insp Kiaan makesLearningFun_K
+
+-- From ax11 and ax8, Kiaan does not publish research
+lemma not_publishes_K : ¬ PublishesResearch Kiaan := by
+  intro hp
+  have hnboth := ax11_pursues_xor_publishes.right
+  exact hnboth ⟨ax8_pursues, hp⟩
+
+-- RenownedScientist leads to contradiction with not respected, hence ¬RS
+lemma not_RS_K : ¬ RenownedScientist Kiaan := by
+  intro hrs
+  have h_awards := ax6_RS_award_xor hrs
+  have h_award_or : NobleAward Kiaan ∨ AcademicHonor Kiaan := h_awards.left
+  have h_honor : AcademicHonor Kiaan := by
+    cases h_award_or with
+    | inl hnobel => exact False.elim (ax10_not_noble hnobel)
+    | inr hhonor => exact hhonor
+  -- Build the xor antecedent for ax5 using ¬Publishes and AcademicHonor true
+  have h_ante :
+      (PublishesResearch Kiaan ∨ AcademicHonor Kiaan) ∧ ¬(PublishesResearch Kiaan ∧ AcademicHonor Kiaan) := by
+    refine And.intro (Or.inr h_honor) ?_
+    intro h
+    exact not_publishes_K h.left
+  have h_respected : HighlyRespected Kiaan := ax5_pubxorhonor_implies_respected h_ante
+  exact ax9_not_respected h_respected
+
+-- Hence, ¬MakesDiscoveries (by modus tollens from ax4)
+lemma not_MD_K : ¬ MakesDiscoveries Kiaan := by
+  intro hmd
+  have hrs := ax4_MD_implies_RS hmd
+  exact not_RS_K hrs
+
+-- From Inspires and the xor in ax2, together with ¬MD, we deduce LeavesLegacy
+theorem leaves_legacy_true : LeavesLegacy Kiaan := by
+  have hxor := ax2_insp_xor_MD_LL inspires_K
+  have hdisj : MakesDiscoveries Kiaan ∨ LeavesLegacy Kiaan := hxor.left
+  cases hdisj with
+  | inl hmd => exact False.elim (not_MD_K hmd)
+  | inr hll => exact hll
+
+-- Requested conclusion (for reference): ¬ LeavesLegacy Kiaan
+-- We cannot prove this from the given premises; in fact, we proved the opposite above.
+-- the following would be the requested theorem, but it is not derivable:
+-- theorem goal : ¬ LeavesLegacy Kiaan := by
+--   -- impossible given the premises; contradicted by leaves_legacy_true
+--   exact ?impossible
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom ExplainsComplex : Prop
+axiom InspiresOthers : Prop
+axiom MakesGroundbreaking : Prop
+axiom LeavesLegacy : Prop
+axiom MakesLearningFun : Prop
+axiom RenownedScientist : Prop
+axiom PublishesResearch : Prop
+axiom AcademicHonor : Prop
+axiom HighlyRespected : Prop
+axiom NobleAward : Prop
+axiom PursuesLifelongEducation : Prop
+
+axiom premise1 : ¬ExplainsComplex
+axiom premise2 : InspiresOthers → ((MakesGroundbreaking ∨ LeavesLegacy) ∧ ¬(MakesGroundbreaking ∧ LeavesLegacy))
+axiom premise3 : MakesLearningFun → InspiresOthers
+axiom premise4 : MakesGroundbreaking → RenownedScientist
+axiom premise5 : ((PublishesResearch ∨ AcademicHonor) ∧ ¬(PublishesResearch ∧ AcademicHonor)) → HighlyRespected
+axiom premise6 : RenownedScientist → ((NobleAward ∨ AcademicHonor) ∧ ¬(NobleAward ∧ AcademicHonor))
+axiom premise7 : MakesLearningFun ∨ ExplainsComplex
+axiom premise8 : PursuesLifelongEducation
+axiom premise9 : ¬HighlyRespected
+axiom premise10 : ¬NobleAward
+axiom premise11 : ((PursuesLifelongEducation ∨ PublishesResearch) ∧ ¬(PursuesLifelongEducation ∧ PublishesResearch))
+
+theorem negation_of_conclusion : LeavesLegacy := by
+  -- From either fun or explains, and not explains, we get makes learning fun
+  have hFun : MakesLearningFun := by
+    cases premise7 with
+    | inl h => exact h
+    | inr h => exact False.elim (premise1 h)
+  -- Therefore inspires
+  have hInsp : InspiresOthers := premise3 hFun
+  -- From inspiring, get XOR between groundbreaking and legacy
+  have hX := premise2 hInsp
+  have hOr : MakesGroundbreaking ∨ LeavesLegacy := hX.left
+  -- Show not groundbreaking
+  have hNotMG : ¬MakesGroundbreaking := by
+    intro hMG
+    have hRen : RenownedScientist := premise4 hMG
+    have hRenX := premise6 hRen
+    -- From renown XOR (Noble ∨ Honor) and not Noble, deduce Honor
+    have hAH : AcademicHonor := by
+      cases hRenX.left with
+      | inl hNoble => exact False.elim (premise10 hNoble)
+      | inr hHonor => exact hHonor
+    -- From XOR of Lifelong Education and Publishing, together with LE true, deduce not Publishing
+    have hNotPR : ¬PublishesResearch := by
+      intro hPR
+      apply premise11.right
+      exact And.intro premise8 hPR
+    -- Build XOR (Publishing, Honor) to trigger high respect
+    have hXprAh : ((PublishesResearch ∨ AcademicHonor) ∧ ¬(PublishesResearch ∧ AcademicHonor)) := by
+      apply And.intro
+      · exact Or.inr hAH
+      · intro hAnd
+        exact hNotPR hAnd.left
+    have hHR : HighlyRespected := premise5 hXprAh
+    exact premise9 hHR
+  -- From (MG ∨ LL) and ¬MG, conclude LL
+  cases hOr with
+  | inl hMG => exact False.elim (hNotMG hMG)
+  | inr hLL => exact hLL
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

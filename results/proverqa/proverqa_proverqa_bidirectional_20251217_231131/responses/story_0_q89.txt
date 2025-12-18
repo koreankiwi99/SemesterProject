@@ -1,0 +1,227 @@
+Story ID: 0
+Example ID: 89
+Premises: If Wesson has a noble character, then he is either considered a hero or performs selfless acts, but not both. Wesson prioritizes his family life. Wesson stays under the radar. Wesson either works tirelessly or prioritizes his family life, but not both. If Wesson is well-respected, then he either performs selfless acts or helps others unconditionally, but not both. If someone has strong convictions, then they perform selfless acts and stand up for others. Wesson does not help others unconditionally. Wesson either makes a groundbreaking discovery or stays under the radar, but not both. If Wesson either meets deadlines or contributes freely (but not both), then he works tirelessly. If Wesson is recognized by governments or respected by peers, then he is considered a hero. Wesson has a noble character. Wesson is well-respected or works tirelessly. If Wesson saves lives, then he demonstrates bravery and is recognized by governments.
+Conclusion: Wesson is not respected by peers.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Wesson : Person
+
+axiom NobleCharacter : Person → Prop
+axiom Hero : Person → Prop
+axiom Selfless : Person → Prop
+axiom PrioritizesFamilyLife : Person → Prop
+axiom UnderRadar : Person → Prop
+axiom WorksTirelessly : Person → Prop
+axiom HelpsUnconditionally : Person → Prop
+axiom StrongConvictions : Person → Prop
+axiom StandsUpForOthers : Person → Prop
+axiom GroundbreakingDiscovery : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom ContributesFreely : Person → Prop
+axiom RecognizedByGovernments : Person → Prop
+axiom RespectedByPeers : Person → Prop
+axiom WellRespected : Person → Prop
+axiom SavesLives : Person → Prop
+axiom DemonstratesBravery : Person → Prop
+
+-- Premises
+axiom ax1 : NobleCharacter Wesson → ((Hero Wesson ∨ Selfless Wesson) ∧ ¬(Hero Wesson ∧ Selfless Wesson))
+axiom ax2 : PrioritizesFamilyLife Wesson
+axiom ax3 : UnderRadar Wesson
+axiom ax4 : ((WorksTirelessly Wesson ∨ PrioritizesFamilyLife Wesson) ∧ ¬(WorksTirelessly Wesson ∧ PrioritizesFamilyLife Wesson))
+axiom ax5 : WellRespected Wesson → ((Selfless Wesson ∨ HelpsUnconditionally Wesson) ∧ ¬(Selfless Wesson ∧ HelpsUnconditionally Wesson))
+axiom ax6 : StrongConvictions Wesson → (Selfless Wesson ∧ StandsUpForOthers Wesson)
+axiom ax7 : ¬ HelpsUnconditionally Wesson
+axiom ax8 : ((GroundbreakingDiscovery Wesson ∨ UnderRadar Wesson) ∧ ¬(GroundbreakingDiscovery Wesson ∧ UnderRadar Wesson))
+axiom ax9 : (((MeetsDeadlines Wesson ∨ ContributesFreely Wesson) ∧ ¬(MeetsDeadlines Wesson ∧ ContributesFreely Wesson)) → WorksTirelessly Wesson)
+axiom ax10 : ((RecognizedByGovernments Wesson ∨ RespectedByPeers Wesson) → Hero Wesson)
+axiom ax11 : NobleCharacter Wesson
+axiom ax12 : (WellRespected Wesson ∨ WorksTirelessly Wesson)
+axiom ax13 : SavesLives Wesson → (DemonstratesBravery Wesson ∧ RecognizedByGovernments Wesson)
+
+-- Conclusion: Wesson is not respected by peers.
+theorem goal : ¬ RespectedByPeers Wesson := by
+  -- From XOR(W, F) and F, get ¬W
+  have notW : ¬ WorksTirelessly Wesson := by
+    have hNotAnd : ¬(WorksTirelessly Wesson ∧ PrioritizesFamilyLife Wesson) := ax4.right
+    intro hW
+    exact hNotAnd ⟨hW, ax2⟩
+  -- From (WR ∨ W) and ¬W, get WR
+  have hWR : WellRespected Wesson := by
+    cases ax12 with
+    | inl hwr => exact hwr
+    | inr hW => exact False.elim (notW hW)
+  -- From WR → XOR(S, U) and ¬U, get S
+  have hS : Selfless Wesson := by
+    have hx := ax5 hWR
+    have hOr := hx.left
+    cases hOr with
+    | inl hs => exact hs
+    | inr hU => exact False.elim (ax7 hU)
+  -- From N → XOR(H, S) and S, get ¬H
+  have notHandS : ¬(Hero Wesson ∧ Selfless Wesson) := (ax1 ax11).right
+  have notH : ¬ Hero Wesson := by
+    intro hH
+    exact notHandS ⟨hH, hS⟩
+  -- From (RG ∨ RP) → H and ¬H, get ¬(RG ∨ RP)
+  have notRGorRP : ¬ (RecognizedByGovernments Wesson ∨ RespectedByPeers Wesson) := by
+    intro h
+    exact notH (ax10 h)
+  -- Hence, ¬RP
+  intro hRP
+  exact notRGorRP (Or.inr hRP)
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Wesson : Person
+
+-- Predicates
+axiom NobleCharacter : Person → Prop
+axiom Hero : Person → Prop
+axiom PerformsSelflessActs : Person → Prop
+axiom PrioritizesFamilyLife : Person → Prop
+axiom StaysUnderTheRadar : Person → Prop
+axiom WorksTirelessly : Person → Prop
+axiom WellRespected : Person → Prop
+axiom HelpsOthersUnconditionally : Person → Prop
+axiom StrongConvictions : Person → Prop
+axiom StandsUpForOthers : Person → Prop
+axiom MakesGroundbreakingDiscovery : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom ContributesFreely : Person → Prop
+axiom RecognizedByGovernments : Person → Prop
+axiom RespectedByPeers : Person → Prop
+axiom SavesLives : Person → Prop
+axiom DemonstratesBravery : Person → Prop
+
+-- Premises
+-- 1. If Wesson has a noble character, then he is either a hero or performs selfless acts, but not both.
+axiom premise1 :
+  NobleCharacter Wesson →
+  ((Hero Wesson ∧ ¬PerformsSelflessActs Wesson) ∨ (PerformsSelflessActs Wesson ∧ ¬Hero Wesson))
+
+-- 2. Wesson prioritizes his family life.
+axiom premise2 : PrioritizesFamilyLife Wesson
+
+-- 3. Wesson stays under the radar.
+axiom premise3 : StaysUnderTheRadar Wesson
+
+-- 4. Wesson either works tirelessly or prioritizes his family life, but not both.
+axiom premise4 :
+  (WorksTirelessly Wesson ∧ ¬PrioritizesFamilyLife Wesson) ∨
+  (PrioritizesFamilyLife Wesson ∧ ¬WorksTirelessly Wesson)
+
+-- 5. If Wesson is well-respected, then he either performs selfless acts or helps others unconditionally, but not both.
+axiom premise5 :
+  WellRespected Wesson →
+  ((PerformsSelflessActs Wesson ∧ ¬HelpsOthersUnconditionally Wesson) ∨
+   (HelpsOthersUnconditionally Wesson ∧ ¬PerformsSelflessActs Wesson))
+
+-- 6. If someone has strong convictions, then they perform selfless acts and stand up for others.
+axiom premise6 :
+  ∀ x : Person, StrongConvictions x → (PerformsSelflessActs x ∧ StandsUpForOthers x)
+
+-- 7. Wesson does not help others unconditionally.
+axiom premise7 : ¬HelpsOthersUnconditionally Wesson
+
+-- 8. Wesson either makes a groundbreaking discovery or stays under the radar, but not both.
+axiom premise8 :
+  (MakesGroundbreakingDiscovery Wesson ∧ ¬StaysUnderTheRadar Wesson) ∨
+  (StaysUnderTheRadar Wesson ∧ ¬MakesGroundbreakingDiscovery Wesson)
+
+-- 9. If Wesson either meets deadlines or contributes freely (but not both), then he works tirelessly.
+axiom premise9 :
+  ((MeetsDeadlines Wesson ∧ ¬ContributesFreely Wesson) ∨
+   (ContributesFreely Wesson ∧ ¬MeetsDeadlines Wesson)) →
+  WorksTirelessly Wesson
+
+-- 10. If Wesson is recognized by governments or respected by peers, then he is a hero.
+axiom premise10 :
+  (RecognizedByGovernments Wesson ∨ RespectedByPeers Wesson) → Hero Wesson
+
+-- 11. Wesson has a noble character.
+axiom premise11 : NobleCharacter Wesson
+
+-- 12. Wesson is well-respected or works tirelessly.
+axiom premise12 : WellRespected Wesson ∨ WorksTirelessly Wesson
+
+-- 13. If Wesson saves lives, then he demonstrates bravery and is recognized by governments.
+axiom premise13 :
+  SavesLives Wesson → (DemonstratesBravery Wesson ∧ RecognizedByGovernments Wesson)
+
+-- Useful derived lemmas from the premises
+lemma not_WorksTirelessly : ¬WorksTirelessly Wesson := by
+  intro hW
+  have hxf := premise4
+  cases hxf with
+  | inl h =>
+      -- h : Works ∧ ¬Family; contradicts given Family
+      exact h.right premise2
+  | inr h =>
+      -- h : Family ∧ ¬Works; contradicts assumed Works
+      exact h.right hW
+
+lemma wellRespected : WellRespected Wesson := by
+  cases premise12 with
+  | inl h => exact h
+  | inr h =>
+      exact False.elim (not_WorksTirelessly h)
+
+lemma selfless : PerformsSelflessActs Wesson := by
+  have hx := premise5 wellRespected
+  cases hx with
+  | inl h => exact h.left
+  | inr h =>
+      have : HelpsOthersUnconditionally Wesson := h.left
+      exact False.elim (premise7 this)
+
+lemma not_hero : ¬Hero Wesson := by
+  intro hH
+  have hx := premise1 premise11
+  cases hx with
+  | inl h =>
+      -- h : Hero ∧ ¬Selfless; contradicts selfless
+      exact h.right selfless
+  | inr h =>
+      -- h : Selfless ∧ ¬Hero; contradicts hH
+      exact h.right hH
+
+lemma not_respected_by_peers : ¬RespectedByPeers Wesson := by
+  intro hR
+  have hDisj : RecognizedByGovernments Wesson ∨ RespectedByPeers Wesson := Or.inr hR
+  have hH := premise10 hDisj
+  exact not_hero hH
+
+-- Goal: Negation of the conclusion (i.e., Wesson is respected by peers)
+theorem goal : RespectedByPeers Wesson := by
+  -- Attempt to derive RespectedByPeers Wesson from the premises
+  -- Derived: not WorksTirelessly, hence WellRespected, hence Selfless, hence not Hero,
+  -- but this actually leads to ¬(Recognized ∨ Respected), and thus ¬RespectedByPeers.
+  -- Therefore, the desired conclusion seems unprovable from the given premises.
+  -- Proof attempt ends here.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

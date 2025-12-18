@@ -1,0 +1,337 @@
+Story ID: 0
+Example ID: 55
+Premises: For Wyatt, either building lasting connections or valuing loneliness is true, but not both. If Wyatt travels frequently, then he either tries new things or explores new places, but not both. Wyatt is either open-minded or follows a routine, but not both. Everyone who is adventurous either takes risks or explores new places. Mohammad does not appreciate moments. If Mohammad is adventurous, then he is both open-minded and planned. Everyone who enjoys uncertainty is adventurous. Wyatt values loneliness. Wyatt does not pursue his passion. Cade is either open-minded or follows a routine, but not both. If Wyatt meets new people, then he either captures beauty or builds lasting connections (or both). If Cade travels frequently, then he either tries new things or explores new places, but not both. Axl values loneliness. Wyatt does not follow a routine. Wyatt either appreciates moments or tries new things, but not both. Wyatt does not appreciate moments. Wyatt travels frequently. Cade does not pursue his passion. If Wyatt takes risks, then he will achieve success. Anyone who achieves success either pursues their passion or builds lasting connections (or both).
+Conclusion: Wyatt's relationship is not spontaneous.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Person : Type
+axiom Wyatt : Person
+axiom Mohammad : Person
+axiom Cade : Person
+axiom Axl : Person
+
+axiom BuildsLastingConnections : Person → Prop
+axiom ValuesLoneliness : Person → Prop
+axiom TravelsFrequently : Person → Prop
+axiom TriesNewThings : Person → Prop
+axiom ExploresNewPlaces : Person → Prop
+axiom OpenMinded : Person → Prop
+axiom FollowsRoutine : Person → Prop
+axiom Adventurous : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom AppreciatesMoments : Person → Prop
+axiom Planned : Person → Prop
+axiom EnjoysUncertainty : Person → Prop
+axiom MeetsNewPeople : Person → Prop
+axiom CapturesBeauty : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom RelationshipSpontaneous : Person → Prop
+
+-- Premises
+axiom blc_xor_vl_Wyatt :
+  (BuildsLastingConnections Wyatt ∧ ¬ ValuesLoneliness Wyatt) ∨
+  (ValuesLoneliness Wyatt ∧ ¬ BuildsLastingConnections Wyatt)
+
+axiom tf_imp_try_xor_explore_Wyatt :
+  TravelsFrequently Wyatt →
+  ((TriesNewThings Wyatt ∧ ¬ ExploresNewPlaces Wyatt) ∨
+   (ExploresNewPlaces Wyatt ∧ ¬ TriesNewThings Wyatt))
+
+axiom om_xor_fr_Wyatt :
+  (OpenMinded Wyatt ∧ ¬ FollowsRoutine Wyatt) ∨
+  (FollowsRoutine Wyatt ∧ ¬ OpenMinded Wyatt)
+
+axiom adventurous_imp_risk_or_explore :
+  ∀ x, Adventurous x → (TakesRisks x ∨ ExploresNewPlaces x)
+
+axiom Mohammad_not_appreciates : ¬ AppreciatesMoments Mohammad
+
+axiom Mohammad_adventurous_imp_om_planned :
+  Adventurous Mohammad → (OpenMinded Mohammad ∧ Planned Mohammad)
+
+axiom enjoys_uncertainty_imp_adventurous :
+  ∀ x, EnjoysUncertainty x → Adventurous x
+
+axiom Wyatt_values_loneliness : ValuesLoneliness Wyatt
+axiom Wyatt_not_pursue_passion : ¬ PursuesPassion Wyatt
+
+axiom Cade_om_xor_fr :
+  (OpenMinded Cade ∧ ¬ FollowsRoutine Cade) ∨
+  (FollowsRoutine Cade ∧ ¬ OpenMinded Cade)
+
+axiom Wyatt_meets_imp_capture_or_blc :
+  MeetsNewPeople Wyatt → (CapturesBeauty Wyatt ∨ BuildsLastingConnections Wyatt)
+
+axiom Cade_tf_imp_try_xor_explore :
+  TravelsFrequently Cade →
+  ((TriesNewThings Cade ∧ ¬ ExploresNewPlaces Cade) ∨
+   (ExploresNewPlaces Cade ∧ ¬ TriesNewThings Cade))
+
+axiom Axl_values_loneliness : ValuesLoneliness Axl
+axiom Wyatt_not_follows_routine : ¬ FollowsRoutine Wyatt
+
+axiom Wyatt_appreciates_or_tries_xor :
+  (AppreciatesMoments Wyatt ∧ ¬ TriesNewThings Wyatt) ∨
+  (TriesNewThings Wyatt ∧ ¬ AppreciatesMoments Wyatt)
+
+axiom Wyatt_not_appreciates : ¬ AppreciatesMoments Wyatt
+axiom Wyatt_travels_frequently : TravelsFrequently Wyatt
+
+axiom Cade_not_pursue_passion : ¬ PursuesPassion Cade
+
+axiom Wyatt_takes_risks_imp_success :
+  TakesRisks Wyatt → AchievesSuccess Wyatt
+
+axiom success_imp_pursue_or_blc :
+  ∀ x, AchievesSuccess x → (PursuesPassion x ∨ BuildsLastingConnections x)
+
+-- Conclusion to prove
+theorem wyatt_relationship_not_spontaneous : ¬ RelationshipSpontaneous Wyatt := by
+  -- Derive ¬ BuildsLastingConnections Wyatt from xor and ValuesLoneliness Wyatt
+  have not_blc : ¬ BuildsLastingConnections Wyatt := by
+    have h := blc_xor_vl_Wyatt
+    have vl := Wyatt_values_loneliness
+    cases h with
+    | inl h1 =>
+        have : ¬ ValuesLoneliness Wyatt := h1.right
+        exact False.elim (this vl)
+    | inr h2 =>
+        exact h2.right
+
+  -- Derive OpenMinded Wyatt from xor and ¬ FollowsRoutine Wyatt
+  have om_Wyatt : OpenMinded Wyatt := by
+    have h := om_xor_fr_Wyatt
+    have nfr := Wyatt_not_follows_routine
+    cases h with
+    | inl h1 =>
+        exact h1.left
+    | inr h2 =>
+        have : False := nfr h2.left
+        exact False.elim this
+
+  -- From (Appreciates ⊕ Tries) and ¬ Appreciates, get TriesNewThings Wyatt
+  have try_W : TriesNewThings Wyatt := by
+    have h := Wyatt_appreciates_or_tries_xor
+    have nap := Wyatt_not_appreciates
+    cases h with
+    | inl h1 =>
+        have : AppreciatesMoments Wyatt := h1.left
+        exact False.elim (nap this)
+    | inr h2 =>
+        exact h2.left
+
+  -- From TravelsFrequently and xor, plus TriesNewThings, get ¬ ExploresNewPlaces Wyatt
+  have not_explore_W : ¬ ExploresNewPlaces Wyatt := by
+    have tf := Wyatt_travels_frequently
+    have dis := tf_imp_try_xor_explore_Wyatt tf
+    have tr := try_W
+    cases dis with
+    | inl h1 =>
+        exact h1.right
+    | inr h2 =>
+        have not_tr : ¬ TriesNewThings Wyatt := h2.right
+        have : False := not_tr tr
+        exact False.elim this
+
+  -- From success chain and ¬ pursue passion and ¬ BLC, get ¬ TakesRisks Wyatt
+  have not_risk_W : ¬ TakesRisks Wyatt := by
+    intro trisk
+    have succ := Wyatt_takes_risks_imp_success trisk
+    have dis := success_imp_pursue_or_blc Wyatt succ
+    have np := Wyatt_not_pursue_passion
+    cases dis with
+    | inl hp =>
+        exact False.elim (np hp)
+    | inr blc =>
+        exact not_blc blc
+
+  -- No premises relate RelationshipSpontaneous to other predicates, so the goal is unprovable from given information.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Wyatt : Person
+axiom Mohammad : Person
+axiom Cade : Person
+axiom Axl : Person
+
+-- Predicates
+axiom BuildsConnections : Person → Prop
+axiom ValuesLoneliness : Person → Prop
+axiom TravelsFrequently : Person → Prop
+axiom TriesNewThings : Person → Prop
+axiom ExploresNewPlaces : Person → Prop
+axiom OpenMinded : Person → Prop
+axiom FollowsRoutine : Person → Prop
+axiom Adventurous : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom AppreciatesMoments : Person → Prop
+axiom Planned : Person → Prop
+axiom EnjoysUncertainty : Person → Prop
+axiom MeetsNewPeople : Person → Prop
+axiom CapturesBeauty : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom SpontaneousRelationship : Person → Prop
+
+-- Premises as axioms
+
+-- 1. For Wyatt, either building lasting connections or valuing loneliness is true, but not both.
+axiom wyatt_conn_lonely_xor :
+  (BuildsConnections Wyatt ∨ ValuesLoneliness Wyatt) ∧ ¬ (BuildsConnections Wyatt ∧ ValuesLoneliness Wyatt)
+
+-- 2. If Wyatt travels frequently, then he either tries new things or explores new places, but not both.
+axiom wyatt_travel_imp_xor :
+  TravelsFrequently Wyatt →
+  ((TriesNewThings Wyatt ∨ ExploresNewPlaces Wyatt) ∧ ¬ (TriesNewThings Wyatt ∧ ExploresNewPlaces Wyatt))
+
+-- 3. Wyatt is either open-minded or follows a routine, but not both.
+axiom wyatt_open_routine_xor :
+  (OpenMinded Wyatt ∨ FollowsRoutine Wyatt) ∧ ¬ (OpenMinded Wyatt ∧ FollowsRoutine Wyatt)
+
+-- 4. Everyone who is adventurous either takes risks or explores new places.
+axiom adventurous_imp_risk_or_explore :
+  ∀ x : Person, Adventurous x → (TakesRisks x ∨ ExploresNewPlaces x)
+
+-- 5. Mohammad does not appreciate moments.
+axiom mohammad_not_app : ¬ AppreciatesMoments Mohammad
+
+-- 6. If Mohammad is adventurous, then he is both open-minded and planned.
+axiom mohammad_adv_imp : Adventurous Mohammad → (OpenMinded Mohammad ∧ Planned Mohammad)
+
+-- 7. Everyone who enjoys uncertainty is adventurous.
+axiom enjoys_uncertainty_imp_adventurous :
+  ∀ x : Person, EnjoysUncertainty x → Adventurous x
+
+-- 8. Wyatt values loneliness.
+axiom wyatt_values_loneliness : ValuesLoneliness Wyatt
+
+-- 9. Wyatt does not pursue his passion.
+axiom wyatt_not_pursue : ¬ PursuesPassion Wyatt
+
+-- 10. Cade is either open-minded or follows a routine, but not both.
+axiom cade_open_routine_xor :
+  (OpenMinded Cade ∨ FollowsRoutine Cade) ∧ ¬ (OpenMinded Cade ∧ FollowsRoutine Cade)
+
+-- 11. If Wyatt meets new people, then he either captures beauty or builds lasting connections (or both).
+axiom wyatt_meets_imp :
+  MeetsNewPeople Wyatt → (CapturesBeauty Wyatt ∨ BuildsConnections Wyatt)
+
+-- 12. If Cade travels frequently, then he either tries new things or explores new places, but not both.
+axiom cade_travel_imp_xor :
+  TravelsFrequently Cade →
+  ((TriesNewThings Cade ∨ ExploresNewPlaces Cade) ∧ ¬ (TriesNewThings Cade ∧ ExploresNewPlaces Cade))
+
+-- 13. Axl values loneliness.
+axiom axl_values_loneliness : ValuesLoneliness Axl
+
+-- 14. Wyatt does not follow a routine.
+axiom wyatt_not_routine : ¬ FollowsRoutine Wyatt
+
+-- 15. Wyatt either appreciates moments or tries new things, but not both.
+axiom wyatt_app_or_try_xor :
+  (AppreciatesMoments Wyatt ∨ TriesNewThings Wyatt) ∧ ¬ (AppreciatesMoments Wyatt ∧ TriesNewThings Wyatt)
+
+-- 16. Wyatt does not appreciate moments.
+axiom wyatt_not_app : ¬ AppreciatesMoments Wyatt
+
+-- 17. Wyatt travels frequently.
+axiom wyatt_travels : TravelsFrequently Wyatt
+
+-- 18. Cade does not pursue his passion.
+axiom cade_not_pursue : ¬ PursuesPassion Cade
+
+-- 19. If Wyatt takes risks, then he will achieve success.
+axiom wyatt_risk_imp_success : TakesRisks Wyatt → AchievesSuccess Wyatt
+
+-- 20. Anyone who achieves success either pursues their passion or builds lasting connections (or both).
+axiom success_imp_passion_or_connect :
+  ∀ x : Person, AchievesSuccess x → (PursuesPassion x ∨ BuildsConnections x)
+
+-- We must prove the NEGATION of the conclusion:
+-- Conclusion to analyze: "Wyatt's relationship is not spontaneous."
+-- Negation: SpontaneousRelationship Wyatt
+
+theorem neg_conclusion : SpontaneousRelationship Wyatt := by
+  -- Derive some consequences from the premises (these do not lead to SpontaneousRelationship)
+  -- From (1) and (8), Wyatt does not build lasting connections.
+  have hNotBuild : ¬ BuildsConnections Wyatt := by
+    intro hBuild
+    have both : BuildsConnections Wyatt ∧ ValuesLoneliness Wyatt := And.intro hBuild wyatt_values_loneliness
+    exact (wyatt_conn_lonely_xor.right) both
+
+  -- From (3) and (14), Wyatt is open-minded.
+  have hOpen : OpenMinded Wyatt := by
+    have h := wyatt_open_routine_xor.left
+    cases h with
+    | inl hOM => exact hOM
+    | inr hFR =>
+      exact False.elim (wyatt_not_routine hFR)
+
+  -- From (15) and (16), Wyatt tries new things.
+  have hTry : TriesNewThings Wyatt := by
+    have h := wyatt_app_or_try_xor.left
+    cases h with
+    | inl happ => exact False.elim (wyatt_not_app happ)
+    | inr htry => exact htry
+
+  -- From (2) and (17) and the previous line, Wyatt does not explore new places.
+  have hNotExplore : ¬ ExploresNewPlaces Wyatt := by
+    intro hexp
+    have hx := wyatt_travel_imp_xor wyatt_travels
+    have notBoth := hx.right
+    exact notBoth (And.intro hTry hexp)
+
+  -- From (20), (9), and hNotBuild, Wyatt does not achieve success.
+  have hNotSuccess : ¬ AchievesSuccess Wyatt := by
+    intro hsucc
+    have hdisj := success_imp_passion_or_connect Wyatt hsucc
+    cases hdisj with
+    | inl hp => exact wyatt_not_pursue hp
+    | inr hb => exact hNotBuild hb
+
+  -- From (19) and hNotSuccess, Wyatt does not take risks.
+  have hNotRisk : ¬ TakesRisks Wyatt := by
+    intro hr
+    exact hNotSuccess (wyatt_risk_imp_success hr)
+
+  -- From (4), hNotRisk, and hNotExplore, Wyatt is not adventurous.
+  have hNotAdv : ¬ Adventurous Wyatt := by
+    intro hadv
+    have hdisj := adventurous_imp_risk_or_explore Wyatt hadv
+    cases hdisj with
+    | inl hr => exact hNotRisk hr
+    | inr he => exact hNotExplore he
+
+  -- No premise connects these facts to SpontaneousRelationship Wyatt.
+  -- Therefore, we cannot derive SpontaneousRelationship Wyatt from the given premises.
+  admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

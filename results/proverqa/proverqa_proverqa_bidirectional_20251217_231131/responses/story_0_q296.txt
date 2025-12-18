@@ -1,0 +1,212 @@
+Story ID: 0
+Example ID: 296
+Premises: If Jaxton has resilience, then he can either make a positive impact or inspire others, but not both. Jaxton has a chronic illness. Jaxton will overcome adversity if he faces challenges. If Jaxton has determination, then he can either make a positive impact or create change, but not both. For every person, if they have a chronic illness and participate in sports, then they face challenges. If Jaxton experiences personal growth, then he either pursues new opportunities or faces challenges (but not both). If Jaxton can overcome adversity, then he can either find personal strength or inspire others, but not both. Jaxton has determination. Wynter does not engage in volunteer work. Wynter creates change. If Wynter has resilience, then he can either make a positive impact or inspire others, but not both. If Jaxton has a medical condition, then he either engages in volunteer work or participates in sports, but not both. Jaxton has resilience. If Wynter can overcome adversity, then he can either find personal strength or inspire others, but not both. Jaxton has a medical condition. Jaxton does not engage in volunteer work. Jaxton creates change.
+Conclusion: Jaxton finds personal strength.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Jaxton : Person
+axiom Wynter : Person
+
+axiom Resilient : Person → Prop
+axiom ChronicIllness : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom OvercomeAdversity : Person → Prop
+axiom Determined : Person → Prop
+axiom PositiveImpact : Person → Prop
+axiom CreateChange : Person → Prop
+axiom PersonalGrowth : Person → Prop
+axiom PursueNewOpportunities : Person → Prop
+axiom InspireOthers : Person → Prop
+axiom FindPersonalStrength : Person → Prop
+axiom VolunteerWork : Person → Prop
+axiom ParticipatesSports : Person → Prop
+axiom MedicalCondition : Person → Prop
+
+-- Premises
+axiom Resilience_imp_impact_xor_inspire_J :
+  Resilient Jaxton →
+    ((PositiveImpact Jaxton ∧ ¬ InspireOthers Jaxton) ∨
+     (InspireOthers Jaxton ∧ ¬ PositiveImpact Jaxton))
+axiom ChronicIllness_J : ChronicIllness Jaxton
+axiom FacesChallenges_imp_Overcome_J : FacesChallenges Jaxton → OvercomeAdversity Jaxton
+axiom Determination_imp_impact_xor_change_J :
+  Determined Jaxton →
+    ((PositiveImpact Jaxton ∧ ¬ CreateChange Jaxton) ∨
+     (CreateChange Jaxton ∧ ¬ PositiveImpact Jaxton))
+axiom CI_and_Sports_imp_Challenges_all :
+  ∀ p : Person, (ChronicIllness p ∧ ParticipatesSports p) → FacesChallenges p
+axiom Growth_imp_newOpp_xor_challenges_J :
+  PersonalGrowth Jaxton →
+    ((PursueNewOpportunities Jaxton ∧ ¬ FacesChallenges Jaxton) ∨
+     (FacesChallenges Jaxton ∧ ¬ PursueNewOpportunities Jaxton))
+axiom Overcome_imp_strength_xor_inspire_J :
+  OvercomeAdversity Jaxton →
+    ((FindPersonalStrength Jaxton ∧ ¬ InspireOthers Jaxton) ∨
+     (InspireOthers Jaxton ∧ ¬ FindPersonalStrength Jaxton))
+axiom Determined_J : Determined Jaxton
+axiom Not_Volunteer_Wynter : ¬ VolunteerWork Wynter
+axiom CreatesChange_Wynter : CreateChange Wynter
+axiom Resilience_imp_impact_xor_inspire_W :
+  Resilient Wynter →
+    ((PositiveImpact Wynter ∧ ¬ InspireOthers Wynter) ∨
+     (InspireOthers Wynter ∧ ¬ PositiveImpact Wynter))
+axiom MedicalCondition_imp_volunteer_xor_sports_J :
+  MedicalCondition Jaxton →
+    ((VolunteerWork Jaxton ∧ ¬ ParticipatesSports Jaxton) ∨
+     (ParticipatesSports Jaxton ∧ ¬ VolunteerWork Jaxton))
+axiom Resilient_J : Resilient Jaxton
+axiom Overcome_imp_strength_xor_inspire_W :
+  OvercomeAdversity Wynter →
+    ((FindPersonalStrength Wynter ∧ ¬ InspireOthers Wynter) ∨
+     (InspireOthers Wynter ∧ ¬ FindPersonalStrength Wynter))
+axiom MedicalCondition_J : MedicalCondition Jaxton
+axiom Not_Volunteer_J : ¬ VolunteerWork Jaxton
+axiom CreatesChange_J : CreateChange Jaxton
+
+theorem goal : FindPersonalStrength Jaxton := by
+  -- From medical condition and not volunteering, deduce sports
+  have h1 :
+      (VolunteerWork Jaxton ∧ ¬ ParticipatesSports Jaxton) ∨
+      (ParticipatesSports Jaxton ∧ ¬ VolunteerWork Jaxton) :=
+    MedicalCondition_imp_volunteer_xor_sports_J MedicalCondition_J
+  have hSports : ParticipatesSports Jaxton := by
+    cases h1 with
+    | inl h =>
+      have : VolunteerWork Jaxton := h.left
+      exact False.elim (Not_Volunteer_J this)
+    | inr h =>
+      exact h.left
+  -- From chronic illness and sports, deduce challenges, hence overcome
+  have hChallenges : FacesChallenges Jaxton := by
+    have : ChronicIllness Jaxton ∧ ParticipatesSports Jaxton :=
+      And.intro ChronicIllness_J hSports
+    exact CI_and_Sports_imp_Challenges_all Jaxton this
+  have hOvercome : OvercomeAdversity Jaxton :=
+    FacesChallenges_imp_Overcome_J hChallenges
+  -- From determination and creates change, deduce not positive impact
+  have hDet := Determination_imp_impact_xor_change_J Determined_J
+  have hNotPI : ¬ PositiveImpact Jaxton := by
+    cases hDet with
+    | inl h =>
+      have : ¬ CreateChange Jaxton := h.right
+      exact False.elim (this CreatesChange_J)
+    | inr h =>
+      exact h.right
+  -- From resilience and not positive impact, deduce inspire
+  have hRes := Resilience_imp_impact_xor_inspire_J Resilient_J
+  have hInspire : InspireOthers Jaxton := by
+    cases hRes with
+    | inl h =>
+      have : PositiveImpact Jaxton := h.left
+      exact False.elim (hNotPI this)
+    | inr h =>
+      exact h.left
+  -- From overcome and inspire, deduce not find personal strength
+  have hX := Overcome_imp_strength_xor_inspire_J hOvercome
+  have hNotFind : ¬ FindPersonalStrength Jaxton := by
+    cases hX with
+    | inl h =>
+      have : ¬ InspireOthers Jaxton := h.right
+      exact False.elim (this hInspire)
+    | inr h =>
+      exact h.right
+  -- Cannot derive FindPersonalStrength Jaxton
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Jaxton : Person
+axiom Wynter : Person
+
+axiom Resilient : Person → Prop
+axiom ChronicIllness : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom OvercomeAdversity : Person → Prop
+axiom Determined : Person → Prop
+axiom PositiveImpact : Person → Prop
+axiom CreatesChange : Person → Prop
+axiom MedicalCondition : Person → Prop
+axiom VolunteerWork : Person → Prop
+axiom ParticipateSports : Person → Prop
+axiom PersonalGrowth : Person → Prop
+axiom PursueNewOpportunities : Person → Prop
+axiom FindPersonalStrength : Person → Prop
+axiom InspireOthers : Person → Prop
+
+axiom premise1 : Resilient Jaxton → ((PositiveImpact Jaxton ∨ InspireOthers Jaxton) ∧ ¬(PositiveImpact Jaxton ∧ InspireOthers Jaxton))
+axiom premise2 : ChronicIllness Jaxton
+axiom premise3 : FacesChallenges Jaxton → OvercomeAdversity Jaxton
+axiom premise4 : Determined Jaxton → ((PositiveImpact Jaxton ∨ CreatesChange Jaxton) ∧ ¬(PositiveImpact Jaxton ∧ CreatesChange Jaxton))
+axiom premise5 : ∀ x : Person, ChronicIllness x ∧ ParticipateSports x → FacesChallenges x
+axiom premise6 : PersonalGrowth Jaxton → ((PursueNewOpportunities Jaxton ∨ FacesChallenges Jaxton) ∧ ¬(PursueNewOpportunities Jaxton ∧ FacesChallenges Jaxton))
+axiom premise7 : OvercomeAdversity Jaxton → ((FindPersonalStrength Jaxton ∨ InspireOthers Jaxton) ∧ ¬(FindPersonalStrength Jaxton ∧ InspireOthers Jaxton))
+axiom premise8 : Determined Jaxton
+axiom premise9 : ¬VolunteerWork Wynter
+axiom premise10 : CreatesChange Wynter
+axiom premise11 : Resilient Wynter → ((PositiveImpact Wynter ∨ InspireOthers Wynter) ∧ ¬(PositiveImpact Wynter ∧ InspireOthers Wynter))
+axiom premise12 : MedicalCondition Jaxton → ((VolunteerWork Jaxton ∨ ParticipateSports Jaxton) ∧ ¬(VolunteerWork Jaxton ∧ ParticipateSports Jaxton))
+axiom premise13 : Resilient Jaxton
+axiom premise14 : OvercomeAdversity Wynter → ((FindPersonalStrength Wynter ∨ InspireOthers Wynter) ∧ ¬(FindPersonalStrength Wynter ∧ InspireOthers Wynter))
+axiom premise15 : MedicalCondition Jaxton
+axiom premise16 : ¬VolunteerWork Jaxton
+axiom premise17 : CreatesChange Jaxton
+
+theorem goal : ¬FindPersonalStrength Jaxton := by
+  -- From determination and creates change exclusivity, deduce ¬ PositiveImpact Jaxton
+  have hdc := premise4 premise8
+  have hNoPI : ¬ PositiveImpact Jaxton := by
+    intro hpi
+    have hpair : PositiveImpact Jaxton ∧ CreatesChange Jaxton := And.intro hpi premise17
+    exact (And.right hdc) hpair
+  -- From resilience exclusive or and ¬ PositiveImpact, deduce InspireOthers Jaxton
+  have hres := premise1 premise13
+  have hInspJ : InspireOthers Jaxton := by
+    have hdisj := And.left hres
+    cases hdisj with
+    | inl hpi => exact False.elim (hNoPI hpi)
+    | inr hins => exact hins
+  -- From medical condition leads to volunteer or sport, and not volunteer, deduce sports
+  have hmed := premise12 premise15
+  have hSportsJ : ParticipateSports Jaxton := by
+    have hdisj := And.left hmed
+    cases hdisj with
+    | inl hvol => exact False.elim (premise16 hvol)
+    | inr hsport => exact hsport
+  -- From chronic + sports -> faces challenges
+  have hFCJ : FacesChallenges Jaxton := by
+    have himp := premise5 Jaxton
+    apply himp
+    exact And.intro premise2 hSportsJ
+  -- FacesChallenges -> OvercomeAdversity
+  have hOA : OvercomeAdversity Jaxton := premise3 hFCJ
+  -- From OvercomeAdversity implies xor between FindStrength and Inspire; with Inspire we get ¬FindStrength
+  have hOAconj := premise7 hOA
+  have hNotBoth : ¬(FindPersonalStrength Jaxton ∧ InspireOthers Jaxton) := And.right hOAconj
+  intro hfs
+  have hpair' : FindPersonalStrength Jaxton ∧ InspireOthers Jaxton := And.intro hfs hInspJ
+  exact hNotBoth hpair'
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

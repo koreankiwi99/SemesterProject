@@ -1,0 +1,142 @@
+Story ID: 0
+Example ID: 64
+Premises: Alden listens actively. Anyone who has influence or commands respect holds power. Alden possesses experience. Anyone who makes key decisions or influences others has authority. Alden faces consequences. Alden has strong opinions. Alden either listens actively or speaks persuasively, but not both. If someone has authority, then they hold power. Anyone who takes leadership or earns respect has authority. If Alden holds power, then he either upholds justice or faces consequences, but not both. Superman does not hold a high office. For anyone who possesses experience and has strong opinions, they can make key decisions.
+Conclusion: Alden does not uphold justice.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Alden : Person
+axiom Superman : Person
+
+axiom ListensActively : Person → Prop
+axiom SpeaksPersuasively : Person → Prop
+axiom HasInfluence : Person → Prop
+axiom CommandsRespect : Person → Prop
+axiom HoldsPower : Person → Prop
+axiom PossessesExperience : Person → Prop
+axiom MakesKeyDecisions : Person → Prop
+axiom InfluencesOthers : Person → Prop
+axiom HasAuthority : Person → Prop
+axiom FacesConsequences : Person → Prop
+axiom HasStrongOpinions : Person → Prop
+axiom UpholdsJustice : Person → Prop
+axiom TakesLeadership : Person → Prop
+axiom EarnsRespect : Person → Prop
+axiom HoldsHighOffice : Person → Prop
+
+-- Premises
+axiom p1 : ListensActively Alden
+axiom p2 : ∀ x : Person, (HasInfluence x ∨ CommandsRespect x) → HoldsPower x
+axiom p3 : PossessesExperience Alden
+axiom p4 : ∀ x : Person, (MakesKeyDecisions x ∨ InfluencesOthers x) → HasAuthority x
+axiom p5 : FacesConsequences Alden
+axiom p6 : HasStrongOpinions Alden
+axiom p7 : (ListensActively Alden ∧ ¬ SpeaksPersuasively Alden) ∨ (¬ ListensActively Alden ∧ SpeaksPersuasively Alden)
+axiom p8 : ∀ x : Person, HasAuthority x → HoldsPower x
+axiom p9 : ∀ x : Person, (TakesLeadership x ∨ EarnsRespect x) → HasAuthority x
+axiom p10 : HoldsPower Alden → ((UpholdsJustice Alden ∧ ¬ FacesConsequences Alden) ∨ (¬ UpholdsJustice Alden ∧ FacesConsequences Alden))
+axiom p11 : ¬ HoldsHighOffice Superman
+axiom p12 : ∀ x : Person, (PossessesExperience x ∧ HasStrongOpinions x) → MakesKeyDecisions x
+
+-- Conclusion: Alden does not uphold justice.
+theorem conclusion : ¬ UpholdsJustice Alden := by
+  -- From experience and strong opinions, Alden makes key decisions
+  have hmkd : MakesKeyDecisions Alden := by
+    apply p12
+    exact And.intro p3 p6
+  -- From making key decisions, Alden has authority
+  have hauth : HasAuthority Alden := by
+    apply p4 Alden
+    exact Or.inl hmkd
+  -- Authority implies holding power
+  have hpow : HoldsPower Alden := by
+    exact p8 Alden hauth
+  -- Holding power gives an exclusive-or between justice and consequences
+  have hx : (UpholdsJustice Alden ∧ ¬ FacesConsequences Alden) ∨ (¬ UpholdsJustice Alden ∧ FacesConsequences Alden) := p10 hpow
+  -- Using that Alden faces consequences, deduce he does not uphold justice
+  cases hx with
+  | inl h1 =>
+      have nf : ¬ FacesConsequences Alden := h1.right
+      exact False.elim (nf p5)
+  | inr h2 =>
+      exact h2.left
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alden : Person
+axiom Superman : Person
+
+axiom ListensActively : Person → Prop
+axiom SpeaksPersuasively : Person → Prop
+axiom HasInfluence : Person → Prop
+axiom CommandsRespect : Person → Prop
+axiom HoldsPower : Person → Prop
+axiom PossessesExperience : Person → Prop
+axiom MakesKeyDecisions : Person → Prop
+axiom InfluencesOthers : Person → Prop
+axiom HasAuthority : Person → Prop
+axiom TakesLeadership : Person → Prop
+axiom EarnsRespect : Person → Prop
+axiom UpholdsJustice : Person → Prop
+axiom FacesConsequences : Person → Prop
+axiom HoldsHighOffice : Person → Prop
+axiom HasStrongOpinions : Person → Prop
+
+-- Premises
+axiom p1 : ListensActively Alden
+axiom p2 : ∀ x : Person, (HasInfluence x ∨ CommandsRespect x) → HoldsPower x
+axiom p3 : PossessesExperience Alden
+axiom p4 : ∀ x : Person, (MakesKeyDecisions x ∨ InfluencesOthers x) → HasAuthority x
+axiom p5 : FacesConsequences Alden
+axiom p6 : HasStrongOpinions Alden
+axiom p7 : (ListensActively Alden ∨ SpeaksPersuasively Alden) ∧ ¬(ListensActively Alden ∧ SpeaksPersuasively Alden)
+axiom p8 : ∀ x : Person, HasAuthority x → HoldsPower x
+axiom p9 : ∀ x : Person, (TakesLeadership x ∨ EarnsRespect x) → HasAuthority x
+axiom p10 : HoldsPower Alden → ((UpholdsJustice Alden ∨ FacesConsequences Alden) ∧ ¬(UpholdsJustice Alden ∧ FacesConsequences Alden))
+axiom p11 : ¬HoldsHighOffice Superman
+axiom p12 : ∀ x : Person, (PossessesExperience x ∧ HasStrongOpinions x) → MakesKeyDecisions x
+
+-- From the premises, we can derive that Alden does NOT uphold justice
+theorem not_upholds_justice : ¬UpholdsJustice Alden := by
+  have hmkd : MakesKeyDecisions Alden := by
+    have hExpOpin : PossessesExperience Alden ∧ HasStrongOpinions Alden := And.intro p3 p6
+    exact p12 Alden hExpOpin
+  have hauth : HasAuthority Alden := by
+    have : MakesKeyDecisions Alden ∨ InfluencesOthers Alden := Or.inl hmkd
+    exact p4 Alden this
+  have hpwr : HoldsPower Alden := p8 Alden hauth
+  have hx : (UpholdsJustice Alden ∨ FacesConsequences Alden) ∧ ¬(UpholdsJustice Alden ∧ FacesConsequences Alden) := p10 hpwr
+  have hnotboth : ¬(UpholdsJustice Alden ∧ FacesConsequences Alden) := And.right hx
+  have hC : FacesConsequences Alden := p5
+  intro hU
+  exact hnotboth ⟨hU, hC⟩
+
+-- Negation of the conclusion (to be proven): Alden upholds justice
+theorem goal : UpholdsJustice Alden := by
+  -- This is not derivable from the given premises (indeed, the premises imply its negation).
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

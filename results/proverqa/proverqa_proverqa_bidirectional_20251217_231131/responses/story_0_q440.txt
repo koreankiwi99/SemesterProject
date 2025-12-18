@@ -1,0 +1,152 @@
+Story ID: 0
+Example ID: 440
+Premises: Pudding does not enjoy learning. Every cat that lives in luxury is either a charming companion or has a playful side (or both). If Pudding has many hobbies, then she either has a curious nature or enjoys learning (or both). All cats that purr frequently are affectionate. If Pudding is affectionate, then she is either a charming companion or gets into mischief, but not both. Pudding either plays outside or gets into mischief. If Pudding is charismatic, then she explores various interests and is a charming companion. Pudding has many hobbies. If Pudding has a curious nature, then she explores various interests. Pudding does not stay healthy. Pudding purrs frequently. If Pudding plays outside, then she stays healthy.
+Conclusion: Pudding is charismatic.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We formalize the domain and predicates
+axiom Entity : Type
+axiom Pudding : Entity
+
+axiom Cat : Entity → Prop
+axiom LivesInLuxury : Entity → Prop
+axiom Charming : Entity → Prop
+axiom Playful : Entity → Prop
+axiom ManyHobbies : Entity → Prop
+axiom Curious : Entity → Prop
+axiom EnjoysLearning : Entity → Prop
+axiom PurrsFrequently : Entity → Prop
+axiom Affectionate : Entity → Prop
+axiom Mischief : Entity → Prop
+axiom PlaysOutside : Entity → Prop
+axiom Charismatic : Entity → Prop
+axiom Explores : Entity → Prop
+axiom Healthy : Entity → Prop
+
+-- Premises
+axiom P1  : ¬ EnjoysLearning Pudding
+axiom P2  : ∀ x, Cat x ∧ LivesInLuxury x → Charming x ∨ Playful x
+axiom P3  : ManyHobbies Pudding → Curious Pudding ∨ EnjoysLearning Pudding
+axiom P4  : ∀ x, Cat x ∧ PurrsFrequently x → Affectionate x
+axiom P5  : Affectionate Pudding → (Charming Pudding ∨ Mischief Pudding) ∧ ¬(Charming Pudding ∧ Mischief Pudding)
+axiom P6  : PlaysOutside Pudding ∨ Mischief Pudding
+axiom P7  : Charismatic Pudding → Explores Pudding ∧ Charming Pudding
+axiom P8  : ManyHobbies Pudding
+axiom P9  : Curious Pudding → Explores Pudding
+axiom P10 : ¬ Healthy Pudding
+axiom P11 : PurrsFrequently Pudding
+axiom P12 : PlaysOutside Pudding → Healthy Pudding
+
+-- Some derived consequences from the premises
+
+lemma not_plays_outside : ¬ PlaysOutside Pudding := by
+  intro hplay
+  have hhealthy : Healthy Pudding := P12 hplay
+  exact P10 hhealthy
+
+lemma mischief_true : Mischief Pudding := by
+  cases P6 with
+  | inl hplay =>
+      exact False.elim (not_plays_outside hplay)
+  | inr hm => exact hm
+
+lemma curious_true : Curious Pudding := by
+  have h := P3 P8
+  cases h with
+  | inl hc => exact hc
+  | inr hlearn =>
+      exact False.elim (P1 hlearn)
+
+lemma explores_true : Explores Pudding :=
+  P9 curious_true
+
+lemma not_charming_of_affectionate : Affectionate Pudding → ¬ Charming Pudding := by
+  intro ha
+  have h := P5 ha
+  have hm : Mischief Pudding := mischief_true
+  have not_both : ¬ (Charming Pudding ∧ Mischief Pudding) := h.right
+  intro hc
+  exact not_both ⟨hc, hm⟩
+
+-- Goal (conclusion to analyze): Pudding is charismatic.
+theorem goal : Charismatic Pudding := by
+  -- From the given premises, we can derive that Pudding explores various interests
+  -- and is involved in mischief, but there is no premise that implies Charismatic Pudding.
+  -- Moreover, P7 only gives (Charismatic → Explores ∧ Charming), which is not invertible.
+  -- Hence, we cannot derive Charismatic Pudding from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Being : Type
+axiom Pudding : Being
+
+axiom EnjoysLearning : Being → Prop
+axiom LivesInLuxuryCat : Being → Prop
+axiom Charming : Being → Prop
+axiom Playful : Being → Prop
+axiom ManyHobbies : Being → Prop
+axiom Curious : Being → Prop
+axiom PurrsFrequentlyCat : Being → Prop
+axiom Affectionate : Being → Prop
+axiom Mischief : Being → Prop
+axiom PlaysOutside : Being → Prop
+axiom Charismatic : Being → Prop
+axiom ExploresInterests : Being → Prop
+axiom Healthy : Being → Prop
+
+-- Premises
+axiom premise1 : ¬EnjoysLearning Pudding
+axiom premise2 : ∀ x : Being, LivesInLuxuryCat x → (Charming x ∨ Playful x)
+axiom premise3 : ManyHobbies Pudding → (Curious Pudding ∨ EnjoysLearning Pudding)
+axiom premise4 : ∀ x : Being, PurrsFrequentlyCat x → Affectionate x
+axiom premise5 : Affectionate Pudding → ((Charming Pudding ∨ Mischief Pudding) ∧ ¬(Charming Pudding ∧ Mischief Pudding))
+axiom premise6 : PlaysOutside Pudding ∨ Mischief Pudding
+axiom premise7 : Charismatic Pudding → (ExploresInterests Pudding ∧ Charming Pudding)
+axiom premise8 : ManyHobbies Pudding
+axiom premise9 : Curious Pudding → ExploresInterests Pudding
+axiom premise10 : ¬Healthy Pudding
+axiom premise11 : PurrsFrequentlyCat Pudding
+axiom premise12 : PlaysOutside Pudding → Healthy Pudding
+
+-- Negation of the conclusion: Pudding is not charismatic
+theorem goal : ¬Charismatic Pudding := by
+  intro hChar
+  have hCharm : Charming Pudding := (premise7 hChar).right
+  have hAff : Affectionate Pudding := premise4 Pudding premise11
+  have hNotBoth : ¬(Charming Pudding ∧ Mischief Pudding) := (premise5 hAff).right
+  have hNotMischief : ¬Mischief Pudding := by
+    intro hM
+    exact hNotBoth ⟨hCharm, hM⟩
+  have hNotPlay : ¬PlaysOutside Pudding := by
+    intro hPlay
+    have hHealthy : Healthy Pudding := premise12 hPlay
+    exact premise10 hHealthy
+  have hMischief : Mischief Pudding :=
+    Or.elim premise6
+      (fun hPlay => False.elim (hNotPlay hPlay))
+      (fun hM => hM)
+  exact hNotMischief hMischief
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

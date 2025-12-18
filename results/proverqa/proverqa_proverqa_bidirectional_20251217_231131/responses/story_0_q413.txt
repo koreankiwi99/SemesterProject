@@ -1,0 +1,216 @@
+Story ID: 0
+Example ID: 413
+Premises: Shelby is a rural resident. If Shelby is self-sufficient, then she lives off the land. For every human, either they are prepared for emergencies or they are unprepared for emergencies, but not both. Shelby does not raise livestock. Pudding does not raise livestock. If Shelby tends to a garden, then she cultivates an orchard. If someone either raises livestock or cultivates an orchard (but not both), then they are a farm owner. If Shelby is a rural resident, then she either grows her own crops or buys from local markets, but not both. If Nalani is a farm owner, then she either grows her own crops or has food storage, but not both. Pudding is a rural resident. Anyone who lives off the land is either prepared for emergencies or has food storage. If Shelby values independence, then she grows her own crops. Shelby either keeps bees or cultivates an orchard (or both). Shelby does not buy from local markets. Shelby tends to a garden. Andres does not buy from local markets. If Shelby is a farm owner, then she either grows her own crops or has food storage, but not both. Shelby is self-sufficient. If Nalani is self-sufficient, then she lives off the land.
+Conclusion: Shelby is unprepared for emergencies.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Shelby : Person
+axiom Pudding : Person
+axiom Nalani : Person
+axiom Andres : Person
+
+-- Predicates
+axiom RuralResident : Person → Prop
+axiom SelfSufficient : Person → Prop
+axiom LivesOffLand : Person → Prop
+axiom PreparedEmergencies : Person → Prop
+axiom UnpreparedEmergencies : Person → Prop
+axiom RaisesLivestock : Person → Prop
+axiom TendsGarden : Person → Prop
+axiom CultivatesOrchard : Person → Prop
+axiom FarmOwner : Person → Prop
+axiom GrowsOwnCrops : Person → Prop
+axiom BuysFromLocalMarkets : Person → Prop
+axiom HasFoodStorage : Person → Prop
+axiom ValuesIndependence : Person → Prop
+axiom KeepsBees : Person → Prop
+
+-- Premises
+axiom a1 : RuralResident Shelby
+axiom a2 : SelfSufficient Shelby → LivesOffLand Shelby
+axiom a3 : ∀ x : Person, (PreparedEmergencies x ∧ ¬ UnpreparedEmergencies x) ∨ (UnpreparedEmergencies x ∧ ¬ PreparedEmergencies x)
+axiom a4 : ¬ RaisesLivestock Shelby
+axiom a5 : ¬ RaisesLivestock Pudding
+axiom a6 : TendsGarden Shelby → CultivatesOrchard Shelby
+axiom a7 : ∀ x : Person, ((RaisesLivestock x ∧ ¬ CultivatesOrchard x) ∨ (CultivatesOrchard x ∧ ¬ RaisesLivestock x)) → FarmOwner x
+axiom a8 : RuralResident Shelby → ((GrowsOwnCrops Shelby ∧ ¬ BuysFromLocalMarkets Shelby) ∨ (BuysFromLocalMarkets Shelby ∧ ¬ GrowsOwnCrops Shelby))
+axiom a9 : FarmOwner Nalani → ((GrowsOwnCrops Nalani ∧ ¬ HasFoodStorage Nalani) ∨ (HasFoodStorage Nalani ∧ ¬ GrowsOwnCrops Nalani))
+axiom a10 : RuralResident Pudding
+axiom a11 : ∀ x : Person, LivesOffLand x → (PreparedEmergencies x ∨ HasFoodStorage x)
+axiom a12 : ValuesIndependence Shelby → GrowsOwnCrops Shelby
+axiom a13 : KeepsBees Shelby ∨ CultivatesOrchard Shelby
+axiom a14 : ¬ BuysFromLocalMarkets Shelby
+axiom a15 : TendsGarden Shelby
+axiom a16 : ¬ BuysFromLocalMarkets Andres
+axiom a17 : FarmOwner Shelby → ((GrowsOwnCrops Shelby ∧ ¬ HasFoodStorage Shelby) ∨ (HasFoodStorage Shelby ∧ ¬ GrowsOwnCrops Shelby))
+axiom a18 : SelfSufficient Shelby
+axiom a19 : SelfSufficient Nalani → LivesOffLand Nalani
+
+open Classical
+
+-- Useful derived facts
+theorem growsShelby : GrowsOwnCrops Shelby := by
+  have hx := a8 a1
+  cases hx with
+  | inl h =>
+      exact h.left
+  | inr h =>
+      exact (False.elim (a14 h.left))
+
+theorem cultivatesShelby : CultivatesOrchard Shelby :=
+  a6 a15
+
+theorem farmOwnerShelby : FarmOwner Shelby := by
+  apply a7 Shelby
+  exact Or.inr ⟨cultivatesShelby, a4⟩
+
+theorem preparedShelby : PreparedEmergencies Shelby := by
+  have hOff : LivesOffLand Shelby := a2 a18
+  have h := a11 Shelby hOff
+  -- Show ¬ HasFoodStorage Shelby from farm owner XOR and growsShelby
+  have hFO := a17 farmOwnerShelby
+  have hNotFood : ¬ HasFoodStorage Shelby := by
+    cases hFO with
+    | inl h1 =>
+        exact h1.right
+    | inr h2 =>
+        have : ¬ GrowsOwnCrops Shelby := h2.right
+        exact False.elim (this growsShelby)
+  cases h with
+  | inl hprep => exact hprep
+  | inr hfood => exact False.elim (hNotFood hfood)
+
+theorem notUnpreparedShelby : ¬ UnpreparedEmergencies Shelby := by
+  have hx := a3 Shelby
+  have hprep := preparedShelby
+  cases hx with
+  | inl h1 =>
+      exact h1.right
+  | inr h2 =>
+      exact False.elim (h2.right hprep)
+
+-- Conclusion to analyze: Shelby is unprepared for emergencies.
+theorem goal : UnpreparedEmergencies Shelby := by
+  -- Proof attempt (this goal is in fact incompatible with the derived premises)
+  have hprep := preparedShelby
+  have hx := a3 Shelby
+  cases hx with
+  | inl h1 =>
+      -- Here we have Prepared ∧ ¬Unprepared, so cannot derive Unprepared
+      -- (stuck)
+      exact (False.elim (h1.right (by
+        -- cannot produce Unprepared Shelby from these premises
+        have := notUnpreparedShelby
+        -- stuck
+        ?impossible))))
+  | inr h2 =>
+      exact h2.left
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Shelby : Person
+axiom Pudding : Person
+axiom Nalani : Person
+axiom Andres : Person
+
+axiom Rural : Person → Prop
+axiom SelfSufficient : Person → Prop
+axiom LiveOffLand : Person → Prop
+axiom Prepared : Person → Prop
+axiom Unprepared : Person → Prop
+axiom RaisesLivestock : Person → Prop
+axiom TendsGarden : Person → Prop
+axiom Orchard : Person → Prop
+axiom FarmOwner : Person → Prop
+axiom GrowsCrops : Person → Prop
+axiom BuysLocal : Person → Prop
+axiom HasStorage : Person → Prop
+axiom ValuesIndependence : Person → Prop
+axiom KeepsBees : Person → Prop
+
+-- Premises
+axiom premise1 : Rural Shelby
+axiom premise2 : SelfSufficient Shelby → LiveOffLand Shelby
+axiom premise3 : ∀ x : Person, (Prepared x ∨ Unprepared x) ∧ ¬(Prepared x ∧ Unprepared x)
+axiom premise4 : ¬RaisesLivestock Shelby
+axiom premise5 : ¬RaisesLivestock Pudding
+axiom premise6 : TendsGarden Shelby → Orchard Shelby
+axiom premise7 : ∀ x : Person, ((RaisesLivestock x ∨ Orchard x) ∧ ¬(RaisesLivestock x ∧ Orchard x)) → FarmOwner x
+axiom premise8 : Rural Shelby → ((GrowsCrops Shelby ∨ BuysLocal Shelby) ∧ ¬(GrowsCrops Shelby ∧ BuysLocal Shelby))
+axiom premise9 : FarmOwner Nalani → ((GrowsCrops Nalani ∨ HasStorage Nalani) ∧ ¬(GrowsCrops Nalani ∧ HasStorage Nalani))
+axiom premise10 : Rural Pudding
+axiom premise11 : ∀ x : Person, LiveOffLand x → (Prepared x ∨ HasStorage x)
+axiom premise12 : ValuesIndependence Shelby → GrowsCrops Shelby
+axiom premise13 : KeepsBees Shelby ∨ Orchard Shelby
+axiom premise14 : ¬BuysLocal Shelby
+axiom premise15 : TendsGarden Shelby
+axiom premise16 : ¬BuysLocal Andres
+axiom premise17 : FarmOwner Shelby → ((GrowsCrops Shelby ∨ HasStorage Shelby) ∧ ¬(GrowsCrops Shelby ∧ HasStorage Shelby))
+axiom premise18 : SelfSufficient Shelby
+axiom premise19 : SelfSufficient Nalani → LiveOffLand Nalani
+
+-- Negation of the conclusion: prove that Shelby is not unprepared for emergencies
+theorem goal : ¬Unprepared Shelby := by
+  -- From tending a garden, Shelby cultivates an orchard
+  have hOrch : Orchard Shelby := premise6 premise15
+  -- Using not raising livestock, construct XOR to get farm owner
+  have hNotRaise : ¬RaisesLivestock Shelby := premise4
+  have hXorRO : (RaisesLivestock Shelby ∨ Orchard Shelby) ∧ ¬(RaisesLivestock Shelby ∧ Orchard Shelby) := by
+    apply And.intro
+    · exact Or.inr hOrch
+    · intro hboth
+      exact hNotRaise (And.left hboth)
+  have hFarm : FarmOwner Shelby := premise7 Shelby hXorRO
+  -- From rural and not buying local, deduce she grows her own crops
+  have hXorGB := premise8 premise1
+  have hGrow : GrowsCrops Shelby := by
+    have hOr := And.left hXorGB
+    apply Or.elim hOr
+    · intro hg; exact hg
+    · intro hb; exact False.elim (premise14 hb)
+  -- From being a farm owner, XOR between growing crops and having storage; thus not storage
+  have hXorGS := premise17 hFarm
+  have hNotStorage : ¬HasStorage Shelby := by
+    intro hS
+    have hAnd : GrowsCrops Shelby ∧ HasStorage Shelby := And.intro hGrow hS
+    exact (And.right hXorGS) hAnd
+  -- From self-sufficient and the land-living implication
+  have hLOL : LiveOffLand Shelby := premise2 premise18
+  -- Living off the land implies prepared or has storage; with not storage, get prepared
+  have hPorS : Prepared Shelby ∨ HasStorage Shelby := premise11 Shelby hLOL
+  have hPrep : Prepared Shelby := by
+    apply Or.elim hPorS
+    · intro hp; exact hp
+    · intro hS; exact False.elim (hNotStorage hS)
+  -- Exclusivity of prepared vs unprepared yields not unprepared
+  have hNotBoth : ¬(Prepared Shelby ∧ Unprepared Shelby) := And.right (premise3 Shelby)
+  intro hU
+  apply hNotBoth
+  exact And.intro hPrep hU
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

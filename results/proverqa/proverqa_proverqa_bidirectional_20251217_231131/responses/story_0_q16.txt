@@ -1,0 +1,206 @@
+Story ID: 0
+Example ID: 16
+Premises: If Anne is an expert, then she either has a PhD or leads a project, but not both. Anne is an expert. Everyone who investigates cultural remains either pursues historical research or deciphers ancient texts (or both). If Anne has a PhD, then she is either an archaeologist or teaches at a university, but not both. Anne does not contribute to her field. Anyone who explores lost civilizations or uncovers hidden artifacts contributes to their field. If Anne is an archaeologist, then she either pursues historical research or explores lost civilizations, but not both. Anne does not teach at a university. Anne does not lead a project. Everyone who studies ancient mythology gains a deeper understanding of the subject. If Anne pursues historical research, then she will study ancient mythology. Anne holds an advanced degree or has a PhD.
+Conclusion: Anne gains a deeper understanding of the subject.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Anne : Person
+
+-- Predicates
+axiom Expert : Person → Prop
+axiom PhD : Person → Prop
+axiom LeadsProject : Person → Prop
+axiom InvestigatesCulturalRemains : Person → Prop
+axiom PursuesHistoricalResearch : Person → Prop
+axiom DeciphersAncientTexts : Person → Prop
+axiom Archaeologist : Person → Prop
+axiom TeachesAtUniversity : Person → Prop
+axiom ContributesToField : Person → Prop
+axiom ExploresLostCivilizations : Person → Prop
+axiom UncoversHiddenArtifacts : Person → Prop
+axiom StudiesAncientMythology : Person → Prop
+axiom GainsDeeperUnderstanding : Person → Prop
+axiom HoldsAdvancedDegree : Person → Prop
+
+-- Premises
+axiom ax_expert_implies_phd_xor_lead :
+  Expert Anne → ((PhD Anne ∧ ¬ LeadsProject Anne) ∨ (LeadsProject Anne ∧ ¬ PhD Anne))
+axiom ax_anne_expert : Expert Anne
+
+axiom ax_investigates_rule :
+  ∀ x : Person, InvestigatesCulturalRemains x → (PursuesHistoricalResearch x ∨ DeciphersAncientTexts x)
+
+axiom ax_phd_implies_archaeologist_xor_teaches :
+  PhD Anne → ((Archaeologist Anne ∧ ¬ TeachesAtUniversity Anne) ∨ (TeachesAtUniversity Anne ∧ ¬ Archaeologist Anne))
+
+axiom ax_not_contributes : ¬ ContributesToField Anne
+
+axiom ax_explores_or_uncovers_implies_contributes :
+  ∀ x : Person, (ExploresLostCivilizations x ∨ UncoversHiddenArtifacts x) → ContributesToField x
+
+axiom ax_archaeologist_implies_pursues_xor_explores :
+  Archaeologist Anne →
+    ((PursuesHistoricalResearch Anne ∧ ¬ ExploresLostCivilizations Anne) ∨
+     (ExploresLostCivilizations Anne ∧ ¬ PursuesHistoricalResearch Anne))
+
+axiom ax_not_teaches : ¬ TeachesAtUniversity Anne
+axiom ax_not_leads : ¬ LeadsProject Anne
+
+axiom ax_studies_implies_gains :
+  ∀ x : Person, StudiesAncientMythology x → GainsDeeperUnderstanding x
+
+axiom ax_pursues_implies_studies :
+  PursuesHistoricalResearch Anne → StudiesAncientMythology Anne
+
+axiom ax_holds_or_phd : HoldsAdvancedDegree Anne ∨ PhD Anne
+
+-- Goal: Anne gains a deeper understanding of the subject.
+theorem goal : GainsDeeperUnderstanding Anne := by
+  -- From expert and not leading, get PhD
+  have h1 := ax_expert_implies_phd_xor_lead ax_anne_expert
+  have hPhD : PhD Anne := by
+    cases h1 with
+    | inl h =>
+        exact h.left
+    | inr h =>
+        have : False := ax_not_leads h.left
+        exact False.elim this
+  -- From PhD and not teaching, get Archaeologist
+  have hArch : Archaeologist Anne := by
+    have h2 := ax_phd_implies_archaeologist_xor_teaches hPhD
+    cases h2 with
+    | inl h => exact h.left
+    | inr h =>
+        have : False := ax_not_teaches h.left
+        exact False.elim this
+  -- Show Anne cannot be exploring lost civilizations (would imply contribution)
+  have hNotExplores : ¬ ExploresLostCivilizations Anne := by
+    intro hE
+    have hC : ContributesToField Anne :=
+      ax_explores_or_uncovers_implies_contributes Anne (Or.inl hE)
+    exact ax_not_contributes hC
+  -- From archaeologist and not-exploring, deduce she pursues historical research
+  have hPursues : PursuesHistoricalResearch Anne := by
+    have h3 := ax_archaeologist_implies_pursues_xor_explores hArch
+    cases h3 with
+    | inl h => exact h.left
+    | inr h =>
+        have : False := hNotExplores h.left
+        exact False.elim this
+  -- Pursuing implies studying mythology, which implies gaining deeper understanding
+  have hStudy : StudiesAncientMythology Anne := ax_pursues_implies_studies hPursues
+  have hGain : GainsDeeperUnderstanding Anne := ax_studies_implies_gains Anne hStudy
+  exact hGain
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Anne : Person
+
+axiom Expert : Person → Prop
+axiom HasPhD : Person → Prop
+axiom LeadsProject : Person → Prop
+axiom InvestigatesCulturalRemains : Person → Prop
+axiom PursuesHistoricalResearch : Person → Prop
+axiom DeciphersAncientTexts : Person → Prop
+axiom Archaeologist : Person → Prop
+axiom TeachesAtUniversity : Person → Prop
+axiom ContributesToField : Person → Prop
+axiom ExploresLostCivilizations : Person → Prop
+axiom UncoversHiddenArtifacts : Person → Prop
+axiom StudiesAncientMythology : Person → Prop
+axiom GainsDeeperUnderstanding : Person → Prop
+axiom HoldsAdvancedDegree : Person → Prop
+
+-- Premises
+axiom premise1 : Expert Anne → ((HasPhD Anne ∨ LeadsProject Anne) ∧ ¬(HasPhD Anne ∧ LeadsProject Anne))
+axiom premise2 : Expert Anne
+axiom premise3 : ∀ x : Person, InvestigatesCulturalRemains x → (PursuesHistoricalResearch x ∨ DeciphersAncientTexts x)
+axiom premise4 : HasPhD Anne → ((Archaeologist Anne ∨ TeachesAtUniversity Anne) ∧ ¬(Archaeologist Anne ∧ TeachesAtUniversity Anne))
+axiom premise5 : ¬ContributesToField Anne
+axiom premise6 : ∀ x : Person, (ExploresLostCivilizations x ∨ UncoversHiddenArtifacts x) → ContributesToField x
+axiom premise7 : Archaeologist Anne → ((PursuesHistoricalResearch Anne ∨ ExploresLostCivilizations Anne) ∧ ¬(PursuesHistoricalResearch Anne ∧ ExploresLostCivilizations Anne))
+axiom premise8 : ¬TeachesAtUniversity Anne
+axiom premise9 : ¬LeadsProject Anne
+axiom premise10 : ∀ x : Person, StudiesAncientMythology x → GainsDeeperUnderstanding x
+axiom premise11 : PursuesHistoricalResearch Anne → StudiesAncientMythology Anne
+axiom premise12 : HoldsAdvancedDegree Anne ∨ HasPhD Anne
+
+-- We can derive that Anne has a PhD
+theorem hasPhD_Anne : HasPhD Anne := by
+  have h := premise1 premise2
+  have hOr : HasPhD Anne ∨ LeadsProject Anne := And.left h
+  cases hOr with
+  | inl hphd =>
+      exact hphd
+  | inr hlead =>
+      exact False.elim (premise9 hlead)
+
+-- From having a PhD and not teaching at a university, Anne must be an archaeologist
+theorem archaeologist_Anne : Archaeologist Anne := by
+  have h := premise4 hasPhD_Anne
+  have hOr : Archaeologist Anne ∨ TeachesAtUniversity Anne := And.left h
+  cases hOr with
+  | inl harch =>
+      exact harch
+  | inr hteach =>
+      exact False.elim (premise8 hteach)
+
+-- From not contributing and "explores or uncovers implies contributes", Anne cannot explore lost civilizations
+theorem not_explores_Anne : ¬ExploresLostCivilizations Anne := by
+  intro hexp
+  have disj : ExploresLostCivilizations Anne ∨ UncoversHiddenArtifacts Anne := Or.inl hexp
+  have hcontr : ContributesToField Anne := (premise6 Anne) disj
+  exact premise5 hcontr
+
+-- From being an archaeologist and not exploring, Anne must pursue historical research
+theorem pursues_history_Anne : PursuesHistoricalResearch Anne := by
+  have h := premise7 archaeologist_Anne
+  have hOr : PursuesHistoricalResearch Anne ∨ ExploresLostCivilizations Anne := And.left h
+  cases hOr with
+  | inl hpurs =>
+      exact hpurs
+  | inr hexp =>
+      exact False.elim (not_explores_Anne hexp)
+
+-- Pursuing historical research implies studying ancient mythology
+theorem studies_myth_Anne : StudiesAncientMythology Anne := by
+  exact premise11 pursues_history_Anne
+
+-- Studying ancient mythology implies gaining a deeper understanding
+theorem gains_understanding_Anne : GainsDeeperUnderstanding Anne := by
+  exact (premise10 Anne) studies_myth_Anne
+
+-- NEGATION of the conclusion (attempt): Anne does NOT gain a deeper understanding
+theorem neg_goal : ¬GainsDeeperUnderstanding Anne := by
+  -- This appears to be unprovable from the premises, since we can derive GainsDeeperUnderstanding Anne above.
+  -- Attempting a proof leads to contradiction with gains_understanding_Anne.
+  intro h
+  -- From gains_understanding_Anne : GainsDeeperUnderstanding Anne and h : GainsDeeperUnderstanding Anne,
+  -- no contradiction can be derived.
+  -- Therefore, this proof cannot be completed.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

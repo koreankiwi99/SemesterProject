@@ -1,0 +1,259 @@
+Story ID: 0
+Example ID: 341
+Premises: Ahmad makes discoveries. Jasiah makes discoveries. Anyone who thinks critically will solve problems. Ahmad enhances his knowledge. If Ahmad is curious, then he can either make discoveries or drive innovation, but not both. Riley enhances his knowledge. Ahmad asks questions. Riley is inquisitive. If Ahmad pursues research, then he can either achieve recognition or drive innovation, but not both. Ahmad thinks critically. If someone has imagination, then they seek answers and explore concepts. If Ahmad either asks questions or explores concepts (but not both), then he is curious. Creed thinks critically. If Creed pursues research, then he can either achieve recognition or drive innovation, but not both. If Ahmad either examines data or investigates phenomena (but not both), then he has curiosity. Riley asks questions. Ahmad reads widely. Ahmad is inquisitive. Anyone who has expertise or collaborates widely can drive innovation. If Ahmad solves problems, then he pursues research and enhances his knowledge. If Ahmad either analyzes data or identifies patterns (but not both), then he solves problems. Creed reads widely. If Ahmad is inquisitive, then he either reads widely or explores concepts (but not both). If Creed either asks questions or explores concepts (but not both), then he is curious.
+Conclusion: Ahmad achieves recognition.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Ahmad : Person
+axiom Jasiah : Person
+axiom Riley : Person
+axiom Creed : Person
+
+axiom MakesDiscoveries : Person → Prop
+axiom ThinksCritically : Person → Prop
+axiom SolvesProblems : Person → Prop
+axiom EnhancesKnowledge : Person → Prop
+axiom Curious : Person → Prop
+axiom DrivesInnovation : Person → Prop
+axiom PursuesResearch : Person → Prop
+axiom AchievesRecognition : Person → Prop
+axiom HasImagination : Person → Prop
+axiom SeeksAnswers : Person → Prop
+axiom ExploresConcepts : Person → Prop
+axiom AsksQuestions : Person → Prop
+axiom ExaminesData : Person → Prop
+axiom InvestigatesPhenomena : Person → Prop
+axiom HasCuriosity : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom IdentifiesPatterns : Person → Prop
+axiom ReadsWidely : Person → Prop
+axiom Inquisitive : Person → Prop
+axiom HasExpertise : Person → Prop
+axiom CollaboratesWidely : Person → Prop
+
+-- Premises
+axiom a1 : MakesDiscoveries Ahmad
+axiom a2 : MakesDiscoveries Jasiah
+axiom a3 : ∀ x, ThinksCritically x → SolvesProblems x
+axiom a4 : EnhancesKnowledge Ahmad
+axiom a5 : Curious Ahmad → ((MakesDiscoveries Ahmad ∨ DrivesInnovation Ahmad) ∧ ¬(MakesDiscoveries Ahmad ∧ DrivesInnovation Ahmad))
+axiom a6 : EnhancesKnowledge Riley
+axiom a7 : AsksQuestions Ahmad
+axiom a8 : Inquisitive Riley
+axiom a9 : PursuesResearch Ahmad → ((AchievesRecognition Ahmad ∨ DrivesInnovation Ahmad) ∧ ¬(AchievesRecognition Ahmad ∧ DrivesInnovation Ahmad))
+axiom a10 : ThinksCritically Ahmad
+axiom a11 : ∀ x, HasImagination x → (SeeksAnswers x ∧ ExploresConcepts x)
+axiom a12 : ((AsksQuestions Ahmad ∨ ExploresConcepts Ahmad) ∧ ¬(AsksQuestions Ahmad ∧ ExploresConcepts Ahmad)) → Curious Ahmad
+axiom a13 : ThinksCritically Creed
+axiom a14 : PursuesResearch Creed → ((AchievesRecognition Creed ∨ DrivesInnovation Creed) ∧ ¬(AchievesRecognition Creed ∧ DrivesInnovation Creed))
+axiom a15 : ((ExaminesData Ahmad ∨ InvestigatesPhenomena Ahmad) ∧ ¬(ExaminesData Ahmad ∧ InvestigatesPhenomena Ahmad)) → HasCuriosity Ahmad
+axiom a16 : AsksQuestions Riley
+axiom a17 : ReadsWidely Ahmad
+axiom a18 : Inquisitive Ahmad
+axiom a19 : ∀ x, (HasExpertise x ∨ CollaboratesWidely x) → DrivesInnovation x
+axiom a20 : SolvesProblems Ahmad → (PursuesResearch Ahmad ∧ EnhancesKnowledge Ahmad)
+axiom a21 : ((AnalyzesData Ahmad ∨ IdentifiesPatterns Ahmad) ∧ ¬(AnalyzesData Ahmad ∧ IdentifiesPatterns Ahmad)) → SolvesProblems Ahmad
+axiom a22 : ReadsWidely Creed
+axiom a23 : Inquisitive Ahmad → ((ReadsWidely Ahmad ∨ ExploresConcepts Ahmad) ∧ ¬(ReadsWidely Ahmad ∧ ExploresConcepts Ahmad))
+axiom a24 : ((AsksQuestions Creed ∨ ExploresConcepts Creed) ∧ ¬(AsksQuestions Creed ∧ ExploresConcepts Creed)) → Curious Creed
+
+theorem goal : AchievesRecognition Ahmad := by
+  -- From thinking critically to solving problems
+  have hSP : SolvesProblems Ahmad := a3 Ahmad a10
+  -- From solving problems to pursuing research
+  have hPR_EK : PursuesResearch Ahmad ∧ EnhancesKnowledge Ahmad := a20 hSP
+  have hPR : PursuesResearch Ahmad := And.left hPR_EK
+  -- From inquisitive and its XOR consequence with reads/explores
+  have hInq : Inquisitive Ahmad := a18
+  have hRX : (ReadsWidely Ahmad ∨ ExploresConcepts Ahmad) ∧ ¬(ReadsWidely Ahmad ∧ ExploresConcepts Ahmad) := a23 hInq
+  have hRW : ReadsWidely Ahmad := a17
+  have hNotRWandEC : ¬(ReadsWidely Ahmad ∧ ExploresConcepts Ahmad) := And.right hRX
+  have hNotEC : ¬ ExploresConcepts Ahmad := by
+    intro hEC
+    apply hNotRWandEC
+    exact And.intro hRW hEC
+  -- Build XOR for asks vs explores to get curiosity
+  have hAsk : AsksQuestions Ahmad := a7
+  have hAX : (AsksQuestions Ahmad ∨ ExploresConcepts Ahmad) ∧ ¬(AsksQuestions Ahmad ∧ ExploresConcepts Ahmad) := by
+    apply And.intro
+    · exact Or.inl hAsk
+    · intro hAE
+      exact hNotEC (And.right hAE)
+  have hCur : Curious Ahmad := a12 hAX
+  -- From curiosity, get XOR between discoveries and innovation, then exclude innovation using known discoveries
+  have hDIX : (MakesDiscoveries Ahmad ∨ DrivesInnovation Ahmad) ∧ ¬(MakesDiscoveries Ahmad ∧ DrivesInnovation Ahmad) := a5 hCur
+  have hNotDandI : ¬(MakesDiscoveries Ahmad ∧ DrivesInnovation Ahmad) := And.right hDIX
+  have hNotDI : ¬ DrivesInnovation Ahmad := by
+    intro hDI
+    apply hNotDandI
+    exact And.intro a1 hDI
+  -- From pursuing research, get XOR between recognition and innovation, then use ¬innovation to deduce recognition
+  have hRIX : (AchievesRecognition Ahmad ∨ DrivesInnovation Ahmad) ∧ ¬(AchievesRecognition Ahmad ∧ DrivesInnovation Ahmad) := a9 hPR
+  have hRorI : AchievesRecognition Ahmad ∨ DrivesInnovation Ahmad := And.left hRIX
+  have hRec : AchievesRecognition Ahmad := by
+    cases hRorI with
+    | inl hR => exact hR
+    | inr hI => exact False.elim (hNotDI hI)
+  exact hRec
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Ahmad : Person
+axiom Jasiah : Person
+axiom Riley : Person
+axiom Creed : Person
+
+axiom MakesDiscoveries : Person → Prop
+axiom ThinksCritically : Person → Prop
+axiom SolvesProblems : Person → Prop
+axiom EnhancesKnowledge : Person → Prop
+axiom Curious : Person → Prop
+axiom DrivesInnovation : Person → Prop
+axiom AsksQuestions : Person → Prop
+axiom Inquisitive : Person → Prop
+axiom PursuesResearch : Person → Prop
+axiom AchievesRecognition : Person → Prop
+axiom HasImagination : Person → Prop
+axiom SeeksAnswers : Person → Prop
+axiom ExploresConcepts : Person → Prop
+axiom ExaminesData : Person → Prop
+axiom InvestigatesPhenomena : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom IdentifiesPatterns : Person → Prop
+axiom ReadsWidely : Person → Prop
+axiom HasExpertise : Person → Prop
+axiom CollaboratesWidely : Person → Prop
+
+-- Premises
+axiom a1 : MakesDiscoveries Ahmad
+axiom j1 : MakesDiscoveries Jasiah
+axiom ax_tc_sp : ∀ x : Person, ThinksCritically x → SolvesProblems x
+axiom a_enh : EnhancesKnowledge Ahmad
+axiom a_cur_imp_xor_disc_or_innov :
+  Curious Ahmad →
+    ((MakesDiscoveries Ahmad ∧ ¬DrivesInnovation Ahmad) ∨
+     (DrivesInnovation Ahmad ∧ ¬MakesDiscoveries Ahmad))
+axiom r_enh : EnhancesKnowledge Riley
+axiom a_ask : AsksQuestions Ahmad
+axiom r_inq : Inquisitive Riley
+axiom a_res_imp_xor_rec_or_innov :
+  PursuesResearch Ahmad →
+    ((AchievesRecognition Ahmad ∧ ¬DrivesInnovation Ahmad) ∨
+     (DrivesInnovation Ahmad ∧ ¬AchievesRecognition Ahmad))
+axiom a_tc : ThinksCritically Ahmad
+axiom ax_implies_seek_and_explore :
+  ∀ x : Person, HasImagination x → (SeeksAnswers x ∧ ExploresConcepts x)
+axiom a_xor_ask_explore_imp_curious :
+  ((AsksQuestions Ahmad ∧ ¬ExploresConcepts Ahmad) ∨
+   (ExploresConcepts Ahmad ∧ ¬AsksQuestions Ahmad)) → Curious Ahmad
+axiom c_tc : ThinksCritically Creed
+axiom c_res_imp_xor :
+  PursuesResearch Creed →
+    ((AchievesRecognition Creed ∧ ¬DrivesInnovation Creed) ∨
+     (DrivesInnovation Creed ∧ ¬AchievesRecognition Creed))
+axiom a_xor_exam_invest_imp_curious :
+  ((ExaminesData Ahmad ∧ ¬InvestigatesPhenomena Ahmad) ∨
+   (InvestigatesPhenomena Ahmad ∧ ¬ExaminesData Ahmad)) → Curious Ahmad
+axiom r_ask : AsksQuestions Riley
+axiom a_read : ReadsWidely Ahmad
+axiom a_inq : Inquisitive Ahmad
+axiom ax_expert_or_collab_imp_innov :
+  ∀ x : Person, (HasExpertise x ∨ CollaboratesWidely x) → DrivesInnovation x
+axiom a_solves_imp_research_and_enhance :
+  SolvesProblems Ahmad → (PursuesResearch Ahmad ∧ EnhancesKnowledge Ahmad)
+axiom a_xor_analyze_identify_imp_solves :
+  ((AnalyzesData Ahmad ∧ ¬IdentifiesPatterns Ahmad) ∨
+   (IdentifiesPatterns Ahmad ∧ ¬AnalyzesData Ahmad)) → SolvesProblems Ahmad
+axiom c_reads : ReadsWidely Creed
+axiom a_inq_imp_xor_read_or_explore :
+  Inquisitive Ahmad →
+    ((ReadsWidely Ahmad ∧ ¬ExploresConcepts Ahmad) ∨
+     (ExploresConcepts Ahmad ∧ ¬ReadsWidely Ahmad))
+axiom c_xor_ask_explore_imp_curious :
+  ((AsksQuestions Creed ∧ ¬ExploresConcepts Creed) ∨
+   (ExploresConcepts Creed ∧ ¬AsksQuestions Creed)) → Curious Creed
+
+-- From the premises, we can actually derive that Ahmad achieves recognition.
+theorem achieves_recognition_Ahmad : AchievesRecognition Ahmad := by
+  -- Ahmad solves problems from thinking critically
+  have hsol : SolvesProblems Ahmad := ax_tc_sp Ahmad a_tc
+  -- From solving problems, he pursues research (and enhances knowledge)
+  have hres_enh : PursuesResearch Ahmad ∧ EnhancesKnowledge Ahmad :=
+    a_solves_imp_research_and_enhance hsol
+  have hres : PursuesResearch Ahmad := hres_enh.left
+  -- From inquisitiveness, he either reads widely or explores (but not both); given he reads widely, not explores.
+  have hx :
+      (ReadsWidely Ahmad ∧ ¬ExploresConcepts Ahmad) ∨
+      (ExploresConcepts Ahmad ∧ ¬ReadsWidely Ahmad) :=
+    a_inq_imp_xor_read_or_explore a_inq
+  have hnotexp : ¬ExploresConcepts Ahmad := by
+    cases hx with
+    | inl h =>
+      exact h.right
+    | inr h =>
+      have : False := h.right a_read
+      exact False.elim this
+  -- Using asks questions and not explores, Ahmad is curious
+  have hcur : Curious Ahmad :=
+    a_xor_ask_explore_imp_curious (Or.inl ⟨a_ask, hnotexp⟩)
+  -- From curiosity, he is in the discoveries xor innovation situation; given he makes discoveries, he is not driving innovation
+  have hdisc_xor_innov :
+      (MakesDiscoveries Ahmad ∧ ¬DrivesInnovation Ahmad) ∨
+      (DrivesInnovation Ahmad ∧ ¬MakesDiscoveries Ahmad) :=
+    a_cur_imp_xor_disc_or_innov hcur
+  have hnotinnov : ¬DrivesInnovation Ahmad := by
+    intro hd
+    cases hdisc_xor_innov with
+    | inl h =>
+      exact h.right hd
+    | inr h =>
+      exact h.right a1
+  -- From pursuing research, it is recognition xor innovation; with not innovation, it must be recognition.
+  have hrec_xor_innov :
+      (AchievesRecognition Ahmad ∧ ¬DrivesInnovation Ahmad) ∨
+      (DrivesInnovation Ahmad ∧ ¬AchievesRecognition Ahmad) :=
+    a_res_imp_xor_rec_or_innov hres
+  have hrec : AchievesRecognition Ahmad := by
+    cases hrec_xor_innov with
+    | inl h =>
+      exact h.left
+    | inr h =>
+      have : False := hnotinnov h.left
+      exact False.elim this
+  exact hrec
+
+-- We are asked to prove the negation of the conclusion:
+-- Conclusion to analyze: Ahmad achieves recognition.
+-- Negation to prove: ¬(Ahmad achieves recognition).
+theorem neg_goal : ¬AchievesRecognition Ahmad := by
+  -- Attempt to derive a contradiction from assuming Ahmad achieves recognition,
+  -- but the premises actually entail AchievesRecognition Ahmad (see lemma above),
+  -- so this negation is not derivable from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

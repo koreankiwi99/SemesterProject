@@ -1,0 +1,237 @@
+Story ID: 0
+Example ID: 34
+Premises: Chana either prioritizes tasks or handles multiple projects. All excellent troubleshooters are respected experts and have a strong work ethic. If Chana either identifies root causes or develops creative solutions (but not both), then she is an excellent troubleshooter. Chana does not work under pressure. If Chana leads critical projects, then she either demonstrates professionalism or has a strong work ethic, but not both. Vivian is a key team member. Anyone who consistently meets deadlines has a strong work ethic. Chana is a key team member. Chana is not highly motivated. Chana does not handle multiple projects. If Chana is a key team member, then she is either an excellent troubleshooter or highly motivated, but not both. Anyone who prioritizes tasks and manages time can meet deadlines. Chana either works under pressure or is organized, but not both. If someone is organized, then they manage their time effectively.
+Conclusion: Chana does not have in-depth data analysis abilities.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We formalize the domain and predicates
+axiom Person : Type
+axiom Chana : Person
+axiom Vivian : Person
+
+axiom PrioritizesTasks : Person → Prop
+axiom HandlesMultipleProjects : Person → Prop
+axiom ExcellentTroubleshooter : Person → Prop
+axiom RespectedExpert : Person → Prop
+axiom StrongWorkEthic : Person → Prop
+axiom IdentifiesRootCauses : Person → Prop
+axiom DevelopsCreativeSolutions : Person → Prop
+axiom WorksUnderPressure : Person → Prop
+axiom LeadsCriticalProjects : Person → Prop
+axiom DemonstratesProfessionalism : Person → Prop
+axiom KeyTeamMember : Person → Prop
+axiom ConsistentlyMeetsDeadlines : Person → Prop
+axiom HighlyMotivated : Person → Prop
+axiom ManagesTime : Person → Prop
+axiom Organized : Person → Prop
+axiom InDepthDataAnalysis : Person → Prop
+
+-- Premises
+
+-- 1. Chana either prioritizes tasks or handles multiple projects.
+axiom premise1 : PrioritizesTasks Chana ∨ HandlesMultipleProjects Chana
+
+-- 2. All excellent troubleshooters are respected experts and have a strong work ethic.
+axiom premise2 : ∀ x : Person, ExcellentTroubleshooter x → (RespectedExpert x ∧ StrongWorkEthic x)
+
+-- 3. If Chana either identifies root causes or develops creative solutions (but not both), then she is an excellent troubleshooter.
+axiom premise3 :
+  ((IdentifiesRootCauses Chana ∨ DevelopsCreativeSolutions Chana) ∧
+   ¬ (IdentifiesRootCauses Chana ∧ DevelopsCreativeSolutions Chana))
+  → ExcellentTroubleshooter Chana
+
+-- 4. Chana does not work under pressure.
+axiom premise4 : ¬ WorksUnderPressure Chana
+
+-- 5. If Chana leads critical projects, then she either demonstrates professionalism or has a strong work ethic, but not both.
+axiom premise5 :
+  LeadsCriticalProjects Chana →
+  ((DemonstratesProfessionalism Chana ∨ StrongWorkEthic Chana) ∧
+   ¬ (DemonstratesProfessionalism Chana ∧ StrongWorkEthic Chana))
+
+-- 6. Vivian is a key team member.
+axiom premise6 : KeyTeamMember Vivian
+
+-- 7. Anyone who consistently meets deadlines has a strong work ethic.
+axiom premise7 : ∀ x : Person, ConsistentlyMeetsDeadlines x → StrongWorkEthic x
+
+-- 8. Chana is a key team member.
+axiom premise8 : KeyTeamMember Chana
+
+-- 9. Chana is not highly motivated.
+axiom premise9 : ¬ HighlyMotivated Chana
+
+-- 10. Chana does not handle multiple projects.
+axiom premise10 : ¬ HandlesMultipleProjects Chana
+
+-- 11. If Chana is a key team member, then she is either an excellent troubleshooter or highly motivated, but not both.
+axiom premise11 :
+  KeyTeamMember Chana →
+  ((ExcellentTroubleshooter Chana ∨ HighlyMotivated Chana) ∧
+   ¬ (ExcellentTroubleshooter Chana ∧ HighlyMotivated Chana))
+
+-- 12. Anyone who prioritizes tasks and manages time can meet deadlines.
+axiom premise12 : ∀ x : Person, (PrioritizesTasks x ∧ ManagesTime x) → ConsistentlyMeetsDeadlines x
+
+-- 13. Chana either works under pressure or is organized, but not both.
+axiom premise13 :
+  ((WorksUnderPressure Chana ∨ Organized Chana) ∧
+   ¬ (WorksUnderPressure Chana ∧ Organized Chana))
+
+-- 14. If someone is organized, then they manage their time effectively.
+axiom premise14 : ∀ x : Person, Organized x → ManagesTime x
+
+-- Conclusion to analyze:
+-- Chana does not have in-depth data analysis abilities.
+theorem conclusion : ¬ InDepthDataAnalysis Chana := by
+  -- Derive some consequences of the premises (these do not lead to the desired conclusion).
+  -- From premise1 and premise10, we have that Chana prioritizes tasks.
+  have hPT : PrioritizesTasks Chana := by
+    cases premise1 with
+    | inl h => exact h
+    | inr hmp => exact False.elim (premise10 hmp)
+
+  -- From premise13 and premise4 (¬ works under pressure), Chana is organized.
+  have hOrg : Organized Chana := by
+    have hdisj := (And.left premise13)
+    cases hdisj with
+    | inl hWUP =>
+        exact False.elim (premise4 hWUP)
+    | inr hO =>
+        exact hO
+
+  -- Organized implies manages time (premise14).
+  have hMT : ManagesTime Chana := by
+    exact premise14 Chana hOrg
+
+  -- From prioritizes tasks and manages time, she meets deadlines (premise12).
+  have hCMD : ConsistentlyMeetsDeadlines Chana := by
+    exact premise12 Chana ⟨hPT, hMT⟩
+
+  -- Meeting deadlines implies strong work ethic (premise7).
+  have hSWE₁ : StrongWorkEthic Chana := by
+    exact premise7 Chana hCMD
+
+  -- From key team member and premise11, with ¬ highly motivated (premise9), Chana is an excellent troubleshooter.
+  have hET : ExcellentTroubleshooter Chana := by
+    have hx := premise11 premise8
+    have hdisj := And.left hx
+    cases hdisj with
+    | inl h => exact h
+    | inr hHM =>
+        exact False.elim (premise9 hHM)
+
+  -- Excellent troubleshooter implies respected expert and strong work ethic (premise2).
+  have hRE_and_SWE := premise2 Chana hET
+  have hRE : RespectedExpert Chana := And.left hRE_and_SWE
+  have hSWE₂ : StrongWorkEthic Chana := And.right hRE_and_SWE
+
+  -- Despite these derivations, nothing links to InDepthDataAnalysis.
+  -- Therefore, the desired conclusion cannot be derived from the given premises.
+  -- We cannot complete this proof.
+  admit
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Chana : Person
+axiom Vivian : Person
+
+axiom Prioritizes : Person → Prop
+axiom HandlesMultipleProjects : Person → Prop
+axiom ExcellentTroubleshooter : Person → Prop
+axiom RespectedExpert : Person → Prop
+axiom StrongWorkEthic : Person → Prop
+axiom IdentifiesRootCauses : Person → Prop
+axiom DevelopsCreativeSolutions : Person → Prop
+axiom WorksUnderPressure : Person → Prop
+axiom LeadsCriticalProjects : Person → Prop
+axiom DemonstratesProfessionalism : Person → Prop
+axiom KeyTeamMember : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom HighlyMotivated : Person → Prop
+axiom ManagesTime : Person → Prop
+axiom Organized : Person → Prop
+axiom InDepthDataAnalysisAbilities : Person → Prop
+
+-- Premises
+axiom prem1 : Prioritizes Chana ∨ HandlesMultipleProjects Chana
+axiom prem2 : ∀ x : Person, ExcellentTroubleshooter x → (RespectedExpert x ∧ StrongWorkEthic x)
+axiom prem3 : ((IdentifiesRootCauses Chana ∨ DevelopsCreativeSolutions Chana) ∧ ¬(IdentifiesRootCauses Chana ∧ DevelopsCreativeSolutions Chana)) → ExcellentTroubleshooter Chana
+axiom prem4 : ¬ WorksUnderPressure Chana
+axiom prem5 : LeadsCriticalProjects Chana → ((DemonstratesProfessionalism Chana ∨ StrongWorkEthic Chana) ∧ ¬(DemonstratesProfessionalism Chana ∧ StrongWorkEthic Chana))
+axiom prem6 : KeyTeamMember Vivian
+axiom prem7 : ∀ x : Person, MeetsDeadlines x → StrongWorkEthic x
+axiom prem8 : KeyTeamMember Chana
+axiom prem9 : ¬ HighlyMotivated Chana
+axiom prem10 : ¬ HandlesMultipleProjects Chana
+axiom prem11 : KeyTeamMember Chana → ((ExcellentTroubleshooter Chana ∨ HighlyMotivated Chana) ∧ ¬(ExcellentTroubleshooter Chana ∧ HighlyMotivated Chana))
+axiom prem12 : ∀ x : Person, (Prioritizes x ∧ ManagesTime x) → MeetsDeadlines x
+axiom prem13 : (WorksUnderPressure Chana ∨ Organized Chana) ∧ ¬(WorksUnderPressure Chana ∧ Organized Chana)
+axiom prem14 : ∀ x : Person, Organized x → ManagesTime x
+
+-- Negation of the conclusion: Chana does have in-depth data analysis abilities
+theorem negConclusion : InDepthDataAnalysisAbilities Chana := by
+  -- Derive that Chana prioritizes tasks
+  have hP : Prioritizes Chana := by
+    cases prem1 with
+    | inl hp => exact hp
+    | inr hm =>
+        have : False := prem10 hm
+        exact False.elim this
+  -- Derive that Chana is organized (from XOR with not working under pressure)
+  have hOrg : Organized Chana := by
+    have hOr := And.left prem13
+    cases hOr with
+    | inl hwup =>
+        have : False := prem4 hwup
+        exact False.elim this
+    | inr horganized => exact horganized
+  -- Derive that Chana manages time
+  have hMT : ManagesTime Chana := by
+    exact prem14 Chana hOrg
+  -- Derive that Chana meets deadlines
+  have hMD : MeetsDeadlines Chana := by
+    apply prem12 Chana
+    exact And.intro hP hMT
+  -- Derive strong work ethic from meeting deadlines
+  have hSWE1 : StrongWorkEthic Chana := by
+    exact prem7 Chana hMD
+  -- Derive excellent troubleshooter from key team member and not highly motivated
+  have hET : ExcellentTroubleshooter Chana := by
+    have hx := prem11 prem8
+    have hdisj := And.left hx
+    cases hdisj with
+    | inl het => exact het
+    | inr hhm =>
+        have : False := prem9 hhm
+        exact False.elim this
+  -- Derive respected expert and strong work ethic from excellent troubleshooter
+  have hResExp_and_SWE := prem2 Chana hET
+  have hResExp : RespectedExpert Chana := And.left hResExp_and_SWE
+  have hSWE2 : StrongWorkEthic Chana := And.right hResExp_and_SWE
+  -- No premises relate to in-depth data analysis abilities; cannot conclude the goal
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

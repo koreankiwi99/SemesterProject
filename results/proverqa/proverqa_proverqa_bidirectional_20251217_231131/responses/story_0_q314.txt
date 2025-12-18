@@ -1,0 +1,226 @@
+Story ID: 0
+Example ID: 314
+Premises: If Jaziel has wide interests, then he either has specialized knowledge or versatile skills, but not both. Jaziel has specialized knowledge. Erick has specialized knowledge. If Jaziel loves classics or enjoys writing, then he is an avid reader. Erick is either an inspiring teacher or an avid reader, but not both. Jaziel does not gain recognition. If Erick either adapts easily or handles pressure (but not both), then he thrives professionally. Calum learns quickly. Anyone who learns quickly or adapts easily has versatile skills. If Jaziel works hard or achieves success, then he will gain recognition. Jaziel is either an avid reader or has wide interests, but not both. Erick is not someone who makes an impact. For every human, if a person is either a prodigious writer or an inspiring teacher (but not both), then they are influential. Calum thrives professionally. Jaziel learns quickly. Jaziel is not someone who makes an impact. Erick is either an avid reader or has wide interests, but not both. Everyone who is either influential or achieves success is someone who makes an impact. Erick does not work hard. Jaziel is either an inspiring teacher or an avid reader, but not both. Jaziel has creative talent or versatile skills. Calum handles pressure. If Erick works hard or achieves success, then he will gain recognition. Jaziel does not work hard.
+Conclusion: Jaziel is a prodigious writer.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Jaziel : Person
+axiom Erick : Person
+axiom Calum : Person
+
+-- Predicates
+axiom WideInterests : Person → Prop
+axiom SpecializedKnowledge : Person → Prop
+axiom VersatileSkills : Person → Prop
+axiom LovesClassics : Person → Prop
+axiom EnjoysWriting : Person → Prop
+axiom AvidReader : Person → Prop
+axiom GainRecognition : Person → Prop
+axiom AdaptsEasily : Person → Prop
+axiom HandlesPressure : Person → Prop
+axiom ThrivesProfessionally : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom WorksHard : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom MakesImpact : Person → Prop
+axiom InspiringTeacher : Person → Prop
+axiom Influential : Person → Prop
+axiom ProdigiousWriter : Person → Prop
+axiom CreativeTalent : Person → Prop
+
+-- Premises
+axiom ax1 :
+  WideInterests Jaziel →
+    ((SpecializedKnowledge Jaziel ∨ VersatileSkills Jaziel) ∧
+     ¬(SpecializedKnowledge Jaziel ∧ VersatileSkills Jaziel))
+axiom ax2 : SpecializedKnowledge Jaziel
+axiom ax3 : SpecializedKnowledge Erick
+axiom ax4 : (LovesClassics Jaziel ∨ EnjoysWriting Jaziel) → AvidReader Jaziel
+axiom ax5 : (InspiringTeacher Erick ∨ AvidReader Erick) ∧ ¬(InspiringTeacher Erick ∧ AvidReader Erick)
+axiom ax6 : ¬ GainRecognition Jaziel
+axiom ax7 :
+  ((AdaptsEasily Erick ∨ HandlesPressure Erick) ∧ ¬(AdaptsEasily Erick ∧ HandlesPressure Erick))
+  → ThrivesProfessionally Erick
+axiom ax8 : LearnsQuickly Calum
+axiom ax9 : ∀ x : Person, (LearnsQuickly x ∨ AdaptsEasily x) → VersatileSkills x
+axiom ax10 : (WorksHard Jaziel ∨ AchievesSuccess Jaziel) → GainRecognition Jaziel
+axiom ax11 : (AvidReader Jaziel ∨ WideInterests Jaziel) ∧ ¬(AvidReader Jaziel ∧ WideInterests Jaziel)
+axiom ax12 : ¬ MakesImpact Erick
+axiom ax13 :
+  ∀ x : Person,
+    ((ProdigiousWriter x ∨ InspiringTeacher x) ∧ ¬(ProdigiousWriter x ∧ InspiringTeacher x))
+    → Influential x
+axiom ax14 : ThrivesProfessionally Calum
+axiom ax15 : LearnsQuickly Jaziel
+axiom ax16 : ¬ MakesImpact Jaziel
+axiom ax17 : (AvidReader Erick ∨ WideInterests Erick) ∧ ¬(AvidReader Erick ∧ WideInterests Erick)
+axiom ax18 : ∀ x : Person, (Influential x ∨ AchievesSuccess x) → MakesImpact x
+axiom ax19 : ¬ WorksHard Erick
+axiom ax20 : (InspiringTeacher Jaziel ∨ AvidReader Jaziel) ∧ ¬(InspiringTeacher Jaziel ∧ AvidReader Jaziel)
+axiom ax21 : CreativeTalent Jaziel ∨ VersatileSkills Jaziel
+axiom ax22 : HandlesPressure Calum
+axiom ax23 : (WorksHard Erick ∨ AchievesSuccess Erick) → GainRecognition Erick
+axiom ax24 : ¬ WorksHard Jaziel
+
+-- Helpful derivations
+lemma jaziel_versatile : VersatileSkills Jaziel := by
+  have := ax9 Jaziel (Or.inl ax15)
+  exact this
+
+lemma not_wide_jaziel : ¬ WideInterests Jaziel := by
+  intro w
+  have h := ax1 w
+  have both : SpecializedKnowledge Jaziel ∧ VersatileSkills Jaziel := And.intro ax2 jaziel_versatile
+  exact h.right both
+
+lemma avid_reader_jaziel : AvidReader Jaziel := by
+  have hw : AvidReader Jaziel ∨ WideInterests Jaziel := ax11.left
+  have nBoth := ax11.right
+  have nW : ¬ WideInterests Jaziel := not_wide_jaziel
+  cases hw with
+  | inl a => exact a
+  | inr w => exact False.elim (nW w)
+
+lemma not_inspiring_jaziel : ¬ InspiringTeacher Jaziel := by
+  intro i
+  have nBoth := ax20.right
+  exact nBoth ⟨i, avid_reader_jaziel⟩
+
+-- From the premises, we can in fact derive that Jaziel is not a prodigious writer.
+theorem not_prodigious_writer_jaziel : ¬ ProdigiousWriter Jaziel := by
+  intro p
+  -- Build the XOR condition needed for ax13 using p and ¬ InspiringTeacher Jaziel
+  have hnotboth : ¬ (ProdigiousWriter Jaziel ∧ InspiringTeacher Jaziel) := by
+    intro h
+    exact not_inspiring_jaziel h.right
+  have hx : (ProdigiousWriter Jaziel ∨ InspiringTeacher Jaziel) ∧ ¬ (ProdigiousWriter Jaziel ∧ InspiringTeacher Jaziel) :=
+    And.intro (Or.inl p) hnotboth
+  have infJ : Influential Jaziel := ax13 Jaziel hx
+  have impactJ : MakesImpact Jaziel := ax18 Jaziel (Or.inl infJ)
+  exact ax16 impactJ
+
+-- Claimed conclusion (not derivable from the premises)
+theorem goal : ProdigiousWriter Jaziel := by
+  -- From the premises we actually derived ¬ProdigiousWriter Jaziel (see above),
+  -- so this goal is not provable.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Jaziel : Person
+axiom Erick : Person
+axiom Calum : Person
+
+axiom WideInterests : Person → Prop
+axiom SpecializedKnowledge : Person → Prop
+axiom VersatileSkills : Person → Prop
+axiom LovesClassics : Person → Prop
+axiom EnjoysWriting : Person → Prop
+axiom AvidReader : Person → Prop
+axiom InspiringTeacher : Person → Prop
+axiom GainsRecognition : Person → Prop
+axiom AdaptsEasily : Person → Prop
+axiom HandlesPressure : Person → Prop
+axiom ThrivesProfessionally : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom MakesImpact : Person → Prop
+axiom Influential : Person → Prop
+axiom ProdigiousWriter : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom WorksHard : Person → Prop
+axiom CreativeTalent : Person → Prop
+
+-- Premises
+axiom p1 :
+  WideInterests Jaziel →
+  ((SpecializedKnowledge Jaziel ∨ VersatileSkills Jaziel) ∧ ¬(SpecializedKnowledge Jaziel ∧ VersatileSkills Jaziel))
+axiom p2 : SpecializedKnowledge Jaziel
+axiom p3 : SpecializedKnowledge Erick
+axiom p4 : (LovesClassics Jaziel ∨ EnjoysWriting Jaziel) → AvidReader Jaziel
+axiom p5 : (InspiringTeacher Erick ∨ AvidReader Erick) ∧ ¬(InspiringTeacher Erick ∧ AvidReader Erick)
+axiom p6 : ¬GainsRecognition Jaziel
+axiom p7 :
+  ((AdaptsEasily Erick ∨ HandlesPressure Erick) ∧ ¬(AdaptsEasily Erick ∧ HandlesPressure Erick))
+  → ThrivesProfessionally Erick
+axiom p8 : LearnsQuickly Calum
+axiom p9 : ∀ x : Person, (LearnsQuickly x ∨ AdaptsEasily x) → VersatileSkills x
+axiom p10 : (WorksHard Jaziel ∨ AchievesSuccess Jaziel) → GainsRecognition Jaziel
+axiom p11 : (AvidReader Jaziel ∨ WideInterests Jaziel) ∧ ¬(AvidReader Jaziel ∧ WideInterests Jaziel)
+axiom p12 : ¬MakesImpact Erick
+axiom p13 : ∀ x : Person,
+  ((ProdigiousWriter x ∨ InspiringTeacher x) ∧ ¬(ProdigiousWriter x ∧ InspiringTeacher x)) → Influential x
+axiom p14 : ThrivesProfessionally Calum
+axiom p15 : LearnsQuickly Jaziel
+axiom p16 : ¬MakesImpact Jaziel
+axiom p17 : (AvidReader Erick ∨ WideInterests Erick) ∧ ¬(AvidReader Erick ∧ WideInterests Erick)
+axiom p18 : ∀ x : Person, (Influential x ∨ AchievesSuccess x) → MakesImpact x
+axiom p19 : ¬WorksHard Erick
+axiom p20 : (InspiringTeacher Jaziel ∨ AvidReader Jaziel) ∧ ¬(InspiringTeacher Jaziel ∧ AvidReader Jaziel)
+axiom p21 : CreativeTalent Jaziel ∨ VersatileSkills Jaziel
+axiom p22 : HandlesPressure Calum
+axiom p23 : (WorksHard Erick ∨ AchievesSuccess Erick) → GainsRecognition Erick
+axiom p24 : ¬WorksHard Jaziel
+
+-- Goal: prove the negation of the conclusion "Jaziel is a prodigious writer"
+theorem not_prod_writer_Jaziel : ¬ProdigiousWriter Jaziel := by
+  intro hPW
+  -- From learning quickly, Jaziel has versatile skills
+  have hLJ : LearnsQuickly Jaziel := p15
+  have hVSJ : VersatileSkills Jaziel := by
+    have : LearnsQuickly Jaziel ∨ AdaptsEasily Jaziel := Or.inl hLJ
+    exact p9 Jaziel this
+  have hSKJ : SpecializedKnowledge Jaziel := p2
+  -- Show ¬WideInterests Jaziel using p1
+  have hNotWI : ¬WideInterests Jaziel := by
+    intro hWI
+    have hconj := p1 hWI
+    have hnotboth : ¬(SpecializedKnowledge Jaziel ∧ VersatileSkills Jaziel) := hconj.right
+    have hboth : SpecializedKnowledge Jaziel ∧ VersatileSkills Jaziel := And.intro hSKJ hVSJ
+    exact hnotboth hboth
+  -- From (AvidReader ∨ WideInterests) and ¬WideInterests, deduce AvidReader
+  have hdisj1 : AvidReader Jaziel ∨ WideInterests Jaziel := p11.left
+  have hARJ : AvidReader Jaziel := by
+    cases hdisj1 with
+    | inl har => exact har
+    | inr hwi => exact False.elim (hNotWI hwi)
+  -- From "not both InspiringTeacher and AvidReader" and AvidReader, deduce ¬InspiringTeacher
+  have hnotBothInspAvid : ¬(InspiringTeacher Jaziel ∧ AvidReader Jaziel) := p20.right
+  have hNotInsp : ¬InspiringTeacher Jaziel := by
+    intro hInsp
+    exact hnotBothInspAvid (And.intro hInsp hARJ)
+  -- Use the XOR (PW xor Insp) premise to get Influential Jaziel
+  have hXORPWInsp :
+      (ProdigiousWriter Jaziel ∨ InspiringTeacher Jaziel) ∧ ¬(ProdigiousWriter Jaziel ∧ InspiringTeacher Jaziel) := by
+    refine And.intro (Or.inl hPW) ?_
+    intro hpair
+    exact hNotInsp hpair.right
+  have hInf : Influential Jaziel := p13 Jaziel hXORPWInsp
+  -- Influential implies MakesImpact; contradict ¬MakesImpact
+  have hMI : MakesImpact Jaziel := p18 Jaziel (Or.inl hInf)
+  exact p16 hMI
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

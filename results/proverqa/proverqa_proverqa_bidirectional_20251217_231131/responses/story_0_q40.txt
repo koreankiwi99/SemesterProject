@@ -1,0 +1,220 @@
+Story ID: 0
+Example ID: 40
+Premises: Ashley participates in conferences. Alliebear does not publish her findings. If Margaret earns recognition, then she either publishes papers or receives awards (or both). Alliebear either works independently or collaborates with experts, but not both. Anyone who makes breakthroughs either publishes their findings or advances knowledge (or both). Alliebear does not publish papers. Alliebear does not advance knowledge. If Alliebear either mentors students or joins research teams (but not both), then she collaborates with experts. Alliebear works independently. Alliebear either participates in conferences or delivers lectures, but not both. Alliebear pursues a PhD. Anyone who collaborates with experts or produces innovative research can make breakthroughs. If Alliebear is a dedicated scientist, then she produces innovative research and earns recognition. Alliebear participates in conferences. Alliebear either gains acclaim or pursues a PhD, but not both. Kyree does not publish her findings. If someone has a creative mind, then they can make breakthroughs. If Alliebear earns recognition, then she either publishes papers or receives awards (or both). If Alliebear either receives awards or delivers lectures (but not both), then she gains acclaim. If Margaret is a dedicated scientist, then she produces innovative research and earns recognition.
+Conclusion: Alliebear is a dedicated scientist.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Ashley : Person
+axiom Alliebear : Person
+axiom Margaret : Person
+axiom Kyree : Person
+
+axiom ParticipatesConferences : Person → Prop
+axiom PublishesFindings : Person → Prop
+axiom PublishesPapers : Person → Prop
+axiom ReceivesAwards : Person → Prop
+axiom WorksIndependently : Person → Prop
+axiom CollaboratesExperts : Person → Prop
+axiom MentorsStudents : Person → Prop
+axiom JoinsResearchTeams : Person → Prop
+axiom AdvancesKnowledge : Person → Prop
+axiom DeliversLectures : Person → Prop
+axiom PursuesPhD : Person → Prop
+axiom ProducesInnovativeResearch : Person → Prop
+axiom DedicatedScientist : Person → Prop
+axiom GainsAcclaim : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom MakesBreakthroughs : Person → Prop
+axiom CreativeMind : Person → Prop
+
+-- Premises
+axiom a1 : ParticipatesConferences Ashley
+axiom a2 : ¬ PublishesFindings Alliebear
+axiom a3 : EarnsRecognition Margaret → PublishesPapers Margaret ∨ ReceivesAwards Margaret
+axiom a4 : (WorksIndependently Alliebear ∨ CollaboratesExperts Alliebear) ∧ ¬(WorksIndependently Alliebear ∧ CollaboratesExperts Alliebear)
+axiom a5 : ∀ x, MakesBreakthroughs x → PublishesFindings x ∨ AdvancesKnowledge x
+axiom a6 : ¬ PublishesPapers Alliebear
+axiom a7 : ¬ AdvancesKnowledge Alliebear
+axiom a8 : ((MentorsStudents Alliebear ∨ JoinsResearchTeams Alliebear) ∧ ¬(MentorsStudents Alliebear ∧ JoinsResearchTeams Alliebear)) → CollaboratesExperts Alliebear
+axiom a9 : WorksIndependently Alliebear
+axiom a10 : (ParticipatesConferences Alliebear ∨ DeliversLectures Alliebear) ∧ ¬(ParticipatesConferences Alliebear ∧ DeliversLectures Alliebear)
+axiom a11 : PursuesPhD Alliebear
+axiom a12 : ∀ x, (CollaboratesExperts x ∨ ProducesInnovativeResearch x) → MakesBreakthroughs x
+axiom a13 : DedicatedScientist Alliebear → ProducesInnovativeResearch Alliebear ∧ EarnsRecognition Alliebear
+axiom a14 : ParticipatesConferences Alliebear
+axiom a15 : (GainsAcclaim Alliebear ∨ PursuesPhD Alliebear) ∧ ¬(GainsAcclaim Alliebear ∧ PursuesPhD Alliebear)
+axiom a16 : ¬ PublishesFindings Kyree
+axiom a17 : ∀ x, CreativeMind x → MakesBreakthroughs x
+axiom a18 : EarnsRecognition Alliebear → PublishesPapers Alliebear ∨ ReceivesAwards Alliebear
+axiom a19 : ((ReceivesAwards Alliebear ∨ DeliversLectures Alliebear) ∧ ¬(ReceivesAwards Alliebear ∧ DeliversLectures Alliebear)) → GainsAcclaim Alliebear
+axiom a20 : DedicatedScientist Margaret → ProducesInnovativeResearch Margaret ∧ EarnsRecognition Margaret
+
+-- From the premises we can actually derive that Alliebear is NOT a dedicated scientist.
+theorem not_dedicated_Alliebear : ¬ DedicatedScientist Alliebear := by
+  -- ¬(PublishesFindings ∨ AdvancesKnowledge) for Alliebear
+  have hNotPFOrAK : ¬ (PublishesFindings Alliebear ∨ AdvancesKnowledge Alliebear) := by
+    intro h
+    cases h with
+    | inl hpf => exact a2 hpf
+    | inr hak => exact a7 hak
+  -- ¬Breakthroughs Alliebear
+  have hNotBr : ¬ MakesBreakthroughs Alliebear := by
+    intro hB
+    have h := a5 Alliebear hB
+    exact hNotPFOrAK h
+  -- From ((Collaborates ∨ ProducesInnovative) → Breakthroughs), get ¬Collaborates and ¬ProducesInnovative
+  have hNotCollab : ¬ CollaboratesExperts Alliebear := by
+    intro hC
+    have hb : MakesBreakthroughs Alliebear := a12 Alliebear (Or.inl hC)
+    exact hNotBr hb
+  have hNotProd : ¬ ProducesInnovativeResearch Alliebear := by
+    intro hP
+    have hb : MakesBreakthroughs Alliebear := a12 Alliebear (Or.inr hP)
+    exact hNotBr hb
+  -- ¬DeliversLectures Alliebear from XOR and participation
+  have hNotDeliver : ¬ DeliversLectures Alliebear := by
+    have hX := a10
+    have hNotAnd : ¬ (ParticipatesConferences Alliebear ∧ DeliversLectures Alliebear) := And.right hX
+    have hPart : ParticipatesConferences Alliebear := a14
+    intro hDL
+    exact hNotAnd ⟨hPart, hDL⟩
+  -- ¬GainsAcclaim Alliebear from XOR with PursuesPhD and given PursuesPhD
+  have hNotGains : ¬ GainsAcclaim Alliebear := by
+    have hX := a15
+    have hNotAnd : ¬ (GainsAcclaim Alliebear ∧ PursuesPhD Alliebear) := And.right hX
+    have hPhD : PursuesPhD Alliebear := a11
+    intro hG
+    exact hNotAnd ⟨hG, hPhD⟩
+  -- ¬EarnsRecognition Alliebear (assuming it leads to contradiction with GainsAcclaim)
+  have hNotEarns : ¬ EarnsRecognition Alliebear := by
+    intro hER
+    have hRAorPP := a18 hER
+    have hRA : ReceivesAwards Alliebear := by
+      cases hRAorPP with
+      | inl hPP => exact False.elim (a6 hPP)
+      | inr hRA => exact hRA
+    have hXOR : (ReceivesAwards Alliebear ∨ DeliversLectures Alliebear) ∧ ¬ (ReceivesAwards Alliebear ∧ DeliversLectures Alliebear) := by
+      refine And.intro (Or.inl hRA) ?_
+      intro hAnd
+      exact hNotDeliver (And.right hAnd)
+    have hG : GainsAcclaim Alliebear := a19 hXOR
+    exact hNotGains hG
+  -- Contrapose a13: DS → (PI ∧ ER)
+  intro hDS
+  have hAnd := a13 hDS
+  have hNotAnd : ¬ (ProducesInnovativeResearch Alliebear ∧ EarnsRecognition Alliebear) := by
+    intro h
+    exact hNotProd h.left
+  exact hNotAnd hAnd
+
+-- Requested conclusion (not derivable from given premises)
+theorem conclusion : DedicatedScientist Alliebear := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ashley : Person
+axiom Alliebear : Person
+axiom Margaret : Person
+axiom Kyree : Person
+
+axiom ParticipatesConferences : Person → Prop
+axiom PublishesFindings : Person → Prop
+axiom PublishesPapers : Person → Prop
+axiom ReceivesAwards : Person → Prop
+axiom WorksIndependently : Person → Prop
+axiom CollaboratesExperts : Person → Prop
+axiom MentorsStudents : Person → Prop
+axiom JoinsResearchTeams : Person → Prop
+axiom AdvancesKnowledge : Person → Prop
+axiom MakesBreakthroughs : Person → Prop
+axiom ProducesInnovativeResearch : Person → Prop
+axiom PursuesPhD : Person → Prop
+axiom GainsAcclaim : Person → Prop
+axiom CreativeMind : Person → Prop
+axiom DedicatedScientist : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom DeliversLectures : Person → Prop
+
+-- Premises
+axiom ashley_pc : ParticipatesConferences Ashley
+axiom allie_not_pf : ¬PublishesFindings Alliebear
+axiom marg_er_imp_pp_or_ra : EarnsRecognition Margaret → (PublishesPapers Margaret ∨ ReceivesAwards Margaret)
+axiom allie_wi_or_ce : WorksIndependently Alliebear ∨ CollaboratesExperts Alliebear
+axiom allie_not_both_wi_ce : ¬(WorksIndependently Alliebear ∧ CollaboratesExperts Alliebear)
+axiom mb_imp_pf_or_ak : ∀ x : Person, MakesBreakthroughs x → (PublishesFindings x ∨ AdvancesKnowledge x)
+axiom allie_not_pp : ¬PublishesPapers Alliebear
+axiom allie_not_ak : ¬AdvancesKnowledge Alliebear
+axiom allie_xor_ms_jrt_imp_ce :
+  ((MentorsStudents Alliebear ∨ JoinsResearchTeams Alliebear) ∧ ¬(MentorsStudents Alliebear ∧ JoinsResearchTeams Alliebear))
+  → CollaboratesExperts Alliebear
+axiom allie_wi : WorksIndependently Alliebear
+axiom allie_pc_or_dl : ParticipatesConferences Alliebear ∨ DeliversLectures Alliebear
+axiom allie_not_both_pc_dl : ¬(ParticipatesConferences Alliebear ∧ DeliversLectures Alliebear)
+axiom allie_phd : PursuesPhD Alliebear
+axiom ce_or_pir_imp_mb : ∀ x : Person, (CollaboratesExperts x ∨ ProducesInnovativeResearch x) → MakesBreakthroughs x
+axiom allie_ds_imp_pir_and_er : DedicatedScientist Alliebear → (ProducesInnovativeResearch Alliebear ∧ EarnsRecognition Alliebear)
+axiom allie_pc : ParticipatesConferences Alliebear
+axiom allie_ga_or_phd : GainsAcclaim Alliebear ∨ PursuesPhD Alliebear
+axiom allie_not_both_ga_phd : ¬(GainsAcclaim Alliebear ∧ PursuesPhD Alliebear)
+axiom kyree_not_pf : ¬PublishesFindings Kyree
+axiom cm_imp_mb : ∀ x : Person, CreativeMind x → MakesBreakthroughs x
+axiom allie_er_imp_pp_or_ra : EarnsRecognition Alliebear → (PublishesPapers Alliebear ∨ ReceivesAwards Alliebear)
+axiom xor_ra_dl_imp_ga :
+  ((ReceivesAwards Alliebear ∨ DeliversLectures Alliebear) ∧ ¬(ReceivesAwards Alliebear ∧ DeliversLectures Alliebear))
+  → GainsAcclaim Alliebear
+axiom marg_ds_imp_pir_and_er : DedicatedScientist Margaret → (ProducesInnovativeResearch Margaret ∧ EarnsRecognition Margaret)
+
+-- Goal: prove the negation of the conclusion
+theorem not_dedicated_alliebear : ¬DedicatedScientist Alliebear := by
+  intro hds
+  have hpir_er := allie_ds_imp_pir_and_er hds
+  have her : EarnsRecognition Alliebear := And.right hpir_er
+  have hpp_or_ra := allie_er_imp_pp_or_ra her
+  have hra : ReceivesAwards Alliebear := by
+    cases hpp_or_ra with
+    | inl hpp => exact False.elim (allie_not_pp hpp)
+    | inr hra => exact hra
+  have hnot_dl : ¬DeliversLectures Alliebear := by
+    intro hdl
+    have hpcdl : ParticipatesConferences Alliebear ∧ DeliversLectures Alliebear :=
+      And.intro allie_pc hdl
+    exact allie_not_both_pc_dl hpcdl
+  have hx :
+      (ReceivesAwards Alliebear ∨ DeliversLectures Alliebear) ∧
+      ¬(ReceivesAwards Alliebear ∧ DeliversLectures Alliebear) := by
+    apply And.intro
+    · exact Or.inl hra
+    · intro hradl
+      exact hnot_dl hradl.right
+  have hga : GainsAcclaim Alliebear := xor_ra_dl_imp_ga hx
+  have hnot_ga : ¬GainsAcclaim Alliebear := by
+    intro hga2
+    exact allie_not_both_ga_phd (And.intro hga2 allie_phd)
+  exact hnot_ga hga
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

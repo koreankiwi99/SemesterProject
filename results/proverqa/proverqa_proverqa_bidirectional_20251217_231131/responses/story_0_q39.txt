@@ -1,0 +1,176 @@
+Story ID: 0
+Example ID: 39
+Premises: If someone follows clues and reveals evidence, then they can solve cases. If Esther either studies witness statements or analyzes forensic data, then she will crack the case. Esther does not crack the case. Norah either examines crime scenes or gathers evidence (or both). Esther either examines crime scenes or gathers evidence (or both). Esther does not solve cases. If Esther searches for clues or looks for patterns, then she will examine crime scenes. If Dax investigates carefully, then she will reveal evidence. Esther does not study witness statements. If Norah investigates carefully, then she will uncover the truth. If Esther investigates carefully, then she will reveal evidence. Esther reads reports or analyzes forensic data. If Esther either examines crime scenes or analyzes forensic data (but not both), then she follows clues. Esther does not gather evidence.
+Conclusion: Esther did not uncover the truth.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Esther : Person
+axiom Norah : Person
+axiom Dax : Person
+
+axiom FollowsClues : Person → Prop
+axiom RevealsEvidence : Person → Prop
+axiom CanSolveCases : Person → Prop
+axiom StudiesWitnessStatements : Person → Prop
+axiom AnalyzesForensicData : Person → Prop
+axiom CrackCase : Person → Prop
+axiom ExaminesCrimeScenes : Person → Prop
+axiom GathersEvidence : Person → Prop
+axiom SearchesForClues : Person → Prop
+axiom LooksForPatterns : Person → Prop
+axiom InvestigatesCarefully : Person → Prop
+axiom UncoverTruth : Person → Prop
+axiom ReadsReports : Person → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Person, (FollowsClues x ∧ RevealsEvidence x) → CanSolveCases x
+axiom ax2 : (StudiesWitnessStatements Esther ∨ AnalyzesForensicData Esther) → CrackCase Esther
+axiom ax3 : ¬ CrackCase Esther
+axiom ax4 : ExaminesCrimeScenes Norah ∨ GathersEvidence Norah
+axiom ax5 : ExaminesCrimeScenes Esther ∨ GathersEvidence Esther
+axiom ax6 : ¬ CanSolveCases Esther
+axiom ax7 : (SearchesForClues Esther ∨ LooksForPatterns Esther) → ExaminesCrimeScenes Esther
+axiom ax8 : InvestigatesCarefully Dax → RevealsEvidence Dax
+axiom ax9 : ¬ StudiesWitnessStatements Esther
+axiom ax10 : InvestigatesCarefully Norah → UncoverTruth Norah
+axiom ax11 : InvestigatesCarefully Esther → RevealsEvidence Esther
+axiom ax12 : ReadsReports Esther ∨ AnalyzesForensicData Esther
+axiom ax13 : ((ExaminesCrimeScenes Esther ∨ AnalyzesForensicData Esther) ∧ ¬ (ExaminesCrimeScenes Esther ∧ AnalyzesForensicData Esther)) → FollowsClues Esther
+axiom ax14 : ¬ GathersEvidence Esther
+
+-- Conclusion to prove: Esther did not uncover the truth.
+theorem goal : ¬ UncoverTruth Esther := by
+  -- From ax2 and ax3, derive ¬ (SWS ∨ AFD)
+  have h_not_or : ¬ (StudiesWitnessStatements Esther ∨ AnalyzesForensicData Esther) := by
+    intro h
+    have hc : CrackCase Esther := ax2 h
+    exact ax3 hc
+  -- Hence, ¬ AFD Esther
+  have h_not_afd : ¬ AnalyzesForensicData Esther := by
+    intro h
+    exact h_not_or (Or.inr h)
+  -- From ax5 and ax14, deduce ECS Esther
+  have h_ecs : ExaminesCrimeScenes Esther := by
+    cases ax5 with
+    | inl hecs => exact hecs
+    | inr hge => exact False.elim (ax14 hge)
+  -- Build the exclusive-or antecedent needed by ax13
+  have h_not_and : ¬ (ExaminesCrimeScenes Esther ∧ AnalyzesForensicData Esther) := by
+    intro h
+    exact h_not_afd h.right
+  have h_xor_ant :
+      (ExaminesCrimeScenes Esther ∨ AnalyzesForensicData Esther) ∧
+      ¬ (ExaminesCrimeScenes Esther ∧ AnalyzesForensicData Esther) := by
+    apply And.intro
+    · exact Or.inl h_ecs
+    · exact h_not_and
+  -- Therefore, Esther follows clues
+  have h_fc : FollowsClues Esther := ax13 h_xor_ant
+  -- From ax1 and ax6, deduce ¬ RevealsEvidence Esther
+  have h_not_re : ¬ RevealsEvidence Esther := by
+    intro hre
+    have : CanSolveCases Esther := by
+      have hpair : FollowsClues Esther ∧ RevealsEvidence Esther := And.intro h_fc hre
+      exact ax1 Esther hpair
+    exact ax6 this
+  -- From ax11 and ¬ RevealsEvidence, deduce ¬ InvestigatesCarefully Esther
+  have h_not_ic : ¬ InvestigatesCarefully Esther := by
+    intro hic
+    have hre : RevealsEvidence Esther := ax11 hic
+    exact h_not_re hre
+  -- No premise links UncoverTruth Esther to the above facts; unable to conclude ¬ UncoverTruth Esther.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Esther : Person
+axiom Norah : Person
+axiom Dax : Person
+
+axiom FollowsClues : Person → Prop
+axiom RevealsEvidence : Person → Prop
+axiom SolvesCases : Person → Prop
+axiom StudiesWitnessStatements : Person → Prop
+axiom AnalyzesForensicData : Person → Prop
+axiom CracksCase : Person → Prop
+axiom ExaminesCrimeScenes : Person → Prop
+axiom GathersEvidence : Person → Prop
+axiom SearchesForClues : Person → Prop
+axiom LooksForPatterns : Person → Prop
+axiom InvestigatesCarefully : Person → Prop
+axiom UncoversTruth : Person → Prop
+axiom ReadsReports : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, FollowsClues x ∧ RevealsEvidence x → SolvesCases x
+axiom premise2 : (StudiesWitnessStatements Esther ∨ AnalyzesForensicData Esther) → CracksCase Esther
+axiom premise3 : ¬CracksCase Esther
+axiom premise4 : ExaminesCrimeScenes Norah ∨ GathersEvidence Norah
+axiom premise5 : ExaminesCrimeScenes Esther ∨ GathersEvidence Esther
+axiom premise6 : ¬SolvesCases Esther
+axiom premise7 : (SearchesForClues Esther ∨ LooksForPatterns Esther) → ExaminesCrimeScenes Esther
+axiom premise8 : InvestigatesCarefully Dax → RevealsEvidence Dax
+axiom premise9 : ¬StudiesWitnessStatements Esther
+axiom premise10 : InvestigatesCarefully Norah → UncoversTruth Norah
+axiom premise11 : InvestigatesCarefully Esther → RevealsEvidence Esther
+axiom premise12 : ReadsReports Esther ∨ AnalyzesForensicData Esther
+axiom premise13 :
+  ((ExaminesCrimeScenes Esther ∧ ¬AnalyzesForensicData Esther) ∨
+   (¬ExaminesCrimeScenes Esther ∧ AnalyzesForensicData Esther)) → FollowsClues Esther
+axiom premise14 : ¬GathersEvidence Esther
+
+-- We aim to prove the negation of the conclusion:
+-- Conclusion: "Esther did not uncover the truth."
+-- Negation to prove: "Esther uncovered the truth."
+theorem neg_conclusion : UncoversTruth Esther := by
+  -- Derive ExaminesCrimeScenes Esther from premise5 and premise14
+  have hExamE : ExaminesCrimeScenes Esther := by
+    cases premise5 with
+    | inl h => exact h
+    | inr h =>
+      exact False.elim (premise14 h)
+  -- From premise2 and premise3, get ¬(SWS E ∨ AF E), hence ¬AF E
+  have hNotOr : ¬(StudiesWitnessStatements Esther ∨ AnalyzesForensicData Esther) := by
+    intro h
+    exact premise3 (premise2 h)
+  have hNotAF : ¬AnalyzesForensicData Esther := by
+    intro hAF
+    exact hNotOr (Or.inr hAF)
+  -- From premise12 and ¬AF, get ReadsReports Esther
+  have _hReadsReports : ReadsReports Esther := by
+    cases premise12 with
+    | inl h => exact h
+    | inr hAF => exact False.elim (hNotAF hAF)
+  -- From XOR condition (examines ∧ ¬analyzes), get FollowsClues Esther
+  have hXOR : (ExaminesCrimeScenes Esther ∧ ¬AnalyzesForensicData Esther) ∨ (¬ExaminesCrimeScenes Esther ∧ AnalyzesForensicData Esther) := by
+    exact Or.inl ⟨hExamE, hNotAF⟩
+  have hFollow : FollowsClues Esther := premise13 hXOR
+  -- At this point, we cannot derive RevealsEvidence Esther or UncoversTruth Esther from the given premises.
+  -- Therefore, the proof of UncoversTruth Esther cannot be completed from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

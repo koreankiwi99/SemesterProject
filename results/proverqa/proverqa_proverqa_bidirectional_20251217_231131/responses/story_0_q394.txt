@@ -1,0 +1,214 @@
+Story ID: 0
+Example ID: 394
+Premises: If a drag queen becomes a star, then they earn fans. Sweetness has stage presence. For all drag queens, if a drag queen is talented, then they have a charismatic stage presence or are inspiring to the audience (or both). Sweetness does not gain recognition. If Sweetness expresses himself freely and loves the spotlight, then he becomes a star. Sweetness does not earn fans. Every drag queen who performs drag either has a charismatic stage presence or has artistic flair (or both). Sweetness does not interact with the audience. If Sweetness crafts his own style, then he designs his own costumes. Every drag queen either interacts with the audience or performs with confidence, but not both is not explicitly stated. If Sweetness either chooses his own wigs or styles his own hair (but not both), then he creates his own persona. Every drag queen who performs with confidence either creates their own persona or designs their own costumes (or both). If a drag queen has artistic vision, then they take risks on stage and love the spotlight. Sweetness is not inspiring to the audience. Sweetness does not experiment with makeup. If Sweetness either creates his own persona or experiments with makeup (but not both), then he is able to express himself freely. A drag queen either has a charismatic stage presence or designs their own costumes, but not necessarily both. If Sweetness either loves the spotlight or has stage presence (but not both), then he gains recognition.
+Conclusion: Sweetness is a talented drag queen.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Sweetness : Person
+
+axiom DragQueen : Person → Prop
+axiom BecomesStar : Person → Prop
+axiom EarnFans : Person → Prop
+axiom StagePresence : Person → Prop
+axiom Charismatic : Person → Prop
+axiom Inspiring : Person → Prop
+axiom GainRecognition : Person → Prop
+axiom ExpressFreely : Person → Prop
+axiom LovesSpotlight : Person → Prop
+axiom InteractAudience : Person → Prop
+axiom CraftsOwnStyle : Person → Prop
+axiom DesignsCostumes : Person → Prop
+axiom ChoosesOwnWigs : Person → Prop
+axiom StylesOwnHair : Person → Prop
+axiom CreatesPersona : Person → Prop
+axiom PerformsConfidence : Person → Prop
+axiom ArtisticVision : Person → Prop
+axiom TakeRisks : Person → Prop
+axiom ExperimentMakeup : Person → Prop
+axiom PerformsDrag : Person → Prop
+axiom ArtisticFlair : Person → Prop
+axiom Talented : Person → Prop
+
+-- Premises
+axiom ax_star_implies_fans : ∀ x, DragQueen x → BecomesStar x → EarnFans x
+axiom ax_stagepresence_S : StagePresence Sweetness
+axiom ax_talent_imp_char_or_insp : ∀ x, DragQueen x → Talented x → (Charismatic x ∨ Inspiring x)
+axiom ax_not_recognition_S : ¬ GainRecognition Sweetness
+axiom ax_expr_and_love_imp_star_S : (ExpressFreely Sweetness ∧ LovesSpotlight Sweetness) → BecomesStar Sweetness
+axiom ax_not_earnfans_S : ¬ EarnFans Sweetness
+axiom ax_performdrag_imp_char_or_art : ∀ x, DragQueen x → PerformsDrag x → (Charismatic x ∨ ArtisticFlair x)
+axiom ax_not_interact_S : ¬ InteractAudience Sweetness
+axiom ax_craftstyle_imp_design_S : CraftsOwnStyle Sweetness → DesignsCostumes Sweetness
+axiom ax_interact_or_conf : ∀ x, DragQueen x → (InteractAudience x ∨ PerformsConfidence x)
+axiom ax_wigs_xor_hair_imp_persona_S :
+  ((ChoosesOwnWigs Sweetness ∧ ¬ StylesOwnHair Sweetness) ∨ (StylesOwnHair Sweetness ∧ ¬ ChoosesOwnWigs Sweetness)) → CreatesPersona Sweetness
+axiom ax_conf_imp_persona_or_design : ∀ x, DragQueen x → PerformsConfidence x → (CreatesPersona x ∨ DesignsCostumes x)
+axiom ax_vision_imp_risk_and_love : ∀ x, DragQueen x → ArtisticVision x → (TakeRisks x ∧ LovesSpotlight x)
+axiom ax_not_inspiring_S : ¬ Inspiring Sweetness
+axiom ax_not_experiment_S : ¬ ExperimentMakeup Sweetness
+axiom ax_persona_xor_experiment_imp_express_S :
+  ((CreatesPersona Sweetness ∧ ¬ ExperimentMakeup Sweetness) ∨ (ExperimentMakeup Sweetness ∧ ¬ CreatesPersona Sweetness)) → ExpressFreely Sweetness
+axiom ax_char_or_design : ∀ x, DragQueen x → (Charismatic x ∨ DesignsCostumes x)
+axiom ax_xor_love_or_stage_imp_recognition_S :
+  ((LovesSpotlight Sweetness ∧ ¬ StagePresence Sweetness) ∨ (StagePresence Sweetness ∧ ¬ LovesSpotlight Sweetness)) → GainRecognition Sweetness
+
+axiom ax_dragqueen_S : DragQueen Sweetness
+
+theorem goal : Talented Sweetness ∧ DragQueen Sweetness := by
+  -- From not recognition and the XOR implication about love vs stage, deduce LovesSpotlight Sweetness
+  have hNotXorLS :
+    ¬ ((LovesSpotlight Sweetness ∧ ¬ StagePresence Sweetness) ∨ (StagePresence Sweetness ∧ ¬ LovesSpotlight Sweetness)) := by
+    intro hx
+    have hrec : GainRecognition Sweetness := ax_xor_love_or_stage_imp_recognition_S hx
+    exact ax_not_recognition_S hrec
+  have hLove : LovesSpotlight Sweetness := by
+    have hS := ax_stagepresence_S
+    by_contra hNotLove
+    apply hNotXorLS
+    exact Or.inr (And.intro hS hNotLove)
+  -- From drag queen and not interact derive performs with confidence
+  have hDQ : DragQueen Sweetness := ax_dragqueen_S
+  have hConf : PerformsConfidence Sweetness := by
+    have h := ax_interact_or_conf Sweetness hDQ
+    cases h with
+    | inl hI => exact False.elim (ax_not_interact_S hI)
+    | inr hC => exact hC
+  -- Show that CreatesPersona leads to contradiction, hence it's false
+  have hNoPersona : ¬ CreatesPersona Sweetness := by
+    intro hcp
+    have hx : ((CreatesPersona Sweetness ∧ ¬ ExperimentMakeup Sweetness) ∨ (ExperimentMakeup Sweetness ∧ ¬ CreatesPersona Sweetness)) := by
+      exact Or.inl (And.intro hcp ax_not_experiment_S)
+    have hExpr : ExpressFreely Sweetness := ax_persona_xor_experiment_imp_express_S hx
+    have hStar : BecomesStar Sweetness := ax_expr_and_love_imp_star_S (And.intro hExpr hLove)
+    have hFans : EarnFans Sweetness := ax_star_implies_fans Sweetness hDQ hStar
+    exact ax_not_earnfans_S hFans
+  -- From confidence, we get persona or designs; exclude persona to get designs
+  have hDesign : DesignsCostumes Sweetness := by
+    have h := ax_conf_imp_persona_or_design Sweetness hDQ hConf
+    cases h with
+    | inl hcp => exact False.elim (hNoPersona hcp)
+    | inr hdc => exact hdc
+  -- We cannot derive Talented from the given premises
+  apply And.intro
+  · sorry
+  · exact hDQ
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Sweetness : Person
+
+axiom DragQueen : Person → Prop
+axiom Star : Person → Prop
+axiom EarnFans : Person → Prop
+axiom StagePresence : Person → Prop
+axiom Talented : Person → Prop
+axiom Charismatic : Person → Prop
+axiom Inspiring : Person → Prop
+axiom PerformDrag : Person → Prop
+axiom InteractAudience : Person → Prop
+axiom CraftsOwnStyle : Person → Prop
+axiom DesignsCostumes : Person → Prop
+axiom ChoosesWigs : Person → Prop
+axiom StylesHair : Person → Prop
+axiom CreatesPersona : Person → Prop
+axiom PerformsWithConfidence : Person → Prop
+axiom ArtisticVision : Person → Prop
+axiom TakeRisksOnStage : Person → Prop
+axiom LoveSpotlight : Person → Prop
+axiom ExperimentMakeup : Person → Prop
+axiom ExpressFreely : Person → Prop
+axiom GainRecognition : Person → Prop
+axiom ArtisticFlair : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, Star x → EarnFans x
+axiom premise2 : StagePresence Sweetness
+axiom premise3 : ∀ x : Person, DragQueen x → Talented x → (Charismatic x ∨ Inspiring x)
+axiom premise4 : ¬GainRecognition Sweetness
+axiom premise5 : (ExpressFreely Sweetness ∧ LoveSpotlight Sweetness) → Star Sweetness
+axiom premise6 : ¬EarnFans Sweetness
+axiom premise7 : ∀ x : Person, (DragQueen x ∧ PerformDrag x) → (Charismatic x ∨ ArtisticFlair x)
+axiom premise8 : ¬InteractAudience Sweetness
+axiom premise9 : CraftsOwnStyle Sweetness → DesignsCostumes Sweetness
+axiom premise10 : ∀ x : Person, DragQueen x → (InteractAudience x ∨ PerformsWithConfidence x)
+axiom premise11 : ((ChoosesWigs Sweetness ∨ StylesHair Sweetness) ∧ ¬(ChoosesWigs Sweetness ∧ StylesHair Sweetness)) → CreatesPersona Sweetness
+axiom premise12 : ∀ x : Person, (DragQueen x ∧ PerformsWithConfidence x) → (CreatesPersona x ∨ DesignsCostumes x)
+axiom premise13 : ∀ x : Person, (DragQueen x ∧ ArtisticVision x) → (TakeRisksOnStage x ∧ LoveSpotlight x)
+axiom premise14 : ¬Inspiring Sweetness
+axiom premise15 : ¬ExperimentMakeup Sweetness
+axiom premise16 : ((CreatesPersona Sweetness ∨ ExperimentMakeup Sweetness) ∧ ¬(CreatesPersona Sweetness ∧ ExperimentMakeup Sweetness)) → ExpressFreely Sweetness
+axiom premise17 : ∀ x : Person, DragQueen x → (Charismatic x ∨ DesignsCostumes x)
+axiom premise18 : ((LoveSpotlight Sweetness ∨ StagePresence Sweetness) ∧ ¬(LoveSpotlight Sweetness ∧ StagePresence Sweetness)) → GainRecognition Sweetness
+
+-- Negation of the conclusion: Sweetness is NOT a talented drag queen
+theorem negate_conclusion : ¬(DragQueen Sweetness ∧ Talented Sweetness) := by
+  intro h
+  have hdq : DragQueen Sweetness := And.left h
+  have htal : Talented Sweetness := And.right h
+  have hCharOrInsp : Charismatic Sweetness ∨ Inspiring Sweetness := premise3 Sweetness hdq htal
+  have hChar : Charismatic Sweetness := by
+    cases hCharOrInsp with
+    | inl hc => exact hc
+    | inr hi =>
+      have : False := premise14 hi
+      exact False.elim this
+  have hInterOrConf : InteractAudience Sweetness ∨ PerformsWithConfidence Sweetness := premise10 Sweetness hdq
+  have hConf : PerformsWithConfidence Sweetness := by
+    cases hInterOrConf with
+    | inl hi =>
+      have : False := premise8 hi
+      exact False.elim this
+    | inr hc => exact hc
+  have hcp_or_dc : CreatesPersona Sweetness ∨ DesignsCostumes Sweetness := premise12 Sweetness ⟨hdq, hConf⟩
+  have hSP : StagePresence Sweetness := premise2
+  have hNoRec : ¬GainRecognition Sweetness := premise4
+  have hNoXorLoveSP : ¬((LoveSpotlight Sweetness ∨ StagePresence Sweetness) ∧ ¬(LoveSpotlight Sweetness ∧ StagePresence Sweetness)) := by
+    intro hx
+    exact hNoRec (premise18 hx)
+  have hLove : LoveSpotlight Sweetness := by
+    classical
+    by_contra hNotLove
+    have h1 : LoveSpotlight Sweetness ∨ StagePresence Sweetness := Or.inr hSP
+    have h2 : ¬(LoveSpotlight Sweetness ∧ StagePresence Sweetness) := by
+      intro hboth
+      exact hNotLove hboth.left
+    have hx : (LoveSpotlight Sweetness ∨ StagePresence Sweetness) ∧ ¬(LoveSpotlight Sweetness ∧ StagePresence Sweetness) := And.intro h1 h2
+    exact hNoXorLoveSP hx
+  cases hcp_or_dc with
+  | inl hcp =>
+    have hCPorExp : CreatesPersona Sweetness ∨ ExperimentMakeup Sweetness := Or.inl hcp
+    have hNotBothCPExp : ¬(CreatesPersona Sweetness ∧ ExperimentMakeup Sweetness) := by
+      intro hboth
+      exact premise15 hboth.right
+    have hExpress : ExpressFreely Sweetness := premise16 ⟨hCPorExp, hNotBothCPExp⟩
+    have hStar : Star Sweetness := premise5 ⟨hExpress, hLove⟩
+    have hFans : EarnFans Sweetness := premise1 Sweetness hStar
+    exact premise6 hFans
+  | inr hdc =>
+    -- Unable to derive a contradiction from this branch with given premises
+    sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: Uncertain
+Correct: Yes

@@ -1,0 +1,139 @@
+Story ID: 0
+Example ID: 115
+Premises: Miracle is either someone who prioritizes others or thinks of herself, but not both. Either Miracle is community-oriented or self-centered, but not both. Miracle either fosters collaboration or is a leader, but not necessarily both. Miracle does not value harmony. Either Miracle puts others first or she is community-oriented, but she cannot be both. If Miracle is a leader, then she is either selfless or thinks of herself, but not both. Miracle values harmony or prioritizes others. Miracle does not foster collaboration.
+Conclusion: Miracle is not self-centered.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities as propositions about Miracle
+axiom PrioritizesOthers : Prop
+axiom CommunityOriented : Prop
+axiom SelfCentered : Prop
+axiom FostersCollaboration : Prop
+axiom Leader : Prop
+axiom ValuesHarmony : Prop
+
+-- Premises
+-- 1. Miracle is either someone who prioritizes others or thinks of herself (self-centered), but not both.
+axiom xor_P_S : (PrioritizesOthers ∧ ¬ SelfCentered) ∨ (SelfCentered ∧ ¬ PrioritizesOthers)
+
+-- 2. Either Miracle is community-oriented or self-centered, but not both.
+axiom xor_C_S : (CommunityOriented ∧ ¬ SelfCentered) ∨ (SelfCentered ∧ ¬ CommunityOriented)
+
+-- 3. Miracle either fosters collaboration or is a leader, but not necessarily both.
+axiom F_or_L : FostersCollaboration ∨ Leader
+
+-- 4. Miracle does not value harmony.
+axiom not_H : ¬ ValuesHarmony
+
+-- 5. Either Miracle puts others first (prioritizes others) or she is community-oriented, but she cannot be both.
+axiom xor_P_C : (PrioritizesOthers ∧ ¬ CommunityOriented) ∨ (CommunityOriented ∧ ¬ PrioritizesOthers)
+
+-- 6. If Miracle is a leader, then she is either selfless (prioritizes others) or thinks of herself (self-centered), but not both.
+axiom L_imp_xorP_S : Leader → ((PrioritizesOthers ∧ ¬ SelfCentered) ∨ (SelfCentered ∧ ¬ PrioritizesOthers))
+
+-- 7. Miracle values harmony or prioritizes others.
+axiom H_or_P : ValuesHarmony ∨ PrioritizesOthers
+
+-- 8. Miracle does not foster collaboration.
+axiom not_F : ¬ FostersCollaboration
+
+-- Conclusion: Miracle is not self-centered.
+theorem not_self_centered : ¬ SelfCentered := by
+  -- From (7) and (4), obtain PrioritizesOthers
+  have hP : PrioritizesOthers :=
+    Or.elim H_or_P
+      (fun hH => False.elim (not_H hH))
+      (fun hP => hP)
+  -- From xor_P_S and hP, deduce ¬ SelfCentered
+  have hNotS : ¬ SelfCentered := by
+    cases xor_P_S with
+    | inl h => exact h.right
+    | inr h =>
+        have contra : False := h.right hP
+        exact False.elim contra
+  exact hNotS
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Miracle : Person
+
+-- Predicates
+axiom PrioritizesOthers : Person → Prop
+axiom ThinksOfSelf : Person → Prop
+axiom CommunityOriented : Person → Prop
+axiom SelfCentered : Person → Prop
+axiom FostersCollaboration : Person → Prop
+axiom Leader : Person → Prop
+axiom ValuesHarmony : Person → Prop
+axiom Selfless : Person → Prop
+
+-- Premises
+-- 1. Miracle is either someone who prioritizes others or thinks of herself, but not both.
+axiom premise1 :
+  (PrioritizesOthers Miracle ∨ ThinksOfSelf Miracle) ∧ ¬(PrioritizesOthers Miracle ∧ ThinksOfSelf Miracle)
+
+-- 2. Either Miracle is community-oriented or self-centered, but not both.
+axiom premise2 :
+  (CommunityOriented Miracle ∨ SelfCentered Miracle) ∧ ¬(CommunityOriented Miracle ∧ SelfCentered Miracle)
+
+-- 3. Miracle either fosters collaboration or is a leader, but not necessarily both.
+axiom premise3 : FostersCollaboration Miracle ∨ Leader Miracle
+
+-- 4. Miracle does not value harmony.
+axiom premise4 : ¬ ValuesHarmony Miracle
+
+-- 5. Either Miracle puts others first or she is community-oriented, but she cannot be both.
+-- We model "puts others first" as the same predicate as "prioritizes others".
+axiom premise5 :
+  (PrioritizesOthers Miracle ∨ CommunityOriented Miracle) ∧ ¬(PrioritizesOthers Miracle ∧ CommunityOriented Miracle)
+
+-- 6. If Miracle is a leader, then she is either selfless or thinks of herself, but not both.
+axiom premise6 :
+  Leader Miracle → ((Selfless Miracle ∨ ThinksOfSelf Miracle) ∧ ¬(Selfless Miracle ∧ ThinksOfSelf Miracle))
+
+-- 7. Miracle values harmony or prioritizes others.
+axiom premise7 : ValuesHarmony Miracle ∨ PrioritizesOthers Miracle
+
+-- 8. Miracle does not foster collaboration.
+axiom premise8 : ¬ FostersCollaboration Miracle
+
+-- Negation of the conclusion ("Miracle is not self-centered") is: Miracle is self-centered.
+theorem neg_conclusion : SelfCentered Miracle := by
+  -- From (7) and (4), derive PrioritizesOthers Miracle
+  have hPO : PrioritizesOthers Miracle := by
+    cases premise7 with
+    | inl hVH => exact False.elim (premise4 hVH)
+    | inr hPO => exact hPO
+  -- From (5) and hPO, derive ¬CommunityOriented Miracle
+  have hNotCO : ¬ CommunityOriented Miracle := by
+    intro hCO
+    exact (And.right premise5) ⟨hPO, hCO⟩
+  -- From (2) and hNotCO, derive SelfCentered Miracle
+  have hDisj : CommunityOriented Miracle ∨ SelfCentered Miracle := And.left premise2
+  cases hDisj with
+  | inl hCO => exact False.elim (hNotCO hCO)
+  | inr hSC => exact hSC
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: BOTH_SUCCESS
+Formalization Error Detected: True
+Used Fallback: True
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

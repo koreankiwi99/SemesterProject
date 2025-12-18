@@ -1,0 +1,252 @@
+Story ID: 0
+Example ID: 478
+Premises: If Dayana has good listening skills, then she either analyzes behavior or can read body language, but not both. Azriel can read body language. For every human, they are either sane or insane, but not both. Dayana has good listening skills. Dayana solves complex problems. Dayana can read body language. If Dayana either trusts her instinct or values objectivity (but not both), then she is empathetic. If Dayana is empathetic, then she is either intuitive or has rational thoughts, but not both. If someone has critical thinking, then they understand others and solve complex problems. Dayana has critical thinking. Azriel has good listening skills. Dayana either has rational thoughts or is sane, but not both, in her interactions with her patients. Flame has critical thinking. Dayana is not intuitive. Azriel either has rational thoughts or is sane, but not both, in her interactions with her patients. Everyone who understands others either analyzes their behavior or is empathetic (or both). Rylan is not intuitive.
+Conclusion: The Silent Patient, Dayana, is insane.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Dayana : Person
+axiom Azriel : Person
+axiom Flame : Person
+axiom Rylan : Person
+
+-- Predicates
+axiom GoodListening : Person → Prop
+axiom AnalyzesBehavior : Person → Prop
+axiom ReadBodyLanguage : Person → Prop
+axiom Sane : Person → Prop
+axiom Insane : Person → Prop
+axiom SolvesComplexProblems : Person → Prop
+axiom TrustInstinct : Person → Prop
+axiom ValuesObjectivity : Person → Prop
+axiom Empathetic : Person → Prop
+axiom Intuitive : Person → Prop
+axiom RationalThoughts : Person → Prop
+axiom CriticalThinking : Person → Prop
+axiom UnderstandsOthers : Person → Prop
+
+-- Premises
+-- 1. If Dayana has good listening skills, then she either analyzes behavior or can read body language, but not both.
+axiom p1 :
+  GoodListening Dayana →
+  ((AnalyzesBehavior Dayana ∧ ¬ ReadBodyLanguage Dayana) ∨
+   (ReadBodyLanguage Dayana ∧ ¬ AnalyzesBehavior Dayana))
+
+-- 2. Azriel can read body language.
+axiom p2 : ReadBodyLanguage Azriel
+
+-- 3. For every human, they are either sane or insane, but not both.
+axiom p3 : ∀ x : Person, (Sane x ∧ ¬ Insane x) ∨ (Insane x ∧ ¬ Sane x)
+
+-- 4. Dayana has good listening skills.
+axiom p4 : GoodListening Dayana
+
+-- 5. Dayana solves complex problems.
+axiom p5 : SolvesComplexProblems Dayana
+
+-- 6. Dayana can read body language.
+axiom p6 : ReadBodyLanguage Dayana
+
+-- 7. If Dayana either trusts her instinct or values objectivity (but not both), then she is empathetic.
+axiom p7 :
+  ((TrustInstinct Dayana ∧ ¬ ValuesObjectivity Dayana) ∨
+   (ValuesObjectivity Dayana ∧ ¬ TrustInstinct Dayana)) → Empathetic Dayana
+
+-- 8. If Dayana is empathetic, then she is either intuitive or has rational thoughts, but not both.
+axiom p8 :
+  Empathetic Dayana →
+  ((Intuitive Dayana ∧ ¬ RationalThoughts Dayana) ∨
+   (RationalThoughts Dayana ∧ ¬ Intuitive Dayana))
+
+-- 9. If someone has critical thinking, then they understand others and solve complex problems.
+axiom p9 : ∀ x : Person, CriticalThinking x → (UnderstandsOthers x ∧ SolvesComplexProblems x)
+
+-- 10. Dayana has critical thinking.
+axiom p10 : CriticalThinking Dayana
+
+-- 11. Azriel has good listening skills.
+axiom p11 : GoodListening Azriel
+
+-- 12. Dayana either has rational thoughts or is sane, but not both.
+axiom p12 :
+  (RationalThoughts Dayana ∧ ¬ Sane Dayana) ∨
+  (Sane Dayana ∧ ¬ RationalThoughts Dayana)
+
+-- 13. Flame has critical thinking.
+axiom p13 : CriticalThinking Flame
+
+-- 14. Dayana is not intuitive.
+axiom p14 : ¬ Intuitive Dayana
+
+-- 15. Azriel either has rational thoughts or is sane, but not both.
+axiom p15 :
+  (RationalThoughts Azriel ∧ ¬ Sane Azriel) ∨
+  (Sane Azriel ∧ ¬ RationalThoughts Azriel)
+
+-- 16. Everyone who understands others either analyzes their behavior or is empathetic (or both).
+axiom p16 : ∀ x : Person, UnderstandsOthers x → (AnalyzesBehavior x ∨ Empathetic x)
+
+-- 17. Rylan is not intuitive.
+axiom p17 : ¬ Intuitive Rylan
+
+-- Conclusion: Dayana is insane.
+theorem goal : Insane Dayana := by
+  -- From critical thinking, Dayana understands others
+  have hU : UnderstandsOthers Dayana := (p9 Dayana p10).left
+  -- Those who understand others either analyze behavior or are empathetic
+  have hAorE : AnalyzesBehavior Dayana ∨ Empathetic Dayana := p16 Dayana hU
+  -- From good listening and read body language, Dayana does not analyze behavior
+  have hNotAB : ¬ AnalyzesBehavior Dayana := by
+    intro hAB
+    have hX := p1 p4
+    have hRBL := p6
+    cases hX with
+    | inl h =>
+        -- h: AB ∧ ¬ RBL contradicts RBL
+        have hFalse : False := h.right hRBL
+        exact hFalse
+    | inr h =>
+        -- h: RBL ∧ ¬ AB contradicts assumed AB
+        exact h.right hAB
+  -- Therefore Dayana is empathetic
+  have hEmp : Empathetic Dayana := by
+    cases hAorE with
+    | inl hAB =>
+        have hFalse : False := hNotAB hAB
+        exact False.elim hFalse
+    | inr hEm =>
+        exact hEm
+  -- Empathetic and not intuitive implies rational thoughts (from the exclusive or)
+  have hRat : RationalThoughts Dayana := by
+    have hX := p8 hEmp
+    cases hX with
+    | inl h => -- Intuitive ∧ ¬ Rational contradicts ¬ Intuitive
+        have hFalse : False := p14 h.left
+        exact False.elim hFalse
+    | inr h => -- Rational ∧ ¬ Intuitive
+        exact h.left
+  -- From XOR between RationalThoughts and Sane, RationalThoughts implies ¬ Sane
+  have hNotSane : ¬ Sane Dayana := by
+    cases p12 with
+    | inl h => -- Rational ∧ ¬ Sane
+        exact h.right
+    | inr h => -- Sane ∧ ¬ Rational contradicts Rational
+        have hFalse : False := h.right hRat
+        exact False.elim hFalse
+  -- From global XOR between Sane and Insane, and ¬ Sane, deduce Insane
+  have hX3 := p3 Dayana
+  cases hX3 with
+  | inl h => -- Sane ∧ ¬ Insane contradicts ¬ Sane
+      have hFalse : False := hNotSane h.left
+      exact False.elim hFalse
+  | inr h => -- Insane ∧ ¬ Sane
+      exact h.left
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Human : Type
+axiom Dayana : Human
+axiom Azriel : Human
+axiom Flame : Human
+axiom Rylan : Human
+
+axiom GoodListening : Human → Prop
+axiom AnalyzesBehavior : Human → Prop
+axiom ReadBodyLanguage : Human → Prop
+axiom Sane : Human → Prop
+axiom Insane : Human → Prop
+axiom SolvesComplexProblems : Human → Prop
+axiom TrustsInstinct : Human → Prop
+axiom ValuesObjectivity : Human → Prop
+axiom Empathetic : Human → Prop
+axiom Intuitive : Human → Prop
+axiom RationalThoughts : Human → Prop
+axiom CriticalThinking : Human → Prop
+axiom UnderstandsOthers : Human → Prop
+
+-- Context-specific sanity predicate: "in her interactions with her patients"
+axiom SaneWithPatients : Human → Prop
+
+-- Premises
+axiom p1 :
+  GoodListening Dayana →
+    ((AnalyzesBehavior Dayana ∨ ReadBodyLanguage Dayana) ∧
+     ¬(AnalyzesBehavior Dayana ∧ ReadBodyLanguage Dayana))
+axiom p2 : ReadBodyLanguage Azriel
+axiom p3 : ∀ x : Human, (Sane x ∨ Insane x) ∧ ¬(Sane x ∧ Insane x)
+axiom p4 : GoodListening Dayana
+axiom p5 : SolvesComplexProblems Dayana
+axiom p6 : ReadBodyLanguage Dayana
+axiom p7 :
+  ((TrustsInstinct Dayana ∨ ValuesObjectivity Dayana) ∧
+   ¬(TrustsInstinct Dayana ∧ ValuesObjectivity Dayana)) → Empathetic Dayana
+axiom p8 :
+  Empathetic Dayana →
+    ((Intuitive Dayana ∨ RationalThoughts Dayana) ∧
+     ¬(Intuitive Dayana ∧ RationalThoughts Dayana))
+axiom p9 : ∀ x : Human, CriticalThinking x → (UnderstandsOthers x ∧ SolvesComplexProblems x)
+axiom p10 : CriticalThinking Dayana
+axiom p11 : GoodListening Azriel
+axiom p12 :
+  ((RationalThoughts Dayana ∨ SaneWithPatients Dayana) ∧
+   ¬(RationalThoughts Dayana ∧ SaneWithPatients Dayana))
+axiom p13 : CriticalThinking Flame
+axiom p14 : ¬Intuitive Dayana
+axiom p15 :
+  ((RationalThoughts Azriel ∨ SaneWithPatients Azriel) ∧
+   ¬(RationalThoughts Azriel ∧ SaneWithPatients Azriel))
+axiom p16 : ∀ x : Human, UnderstandsOthers x → (AnalyzesBehavior x ∨ Empathetic x)
+axiom p17 : ¬Intuitive Rylan
+
+-- Negation of the conclusion: Dayana is not insane
+theorem goal : ¬Insane Dayana := by
+  intro hIns
+  -- From critical thinking, Dayana understands others
+  have hUndSCP : UnderstandsOthers Dayana ∧ SolvesComplexProblems Dayana := p9 Dayana p10
+  have hUnd : UnderstandsOthers Dayana := hUndSCP.left
+  -- Those who understand others either analyze behavior or are empathetic
+  have hAnOrEmp : AnalyzesBehavior Dayana ∨ Empathetic Dayana := p16 Dayana hUnd
+  -- From good listening and the XOR with reading body language, plus the fact she reads body language, she does not analyze behavior
+  have hNotBoth : ¬(AnalyzesBehavior Dayana ∧ ReadBodyLanguage Dayana) := (p1 p4).right
+  have hRB : ReadBodyLanguage Dayana := p6
+  have hNotAnalyze : ¬AnalyzesBehavior Dayana := by
+    intro hA
+    exact hNotBoth ⟨hA, hRB⟩
+  -- Hence she is empathetic
+  have hEmp : Empathetic Dayana := by
+    cases hAnOrEmp with
+    | inl hA => exact False.elim (hNotAnalyze hA)
+    | inr hE => exact hE
+  -- Empathetic implies intuitive xor rational; together with not intuitive, she is rational
+  have hRat : RationalThoughts Dayana := by
+    have hx := (p8 hEmp).left
+    cases hx with
+    | inl hInt => exact False.elim (p14 hInt)
+    | inr hR => exact hR
+  -- No contradiction with Insane Dayana can be derived from the given premises
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

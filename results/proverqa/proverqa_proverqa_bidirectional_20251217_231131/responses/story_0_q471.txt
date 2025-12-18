@@ -1,0 +1,231 @@
+Story ID: 0
+Example ID: 471
+Premises: Cohen is not highly motivated. Isaac does not report fairly. Cohen does not advocate for human rights. Everyone who seeks justice either speaks out against injustice or advocates for human rights (or both). Isaac does not advocate for human rights. Ronan is ambitious or dedicated. Cohen either pursues truth or values integrity (or both). Cohen does not speak out against injustice. Anyone who pursues truth seeks justice or reports fairly (or both). If Cohen has curiosity, then he seeks justice and asks questions. Cohen does not report fairly. If Cohen either follows ethics or respects others (but not both), then he values integrity. Kylie is not highly motivated. Kylie is either driven to succeed or values integrity, but not both. Ronan does not speak out against injustice. Cohen is ambitious or dedicated. Isaac either pursues truth or values integrity (or both). If Cohen is either ambitious or driven to succeed (but not both), then he is highly motivated. Cohen is either driven to succeed or values integrity, but not both.
+Conclusion: Cohen is not dedicated.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Cohen : Person
+axiom Isaac : Person
+axiom Ronan : Person
+axiom Kylie : Person
+
+axiom HighlyMotivated : Person → Prop
+axiom ReportsFairly : Person → Prop
+axiom AdvocatesHumanRights : Person → Prop
+axiom SeeksJustice : Person → Prop
+axiom SpeaksOutAgainstInjustice : Person → Prop
+axiom PursuesTruth : Person → Prop
+axiom ValuesIntegrity : Person → Prop
+axiom HasCuriosity : Person → Prop
+axiom AsksQuestions : Person → Prop
+axiom FollowsEthics : Person → Prop
+axiom RespectsOthers : Person → Prop
+axiom DrivenToSucceed : Person → Prop
+axiom Ambitious : Person → Prop
+axiom Dedicated : Person → Prop
+
+-- Premises
+axiom p1  : ¬ HighlyMotivated Cohen
+axiom p2  : ¬ ReportsFairly Isaac
+axiom p3  : ¬ AdvocatesHumanRights Cohen
+axiom p4  : ∀ x, SeeksJustice x → (SpeaksOutAgainstInjustice x ∨ AdvocatesHumanRights x)
+axiom p5  : ¬ AdvocatesHumanRights Isaac
+axiom p6  : Ambitious Ronan ∨ Dedicated Ronan
+axiom p7  : PursuesTruth Cohen ∨ ValuesIntegrity Cohen
+axiom p8  : ¬ SpeaksOutAgainstInjustice Cohen
+axiom p9  : ∀ x, PursuesTruth x → (SeeksJustice x ∨ ReportsFairly x)
+axiom p10 : HasCuriosity Cohen → (SeeksJustice Cohen ∧ AsksQuestions Cohen)
+axiom p11 : ¬ ReportsFairly Cohen
+axiom p12 : ((FollowsEthics Cohen ∧ ¬ RespectsOthers Cohen) ∨ (¬ FollowsEthics Cohen ∧ RespectsOthers Cohen)) → ValuesIntegrity Cohen
+axiom p13 : ¬ HighlyMotivated Kylie
+axiom p14 : (DrivenToSucceed Kylie ∧ ¬ ValuesIntegrity Kylie) ∨ (¬ DrivenToSucceed Kylie ∧ ValuesIntegrity Kylie)
+axiom p15 : ¬ SpeaksOutAgainstInjustice Ronan
+axiom p16 : Ambitious Cohen ∨ Dedicated Cohen
+axiom p17 : PursuesTruth Isaac ∨ ValuesIntegrity Isaac
+axiom p18 : ((Ambitious Cohen ∧ ¬ DrivenToSucceed Cohen) ∨ (¬ Ambitious Cohen ∧ DrivenToSucceed Cohen)) → HighlyMotivated Cohen
+axiom p19 : (DrivenToSucceed Cohen ∧ ¬ ValuesIntegrity Cohen) ∨ (¬ DrivenToSucceed Cohen ∧ ValuesIntegrity Cohen)
+
+-- Useful derived lemmas
+lemma not_SeeksJustice_Cohen : ¬ SeeksJustice Cohen := by
+  intro hSJ
+  have h := p4 Cohen hSJ
+  cases h with
+  | inl hSO =>
+      exact p8 hSO
+  | inr hHR =>
+      exact p3 hHR
+
+lemma not_PursuesTruth_Cohen : ¬ PursuesTruth Cohen := by
+  intro hPT
+  have h := p9 Cohen hPT
+  cases h with
+  | inl hSJ =>
+      exact not_SeeksJustice_Cohen hSJ
+  | inr hRF =>
+      exact p11 hRF
+
+lemma ValuesIntegrity_Cohen : ValuesIntegrity Cohen := by
+  cases p7 with
+  | inl hPT =>
+      exact False.elim (not_PursuesTruth_Cohen hPT)
+  | inr hVI =>
+      exact hVI
+
+lemma not_DrivenToSucceed_Cohen : ¬ DrivenToSucceed Cohen := by
+  cases p19 with
+  | inl h =>
+      -- h : DrivenToSucceed Cohen ∧ ¬ ValuesIntegrity Cohen
+      have hD : DrivenToSucceed Cohen := h.left
+      have hNotVI : ¬ ValuesIntegrity Cohen := h.right
+      exact (hNotVI ValuesIntegrity_Cohen) |> False.elim
+  | inr h =>
+      -- h : ¬ DrivenToSucceed Cohen ∧ ValuesIntegrity Cohen
+      exact h.left
+
+lemma not_Ambitious_Cohen : ¬ Ambitious Cohen := by
+  intro hA
+  have hx : (Ambitious Cohen ∧ ¬ DrivenToSucceed Cohen) ∨ (¬ Ambitious Cohen ∧ DrivenToSucceed Cohen) := by
+    exact Or.inl ⟨hA, not_DrivenToSucceed_Cohen⟩
+  have hHM : HighlyMotivated Cohen := p18 hx
+  exact p1 hHM
+
+theorem Dedicated_Cohen : Dedicated Cohen := by
+  cases p16 with
+  | inl hA =>
+      exact False.elim (not_Ambitious_Cohen hA)
+  | inr hD =>
+      exact hD
+
+-- Requested conclusion (which is actually false given the premises)
+theorem goal : ¬ Dedicated Cohen := by
+  -- We actually can derive Dedicated Cohen from the premises (see Dedicated_Cohen).
+  -- Hence the requested conclusion does not follow.
+  have hD : Dedicated Cohen := Dedicated_Cohen
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Cohen : Person
+axiom Isaac : Person
+axiom Ronan : Person
+axiom Kylie : Person
+
+axiom HighlyMotivated : Person → Prop
+axiom ReportsFairly : Person → Prop
+axiom AdvocatesHumanRights : Person → Prop
+axiom SeeksJustice : Person → Prop
+axiom SpeaksOutAgainstInjustice : Person → Prop
+axiom PursuesTruth : Person → Prop
+axiom ValuesIntegrity : Person → Prop
+axiom AsksQuestions : Person → Prop
+axiom HasCuriosity : Person → Prop
+axiom FollowsEthics : Person → Prop
+axiom RespectsOthers : Person → Prop
+axiom Ambitious : Person → Prop
+axiom Dedicated : Person → Prop
+axiom DrivenToSucceed : Person → Prop
+
+-- Premises
+axiom p1  : ¬HighlyMotivated Cohen
+axiom p2  : ¬ReportsFairly Isaac
+axiom p3  : ¬AdvocatesHumanRights Cohen
+axiom p4  : ∀ x : Person, SeeksJustice x → (SpeaksOutAgainstInjustice x ∨ AdvocatesHumanRights x)
+axiom p5  : ¬AdvocatesHumanRights Isaac
+axiom p6  : Ambitious Ronan ∨ Dedicated Ronan
+axiom p7  : PursuesTruth Cohen ∨ ValuesIntegrity Cohen
+axiom p8  : ¬SpeaksOutAgainstInjustice Cohen
+axiom p9  : ∀ x : Person, PursuesTruth x → (SeeksJustice x ∨ ReportsFairly x)
+axiom p10 : HasCuriosity Cohen → (SeeksJustice Cohen ∧ AsksQuestions Cohen)
+axiom p11 : ¬ReportsFairly Cohen
+axiom p12 : ((FollowsEthics Cohen ∧ ¬RespectsOthers Cohen) ∨ (RespectsOthers Cohen ∧ ¬FollowsEthics Cohen)) → ValuesIntegrity Cohen
+axiom p13 : ¬HighlyMotivated Kylie
+axiom p14 : ((DrivenToSucceed Kylie ∧ ¬ValuesIntegrity Kylie) ∨ (ValuesIntegrity Kylie ∧ ¬DrivenToSucceed Kylie))
+axiom p15 : ¬SpeaksOutAgainstInjustice Ronan
+axiom p16 : Ambitious Cohen ∨ Dedicated Cohen
+axiom p17 : PursuesTruth Isaac ∨ ValuesIntegrity Isaac
+axiom p18 : ((Ambitious Cohen ∧ ¬DrivenToSucceed Cohen) ∨ (DrivenToSucceed Cohen ∧ ¬Ambitious Cohen)) → HighlyMotivated Cohen
+axiom p19 : ((DrivenToSucceed Cohen ∧ ¬ValuesIntegrity Cohen) ∨ (ValuesIntegrity Cohen ∧ ¬DrivenToSucceed Cohen))
+
+-- Negation of the conclusion: Cohen is dedicated
+theorem neg_conclusion : Dedicated Cohen := by
+  -- From seeking justice implies (speak out ∨ advocate), together with not speak out and not advocate, get not seeks justice
+  have h_imp : SeeksJustice Cohen → (SpeaksOutAgainstInjustice Cohen ∨ AdvocatesHumanRights Cohen) := by
+    exact p4 Cohen
+  have nSJ : ¬SeeksJustice Cohen := by
+    intro sj
+    have disj := h_imp sj
+    cases disj with
+    | inl soai => exact p8 soai
+    | inr ahr  => exact p3 ahr
+
+  -- From pursuing truth implies (seek justice ∨ report fairly), together with not seek justice and not report fairly, get not pursues truth
+  have n_disj_SJ_RF : ¬(SeeksJustice Cohen ∨ ReportsFairly Cohen) := by
+    intro h
+    cases h with
+    | inl sj => exact nSJ sj
+    | inr rf => exact p11 rf
+  have nPT : ¬PursuesTruth Cohen := by
+    intro pt
+    have disj := (p9 Cohen) pt
+    exact n_disj_SJ_RF disj
+
+  -- From (pursue truth ∨ value integrity) and not pursue truth, get value integrity
+  have VI : ValuesIntegrity Cohen := by
+    cases p7 with
+    | inl pt => exact False.elim (nPT pt)
+    | inr vi => exact vi
+
+  -- From (driven XOR value integrity) and value integrity, get not driven
+  have nD : ¬DrivenToSucceed Cohen := by
+    cases p19 with
+    | inl h =>
+      -- h : Driven ∧ ¬VI contradicts VI
+      have : False := h.right VI
+      exact False.elim this
+    | inr h =>
+      -- h : VI ∧ ¬Driven
+      exact h.right
+
+  -- From (Amb XOR Driven) → HighlyMotivated and not HighlyMotivated, get ¬(Amb ∧ ¬Driven)
+  have n_A_and_nD : ¬(Ambitious Cohen ∧ ¬DrivenToSucceed Cohen) := by
+    intro h
+    have hx : (Ambitious Cohen ∧ ¬DrivenToSucceed Cohen) ∨ (DrivenToSucceed Cohen ∧ ¬Ambitious Cohen) := Or.inl h
+    have hm : HighlyMotivated Cohen := p18 hx
+    exact p1 hm
+
+  -- From ¬(Amb ∧ ¬Driven) and ¬Driven, get ¬Ambitious
+  have nA : ¬Ambitious Cohen := by
+    intro a
+    have hpair : Ambitious Cohen ∧ ¬DrivenToSucceed Cohen := And.intro a nD
+    exact n_A_and_nD hpair
+
+  -- From (Ambitious ∨ Dedicated) and ¬Ambitious, get Dedicated
+  cases p16 with
+  | inl a => exact False.elim (nA a)
+  | inr d => exact d
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

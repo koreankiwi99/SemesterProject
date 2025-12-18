@@ -1,0 +1,242 @@
+Story ID: 0
+Example ID: 23
+Premises: Hallie does not become mainstream. If Hallie either experiments with genres or collaborates with other artists (but not both), then she releases popular music. If Hallie is charismatic, then she creates hit singles. Every musician who is part of a band either writes songs or performs live (or both). Hallie does not experiment with genres. Hallie does not release popular music. If Hallie either plays an instrument or composes music (but not both), then she is part of a band. For every musician, if they are either part of a band or a solo artist (but not both), then they are creative. Hallie has vocal range. If Hallie either creates hit singles or records top tracks (but not both), then she becomes mainstream. Hallie is either a solo artist or produces albums, but not both. Every musician who gains a following either creates hit singles or collaborates with other artists (or both). If Hallie has vocal range and produces albums, then she gains a following. Hallie does not record top tracks. Hallie does not write songs. If Hallie either sells tickets or wins awards (but not both), then she gains a following. Hallie does not perform live.
+Conclusion: Hallie is not creative.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Hallie : Person
+
+axiom Mainstream : Person → Prop
+axiom ExperimentsGenres : Person → Prop
+axiom Collaborates : Person → Prop
+axiom ReleasesPopular : Person → Prop
+axiom Charismatic : Person → Prop
+axiom CreatesHits : Person → Prop
+axiom PartOfBand : Person → Prop
+axiom WritesSongs : Person → Prop
+axiom PerformsLive : Person → Prop
+axiom PlaysInstrument : Person → Prop
+axiom ComposesMusic : Person → Prop
+axiom SoloArtist : Person → Prop
+axiom Creative : Person → Prop
+axiom VocalRange : Person → Prop
+axiom RecordsTopTracks : Person → Prop
+axiom ProducesAlbums : Person → Prop
+axiom GainsFollowing : Person → Prop
+axiom SellsTickets : Person → Prop
+axiom WinsAwards : Person → Prop
+axiom Musician : Person → Prop
+
+-- Premises
+axiom p1 : ¬ Mainstream Hallie
+axiom p2 : ((ExperimentsGenres Hallie ∨ Collaborates Hallie) ∧ ¬(ExperimentsGenres Hallie ∧ Collaborates Hallie)) → ReleasesPopular Hallie
+axiom p3 : Charismatic Hallie → CreatesHits Hallie
+axiom p4 : ∀ x : Person, PartOfBand x → (WritesSongs x ∨ PerformsLive x)
+axiom p5 : ¬ ExperimentsGenres Hallie
+axiom p6 : ¬ ReleasesPopular Hallie
+axiom p7 : ((PlaysInstrument Hallie ∨ ComposesMusic Hallie) ∧ ¬(PlaysInstrument Hallie ∧ ComposesMusic Hallie)) → PartOfBand Hallie
+axiom p8 : ∀ x : Person, Musician x → (((PartOfBand x ∨ SoloArtist x) ∧ ¬(PartOfBand x ∧ SoloArtist x)) → Creative x)
+axiom p9 : VocalRange Hallie
+axiom p10 : ((CreatesHits Hallie ∨ RecordsTopTracks Hallie) ∧ ¬(CreatesHits Hallie ∧ RecordsTopTracks Hallie)) → Mainstream Hallie
+axiom p11 : (SoloArtist Hallie ∨ ProducesAlbums Hallie) ∧ ¬(SoloArtist Hallie ∧ ProducesAlbums Hallie)
+axiom p12 : ∀ x : Person, GainsFollowing x → (CreatesHits x ∨ Collaborates x)
+axiom p13 : (VocalRange Hallie ∧ ProducesAlbums Hallie) → GainsFollowing Hallie
+axiom p14 : ¬ RecordsTopTracks Hallie
+axiom p15 : ¬ WritesSongs Hallie
+axiom p16 : ((SellsTickets Hallie ∨ WinsAwards Hallie) ∧ ¬(SellsTickets Hallie ∧ WinsAwards Hallie)) → GainsFollowing Hallie
+axiom p17 : ¬ PerformsLive Hallie
+
+-- Useful derived facts
+lemma not_xor_hits : ¬ ((CreatesHits Hallie ∨ RecordsTopTracks Hallie) ∧ ¬(CreatesHits Hallie ∧ RecordsTopTracks Hallie)) := by
+  intro h
+  have hm : Mainstream Hallie := p10 h
+  exact p1 hm
+
+lemma not_creates_hits : ¬ CreatesHits Hallie := by
+  intro hCH
+  have hdisj : CreatesHits Hallie ∨ RecordsTopTracks Hallie := Or.inl hCH
+  have hnotboth : ¬ (CreatesHits Hallie ∧ RecordsTopTracks Hallie) := by
+    intro hboth
+    exact p14 hboth.right
+  have hx : (CreatesHits Hallie ∨ RecordsTopTracks Hallie) ∧ ¬(CreatesHits Hallie ∧ RecordsTopTracks Hallie) :=
+    And.intro hdisj hnotboth
+  exact not_xor_hits hx
+
+lemma not_charismatic : ¬ Charismatic Hallie := by
+  intro hcar
+  have : CreatesHits Hallie := p3 hcar
+  exact not_creates_hits this
+
+lemma not_xor_exp_collab : ¬ ((ExperimentsGenres Hallie ∨ Collaborates Hallie) ∧ ¬(ExperimentsGenres Hallie ∧ Collaborates Hallie)) := by
+  intro h
+  have : ReleasesPopular Hallie := p2 h
+  exact p6 this
+
+lemma not_collaborates : ¬ Collaborates Hallie := by
+  intro hcol
+  have hdisj : ExperimentsGenres Hallie ∨ Collaborates Hallie := Or.inr hcol
+  have hnotboth : ¬ (ExperimentsGenres Hallie ∧ Collaborates Hallie) := by
+    intro hboth
+    exact p5 hboth.left
+  have hx : (ExperimentsGenres Hallie ∨ Collaborates Hallie) ∧ ¬(ExperimentsGenres Hallie ∧ Collaborates Hallie) :=
+    And.intro hdisj hnotboth
+  exact not_xor_exp_collab hx
+
+lemma not_gains_following : ¬ GainsFollowing Hallie := by
+  intro hg
+  have h := p12 Hallie hg
+  cases h with
+  | inl hch => exact not_creates_hits hch
+  | inr hco => exact not_collaborates hco
+
+lemma not_vocal_and_produces : ¬ (VocalRange Hallie ∧ ProducesAlbums Hallie) := by
+  intro hvp
+  have : GainsFollowing Hallie := p13 hvp
+  exact not_gains_following this
+
+lemma not_produces : ¬ ProducesAlbums Hallie := by
+  intro hp
+  apply not_vocal_and_produces
+  exact And.intro p9 hp
+
+lemma solo_artist : SoloArtist Hallie := by
+  have hdisj : SoloArtist Hallie ∨ ProducesAlbums Hallie := (And.left p11)
+  cases hdisj with
+  | inl hs => exact hs
+  | inr hp => exact False.elim (not_produces hp)
+
+lemma not_part_of_band : ¬ PartOfBand Hallie := by
+  intro hb
+  have h := p4 Hallie hb
+  cases h with
+  | inl hw => exact p15 hw
+  | inr hl => exact p17 hl
+
+-- Goal: Hallie is not creative
+theorem goal : ¬ Creative Hallie := by
+  -- From the given premises, we can derive many properties about Hallie (as above),
+  -- but there is no premise that links Creative to any of these properties in a way
+  -- that would yield a contradiction from assuming Creative Hallie.
+  -- In particular, the only premise mentioning Creative requires Hallie to be a Musician,
+  -- which is not given, so we cannot derive Creative Hallie nor its negation from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Hallie : Person
+
+axiom Mainstream : Person → Prop
+axiom ExperimentsGenres : Person → Prop
+axiom CollaboratesArtists : Person → Prop
+axiom ReleasesPopularMusic : Person → Prop
+axiom Charismatic : Person → Prop
+axiom CreatesHitSingles : Person → Prop
+axiom PartOfBand : Person → Prop
+axiom WritesSongs : Person → Prop
+axiom PerformsLive : Person → Prop
+axiom PlaysInstrument : Person → Prop
+axiom ComposesMusic : Person → Prop
+axiom SoloArtist : Person → Prop
+axiom Creative : Person → Prop
+axiom HasVocalRange : Person → Prop
+axiom RecordsTopTracks : Person → Prop
+axiom ProducesAlbums : Person → Prop
+axiom GainsFollowing : Person → Prop
+axiom SellsTickets : Person → Prop
+axiom WinsAwards : Person → Prop
+
+-- Premises
+axiom p1  : ¬ Mainstream Hallie
+axiom p2  : ((ExperimentsGenres Hallie ∧ ¬ CollaboratesArtists Hallie) ∨ (CollaboratesArtists Hallie ∧ ¬ ExperimentsGenres Hallie)) → ReleasesPopularMusic Hallie
+axiom p3  : Charismatic Hallie → CreatesHitSingles Hallie
+axiom p4  : ∀ x : Person, PartOfBand x → (WritesSongs x ∨ PerformsLive x)
+axiom p5  : ¬ ExperimentsGenres Hallie
+axiom p6  : ¬ ReleasesPopularMusic Hallie
+axiom p7  : ((PlaysInstrument Hallie ∧ ¬ ComposesMusic Hallie) ∨ (ComposesMusic Hallie ∧ ¬ PlaysInstrument Hallie)) → PartOfBand Hallie
+axiom p8  : ∀ x : Person, (((PartOfBand x ∧ ¬ SoloArtist x) ∨ (SoloArtist x ∧ ¬ PartOfBand x)) → Creative x)
+axiom p9  : HasVocalRange Hallie
+axiom p10 : ((CreatesHitSingles Hallie ∧ ¬ RecordsTopTracks Hallie) ∨ (RecordsTopTracks Hallie ∧ ¬ CreatesHitSingles Hallie)) → Mainstream Hallie
+axiom p11 : ((SoloArtist Hallie ∧ ¬ ProducesAlbums Hallie) ∨ (ProducesAlbums Hallie ∧ ¬ SoloArtist Hallie))
+axiom p12 : ∀ x : Person, GainsFollowing x → (CreatesHitSingles x ∨ CollaboratesArtists x)
+axiom p13 : (HasVocalRange Hallie ∧ ProducesAlbums Hallie) → GainsFollowing Hallie
+axiom p14 : ¬ RecordsTopTracks Hallie
+axiom p15 : ¬ WritesSongs Hallie
+axiom p16 : ((SellsTickets Hallie ∧ ¬ WinsAwards Hallie) ∨ (WinsAwards Hallie ∧ ¬ SellsTickets Hallie)) → GainsFollowing Hallie
+axiom p17 : ¬ PerformsLive Hallie
+
+-- Goal: prove the negation of the conclusion "Hallie is not creative", i.e., prove Creative Hallie
+theorem negate_conclusion : Creative Hallie := by
+  -- Derive ¬(Writes ∨ Performs)
+  have hNoWP : ¬ (WritesSongs Hallie ∨ PerformsLive Hallie) := by
+    intro h
+    cases h with
+    | inl hw => exact p15 hw
+    | inr hp => exact p17 hp
+  -- From part-of-band implies (writes ∨ performs) and ¬(writes ∨ performs), get ¬part-of-band
+  have notBand : ¬ PartOfBand Hallie := by
+    intro hB
+    apply hNoWP
+    exact (p4 Hallie) hB
+  -- From ¬experiments, ¬releases, and the XOR implication, get ¬collaborates
+  have notCollab : ¬ CollaboratesArtists Hallie := by
+    intro hC
+    have hx : (ExperimentsGenres Hallie ∧ ¬ CollaboratesArtists Hallie) ∨ (CollaboratesArtists Hallie ∧ ¬ ExperimentsGenres Hallie) := by
+      apply Or.inr
+      exact And.intro hC p5
+    have rel : ReleasesPopularMusic Hallie := p2 hx
+    exact p6 rel
+  -- GainsFollowing → HitSingles (since collab is impossible)
+  have gf_to_hit : GainsFollowing Hallie → CreatesHitSingles Hallie := by
+    intro gf
+    have disj := (p12 Hallie) gf
+    cases disj with
+    | inl hit => exact hit
+    | inr collab => exact False.elim (notCollab collab)
+  -- Show ¬ProducesAlbums (assuming produces leads to mainstream contradiction)
+  have notProduces : ¬ ProducesAlbums Hallie := by
+    intro hProd
+    have gf : GainsFollowing Hallie := p13 ⟨p9, hProd⟩
+    have hit : CreatesHitSingles Hallie := gf_to_hit gf
+    have xorHR : (CreatesHitSingles Hallie ∧ ¬ RecordsTopTracks Hallie) ∨ (RecordsTopTracks Hallie ∧ ¬ CreatesHitSingles Hallie) := by
+      apply Or.inl
+      exact And.intro hit p14
+    have ms : Mainstream Hallie := p10 xorHR
+    exact p1 ms
+  -- From XOR (solo ⊕ produces) and ¬produces, get solo
+  have solo : SoloArtist Hallie := by
+    cases p11 with
+    | inl hs => exact hs.left
+    | inr hp =>
+        have : False := notProduces hp.left
+        exact False.elim this
+  -- Build XOR (band ⊕ solo) using solo and ¬band, then conclude creative
+  have xorBS : (PartOfBand Hallie ∧ ¬ SoloArtist Hallie) ∨ (SoloArtist Hallie ∧ ¬ PartOfBand Hallie) := by
+    apply Or.inr
+    exact And.intro solo notBand
+  exact (p8 Hallie) xorBS
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

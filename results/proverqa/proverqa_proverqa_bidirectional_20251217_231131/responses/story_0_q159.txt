@@ -1,0 +1,287 @@
+Story ID: 0
+Example ID: 159
+Premises: Thomas either makes a social impact or pursues personal gain, but not both. If Thomas contributes to wildlife conservation, then he either has ecological knowledge or takes community action, but not both. If someone possesses expertise and shares knowledge, then they can educate others. If Thomas either lives in the savannah or works with animals (but not both), then he protects the environment. Thomas supports conservation or pursues academic research. Thomas pursues personal gain. Thomas either pursues academic research or educates others, but not both. Everyone who protects the environment loves nature. If Thomas either takes community action or educates others (but not both), then he makes a social impact. If Thomas studies the elands or lives in the savannah (or both), then he contributes to wildlife conservation. Thomas does not love nature. If Thomas either tracks wildlife or explores rural areas (but not both), then he lives in the savannah. Thomas does not understand animal behavior. Thomas values biodiversity or has ecological knowledge. If Thomas has ecological knowledge, then he understands animal behavior. Thomas does not work with animals. Thomas does not support conservation.
+Conclusion: Thomas studies the elands.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Thomas : Person
+
+axiom MakesSocialImpact : Person → Prop
+axiom PursuesPersonalGain : Person → Prop
+axiom ContributesWildlifeConservation : Person → Prop
+axiom HasEcologicalKnowledge : Person → Prop
+axiom TakesCommunityAction : Person → Prop
+axiom PossessesExpertise : Person → Prop
+axiom SharesKnowledge : Person → Prop
+axiom CanEducateOthers : Person → Prop
+axiom LivesInSavannah : Person → Prop
+axiom WorksWithAnimals : Person → Prop
+axiom ProtectsEnvironment : Person → Prop
+axiom SupportsConservation : Person → Prop
+axiom PursuesAcademicResearch : Person → Prop
+axiom LovesNature : Person → Prop
+axiom StudiesElands : Person → Prop
+axiom TracksWildlife : Person → Prop
+axiom ExploresRuralAreas : Person → Prop
+axiom UnderstandsAnimalBehavior : Person → Prop
+axiom ValuesBiodiversity : Person → Prop
+
+-- Premises
+axiom p1_xor_M_or_G :
+  (MakesSocialImpact Thomas ∨ PursuesPersonalGain Thomas) ∧
+  ¬(MakesSocialImpact Thomas ∧ PursuesPersonalGain Thomas)
+axiom p2_C_implies_xor_EK_or_CA :
+  ContributesWildlifeConservation Thomas →
+  ((HasEcologicalKnowledge Thomas ∨ TakesCommunityAction Thomas) ∧
+   ¬(HasEcologicalKnowledge Thomas ∧ TakesCommunityAction Thomas))
+axiom p3_expertise_shares_implies_educates :
+  ∀ x : Person, PossessesExpertise x ∧ SharesKnowledge x → CanEducateOthers x
+axiom p4_xor_L_or_W_implies_protects :
+  ((LivesInSavannah Thomas ∨ WorksWithAnimals Thomas) ∧
+   ¬(LivesInSavannah Thomas ∧ WorksWithAnimals Thomas)) →
+  ProtectsEnvironment Thomas
+axiom p5_supports_or_research :
+  SupportsConservation Thomas ∨ PursuesAcademicResearch Thomas
+axiom p6_personal_gain :
+  PursuesPersonalGain Thomas
+axiom p7_xor_research_or_educates :
+  (PursuesAcademicResearch Thomas ∨ CanEducateOthers Thomas) ∧
+  ¬(PursuesAcademicResearch Thomas ∧ CanEducateOthers Thomas)
+axiom p8_protects_implies_loves :
+  ∀ x : Person, ProtectsEnvironment x → LovesNature x
+axiom p9_xor_action_or_educates_implies_impact :
+  ((TakesCommunityAction Thomas ∨ CanEducateOthers Thomas) ∧
+   ¬(TakesCommunityAction Thomas ∧ CanEducateOthers Thomas)) →
+  MakesSocialImpact Thomas
+axiom p10_study_or_live_implies_contrib :
+  (StudiesElands Thomas ∨ LivesInSavannah Thomas) →
+  ContributesWildlifeConservation Thomas
+axiom p11_not_loves : ¬LovesNature Thomas
+axiom p12_xor_track_or_explore_implies_live :
+  ((TracksWildlife Thomas ∨ ExploresRuralAreas Thomas) ∧
+   ¬(TracksWildlife Thomas ∧ ExploresRuralAreas Thomas)) →
+  LivesInSavannah Thomas
+axiom p13_not_understands : ¬UnderstandsAnimalBehavior Thomas
+axiom p14_values_or_eko :
+  ValuesBiodiversity Thomas ∨ HasEcologicalKnowledge Thomas
+axiom p15_eko_implies_understands :
+  ∀ x : Person, HasEcologicalKnowledge x → UnderstandsAnimalBehavior x
+axiom p16_not_work : ¬WorksWithAnimals Thomas
+axiom p17_not_supports : ¬SupportsConservation Thomas
+
+-- Derived lemmas
+lemma not_impact : ¬MakesSocialImpact Thomas := by
+  have hnotboth : ¬(MakesSocialImpact Thomas ∧ PursuesPersonalGain Thomas) :=
+    (p1_xor_M_or_G).right
+  have hgain : PursuesPersonalGain Thomas := p6_personal_gain
+  intro hM
+  exact hnotboth (And.intro hM hgain)
+
+lemma research_true : PursuesAcademicResearch Thomas := by
+  cases p5_supports_or_research with
+  | inl hsc => exact False.elim (p17_not_supports hsc)
+  | inr har => exact har
+
+lemma not_educates : ¬CanEducateOthers Thomas := by
+  have hnotboth : ¬(PursuesAcademicResearch Thomas ∧ CanEducateOthers Thomas) :=
+    (p7_xor_research_or_educates).right
+  have har := research_true
+  intro hE
+  exact hnotboth (And.intro har hE)
+
+lemma ca_implies_impact : TakesCommunityAction Thomas → MakesSocialImpact Thomas := by
+  intro hCA
+  have hEfalse : ¬CanEducateOthers Thomas := not_educates
+  have h :
+      (TakesCommunityAction Thomas ∨ CanEducateOthers Thomas) ∧
+      ¬(TakesCommunityAction Thomas ∧ CanEducateOthers Thomas) := by
+    have left : TakesCommunityAction Thomas ∨ CanEducateOthers Thomas := Or.inl hCA
+    have right : ¬(TakesCommunityAction Thomas ∧ CanEducateOthers Thomas) := by
+      intro hboth
+      exact hEfalse hboth.right
+    exact And.intro left right
+  exact p9_xor_action_or_educates_implies_impact h
+
+lemma not_ca : ¬TakesCommunityAction Thomas := by
+  have himp := ca_implies_impact
+  have hnotM := not_impact
+  intro hCA
+  exact hnotM (himp hCA)
+
+lemma not_eko : ¬HasEcologicalKnowledge Thomas := by
+  intro hEko
+  have : UnderstandsAnimalBehavior Thomas := p15_eko_implies_understands Thomas hEko
+  exact p13_not_understands this
+
+lemma not_contrib : ¬ContributesWildlifeConservation Thomas := by
+  intro hC
+  have hx := p2_C_implies_xor_EK_or_CA hC
+  have hdisj : HasEcologicalKnowledge Thomas ∨ TakesCommunityAction Thomas := hx.left
+  cases hdisj with
+  | inl hEko => exact (not_eko hEko)
+  | inr hCA => exact (not_ca hCA)
+
+lemma not_study : ¬StudiesElands Thomas := by
+  have hnotC := not_contrib
+  intro hS
+  have hC : ContributesWildlifeConservation Thomas :=
+    p10_study_or_live_implies_contrib (Or.inl hS)
+  exact hnotC hC
+
+-- Requested conclusion (cannot be derived from the given premises)
+theorem goal : StudiesElands Thomas := by
+  -- From the premises, we actually derived ¬StudiesElands Thomas (see `not_study`).
+  -- Therefore, the desired conclusion does not follow.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Thomas : Person
+
+axiom MakesSocialImpact : Person → Prop
+axiom PursuesPersonalGain : Person → Prop
+axiom ContributesWildlifeConservation : Person → Prop
+axiom HasEcologicalKnowledge : Person → Prop
+axiom TakesCommunityAction : Person → Prop
+axiom PossessesExpertise : Person → Prop
+axiom SharesKnowledge : Person → Prop
+axiom Educates : Person → Prop
+axiom LivesSavannah : Person → Prop
+axiom WorksWithAnimals : Person → Prop
+axiom ProtectsEnvironment : Person → Prop
+axiom SupportsConservation : Person → Prop
+axiom PursuesAcademicResearch : Person → Prop
+axiom LovesNature : Person → Prop
+axiom StudiesElands : Person → Prop
+axiom TracksWildlife : Person → Prop
+axiom ExploresRuralAreas : Person → Prop
+axiom UnderstandsAnimalBehavior : Person → Prop
+axiom ValuesBiodiversity : Person → Prop
+
+-- Premises
+axiom premise1 :
+  (MakesSocialImpact Thomas ∨ PursuesPersonalGain Thomas) ∧
+  ¬(MakesSocialImpact Thomas ∧ PursuesPersonalGain Thomas)
+
+axiom premise2 :
+  ContributesWildlifeConservation Thomas →
+  ((HasEcologicalKnowledge Thomas ∨ TakesCommunityAction Thomas) ∧
+   ¬(HasEcologicalKnowledge Thomas ∧ TakesCommunityAction Thomas))
+
+axiom premise3 :
+  ∀ x : Person, (PossessesExpertise x ∧ SharesKnowledge x) → Educates x
+
+axiom premise4 :
+  ((LivesSavannah Thomas ∨ WorksWithAnimals Thomas) ∧
+   ¬(LivesSavannah Thomas ∧ WorksWithAnimals Thomas)) →
+  ProtectsEnvironment Thomas
+
+axiom premise5 :
+  SupportsConservation Thomas ∨ PursuesAcademicResearch Thomas
+
+axiom premise6 :
+  PursuesPersonalGain Thomas
+
+axiom premise7 :
+  (PursuesAcademicResearch Thomas ∨ Educates Thomas) ∧
+  ¬(PursuesAcademicResearch Thomas ∧ Educates Thomas)
+
+axiom premise8 :
+  ∀ x : Person, ProtectsEnvironment x → LovesNature x
+
+axiom premise9 :
+  ((TakesCommunityAction Thomas ∨ Educates Thomas) ∧
+   ¬(TakesCommunityAction Thomas ∧ Educates Thomas)) →
+  MakesSocialImpact Thomas
+
+axiom premise10 :
+  (StudiesElands Thomas ∨ LivesSavannah Thomas) →
+  ContributesWildlifeConservation Thomas
+
+axiom premise11 :
+  ¬LovesNature Thomas
+
+axiom premise12 :
+  ((TracksWildlife Thomas ∨ ExploresRuralAreas Thomas) ∧
+   ¬(TracksWildlife Thomas ∧ ExploresRuralAreas Thomas)) →
+  LivesSavannah Thomas
+
+axiom premise13 :
+  ¬UnderstandsAnimalBehavior Thomas
+
+axiom premise14 :
+  ValuesBiodiversity Thomas ∨ HasEcologicalKnowledge Thomas
+
+axiom premise15 :
+  HasEcologicalKnowledge Thomas → UnderstandsAnimalBehavior Thomas
+
+axiom premise16 :
+  ¬WorksWithAnimals Thomas
+
+axiom premise17 :
+  ¬SupportsConservation Thomas
+
+-- Negation of the conclusion: Thomas does not study the elands.
+theorem neg_goal : ¬StudiesElands Thomas := by
+  intro hStudy
+  -- From studying elands, Thomas contributes to wildlife conservation
+  have hContrib : ContributesWildlifeConservation Thomas := by
+    have : StudiesElands Thomas ∨ LivesSavannah Thomas := Or.inl hStudy
+    exact premise10 this
+  -- From contributing, Thomas has ecological knowledge or takes community action (but not both)
+  have hChoice := premise2 hContrib
+  have hEcoOrAct : HasEcologicalKnowledge Thomas ∨ TakesCommunityAction Thomas := hChoice.left
+  have _hNotBothEcoAct : ¬(HasEcologicalKnowledge Thomas ∧ TakesCommunityAction Thomas) := hChoice.right
+  -- Thomas cannot have ecological knowledge because then he'd understand animal behavior, which he doesn't
+  have hNotEco : ¬HasEcologicalKnowledge Thomas := by
+    intro hEco
+    have hUnderstand : UnderstandsAnimalBehavior Thomas := premise15 hEco
+    exact premise13 hUnderstand
+  -- Therefore Thomas takes community action
+  have hAct : TakesCommunityAction Thomas := by
+    cases hEcoOrAct with
+    | inl hEco => exact False.elim (hNotEco hEco)
+    | inr hA => exact hA
+  -- From support/research disjunction and not support, deduce he pursues academic research
+  have hResearch : PursuesAcademicResearch Thomas := by
+    cases premise5 with
+    | inl hSup => exact False.elim (premise17 hSup)
+    | inr hRes => exact hRes
+  -- From xor between research and educating, deduce he does not educate others
+  have hNotEdu : ¬Educates Thomas := by
+    intro hEdu
+    have hBoth : PursuesAcademicResearch Thomas ∧ Educates Thomas := And.intro hResearch hEdu
+    exact premise7.right hBoth
+  -- Then the xor (action vs educating) holds, giving social impact
+  have hXorActEdu : (TakesCommunityAction Thomas ∨ Educates Thomas) ∧ ¬(TakesCommunityAction Thomas ∧ Educates Thomas) := by
+    refine And.intro (Or.inl hAct) ?_
+    intro hAnd
+    exact hNotEdu hAnd.right
+  have hImpact : MakesSocialImpact Thomas := premise9 hXorActEdu
+  -- But he also pursues personal gain, contradicting the 'not both' constraint
+  exact premise1.right ⟨hImpact, premise6⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

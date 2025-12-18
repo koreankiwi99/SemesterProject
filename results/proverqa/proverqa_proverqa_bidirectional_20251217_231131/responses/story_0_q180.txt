@@ -1,0 +1,249 @@
+Story ID: 0
+Example ID: 180
+Premises: Wyatt does not demonstrate proficiency. If someone is motivated, then they produce quality work and stay focused. If Wyatt takes pride in his work and meets challenges, then he also rushes through tasks. Wyatt meets deadlines. Wyatt is either a skilled stonemason or an inexperienced stonemason, but not both. Wyatt avoids details. Wyatt either works precisely or rushes through tasks, but not both. Wyatt either pays attention to details or makes mistakes, but not both. Wyatt does not have strong foundations. Wyatt learns quickly or makes mistakes. Wyatt either lacks practice or works precisely. Anyone who lacks practice and makes mistakes is an inexperienced stonemason. If Wyatt either earns recognition or gains acclaim, then he demonstrates proficiency. If Wyatt has strong foundations or produces quality work, then he will earn recognition. If someone has experience and pays attention to details, then they produce quality work. Wyatt does not gain acclaim. Anyone who meets deadlines and avoids details tends to rush through tasks. If Chase either earns recognition or gains acclaim, then he demonstrates proficiency. Wyatt has experience. If Wyatt avoids hard tasks and gives up quickly, then he lacks practice.
+Conclusion: Wyatt is a skilled stonemason.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Wyatt : Person
+axiom Chase : Person
+
+axiom DemonstratesProficiency : Person → Prop
+axiom Motivated : Person → Prop
+axiom ProducesQualityWork : Person → Prop
+axiom StayFocused : Person → Prop
+axiom TakesPrideWork : Person → Prop
+axiom MeetsChallenges : Person → Prop
+axiom RushesThroughTasks : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom SkilledStonemason : Person → Prop
+axiom InexperiencedStonemason : Person → Prop
+axiom AvoidsDetails : Person → Prop
+axiom WorksPrecisely : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom MakesMistakes : Person → Prop
+axiom HasStrongFoundations : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom LacksPractice : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom GainsAcclaim : Person → Prop
+axiom HasExperience : Person → Prop
+axiom AvoidsHardTasks : Person → Prop
+axiom GivesUpQuickly : Person → Prop
+
+-- Premises
+axiom p1 : ¬ DemonstratesProficiency Wyatt
+axiom p2 : ∀ x, Motivated x → (ProducesQualityWork x ∧ StayFocused x)
+axiom p3 : (TakesPrideWork Wyatt ∧ MeetsChallenges Wyatt) → RushesThroughTasks Wyatt
+axiom p4 : MeetsDeadlines Wyatt
+axiom p5a : SkilledStonemason Wyatt ∨ InexperiencedStonemason Wyatt
+axiom p5b : SkilledStonemason Wyatt → ¬ InexperiencedStonemason Wyatt
+axiom p5c : InexperiencedStonemason Wyatt → ¬ SkilledStonemason Wyatt
+axiom p6 : AvoidsDetails Wyatt
+axiom p7a : WorksPrecisely Wyatt ∨ RushesThroughTasks Wyatt
+axiom p7b : WorksPrecisely Wyatt → ¬ RushesThroughTasks Wyatt
+axiom p7c : RushesThroughTasks Wyatt → ¬ WorksPrecisely Wyatt
+axiom p8a : PaysAttentionToDetails Wyatt ∨ MakesMistakes Wyatt
+axiom p8b : PaysAttentionToDetails Wyatt → ¬ MakesMistakes Wyatt
+axiom p8c : MakesMistakes Wyatt → ¬ PaysAttentionToDetails Wyatt
+axiom p9 : ¬ HasStrongFoundations Wyatt
+axiom p10 : LearnsQuickly Wyatt ∨ MakesMistakes Wyatt
+axiom p11 : LacksPractice Wyatt ∨ WorksPrecisely Wyatt
+axiom p12 : ∀ x, (LacksPractice x ∧ MakesMistakes x) → InexperiencedStonemason x
+axiom p13 : (EarnsRecognition Wyatt ∨ GainsAcclaim Wyatt) → DemonstratesProficiency Wyatt
+axiom p14 : (HasStrongFoundations Wyatt ∨ ProducesQualityWork Wyatt) → EarnsRecognition Wyatt
+axiom p15 : ∀ x, (HasExperience x ∧ PaysAttentionToDetails x) → ProducesQualityWork x
+axiom p16 : ¬ GainsAcclaim Wyatt
+axiom p17 : ∀ x, (MeetsDeadlines x ∧ AvoidsDetails x) → RushesThroughTasks x
+axiom p18 : (EarnsRecognition Chase ∨ GainsAcclaim Chase) → DemonstratesProficiency Chase
+axiom p19 : HasExperience Wyatt
+axiom p20 : (AvoidsHardTasks Wyatt ∧ GivesUpQuickly Wyatt) → LacksPractice Wyatt
+
+theorem goal : SkilledStonemason Wyatt := by
+  -- derive that Wyatt rushes through tasks
+  have hRush : RushesThroughTasks Wyatt := by
+    have : (MeetsDeadlines Wyatt ∧ AvoidsDetails Wyatt) := And.intro p4 p6
+    exact p17 Wyatt this
+  -- hence not works precisely
+  have hNotPrec : ¬ WorksPrecisely Wyatt := by
+    exact p7c hRush
+  -- from (lacks practice or works precisely) and not works precisely, deduce lacks practice
+  have hLP : LacksPractice Wyatt := by
+    exact Or.elim p11 (fun h => h) (fun hwp => False.elim (hNotPrec hwp))
+  -- from not demo proficiency and (ER or GA) -> demo, deduce not (ER or GA)
+  have hNotERorGA : ¬ (EarnsRecognition Wyatt ∨ GainsAcclaim Wyatt) := by
+    intro h
+    have : DemonstratesProficiency Wyatt := p13 h
+    exact p1 this
+  have hNotER : ¬ EarnsRecognition Wyatt := by
+    intro her
+    exact hNotERorGA (Or.inl her)
+  -- hence not (SF or QW)
+  have hNotSForQW : ¬ (HasStrongFoundations Wyatt ∨ ProducesQualityWork Wyatt) := by
+    intro h
+    exact hNotER (p14 h)
+  have hNotQW : ¬ ProducesQualityWork Wyatt := by
+    intro hqw
+    exact hNotSForQW (Or.inr hqw)
+  -- from (Exp and PaysAttn) -> QW and not QW, deduce not (Exp and PaysAttn)
+  have hNotExpAndPay : ¬ (HasExperience Wyatt ∧ PaysAttentionToDetails Wyatt) := by
+    intro h
+    have : ProducesQualityWork Wyatt := p15 Wyatt h
+    exact hNotQW this
+  have hNotPay : ¬ PaysAttentionToDetails Wyatt := by
+    intro hpay
+    exact hNotExpAndPay (And.intro p19 hpay)
+  -- from (PaysAttn or Mistakes) and not PaysAttn, deduce Mistakes
+  have hMist : MakesMistakes Wyatt := by
+    exact Or.elim p8a (fun hpay => False.elim (hNotPay hpay)) (fun hm => hm)
+  -- from LacksPractice and MakesMistakes -> Inexperienced
+  have hInexp : InexperiencedStonemason Wyatt := by
+    exact p12 Wyatt (And.intro hLP hMist)
+  have hNotSkilled : ¬ SkilledStonemason Wyatt := by
+    exact p5c hInexp
+  -- At this point, the available premises lead to ¬ Skilled, not to Skilled.
+  -- We cannot derive SkilledStonemason Wyatt from the given premises.
+  admit
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Wyatt : Person
+axiom Chase : Person
+
+axiom Motivated : Person → Prop
+axiom ProducesQualityWork : Person → Prop
+axiom StaysFocused : Person → Prop
+axiom TakesPride : Person → Prop
+axiom MeetsChallenges : Person → Prop
+axiom Rushes : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom Skilled : Person → Prop
+axiom Inexperienced : Person → Prop
+axiom AvoidsDetails : Person → Prop
+axiom WorksPrecisely : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom MakesMistakes : Person → Prop
+axiom StrongFoundations : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom LacksPractice : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom GainsAcclaim : Person → Prop
+axiom HasExperience : Person → Prop
+axiom AvoidsHardTasks : Person → Prop
+axiom GivesUpQuickly : Person → Prop
+axiom DemonstratesProficiency : Person → Prop
+
+-- Premises
+axiom p1 : ¬DemonstratesProficiency Wyatt
+axiom p2 : ∀ x : Person, Motivated x → (ProducesQualityWork x ∧ StaysFocused x)
+axiom p3 : (TakesPride Wyatt ∧ MeetsChallenges Wyatt) → Rushes Wyatt
+axiom p4 : MeetsDeadlines Wyatt
+axiom p5 : (Skilled Wyatt ∧ ¬Inexperienced Wyatt) ∨ (Inexperienced Wyatt ∧ ¬Skilled Wyatt)
+axiom p6 : AvoidsDetails Wyatt
+axiom p7 : (WorksPrecisely Wyatt ∧ ¬Rushes Wyatt) ∨ (Rushes Wyatt ∧ ¬WorksPrecisely Wyatt)
+axiom p8 : (PaysAttentionToDetails Wyatt ∧ ¬MakesMistakes Wyatt) ∨ (MakesMistakes Wyatt ∧ ¬PaysAttentionToDetails Wyatt)
+axiom p9 : ¬StrongFoundations Wyatt
+axiom p10 : LearnsQuickly Wyatt ∨ MakesMistakes Wyatt
+axiom p11 : LacksPractice Wyatt ∨ WorksPrecisely Wyatt
+axiom p12 : ∀ x : Person, LacksPractice x ∧ MakesMistakes x → Inexperienced x
+axiom p13 : (EarnsRecognition Wyatt ∨ GainsAcclaim Wyatt) → DemonstratesProficiency Wyatt
+axiom p14 : (StrongFoundations Wyatt ∨ ProducesQualityWork Wyatt) → EarnsRecognition Wyatt
+axiom p15 : ∀ x : Person, HasExperience x ∧ PaysAttentionToDetails x → ProducesQualityWork x
+axiom p16 : ¬GainsAcclaim Wyatt
+axiom p17 : ∀ x : Person, MeetsDeadlines x ∧ AvoidsDetails x → Rushes x
+axiom p18 : (EarnsRecognition Chase ∨ GainsAcclaim Chase) → DemonstratesProficiency Chase
+axiom p19 : HasExperience Wyatt
+axiom p20 : (AvoidsHardTasks Wyatt ∧ GivesUpQuickly Wyatt) → LacksPractice Wyatt
+
+theorem not_skilled_Wyatt : ¬Skilled Wyatt := by
+  -- From deadlines and avoiding details, Wyatt rushes
+  have hRush : Rushes Wyatt := by
+    have h := p17 Wyatt
+    have hmdad : MeetsDeadlines Wyatt ∧ AvoidsDetails Wyatt := And.intro p4 p6
+    exact h hmdad
+  -- From xor (precise vs rushes) and rushing, not precise
+  have hNotPrecise : ¬WorksPrecisely Wyatt := by
+    apply Or.elim p7
+    · intro hleft
+      have hf : False := hleft.right hRush
+      exact False.elim hf
+    · intro hright
+      exact hright.right
+  -- From (lacks practice ∨ precise) and ¬precise, get lacks practice
+  have hLP : LacksPractice Wyatt := by
+    apply Or.elim p11
+    · intro hlp; exact hlp
+    · intro hprec
+      have hf : False := hNotPrecise hprec
+      exact False.elim hf
+  -- From (ER ∨ GA) → proficiency and ¬proficiency, get ¬(ER ∨ GA)
+  have hNotERorGA : ¬(EarnsRecognition Wyatt ∨ GainsAcclaim Wyatt) := by
+    intro hdisj
+    have hprof : DemonstratesProficiency Wyatt := p13 hdisj
+    exact p1 hprof
+  -- Hence ¬ER
+  have hNotER : ¬EarnsRecognition Wyatt := by
+    intro her
+    exact hNotERorGA (Or.inl her)
+  -- From (SF ∨ QW) → ER and ¬ER, get ¬(SF ∨ QW)
+  have hNotSForQW : ¬(StrongFoundations Wyatt ∨ ProducesQualityWork Wyatt) := by
+    intro hdisj
+    have her : EarnsRecognition Wyatt := p14 hdisj
+    exact hNotER her
+  -- Hence ¬QW
+  have hNotQW : ¬ProducesQualityWork Wyatt := by
+    intro hqw
+    exact hNotSForQW (Or.inr hqw)
+  -- From experience and (exp ∧ paysAtt → QW) and ¬QW, get ¬PaysAttention
+  have hNotPA : ¬PaysAttentionToDetails Wyatt := by
+    intro hpa
+    have hqw : ProducesQualityWork Wyatt := by
+      have hx := p15 Wyatt
+      exact hx (And.intro p19 hpa)
+    exact hNotQW hqw
+  -- From xor (PA ∧ ¬Mistakes) ∨ (Mistakes ∧ ¬PA) and ¬PA, get Mistakes
+  have hMistakes : MakesMistakes Wyatt := by
+    apply Or.elim p8
+    · intro hleft
+      have hf : False := hNotPA hleft.left
+      exact False.elim hf
+    · intro hright
+      exact hright.left
+  -- From lacks practice ∧ mistakes ⇒ inexperienced
+  have hInexp : Inexperienced Wyatt := by
+    have hx := p12 Wyatt
+    exact hx (And.intro hLP hMistakes)
+  -- From xor between skilled and inexperienced and inexperienced, deduce ¬skilled
+  have hNotSk : ¬Skilled Wyatt := by
+    apply Or.elim p5
+    · intro hleft
+      have ninexp : ¬Inexperienced Wyatt := hleft.right
+      have hf : False := ninexp hInexp
+      exact False.elim hf
+    · intro hright
+      exact hright.right
+  exact hNotSk
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

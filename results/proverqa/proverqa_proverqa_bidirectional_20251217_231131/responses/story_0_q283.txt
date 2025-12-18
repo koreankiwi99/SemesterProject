@@ -1,0 +1,162 @@
+Story ID: 0
+Example ID: 283
+Premises: Crew does not know biology. If Crew either rescues amphibians or researches marine life (but not both), then he studies axolotls. If Crew loves aquatic life, then he will study axolotls. Crew does not have a passion for nature. If someone cares for animals and understands ecology, then they can advocate for conservation. Anyone who enjoys scuba diving and appreciates marine life will love aquatic life. For all humans, if they value wildlife and help endangered species, then they care for animals. Crew helps endangered species. If Crew studies axolotls, then he either establishes a sanctuary or advocates for their conservation, but not both. Crew knows biology or understands ecology. Crew values wildlife. Crew has a passion for nature or loves aquatic life.
+Conclusion: Crew does not establish a sanctuary.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Crew : Person
+
+axiom KnowsBiology : Person → Prop
+axiom StudiesAxolotls : Person → Prop
+axiom RescuesAmphibians : Person → Prop
+axiom ResearchesMarineLife : Person → Prop
+axiom LovesAquaticLife : Person → Prop
+axiom PassionNature : Person → Prop
+axiom CaresAnimals : Person → Prop
+axiom UnderstandsEcology : Person → Prop
+axiom AdvocatesConservation : Person → Prop
+axiom EnjoysScubaDiving : Person → Prop
+axiom AppreciatesMarineLife : Person → Prop
+axiom ValuesWildlife : Person → Prop
+axiom HelpsEndangeredSpecies : Person → Prop
+axiom EstablishesSanctuary : Person → Prop
+
+-- Premises
+axiom a1 : ¬ KnowsBiology Crew
+axiom a2 : ((RescuesAmphibians Crew ∧ ¬ ResearchesMarineLife Crew) ∨ (¬ RescuesAmphibians Crew ∧ ResearchesMarineLife Crew)) → StudiesAxolotls Crew
+axiom a3 : LovesAquaticLife Crew → StudiesAxolotls Crew
+axiom a4 : ¬ PassionNature Crew
+axiom a5 : ∀ x : Person, CaresAnimals x ∧ UnderstandsEcology x → AdvocatesConservation x
+axiom a6 : ∀ x : Person, EnjoysScubaDiving x ∧ AppreciatesMarineLife x → LovesAquaticLife x
+axiom a7 : ∀ x : Person, ValuesWildlife x ∧ HelpsEndangeredSpecies x → CaresAnimals x
+axiom a8 : HelpsEndangeredSpecies Crew
+axiom a9 : StudiesAxolotls Crew → ((EstablishesSanctuary Crew ∧ ¬ AdvocatesConservation Crew) ∨ (¬ EstablishesSanctuary Crew ∧ AdvocatesConservation Crew))
+axiom a10 : KnowsBiology Crew ∨ UnderstandsEcology Crew
+axiom a11 : ValuesWildlife Crew
+axiom a12 : PassionNature Crew ∨ LovesAquaticLife Crew
+
+-- Conclusion: Crew does not establish a sanctuary.
+theorem goal : ¬ EstablishesSanctuary Crew := by
+  -- From not passion or love, and not passion, deduce love aquatic life
+  have hLA : LovesAquaticLife Crew := by
+    cases a12 with
+    | inl hpn => exact False.elim (a4 hpn)
+    | inr hla => exact hla
+  -- From love aquatic life, he studies axolotls
+  have hSA : StudiesAxolotls Crew := a3 hLA
+  -- From knows biology or understands ecology, and not knows biology, deduce understands ecology
+  have hUE : UnderstandsEcology Crew := by
+    cases a10 with
+    | inl hkb => exact False.elim (a1 hkb)
+    | inr hue => exact hue
+  -- From values wildlife and helps endangered species, deduce cares for animals
+  have hCA : CaresAnimals Crew := by
+    have hpair : ValuesWildlife Crew ∧ HelpsEndangeredSpecies Crew := And.intro a11 a8
+    exact (a7 Crew) hpair
+  -- From cares for animals and understands ecology, deduce advocates conservation
+  have hAC : AdvocatesConservation Crew := (a5 Crew) (And.intro hCA hUE)
+  -- From studies axolotls, get exclusive or between establishing sanctuary and advocating conservation
+  have hx : (EstablishesSanctuary Crew ∧ ¬ AdvocatesConservation Crew) ∨ (¬ EstablishesSanctuary Crew ∧ AdvocatesConservation Crew) := a9 hSA
+  -- Use AC to conclude not establish sanctuary
+  have hNotES : ¬ EstablishesSanctuary Crew := by
+    cases hx with
+    | inl h1 =>
+        -- h1.right : ¬AC contradicts hAC
+        exact False.elim (h1.right hAC)
+    | inr h2 => exact h2.left
+  exact hNotES
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Crew : Person
+
+axiom KnowsBiology : Person → Prop
+axiom UnderstandsEcology : Person → Prop
+axiom RescuesAmphibians : Person → Prop
+axiom ResearchesMarineLife : Person → Prop
+axiom StudiesAxolotls : Person → Prop
+axiom LovesAquaticLife : Person → Prop
+axiom PassionForNature : Person → Prop
+axiom CaresForAnimals : Person → Prop
+axiom CanAdvocateConservation : Person → Prop
+axiom EnjoysScubaDiving : Person → Prop
+axiom AppreciatesMarineLife : Person → Prop
+axiom ValuesWildlife : Person → Prop
+axiom HelpsEndangeredSpecies : Person → Prop
+axiom EstablishesSanctuary : Person → Prop
+axiom AdvocatesAxolotlConservation : Person → Prop
+
+-- Premises
+axiom premise1 : ¬ KnowsBiology Crew
+axiom premise2 :
+  ((RescuesAmphibians Crew ∧ ¬ ResearchesMarineLife Crew) ∨
+   (ResearchesMarineLife Crew ∧ ¬ RescuesAmphibians Crew)) → StudiesAxolotls Crew
+axiom premise3 : LovesAquaticLife Crew → StudiesAxolotls Crew
+axiom premise4 : ¬ PassionForNature Crew
+axiom premise5 : ∀ x : Person, (CaresForAnimals x ∧ UnderstandsEcology x) → CanAdvocateConservation x
+axiom premise6 : ∀ x : Person, (EnjoysScubaDiving x ∧ AppreciatesMarineLife x) → LovesAquaticLife x
+axiom premise7 : ∀ x : Person, (ValuesWildlife x ∧ HelpsEndangeredSpecies x) → CaresForAnimals x
+axiom premise8 : HelpsEndangeredSpecies Crew
+axiom premise9 :
+  StudiesAxolotls Crew →
+    ((EstablishesSanctuary Crew ∧ ¬ AdvocatesAxolotlConservation Crew) ∨
+     (AdvocatesAxolotlConservation Crew ∧ ¬ EstablishesSanctuary Crew))
+axiom premise10 : KnowsBiology Crew ∨ UnderstandsEcology Crew
+axiom premise11 : ValuesWildlife Crew
+axiom premise12 : PassionForNature Crew ∨ LovesAquaticLife Crew
+
+-- Goal: Prove the negation of the conclusion "Crew does not establish a sanctuary",
+-- i.e., prove EstablishesSanctuary Crew.
+theorem goal : EstablishesSanctuary Crew := by
+  -- From premise10 and premise1, deduce UnderstandsEcology Crew
+  have hUE : UnderstandsEcology Crew := by
+    cases premise10 with
+    | inl hKB =>
+        exact False.elim (premise1 hKB)
+    | inr hUE => exact hUE
+  -- From premise11 and premise8, deduce CaresForAnimals Crew via premise7
+  have hCare : CaresForAnimals Crew := by
+    have h := premise7 Crew
+    exact h ⟨premise11, premise8⟩
+  -- From hCare and hUE, deduce ability to advocate (general) via premise5
+  have _hCanAdv : CanAdvocateConservation Crew := by
+    have h := premise5 Crew
+    exact h ⟨hCare, hUE⟩
+  -- From premise12 and premise4, deduce LovesAquaticLife Crew
+  have hLove : LovesAquaticLife Crew := by
+    cases premise12 with
+    | inl hPass =>
+        exact False.elim (premise4 hPass)
+    | inr hLove => exact hLove
+  -- Then studies axolotls
+  have hStudy : StudiesAxolotls Crew := premise3 hLove
+  -- From premise9, we only get an exclusive disjunction about establishing a sanctuary
+  -- or advocating for axolotl conservation; without additional information we cannot
+  -- conclude EstablishesSanctuary Crew.
+  have hXor := premise9 hStudy
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

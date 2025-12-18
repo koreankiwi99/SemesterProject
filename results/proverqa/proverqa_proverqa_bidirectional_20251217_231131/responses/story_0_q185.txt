@@ -1,0 +1,230 @@
+Story ID: 0
+Example ID: 185
+Premises: Anyone who sets targets has a goal. Kaison does not achieve his goals. Kaison overcomes obstacles. Julius overcomes obstacles. If Kaison has ambition, then he either works hard or is disciplined (but not both). If Kaison is either determined or talented (but not both), then he is successful. Kaison sets targets. If Kaison has a goal, then he either dedicates time or stays focused (but not both). Julius stays focused. If someone faces challenges and seeks improvement, then they have a goal. Eliza does not achieve his goals. If Mami is either determined or talented (but not both), then he is successful. If someone is successful and overcomes obstacles, then they achieve their goals. If Kaison practices regularly, then he is both talented and stays confident. Kaison does not improve his skills. Kaison stays focused. Kaison either works hard or is talented (or both). If Kaison either dedicates time or works hard (but not both), then he improves his skills.
+Conclusion: Kaison is not determined.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Kaison : Person
+axiom Julius : Person
+axiom Eliza : Person
+axiom Mami : Person
+
+axiom SetsTargets : Person → Prop
+axiom HasGoal : Person → Prop
+axiom AchievesGoals : Person → Prop
+axiom OvercomesObstacles : Person → Prop
+axiom Ambition : Person → Prop
+axiom WorksHard : Person → Prop
+axiom Disciplined : Person → Prop
+axiom Determined : Person → Prop
+axiom Talented : Person → Prop
+axiom Successful : Person → Prop
+axiom DedicatesTime : Person → Prop
+axiom StaysFocused : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom SeeksImprovement : Person → Prop
+axiom PracticesRegularly : Person → Prop
+axiom StaysConfident : Person → Prop
+axiom ImprovesSkills : Person → Prop
+
+-- Premises
+axiom a1 : ∀ x : Person, SetsTargets x → HasGoal x
+axiom a2 : ¬ AchievesGoals Kaison
+axiom a3 : OvercomesObstacles Kaison
+axiom a4 : OvercomesObstacles Julius
+axiom a5 : Ambition Kaison → ((WorksHard Kaison ∨ Disciplined Kaison) ∧ ¬(WorksHard Kaison ∧ Disciplined Kaison))
+axiom a6 : ((Determined Kaison ∨ Talented Kaison) ∧ ¬(Determined Kaison ∧ Talented Kaison)) → Successful Kaison
+axiom a7 : SetsTargets Kaison
+axiom a8 : HasGoal Kaison → ((DedicatesTime Kaison ∨ StaysFocused Kaison) ∧ ¬(DedicatesTime Kaison ∧ StaysFocused Kaison))
+axiom a9 : StaysFocused Julius
+axiom a10 : ∀ x : Person, (FacesChallenges x ∧ SeeksImprovement x) → HasGoal x
+axiom a11 : ¬ AchievesGoals Eliza
+axiom a12 : ((Determined Mami ∨ Talented Mami) ∧ ¬(Determined Mami ∧ Talented Mami)) → Successful Mami
+axiom a13 : ∀ x : Person, (Successful x ∧ OvercomesObstacles x) → AchievesGoals x
+axiom a14 : PracticesRegularly Kaison → (Talented Kaison ∧ StaysConfident Kaison)
+axiom a15 : ¬ ImprovesSkills Kaison
+axiom a16 : StaysFocused Kaison
+axiom a17 : WorksHard Kaison ∨ Talented Kaison
+axiom a18 : ((DedicatesTime Kaison ∨ WorksHard Kaison) ∧ ¬(DedicatesTime Kaison ∧ WorksHard Kaison)) → ImprovesSkills Kaison
+
+-- Derived facts
+lemma hasGoalK : HasGoal Kaison := by
+  exact a1 Kaison a7
+
+lemma not_dedicates_time : ¬ DedicatesTime Kaison := by
+  have hx := a8 hasGoalK
+  have hnotAnd : ¬ (DedicatesTime Kaison ∧ StaysFocused Kaison) := hx.right
+  intro hded
+  exact hnotAnd (And.intro hded a16)
+
+lemma not_works_hard : ¬ WorksHard Kaison := by
+  intro hwh
+  have hnded : ¬ DedicatesTime Kaison := not_dedicates_time
+  have hxorb : (DedicatesTime Kaison ∨ WorksHard Kaison) ∧ ¬(DedicatesTime Kaison ∧ WorksHard Kaison) := by
+    have left : DedicatesTime Kaison ∨ WorksHard Kaison := Or.inr hwh
+    have notBoth : ¬ (DedicatesTime Kaison ∧ WorksHard Kaison) := by
+      intro hboth
+      exact hnded hboth.left
+    exact And.intro left notBoth
+  have himpr : ImprovesSkills Kaison := a18 hxorb
+  exact a15 himpr
+
+lemma talentedK : Talented Kaison := by
+  cases a17 with
+  | inl hwh =>
+      exact False.elim (not_works_hard hwh)
+  | inr htal =>
+      exact htal
+
+lemma not_successfulK : ¬ Successful Kaison := by
+  intro hsucc
+  have hach : AchievesGoals Kaison := a13 Kaison (And.intro hsucc a3)
+  exact a2 hach
+
+lemma not_xor_det_tal : ¬ ((Determined Kaison ∨ Talented Kaison) ∧ ¬(Determined Kaison ∧ Talented Kaison)) := by
+  intro hx
+  have : Successful Kaison := a6 hx
+  exact not_successfulK this
+
+theorem determinedK : Determined Kaison := by
+  classical
+  have htal : Talented Kaison := talentedK
+  have hnotxor := not_xor_det_tal
+  by_contra hnotdet
+  have hx : (Determined Kaison ∨ Talented Kaison) ∧ ¬(Determined Kaison ∧ Talented Kaison) := by
+    have left : Determined Kaison ∨ Talented Kaison := Or.inr htal
+    have notBoth : ¬ (Determined Kaison ∧ Talented Kaison) := by
+      intro hboth
+      exact hnotdet hboth.left
+    exact And.intro left notBoth
+  exact hnotxor hx
+
+-- Conclusion to analyze: Kaison is not determined.
+theorem goal : ¬ Determined Kaison := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Kaison : Person
+axiom Julius : Person
+axiom Eliza : Person
+axiom Mami : Person
+
+-- Predicates
+axiom SetsTargets : Person → Prop
+axiom HasGoal : Person → Prop
+axiom AchievesGoals : Person → Prop
+axiom OvercomesObstacles : Person → Prop
+axiom HasAmbition : Person → Prop
+axiom WorksHard : Person → Prop
+axiom Disciplined : Person → Prop
+axiom Determined : Person → Prop
+axiom Talented : Person → Prop
+axiom Successful : Person → Prop
+axiom DedicatesTime : Person → Prop
+axiom StaysFocused : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom SeeksImprovement : Person → Prop
+axiom PracticesRegularly : Person → Prop
+axiom StaysConfident : Person → Prop
+axiom ImprovesSkills : Person → Prop
+
+-- Premises
+axiom sets_targets_has_goal : ∀ x : Person, SetsTargets x → HasGoal x
+axiom kaison_not_achieves : ¬AchievesGoals Kaison
+axiom kaison_overcomes : OvercomesObstacles Kaison
+axiom julius_overcomes : OvercomesObstacles Julius
+axiom kaison_ambition_imp_xor_wh_disc :
+  HasAmbition Kaison →
+  ((WorksHard Kaison ∧ ¬Disciplined Kaison) ∨ (Disciplined Kaison ∧ ¬WorksHard Kaison))
+axiom kaison_xor_det_tal_imp_success :
+  ((Determined Kaison ∧ ¬Talented Kaison) ∨ (Talented Kaison ∧ ¬Determined Kaison)) → Successful Kaison
+axiom kaison_sets_targets : SetsTargets Kaison
+axiom kaison_goal_imp_xor_dt_sf :
+  HasGoal Kaison →
+  ((DedicatesTime Kaison ∧ ¬StaysFocused Kaison) ∨ (StaysFocused Kaison ∧ ¬DedicatesTime Kaison))
+axiom julius_stays_focused : StaysFocused Julius
+axiom challenges_seeks_imp_goal : ∀ x : Person, FacesChallenges x ∧ SeeksImprovement x → HasGoal x
+axiom eliza_not_achieves : ¬AchievesGoals Eliza
+axiom mami_xor_det_tal_imp_success :
+  ((Determined Mami ∧ ¬Talented Mami) ∨ (Talented Mami ∧ ¬Determined Mami)) → Successful Mami
+axiom success_overcomes_imp_achieves : ∀ x : Person, Successful x ∧ OvercomesObstacles x → AchievesGoals x
+axiom kaison_practices_imp_tal_conf : PracticesRegularly Kaison → (Talented Kaison ∧ StaysConfident Kaison)
+axiom kaison_not_improves : ¬ImprovesSkills Kaison
+axiom kaison_stays_focused : StaysFocused Kaison
+axiom kaison_wh_or_tal : WorksHard Kaison ∨ Talented Kaison
+axiom kaison_xor_dt_wh_imp_improves :
+  ((DedicatesTime Kaison ∧ ¬WorksHard Kaison) ∨ (WorksHard Kaison ∧ ¬DedicatesTime Kaison)) → ImprovesSkills Kaison
+
+open Classical
+
+-- Negation of the conclusion: prove that Kaison is determined
+theorem negated_conclusion : Determined Kaison := by
+  -- From setting targets to having a goal
+  have hGoal : HasGoal Kaison := sets_targets_has_goal Kaison kaison_sets_targets
+  -- Goal implies exclusive-or between dedicating time and staying focused
+  have hX :
+      (DedicatesTime Kaison ∧ ¬StaysFocused Kaison) ∨
+      (StaysFocused Kaison ∧ ¬DedicatesTime Kaison) :=
+    kaison_goal_imp_xor_dt_sf hGoal
+  -- Since Kaison stays focused, deduce he does not dedicate time
+  have hNotDT : ¬DedicatesTime Kaison :=
+    Or.elim hX
+      (fun h1 => fun _ => h1.right kaison_stays_focused)
+      (fun h2 => h2.right)
+  -- From XOR(DT, WH) → Improves and ¬Improves, deduce ¬WorksHard
+  have hNotWH : ¬WorksHard Kaison :=
+    fun hWH =>
+      let hx :
+          (DedicatesTime Kaison ∧ ¬WorksHard Kaison) ∨
+          (WorksHard Kaison ∧ ¬DedicatesTime Kaison) :=
+        Or.inr ⟨hWH, hNotDT⟩
+      let hImp : ImprovesSkills Kaison := kaison_xor_dt_wh_imp_improves hx
+      kaison_not_improves hImp
+  -- From (WorksHard ∨ Talented) and ¬WorksHard, deduce Talented
+  have hTal : Talented Kaison :=
+    Or.elim kaison_wh_or_tal
+      (fun hwh => False.elim (hNotWH hwh))
+      (fun htal => htal)
+  -- From (Successful ∧ Overcomes) → Achieves, together with Overcomes and ¬Achieves, deduce ¬Successful
+  have hNotSucc : ¬Successful Kaison :=
+    fun hSucc =>
+      let hAch : AchievesGoals Kaison :=
+        success_overcomes_imp_achieves Kaison ⟨hSucc, kaison_overcomes⟩
+      kaison_not_achieves hAch
+  -- Show ¬¬Determined Kaison
+  have hNNDet : ¬¬Determined Kaison := by
+    intro hNotDet
+    have hxDT :
+        ((Determined Kaison ∧ ¬Talented Kaison) ∨ (Talented Kaison ∧ ¬Determined Kaison)) :=
+      Or.inr ⟨hTal, hNotDet⟩
+    have hSucc : Successful Kaison := kaison_xor_det_tal_imp_success hxDT
+    exact hNotSucc hSucc
+  -- Conclude Determined Kaison classically
+  exact Classical.byContradiction (fun hNotDet => hNNDet hNotDet)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

@@ -1,0 +1,240 @@
+Story ID: 0
+Example ID: 4
+Premises: Dayana has a PhD in biology. If Landen has a passion for reptiles, then he will study caimans. Landen protects endangered species. Barrett either works with local communities or ventures into remote locations, but not both. Landen does not work with local communities. Vihaan either ventures into remote locations or earns global recognition, but not both. Landen either works with local communities or ventures into remote locations, but not both. Landen has experience with wildlife rescue. If Dayana has a PhD in biology, then he either documents animal behavior or has experience with wildlife rescue, but not both. Landen either ventures into remote locations or earns global recognition, but not both. Landen has a PhD in biology. If Landen has a PhD in biology, then he either documents animal behavior or has experience with wildlife rescue, but not both. Barrett protects endangered species. Anyone who discovers new species and publishes research papers can earn global recognition. If Landen has field experience, then he either ventures into remote locations or specializes in reptile biology, but not both. If Landen studies caimans, then he can either gain the respect of the indigenous community or contribute to caiman conservation, but not both. Landen, as a wildlife explorer, either documents animal behavior or has a passion for reptiles, but not necessarily both. If Landen protects endangered species, then he can either gain the respect of the indigenous community or earn global recognition, but not both. If Landen loves animals, then he has a passion for reptiles.
+Conclusion: Landen contributes to caiman conservation.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Dayana : Person
+axiom Landen : Person
+axiom Barrett : Person
+axiom Vihaan : Person
+
+axiom PhD_in_biology : Person → Prop
+axiom Passion_reptiles : Person → Prop
+axiom Studies_caimans : Person → Prop
+axiom Protects_endangered : Person → Prop
+axiom Works_with_local : Person → Prop
+axiom Ventures_remote : Person → Prop
+axiom Earns_global_recognition : Person → Prop
+axiom Wildlife_rescue_exp : Person → Prop
+axiom Documents_animal_behavior : Person → Prop
+axiom Field_experience : Person → Prop
+axiom Specializes_reptile_bio : Person → Prop
+axiom Gains_indigenous_respect : Person → Prop
+axiom Contributes_caiman_conservation : Person → Prop
+axiom Wildlife_explorer : Person → Prop
+axiom Loves_animals : Person → Prop
+axiom Discovers_new_species : Person → Prop
+axiom Publishes_research : Person → Prop
+
+-- Premises
+axiom ax1_dayana_phd : PhD_in_biology Dayana
+axiom ax2_passion_implies_study : Passion_reptiles Landen → Studies_caimans Landen
+axiom ax3_landen_protects : Protects_endangered Landen
+axiom ax4_barrett_worksloc_xor_remote :
+  (Works_with_local Barrett ∨ Ventures_remote Barrett) ∧ ¬(Works_with_local Barrett ∧ Ventures_remote Barrett)
+axiom ax5_landen_not_worksloc : ¬ Works_with_local Landen
+axiom ax6_vihaan_remote_xor_global :
+  (Ventures_remote Vihaan ∨ Earns_global_recognition Vihaan) ∧ ¬(Ventures_remote Vihaan ∧ Earns_global_recognition Vihaan)
+axiom ax7_landen_worksloc_xor_remote :
+  (Works_with_local Landen ∨ Ventures_remote Landen) ∧ ¬(Works_with_local Landen ∧ Ventures_remote Landen)
+axiom ax8_landen_rescue_exp : Wildlife_rescue_exp Landen
+axiom ax9_dayana_phd_implies_docs_xor_rescue :
+  PhD_in_biology Dayana →
+    (Documents_animal_behavior Dayana ∨ Wildlife_rescue_exp Dayana) ∧
+    ¬(Documents_animal_behavior Dayana ∧ Wildlife_rescue_exp Dayana)
+axiom ax10_landen_remote_xor_global :
+  (Ventures_remote Landen ∨ Earns_global_recognition Landen) ∧
+  ¬(Ventures_remote Landen ∧ Earns_global_recognition Landen)
+axiom ax11_landen_phd : PhD_in_biology Landen
+axiom ax12_landen_phd_implies_docs_xor_rescue :
+  PhD_in_biology Landen →
+    (Documents_animal_behavior Landen ∨ Wildlife_rescue_exp Landen) ∧
+    ¬(Documents_animal_behavior Landen ∧ Wildlife_rescue_exp Landen)
+axiom ax13_barrett_protects : Protects_endangered Barrett
+axiom ax14_discover_and_publish_implies_global :
+  ∀ x : Person, (Discovers_new_species x ∧ Publishes_research x) → Earns_global_recognition x
+axiom ax15_landen_fieldexp_implies_remote_xor_specialize :
+  Field_experience Landen →
+    (Ventures_remote Landen ∨ Specializes_reptile_bio Landen) ∧
+    ¬(Ventures_remote Landen ∧ Specializes_reptile_bio Landen)
+axiom ax16_if_studies_caimans_then_respect_xor_contribute :
+  Studies_caimans Landen →
+    (Gains_indigenous_respect Landen ∨ Contributes_caiman_conservation Landen) ∧
+    ¬(Gains_indigenous_respect Landen ∧ Contributes_caiman_conservation Landen)
+axiom ax17_wildlife_explorer : Wildlife_explorer Landen
+axiom ax17b_docs_or_passion : Documents_animal_behavior Landen ∨ Passion_reptiles Landen
+axiom ax18_protects_implies_respect_xor_global :
+  Protects_endangered Landen →
+    (Gains_indigenous_respect Landen ∨ Earns_global_recognition Landen) ∧
+    ¬(Gains_indigenous_respect Landen ∧ Earns_global_recognition Landen)
+axiom ax19_loves_implies_passion : Loves_animals Landen → Passion_reptiles Landen
+
+-- From the premises, we can derive that Landen does NOT contribute to caiman conservation.
+theorem not_contribute_Landen : ¬ Contributes_caiman_conservation Landen := by
+  -- From "either works with local or ventures remote" and "not works with local", deduce ventures remote
+  have hOrWLVR : Works_with_local Landen ∨ Ventures_remote Landen :=
+    (ax7_landen_worksloc_xor_remote).left
+  have hRemote : Ventures_remote Landen := by
+    cases hOrWLVR with
+    | inl hwl => exact False.elim (ax5_landen_not_worksloc hwl)
+    | inr hvr => exact hvr
+  -- From "remote xor global", deduce not global (since remote holds)
+  have hNotBothRemoteGlobal : ¬ (Ventures_remote Landen ∧ Earns_global_recognition Landen) :=
+    (ax10_landen_remote_xor_global).right
+  have hNotGlobal : ¬ Earns_global_recognition Landen := by
+    intro hGlob
+    exact hNotBothRemoteGlobal ⟨hRemote, hGlob⟩
+  -- From "protects ⇒ respect xor global" and not global, deduce respect
+  have hResOrGlob : Gains_indigenous_respect Landen ∨ Earns_global_recognition Landen :=
+    (ax18_protects_implies_respect_xor_global ax3_landen_protects).left
+  have hRespect : Gains_indigenous_respect Landen := by
+    cases hResOrGlob with
+    | inl hres => exact hres
+    | inr hglob => exact False.elim (hNotGlobal hglob)
+  -- From PhD ⇒ (doc xor rescue) and rescue true, deduce not doc
+  have hDocOrRes : Documents_animal_behavior Landen ∨ Wildlife_rescue_exp Landen :=
+    (ax12_landen_phd_implies_docs_xor_rescue ax11_landen_phd).left
+  have hNotBothDocRes : ¬ (Documents_animal_behavior Landen ∧ Wildlife_rescue_exp Landen) :=
+    (ax12_landen_phd_implies_docs_xor_rescue ax11_landen_phd).right
+  have hNotDoc : ¬ Documents_animal_behavior Landen := by
+    intro hdoc
+    exact hNotBothDocRes ⟨hdoc, ax8_landen_rescue_exp⟩
+  -- From (doc ∨ passion) and not doc, deduce passion
+  have hPassion : Passion_reptiles Landen := by
+    cases ax17b_docs_or_passion with
+    | inl hdoc => exact False.elim (hNotDoc hdoc)
+    | inr hpas => exact hpas
+  -- From passion ⇒ studies caimans
+  have hStudy : Studies_caimans Landen := ax2_passion_implies_study hPassion
+  -- From studies caimans ⇒ (respect xor contribute) and respect true, deduce not contribute
+  have hResOrContrib : (Gains_indigenous_respect Landen ∨ Contributes_caiman_conservation Landen) ∧
+                       ¬(Gains_indigenous_respect Landen ∧ Contributes_caiman_conservation Landen) :=
+    ax16_if_studies_caimans_then_respect_xor_contribute hStudy
+  have hNotBothResContrib : ¬ (Gains_indigenous_respect Landen ∧ Contributes_caiman_conservation Landen) :=
+    hResOrContrib.right
+  intro hContrib
+  exact hNotBothResContrib ⟨hRespect, hContrib⟩
+
+-- Requested conclusion (not derivable from the premises)
+theorem goal : Contributes_caiman_conservation Landen := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Dayana : Person
+axiom Landen : Person
+axiom Barrett : Person
+axiom Vihaan : Person
+
+axiom PhD : Person → Prop
+axiom PassionReptiles : Person → Prop
+axiom StudiesCaimans : Person → Prop
+axiom ProtectsEndangered : Person → Prop
+axiom WorksLocal : Person → Prop
+axiom VenturesRemote : Person → Prop
+axiom GlobalRecognition : Person → Prop
+axiom WildlifeRescueExp : Person → Prop
+axiom DocumentsBehavior : Person → Prop
+axiom SpecializesReptileBiology : Person → Prop
+axiom FieldExperience : Person → Prop
+axiom RespectIndigenous : Person → Prop
+axiom ContributeCaimanConservation : Person → Prop
+axiom DiscoversNewSpecies : Person → Prop
+axiom PublishesResearchPapers : Person → Prop
+axiom LovesAnimals : Person → Prop
+
+-- Premises
+axiom p1 : PhD Dayana
+axiom p2 : PassionReptiles Landen → StudiesCaimans Landen
+axiom p3 : ProtectsEndangered Landen
+axiom p4 : (WorksLocal Barrett ∨ VenturesRemote Barrett) ∧ ¬(WorksLocal Barrett ∧ VenturesRemote Barrett)
+axiom p5 : ¬WorksLocal Landen
+axiom p6 : (VenturesRemote Vihaan ∨ GlobalRecognition Vihaan) ∧ ¬(VenturesRemote Vihaan ∧ GlobalRecognition Vihaan)
+axiom p7 : (WorksLocal Landen ∨ VenturesRemote Landen) ∧ ¬(WorksLocal Landen ∧ VenturesRemote Landen)
+axiom p8 : WildlifeRescueExp Landen
+axiom p9 : PhD Dayana → (DocumentsBehavior Dayana ∨ WildlifeRescueExp Dayana) ∧ ¬(DocumentsBehavior Dayana ∧ WildlifeRescueExp Dayana)
+axiom p10 : (VenturesRemote Landen ∨ GlobalRecognition Landen) ∧ ¬(VenturesRemote Landen ∧ GlobalRecognition Landen)
+axiom p11 : PhD Landen
+axiom p12 : PhD Landen → (DocumentsBehavior Landen ∨ WildlifeRescueExp Landen) ∧ ¬(DocumentsBehavior Landen ∧ WildlifeRescueExp Landen)
+axiom p13 : ProtectsEndangered Barrett
+axiom p14 : ∀ x : Person, DiscoversNewSpecies x ∧ PublishesResearchPapers x → GlobalRecognition x
+axiom p15 : FieldExperience Landen → (VenturesRemote Landen ∨ SpecializesReptileBiology Landen) ∧ ¬(VenturesRemote Landen ∧ SpecializesReptileBiology Landen)
+axiom p16 : StudiesCaimans Landen → (RespectIndigenous Landen ∨ ContributeCaimanConservation Landen) ∧ ¬(RespectIndigenous Landen ∧ ContributeCaimanConservation Landen)
+axiom p17 : DocumentsBehavior Landen ∨ PassionReptiles Landen
+axiom p18 : ProtectsEndangered Landen → (RespectIndigenous Landen ∨ GlobalRecognition Landen) ∧ ¬(RespectIndigenous Landen ∧ GlobalRecognition Landen)
+axiom p19 : LovesAnimals Landen → PassionReptiles Landen
+
+-- Goal: prove the negation of the conclusion (i.e., Landen does not contribute to caiman conservation)
+theorem neg_conclusion : ¬ ContributeCaimanConservation Landen := by
+  -- From XOR: (WorksLocal L ∨ VenturesRemote L) and ¬(both); with ¬WorksLocal L, deduce VenturesRemote L
+  have hWV : (WorksLocal Landen ∨ VenturesRemote Landen) ∧ ¬(WorksLocal Landen ∧ VenturesRemote Landen) := p7
+  have hNotWL : ¬WorksLocal Landen := p5
+  have hVR : VenturesRemote Landen := by
+    have hOr := And.left hWV
+    cases hOr with
+    | inl hWL => exact False.elim (hNotWL hWL)
+    | inr hVR => exact hVR
+  -- From (VenturesRemote L) XOR GlobalRecognition L, deduce ¬GlobalRecognition L
+  have hVxorG : (VenturesRemote Landen ∨ GlobalRecognition Landen) ∧ ¬(VenturesRemote Landen ∧ GlobalRecognition Landen) := p10
+  have hNotGR : ¬GlobalRecognition Landen := by
+    intro hGR
+    have hAnd : VenturesRemote Landen ∧ GlobalRecognition Landen := And.intro hVR hGR
+    exact (And.right hVxorG) hAnd
+  -- From ProtectsEndangered L implies (RespectIndigenous L XOR GlobalRecognition L), deduce RespectIndigenous L
+  have hProt : ProtectsEndangered Landen := p3
+  have hRxorG : (RespectIndigenous Landen ∨ GlobalRecognition Landen) ∧ ¬(RespectIndigenous Landen ∧ GlobalRecognition Landen) := p18 hProt
+  have hRI : RespectIndigenous Landen := by
+    have hOr := And.left hRxorG
+    cases hOr with
+    | inl h => exact h
+    | inr hGR => exact False.elim (hNotGR hGR)
+  -- From PhD L implies (DocumentsBehavior L XOR WildlifeRescueExp L), and we have WildlifeRescueExp L, deduce ¬DocumentsBehavior L
+  have hWR : WildlifeRescueExp Landen := p8
+  have hPhD : PhD Landen := p11
+  have hDxorW : (DocumentsBehavior Landen ∨ WildlifeRescueExp Landen) ∧ ¬(DocumentsBehavior Landen ∧ WildlifeRescueExp Landen) := p12 hPhD
+  have hNotDB : ¬DocumentsBehavior Landen := by
+    intro hDB
+    have hAnd : DocumentsBehavior Landen ∧ WildlifeRescueExp Landen := And.intro hDB hWR
+    exact (And.right hDxorW) hAnd
+  -- From (DocumentsBehavior L ∨ PassionReptiles L) and ¬DocumentsBehavior L, deduce PassionReptiles L
+  have hDBorPR : DocumentsBehavior Landen ∨ PassionReptiles Landen := p17
+  have hPR : PassionReptiles Landen := by
+    cases hDBorPR with
+    | inl hDB => exact False.elim (hNotDB hDB)
+    | inr hPR => exact hPR
+  -- From PassionReptiles L, deduce StudiesCaimans L
+  have hSC : StudiesCaimans Landen := p2 hPR
+  -- From StudiesCaimans L implies (RespectIndigenous L XOR ContributeCaimanConservation L),
+  -- together with RespectIndigenous L, deduce ¬ContributeCaimanConservation L
+  have hRxorC : (RespectIndigenous Landen ∨ ContributeCaimanConservation Landen) ∧ ¬(RespectIndigenous Landen ∧ ContributeCaimanConservation Landen) := p16 hSC
+  have hNotBoth : ¬(RespectIndigenous Landen ∧ ContributeCaimanConservation Landen) := And.right hRxorC
+  intro hCCC
+  apply hNotBoth
+  exact And.intro hRI hCCC
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

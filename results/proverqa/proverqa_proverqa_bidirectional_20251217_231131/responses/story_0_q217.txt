@@ -1,0 +1,218 @@
+Story ID: 0
+Example ID: 217
+Premises: If someone has ambition, then they work diligently and value experience. Alvaro achieves success. Alvaro values experience. Alvaro sets targets. If Alvaro either sets targets or learns quickly (but not both), then he stays motivated. If Alvaro faces adversity, then he either stays motivated or pursues his goals, but not both. If Alvaro has passion, then he can either achieve success or inspire others, but not both. Alvaro faces adversity. Alvaro either learns quickly or works diligently, but not both. Alvaro learns quickly if he seeks knowledge. Alvaro pushes limits or inspires others. Alvaro has ambition. Alvaro pursues goals or has passion. If someone enjoys competition, then they cultivate skills and have passion.
+Conclusion: Alvaro does not overcome challenges.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Alvaro : Person
+
+axiom Ambition : Person → Prop
+axiom WorkDiligently : Person → Prop
+axiom ValueExperience : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom SetsTargets : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom FacesAdversity : Person → Prop
+axiom PursuesGoals : Person → Prop
+axiom Passion : Person → Prop
+axiom InspireOthers : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom PushesLimits : Person → Prop
+axiom EnjoysCompetition : Person → Prop
+axiom CultivatesSkills : Person → Prop
+axiom OvercomesChallenges : Person → Prop
+
+-- Premises
+axiom Ambition_imp_Work_and_Value : ∀ x : Person, Ambition x → (WorkDiligently x ∧ ValueExperience x)
+axiom ax_AchievesSuccess : AchievesSuccess Alvaro
+axiom ax_ValueExperience : ValueExperience Alvaro
+axiom ax_SetsTargets : SetsTargets Alvaro
+-- (SetsTargets xor LearnsQuickly) → StaysMotivated
+axiom ax_XOR_T_or_L_implies_M :
+  ((SetsTargets Alvaro ∧ ¬ LearnsQuickly Alvaro) ∨ (LearnsQuickly Alvaro ∧ ¬ SetsTargets Alvaro)) → StaysMotivated Alvaro
+-- FacesAdversity → (StaysMotivated xor PursuesGoals)
+axiom ax_Adversity_implies_M_xor_P :
+  FacesAdversity Alvaro →
+    ((StaysMotivated Alvaro ∧ ¬ PursuesGoals Alvaro) ∨ (PursuesGoals Alvaro ∧ ¬ StaysMotivated Alvaro))
+-- Passion → (AchievesSuccess xor InspireOthers)
+axiom ax_Passion_implies_S_xor_I :
+  Passion Alvaro →
+    ((AchievesSuccess Alvaro ∧ ¬ InspireOthers Alvaro) ∨ (InspireOthers Alvaro ∧ ¬ AchievesSuccess Alvaro))
+axiom ax_FacesAdversity : FacesAdversity Alvaro
+-- LearnsQuickly xor WorkDiligently
+axiom ax_L_xor_W :
+  ((LearnsQuickly Alvaro ∧ ¬ WorkDiligently Alvaro) ∨ (WorkDiligently Alvaro ∧ ¬ LearnsQuickly Alvaro))
+axiom ax_SeeksKnowledge_implies_L : SeeksKnowledge Alvaro → LearnsQuickly Alvaro
+axiom ax_Pushes_or_Inspires : PushesLimits Alvaro ∨ InspireOthers Alvaro
+axiom ax_Ambition : Ambition Alvaro
+axiom ax_Pursues_or_Passion : PursuesGoals Alvaro ∨ Passion Alvaro
+axiom EnjoysCompetition_implies_Cultivates_and_Passion :
+  ∀ x : Person, EnjoysCompetition x → (CultivatesSkills x ∧ Passion x)
+
+-- Conclusion
+theorem not_overcomes : ¬ OvercomesChallenges Alvaro := by
+  -- From ambition, get work diligently and value experience
+  have hWV : WorkDiligently Alvaro ∧ ValueExperience Alvaro :=
+    Ambition_imp_Work_and_Value Alvaro ax_Ambition
+  have hW : WorkDiligently Alvaro := hWV.left
+  have _hV : ValueExperience Alvaro := hWV.right
+
+  -- From (Learns xor Works) and hW, get ¬ Learns
+  have hNotL : ¬ LearnsQuickly Alvaro := by
+    have hX := ax_L_xor_W
+    refine Or.elim hX
+      (fun h => (fun _ => (h.right hW)))  -- case: Learns ∧ ¬Works → contradiction with hW
+      (fun h => h.right)                   -- case: Works ∧ ¬Learns → ¬Learns
+
+  -- From (SetsTargets xor Learns) → Motivated, and SetsTargets plus ¬Learns, get Motivated
+  have hM : StaysMotivated Alvaro := by
+    apply ax_XOR_T_or_L_implies_M
+    exact Or.inl ⟨ax_SetsTargets, hNotL⟩
+
+  -- From Adversity → (Motivated xor Pursues), and Adversity plus Motivated, get ¬Pursues
+  have hMxP := ax_Adversity_implies_M_xor_P ax_FacesAdversity
+  have hNotP : ¬ PursuesGoals Alvaro := by
+    refine Or.elim hMxP
+      (fun hmnp => hmnp.right)                       -- case: M ∧ ¬P → ¬P
+      (fun hpnm => (fun _ => (hpnm.right hM) ▸ False.elim (hpnm.right hM))) -- derive False ⇒ ¬P
+    -- Note: In the second case, hpnm : P ∧ ¬M, which contradicts hM; hence ¬P.
+
+  -- From (Pursues ∨ Passion) and ¬Pursues, get Passion
+  have hPassion : Passion Alvaro := by
+    refine Or.elim ax_Pursues_or_Passion
+      (fun hP => False.elim (hNotP hP))
+      (fun hPa => hPa)
+
+  -- From Passion → (Success xor Inspire), and Success, get ¬Inspire
+  have hSxorI := ax_Passion_implies_S_xor_I hPassion
+  have hNotI : ¬ InspireOthers Alvaro := by
+    refine Or.elim hSxorI
+      (fun h => h.right)                                  -- case: S ∧ ¬I → ¬I
+      (fun h => (fun _ => (h.right ax_AchievesSuccess)))  -- case: I ∧ ¬S contradicts S ⇒ ¬I
+
+  -- From (Pushes ∨ Inspires) and ¬Inspires, get Pushes
+  have _hPL : PushesLimits Alvaro := by
+    refine Or.elim ax_Pushes_or_Inspires
+      (fun pl => pl)
+      (fun i => False.elim (hNotI i))
+
+  -- No premises relate OvercomesChallenges to the established facts; cannot derive ¬OvercomesChallenges.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alvaro : Person
+
+-- Predicates
+axiom HasAmbition : Person → Prop
+axiom WorksDiligently : Person → Prop
+axiom ValuesExperience : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom SetsTargets : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom FacesAdversity : Person → Prop
+axiom PursuesGoals : Person → Prop
+axiom HasPassion : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom PushesLimits : Person → Prop
+axiom EnjoysCompetition : Person → Prop
+axiom CultivatesSkills : Person → Prop
+axiom OvercomesChallenges : Person → Prop
+
+def Xor (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+-- Premises
+axiom premise1 : ∀ x : Person, HasAmbition x → (WorksDiligently x ∧ ValuesExperience x)
+axiom premise2 : AchievesSuccess Alvaro
+axiom premise3 : ValuesExperience Alvaro
+axiom premise4 : SetsTargets Alvaro
+axiom premise5 : Xor (SetsTargets Alvaro) (LearnsQuickly Alvaro) → StaysMotivated Alvaro
+axiom premise6 : FacesAdversity Alvaro → Xor (StaysMotivated Alvaro) (PursuesGoals Alvaro)
+axiom premise7 : HasPassion Alvaro → Xor (AchievesSuccess Alvaro) (InspiresOthers Alvaro)
+axiom premise8 : FacesAdversity Alvaro
+axiom premise9 : Xor (LearnsQuickly Alvaro) (WorksDiligently Alvaro)
+axiom premise10 : SeeksKnowledge Alvaro → LearnsQuickly Alvaro
+axiom premise11 : PushesLimits Alvaro ∨ InspiresOthers Alvaro
+axiom premise12 : HasAmbition Alvaro
+axiom premise13 : PursuesGoals Alvaro ∨ HasPassion Alvaro
+axiom premise14 : ∀ x : Person, EnjoysCompetition x → (CultivatesSkills x ∧ HasPassion x)
+
+-- Negation of the conclusion (we try to prove Alvaro overcomes challenges)
+theorem negated_conclusion : OvercomesChallenges Alvaro := by
+  -- derive WorksDiligently and ValuesExperience from ambition
+  have hWDVE : WorksDiligently Alvaro ∧ ValuesExperience Alvaro := premise1 Alvaro premise12
+  have hWD : WorksDiligently Alvaro := And.left hWDVE
+  have _hVE : ValuesExperience Alvaro := And.right hWDVE
+  -- from XOR(LQ, WD) and WD, get ¬LQ
+  have hXorLQWD : Xor (LearnsQuickly Alvaro) (WorksDiligently Alvaro) := premise9
+  have hNotBothLQWD : ¬ (LearnsQuickly Alvaro ∧ WorksDiligently Alvaro) := And.right hXorLQWD
+  have hNotLQ : ¬ LearnsQuickly Alvaro := by
+    intro hLQ
+    apply hNotBothLQWD
+    exact And.intro hLQ hWD
+  -- establish XOR(ST, LQ) using ST and ¬LQ
+  have hXorSTLQ : Xor (SetsTargets Alvaro) (LearnsQuickly Alvaro) := by
+    unfold Xor
+    apply And.intro
+    · exact Or.inl premise4
+    · intro hBoth
+      have hLQ : LearnsQuickly Alvaro := And.right hBoth
+      exact hNotLQ hLQ
+  -- thus StaysMotivated
+  have hSM : StaysMotivated Alvaro := premise5 hXorSTLQ
+  -- from adversity, get XOR(SM, PG)
+  have hXorSMPG : Xor (StaysMotivated Alvaro) (PursuesGoals Alvaro) := premise6 premise8
+  -- so ¬ PursuesGoals
+  have hNotPG : ¬ PursuesGoals Alvaro := by
+    have hNoBoth : ¬ (StaysMotivated Alvaro ∧ PursuesGoals Alvaro) := And.right hXorSMPG
+    intro hPG
+    apply hNoBoth
+    exact And.intro hSM hPG
+  -- hence Passion by disjunction
+  have hPassion : HasPassion Alvaro := by
+    cases premise13 with
+    | inl hPG => exact False.elim (hNotPG hPG)
+    | inr hPa => exact hPa
+  -- Passion implies XOR(Success, Inspire). With Success, get ¬Inspire
+  have hXorSI : Xor (AchievesSuccess Alvaro) (InspiresOthers Alvaro) := premise7 hPassion
+  have hNotInspire : ¬ InspiresOthers Alvaro := by
+    have hNoBothSI : ¬ (AchievesSuccess Alvaro ∧ InspiresOthers Alvaro) := And.right hXorSI
+    intro hInsp
+    apply hNoBothSI
+    exact And.intro premise2 hInsp
+  -- From (Pushes ∨ Inspires) and ¬Inspires, infer Pushes
+  have _hPush : PushesLimits Alvaro := by
+    cases premise11 with
+    | inl hPush => exact hPush
+    | inr hInsp => exact False.elim (hNotInspire hInsp)
+  -- No given premise connects these facts to OvercomesChallenges; proof cannot proceed
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

@@ -1,0 +1,241 @@
+Story ID: 0
+Example ID: 278
+Premises: Faith either supports others or challenges wrongs, but not both. If Isabella faces an accusation, then she either seeks a judicial review or defends her rights. All individuals with moral courage speak the truth and challenge wrongs. If Isabella either speaks out against unfairness or demands accountability (but not both), then she defends her rights. If Isabella is principled, then she either values integrity or believes in fairness, but not both. Isabella faces an accusation. For all humans, if someone stands up for themselves, then they gain respect and protect their reputation. Anyone who fights injustice or values integrity will stand up for themselves. Anyone who defends their rights or challenges wrongs will fight injustice. Isabella is principled. Isabella does not believe in fairness. Isabella either supports others or challenges wrongs, but not both. Luca is principled. Isabella does not seek a judicial review. Isabella supports others.
+Conclusion: Isabella gains respect.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Faith : Person
+axiom Isabella : Person
+axiom Luca : Person
+
+-- Predicates
+axiom SupportsOthers : Person → Prop
+axiom ChallengesWrongs : Person → Prop
+axiom FacesAccusation : Person → Prop
+axiom SeeksJudicialReview : Person → Prop
+axiom DefendsRights : Person → Prop
+axiom SpeaksTruth : Person → Prop
+axiom MoralCourage : Person → Prop
+axiom SpeaksOutAgainstUnfairness : Person → Prop
+axiom DemandsAccountability : Person → Prop
+axiom Principled : Person → Prop
+axiom ValuesIntegrity : Person → Prop
+axiom BelievesInFairness : Person → Prop
+axiom StandsUpForSelf : Person → Prop
+axiom GainsRespect : Person → Prop
+axiom ProtectsReputation : Person → Prop
+axiom FightsInjustice : Person → Prop
+
+-- Premises
+-- Faith either supports others or challenges wrongs, but not both.
+axiom Faith_xor :
+  (SupportsOthers Faith ∧ ¬ ChallengesWrongs Faith) ∨
+  (ChallengesWrongs Faith ∧ ¬ SupportsOthers Faith)
+
+-- If Isabella faces an accusation, then she either seeks a judicial review or defends her rights.
+axiom Isa_face_imp :
+  FacesAccusation Isabella → (SeeksJudicialReview Isabella ∨ DefendsRights Isabella)
+
+-- All with moral courage speak the truth and challenge wrongs.
+axiom MoralCourage_all :
+  ∀ x : Person, MoralCourage x → (SpeaksTruth x ∧ ChallengesWrongs x)
+
+-- If Isabella either speaks out against unfairness or demands accountability (but not both), then she defends her rights.
+axiom Isa_xor_speak_demand_imp_defend :
+  ((SpeaksOutAgainstUnfairness Isabella ∧ ¬ DemandsAccountability Isabella) ∨
+   (DemandsAccountability Isabella ∧ ¬ SpeaksOutAgainstUnfairness Isabella)) →
+  DefendsRights Isabella
+
+-- If Isabella is principled, then she either values integrity or believes in fairness, but not both.
+axiom Isa_principled_xor_integrity_fairness :
+  Principled Isabella →
+  ((ValuesIntegrity Isabella ∧ ¬ BelievesInFairness Isabella) ∨
+   (BelievesInFairness Isabella ∧ ¬ ValuesIntegrity Isabella))
+
+-- Isabella faces an accusation.
+axiom Isa_faces : FacesAccusation Isabella
+
+-- For all humans, if someone stands up for themselves, then they gain respect and protect their reputation.
+axiom StandsUp_imp_respect :
+  ∀ x : Person, StandsUpForSelf x → (GainsRespect x ∧ ProtectsReputation x)
+
+-- Anyone who fights injustice or values integrity will stand up for themselves.
+axiom FightOrIntegrity_imp_stand :
+  ∀ x : Person, (FightsInjustice x ∨ ValuesIntegrity x) → StandsUpForSelf x
+
+-- Anyone who defends their rights or challenges wrongs will fight injustice.
+axiom DefendOrChallenge_imp_fight :
+  ∀ x : Person, (DefendsRights x ∨ ChallengesWrongs x) → FightsInjustice x
+
+-- Isabella is principled.
+axiom Isa_principled : Principled Isabella
+
+-- Isabella does not believe in fairness.
+axiom Isa_not_believe_fair : ¬ BelievesInFairness Isabella
+
+-- Isabella either supports others or challenges wrongs, but not both.
+axiom Isa_xor_support_challenge :
+  (SupportsOthers Isabella ∧ ¬ ChallengesWrongs Isabella) ∨
+  (ChallengesWrongs Isabella ∧ ¬ SupportsOthers Isabella)
+
+-- Luca is principled.
+axiom Luca_principled : Principled Luca
+
+-- Isabella does not seek a judicial review.
+axiom Isa_not_seekJR : ¬ SeeksJudicialReview Isabella
+
+-- Isabella supports others.
+axiom Isa_supports : SupportsOthers Isabella
+
+-- Goal: Isabella gains respect.
+theorem goal : GainsRespect Isabella := by
+  -- From accusation and the implication, Isabella either seeks JR or defends rights
+  have hdisj : SeeksJudicialReview Isabella ∨ DefendsRights Isabella :=
+    Isa_face_imp Isa_faces
+  -- Using the fact that she does not seek JR, conclude she defends her rights
+  have hdef : DefendsRights Isabella := by
+    cases hdisj with
+    | inl hSJR =>
+        have : False := Isa_not_seekJR hSJR
+        exact False.elim this
+    | inr hDR => exact hDR
+  -- From defending rights, she fights injustice
+  have hfight : FightsInjustice Isabella := by
+    have hdc : DefendsRights Isabella ∨ ChallengesWrongs Isabella := Or.inl hdef
+    exact DefendOrChallenge_imp_fight Isabella hdc
+  -- From fighting (or integrity), she stands up for herself
+  have hstand : StandsUpForSelf Isabella :=
+    FightOrIntegrity_imp_stand Isabella (Or.inl hfight)
+  -- Standing up yields gaining respect (and protecting reputation)
+  have hres : GainsRespect Isabella ∧ ProtectsReputation Isabella :=
+    StandsUp_imp_respect Isabella hstand
+  exact hres.left
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Faith : Person
+axiom Isabella : Person
+axiom Luca : Person
+
+axiom SupportsOthers : Person → Prop
+axiom ChallengesWrongs : Person → Prop
+axiom FacesAccusation : Person → Prop
+axiom SeeksReview : Person → Prop
+axiom DefendsRights : Person → Prop
+axiom MoralCourage : Person → Prop
+axiom SpeaksTruth : Person → Prop
+axiom SpeaksAgainstUnfairness : Person → Prop
+axiom DemandsAccountability : Person → Prop
+axiom Principled : Person → Prop
+axiom ValuesIntegrity : Person → Prop
+axiom BelievesFairness : Person → Prop
+axiom StandsUp : Person → Prop
+axiom GainsRespect : Person → Prop
+axiom ProtectsReputation : Person → Prop
+axiom FightsInjustice : Person → Prop
+axiom Human : Person → Prop
+
+-- Premises
+axiom p1 :
+  (SupportsOthers Faith ∧ ¬ ChallengesWrongs Faith) ∨
+  (ChallengesWrongs Faith ∧ ¬ SupportsOthers Faith)
+
+axiom p2 :
+  FacesAccusation Isabella → (SeeksReview Isabella ∨ DefendsRights Isabella)
+
+axiom p3 :
+  ∀ x : Person, MoralCourage x → (SpeaksTruth x ∧ ChallengesWrongs x)
+
+axiom p4 :
+  ((SpeaksAgainstUnfairness Isabella ∧ ¬ DemandsAccountability Isabella) ∨
+   (DemandsAccountability Isabella ∧ ¬ SpeaksAgainstUnfairness Isabella)) →
+  DefendsRights Isabella
+
+axiom p5 :
+  Principled Isabella →
+  ((ValuesIntegrity Isabella ∧ ¬ BelievesFairness Isabella) ∨
+   (BelievesFairness Isabella ∧ ¬ ValuesIntegrity Isabella))
+
+axiom p6 : FacesAccusation Isabella
+
+axiom p7 :
+  ∀ x : Person, Human x → (StandsUp x → (GainsRespect x ∧ ProtectsReputation x))
+
+axiom p8 :
+  ∀ x : Person, (FightsInjustice x ∨ ValuesIntegrity x) → StandsUp x
+
+axiom p9 :
+  ∀ x : Person, (DefendsRights x ∨ ChallengesWrongs x) → FightsInjustice x
+
+axiom p10 : Principled Isabella
+axiom p11 : ¬ BelievesFairness Isabella
+
+axiom p12 :
+  (SupportsOthers Isabella ∧ ¬ ChallengesWrongs Isabella) ∨
+  (ChallengesWrongs Isabella ∧ ¬ SupportsOthers Isabella)
+
+axiom p13 : Principled Luca
+axiom p14 : ¬ SeeksReview Isabella
+axiom p15 : SupportsOthers Isabella
+
+-- Some derived facts from the premises
+theorem valuesIntegrity_Isabella : ValuesIntegrity Isabella := by
+  have h := p5 p10
+  cases h with
+  | inl h1 => exact h1.left
+  | inr h2 =>
+    have : BelievesFairness Isabella := h2.left
+    exact False.elim (p11 this)
+
+theorem defendsRights_Isabella : DefendsRights Isabella := by
+  have h := p2 p6
+  cases h with
+  | inl hs => exact False.elim (p14 hs)
+  | inr hd => exact hd
+
+theorem fightsInjustice_Isabella : FightsInjustice Isabella := by
+  apply p9 Isabella
+  exact Or.inl defendsRights_Isabella
+
+theorem standsUp_Isabella : StandsUp Isabella := by
+  apply p8 Isabella
+  exact Or.inl fightsInjustice_Isabella
+
+theorem not_ChallengesWrongs_Isabella : ¬ ChallengesWrongs Isabella := by
+  cases p12 with
+  | inl h => exact h.right
+  | inr h =>
+    have : ¬ SupportsOthers Isabella := h.right
+    exact False.elim (this p15)
+
+-- Goal: prove the negation of the conclusion (that Isabella does NOT gain respect).
+-- This does not follow from the given premises; we declare it as an axiom to mark failure.
+axiom goal : ¬ GainsRespect Isabella
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

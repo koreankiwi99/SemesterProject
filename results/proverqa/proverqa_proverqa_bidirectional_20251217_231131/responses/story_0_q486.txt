@@ -1,0 +1,246 @@
+Story ID: 0
+Example ID: 486
+Premises: Anyone who takes risks and embraces uncertainty is adventurous. Jade is not free-spirited. For Jade, she either enjoys spontaneity or prefers order, but not both. Jade loves the ocean. For Jade, either enjoying spontaneity or seeking new experiences (but not both) implies being free-spirited. Anyone who is a skilled cartographer either charts new paths or explores unseen areas (or both). Jade craves challenge. If someone appreciates precision, then they value routine and take care of details. If Jade is a seasoned sailor, then she is either an excellent navigator or a master cartographer, but not both. If someone values routine, then they prefer order in their life. If Jade loves the ocean, then she is a seasoned sailor and has experience. Jade is not a master cartographer. Anyone who craves challenge or desires change will seek new experiences. If Jade is an excellent navigator, then she can either lead expeditions or chart new paths, but not both. If Jade either follows schedules or plans ahead (but not both), then she prefers order in her life. Jade does not desire change. Jade has experience. If Jade is adventurous, then she has secrets knowledge and charts new paths. Jade either values routine or is adventurous, but not both.
+Conclusion: Jade leads expeditions.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Jade : Person
+
+axiom TakesRisks : Person → Prop
+axiom EmbracesUncertainty : Person → Prop
+axiom Adventurous : Person → Prop
+axiom FreeSpirited : Person → Prop
+axiom EnjoysSpontaneity : Person → Prop
+axiom PrefersOrder : Person → Prop
+axiom LovesOcean : Person → Prop
+axiom SeeksNewExperiences : Person → Prop
+axiom SkilledCartographer : Person → Prop
+axiom ChartsNewPaths : Person → Prop
+axiom ExploresUnseenAreas : Person → Prop
+axiom CravesChallenge : Person → Prop
+axiom AppreciatesPrecision : Person → Prop
+axiom ValuesRoutine : Person → Prop
+axiom TakesCareOfDetails : Person → Prop
+axiom SeasonedSailor : Person → Prop
+axiom ExcellentNavigator : Person → Prop
+axiom MasterCartographer : Person → Prop
+axiom FollowsSchedules : Person → Prop
+axiom PlansAhead : Person → Prop
+axiom DesiresChange : Person → Prop
+axiom HasExperience : Person → Prop
+axiom SecretKnowledge : Person → Prop
+axiom LeadsExpeditions : Person → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Person, (TakesRisks x ∧ EmbracesUncertainty x) → Adventurous x
+axiom ax2 : ¬ FreeSpirited Jade
+axiom ax3 : (EnjoysSpontaneity Jade ∧ ¬ PrefersOrder Jade) ∨ (PrefersOrder Jade ∧ ¬ EnjoysSpontaneity Jade)
+axiom ax4 : LovesOcean Jade
+axiom ax5 : ((EnjoysSpontaneity Jade ∧ ¬ SeeksNewExperiences Jade) ∨ (SeeksNewExperiences Jade ∧ ¬ EnjoysSpontaneity Jade)) → FreeSpirited Jade
+axiom ax6 : ∀ x : Person, SkilledCartographer x → (ChartsNewPaths x ∨ ExploresUnseenAreas x)
+axiom ax7 : CravesChallenge Jade
+axiom ax8 : ∀ x : Person, AppreciatesPrecision x → (ValuesRoutine x ∧ TakesCareOfDetails x)
+axiom ax9 : SeasonedSailor Jade → ((ExcellentNavigator Jade ∧ ¬ MasterCartographer Jade) ∨ (MasterCartographer Jade ∧ ¬ ExcellentNavigator Jade))
+axiom ax10 : ∀ x : Person, ValuesRoutine x → PrefersOrder x
+axiom ax11 : LovesOcean Jade → (SeasonedSailor Jade ∧ HasExperience Jade)
+axiom ax12 : ¬ MasterCartographer Jade
+axiom ax13 : ∀ x : Person, (CravesChallenge x ∨ DesiresChange x) → SeeksNewExperiences x
+axiom ax14 : ExcellentNavigator Jade → ((LeadsExpeditions Jade ∧ ¬ ChartsNewPaths Jade) ∨ (ChartsNewPaths Jade ∧ ¬ LeadsExpeditions Jade))
+axiom ax15 : ((FollowsSchedules Jade ∧ ¬ PlansAhead Jade) ∨ (PlansAhead Jade ∧ ¬ FollowsSchedules Jade)) → PrefersOrder Jade
+axiom ax16 : ¬ DesiresChange Jade
+axiom ax17 : HasExperience Jade
+axiom ax18 : Adventurous Jade → (SecretKnowledge Jade ∧ ChartsNewPaths Jade)
+axiom ax19 : (ValuesRoutine Jade ∧ ¬ Adventurous Jade) ∨ (Adventurous Jade ∧ ¬ ValuesRoutine Jade)
+
+-- Useful derived facts
+lemma sneJ : SeeksNewExperiences Jade := by
+  have h : CravesChallenge Jade ∨ DesiresChange Jade := Or.inl ax7
+  exact ax13 Jade h
+
+lemma esJ : EnjoysSpontaneity Jade := by
+  have sne := sneJ
+  have himpl := ax5
+  have hnotFS := ax2
+  by_contra hnotES
+  have hx : (EnjoysSpontaneity Jade ∧ ¬ SeeksNewExperiences Jade) ∨ (SeeksNewExperiences Jade ∧ ¬ EnjoysSpontaneity Jade) :=
+    Or.inr ⟨sne, hnotES⟩
+  have fs : FreeSpirited Jade := himpl hx
+  exact hnotFS fs
+
+lemma notPO : ¬ PrefersOrder Jade := by
+  intro hpo
+  have xor := ax3
+  have es := esJ
+  cases xor with
+  | inl h1 =>
+      exact h1.right hpo
+  | inr h2 =>
+      exact h2.right es
+
+lemma notVR : ¬ ValuesRoutine Jade := by
+  intro hvr
+  have hpo : PrefersOrder Jade := ax10 Jade hvr
+  exact notPO hpo
+
+lemma advJ : Adventurous Jade := by
+  have xor := ax19
+  have hnotVR := notVR
+  cases xor with
+  | inl h1 =>
+      have F : False := hnotVR h1.left
+      exact False.elim F
+  | inr h2 =>
+      exact h2.left
+
+lemma cnpJ : ChartsNewPaths Jade := by
+  have h := ax18 advJ
+  exact h.right
+
+lemma ssJ : SeasonedSailor Jade := by
+  have lo := ax4
+  have hs := ax11 lo
+  exact hs.left
+
+lemma enJ : ExcellentNavigator Jade := by
+  have ss := ssJ
+  have xor := ax9 ss
+  have notMC := ax12
+  cases xor with
+  | inl h1 => exact h1.left
+  | inr h2 =>
+      have F : False := notMC h2.left
+      exact False.elim F
+
+-- From EN and CNP xor, we can conclude Jade does not lead expeditions
+theorem notLEJ : ¬ LeadsExpeditions Jade := by
+  have en := enJ
+  have xor := ax14 en
+  have cnp := cnpJ
+  intro hLE
+  cases xor with
+  | inl h1 =>
+      exact h1.right cnp
+  | inr h2 =>
+      exact h2.right hLE
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Person : Type
+axiom Jade : Person
+
+axiom Adventurous : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom EmbracesUncertainty : Person → Prop
+axiom FreeSpirited : Person → Prop
+axiom EnjoysSpontaneity : Person → Prop
+axiom PrefersOrder : Person → Prop
+axiom LovesOcean : Person → Prop
+axiom SeeksNewExperiences : Person → Prop
+axiom SkilledCartographer : Person → Prop
+axiom ChartsNewPaths : Person → Prop
+axiom ExploresUnseenAreas : Person → Prop
+axiom CravesChallenge : Person → Prop
+axiom AppreciatesPrecision : Person → Prop
+axiom ValuesRoutine : Person → Prop
+axiom TakesCareOfDetails : Person → Prop
+axiom SeasonedSailor : Person → Prop
+axiom ExcellentNavigator : Person → Prop
+axiom MasterCartographer : Person → Prop
+axiom FollowsSchedules : Person → Prop
+axiom PlansAhead : Person → Prop
+axiom DesiresChange : Person → Prop
+axiom HasExperience : Person → Prop
+axiom HasSecretsKnowledge : Person → Prop
+axiom LeadsExpeditions : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, TakesRisks x ∧ EmbracesUncertainty x → Adventurous x
+axiom premise2 : ¬ FreeSpirited Jade
+axiom premise3 : (EnjoysSpontaneity Jade ∨ PrefersOrder Jade) ∧ ¬(EnjoysSpontaneity Jade ∧ PrefersOrder Jade)
+axiom premise4 : LovesOcean Jade
+axiom premise5 : ((EnjoysSpontaneity Jade ∧ ¬ SeeksNewExperiences Jade) ∨ (SeeksNewExperiences Jade ∧ ¬ EnjoysSpontaneity Jade)) → FreeSpirited Jade
+axiom premise6 : ∀ x : Person, SkilledCartographer x → (ChartsNewPaths x ∨ ExploresUnseenAreas x)
+axiom premise7 : CravesChallenge Jade
+axiom premise8 : ∀ x : Person, AppreciatesPrecision x → (ValuesRoutine x ∧ TakesCareOfDetails x)
+axiom premise9 : SeasonedSailor Jade → ((ExcellentNavigator Jade ∨ MasterCartographer Jade) ∧ ¬(ExcellentNavigator Jade ∧ MasterCartographer Jade))
+axiom premise10 : ∀ x : Person, ValuesRoutine x → PrefersOrder x
+axiom premise11 : LovesOcean Jade → (SeasonedSailor Jade ∧ HasExperience Jade)
+axiom premise12 : ¬ MasterCartographer Jade
+axiom premise13 : ∀ x : Person, (CravesChallenge x ∨ DesiresChange x) → SeeksNewExperiences x
+axiom premise14 : ExcellentNavigator Jade → ((LeadsExpeditions Jade ∨ ChartsNewPaths Jade) ∧ ¬(LeadsExpeditions Jade ∧ ChartsNewPaths Jade))
+axiom premise15 : ((FollowsSchedules Jade ∧ ¬ PlansAhead Jade) ∨ (PlansAhead Jade ∧ ¬ FollowsSchedules Jade)) → PrefersOrder Jade
+axiom premise16 : ¬ DesiresChange Jade
+axiom premise17 : HasExperience Jade
+axiom premise18 : Adventurous Jade → (HasSecretsKnowledge Jade ∧ ChartsNewPaths Jade)
+axiom premise19 : (ValuesRoutine Jade ∧ ¬ Adventurous Jade) ∨ (Adventurous Jade ∧ ¬ ValuesRoutine Jade)
+
+-- Goal: prove negation of the conclusion
+theorem goal : ¬ LeadsExpeditions Jade := by
+  -- From craving challenge, Jade seeks new experiences
+  have hSNE : SeeksNewExperiences Jade :=
+    premise13 Jade (Or.inl premise7)
+  -- The exclusive-or between enjoying spontaneity and seeking new experiences implies free-spirited; but Jade is not free-spirited
+  have hNoXorES_SNE :
+      ¬ ((EnjoysSpontaneity Jade ∧ ¬ SeeksNewExperiences Jade) ∨ (SeeksNewExperiences Jade ∧ ¬ EnjoysSpontaneity Jade)) :=
+    fun hx => premise2 (premise5 hx)
+  -- Hence Jade must enjoy spontaneity
+  have hESp : EnjoysSpontaneity Jade := by
+    have hem : EnjoysSpontaneity Jade ∨ ¬ EnjoysSpontaneity Jade := Classical.em _
+    cases hem with
+    | inl h => exact h
+    | inr hnot =>
+        have contra : False := hNoXorES_SNE (Or.inr ⟨hSNE, hnot⟩)
+        exact False.elim contra
+  -- From "enjoys spontaneity xor prefers order", deduce not prefers order
+  have hNotPrefOrder : ¬ PrefersOrder Jade :=
+    fun hPO => premise3.right ⟨hESp, hPO⟩
+  -- Values routine implies prefers order, so Jade does not value routine
+  have hNotValuesRoutine : ¬ ValuesRoutine Jade :=
+    fun hVR => hNotPrefOrder (premise10 Jade hVR)
+  -- From "values routine xor adventurous", deduce adventurous
+  have hAdv : Adventurous Jade := by
+    cases premise19 with
+    | inl h =>
+        exact False.elim (hNotValuesRoutine h.left)
+    | inr h =>
+        exact h.left
+  -- Adventurous implies charts new paths
+  have hCNP : ChartsNewPaths Jade := (premise18 hAdv).right
+  -- From loves ocean, Jade is a seasoned sailor
+  have hSS : SeasonedSailor Jade := (premise11 premise4).left
+  -- A seasoned sailor is either excellent navigator or master cartographer (but not both); and Jade is not a master cartographer; hence excellent navigator
+  have hEN : ExcellentNavigator Jade := by
+    have hENorMC := (premise9 hSS).left
+    cases hENorMC with
+    | inl h => exact h
+    | inr hMC => exact False.elim (premise12 hMC)
+  -- Excellent navigator implies cannot both lead expeditions and chart new paths
+  have hNotBothLE_CNP : ¬ (LeadsExpeditions Jade ∧ ChartsNewPaths Jade) := (premise14 hEN).right
+  -- Therefore, since Jade charts new paths, she does not lead expeditions
+  exact fun hLE => hNotBothLE_CNP ⟨hLE, hCNP⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

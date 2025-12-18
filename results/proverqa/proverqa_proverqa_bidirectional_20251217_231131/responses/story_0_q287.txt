@@ -1,0 +1,234 @@
+Story ID: 0
+Example ID: 287
+Premises: If Andi either reads avidly or analyzes data (but not both), then she is a fast learner. Noel is intelligent or adventurous. Noel does not retain information. If Noel either reads avidly or analyzes data (but not both), then she is a fast learner. Noel is a polyglot. If someone significantly contributes to their field, then they are intelligent. Cielo does not read avidly. Everyone who is a fast learner either has a good memory or retains information (or both). If Noel is a polyglot, then she either has a good memory or speaks multiple languages, but not both. Noel either communicates effectively or is intelligent, but not both. Noel does not read avidly. If Noel conducts research, then she either uncovers secrets or has a good memory (or both). Cielo does not retain information. Evander is intelligent or adventurous. Noel either speaks multiple languages or communicates effectively, but not both. Noel analyzes data.
+Conclusion: Noel is adventurous.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Andi : Person
+axiom Noel : Person
+axiom Cielo : Person
+axiom Evander : Person
+
+axiom ReadsAvidly : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom FastLearner : Person → Prop
+axiom Intelligent : Person → Prop
+axiom Adventurous : Person → Prop
+axiom RetainsInfo : Person → Prop
+axiom Polyglot : Person → Prop
+axiom SignificantlyContributes : Person → Prop
+axiom GoodMemory : Person → Prop
+axiom SpeaksMultipleLangs : Person → Prop
+axiom CommunicatesEffectively : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom UncoversSecrets : Person → Prop
+
+-- Premises
+axiom p1 :
+  ((ReadsAvidly Andi ∨ AnalyzesData Andi) ∧ ¬(ReadsAvidly Andi ∧ AnalyzesData Andi)) → FastLearner Andi
+axiom p2 : Intelligent Noel ∨ Adventurous Noel
+axiom p3 : ¬ RetainsInfo Noel
+axiom p4 :
+  ((ReadsAvidly Noel ∨ AnalyzesData Noel) ∧ ¬(ReadsAvidly Noel ∧ AnalyzesData Noel)) → FastLearner Noel
+axiom p5 : Polyglot Noel
+axiom p6 : ∀ x : Person, SignificantlyContributes x → Intelligent x
+axiom p7 : ¬ ReadsAvidly Cielo
+axiom p8 : ∀ x : Person, FastLearner x → (GoodMemory x ∨ RetainsInfo x)
+axiom p9 :
+  Polyglot Noel → ((GoodMemory Noel ∨ SpeaksMultipleLangs Noel) ∧ ¬(GoodMemory Noel ∧ SpeaksMultipleLangs Noel))
+axiom p10 :
+  (CommunicatesEffectively Noel ∨ Intelligent Noel) ∧ ¬(CommunicatesEffectively Noel ∧ Intelligent Noel)
+axiom p11 : ¬ ReadsAvidly Noel
+axiom p12 : ConductsResearch Noel → (UncoversSecrets Noel ∨ GoodMemory Noel)
+axiom p13 : ¬ RetainsInfo Cielo
+axiom p14 : Intelligent Evander ∨ Adventurous Evander
+axiom p15 :
+  (SpeaksMultipleLangs Noel ∨ CommunicatesEffectively Noel) ∧ ¬(SpeaksMultipleLangs Noel ∧ CommunicatesEffectively Noel)
+axiom p16 : AnalyzesData Noel
+
+theorem goal : Adventurous Noel := by
+  -- From ¬Reads Noel and Analyzes Noel, we have the XOR condition for Noel
+  have hX :
+      (ReadsAvidly Noel ∨ AnalyzesData Noel) ∧ ¬(ReadsAvidly Noel ∧ AnalyzesData Noel) := by
+    refine And.intro ?h1 ?h2
+    · exact Or.inr p16
+    · intro h
+      exact p11 h.left
+  -- Hence Noel is a fast learner
+  have hFL : FastLearner Noel := p4 hX
+  -- Fast learners have good memory or retain info
+  have hOr : GoodMemory Noel ∨ RetainsInfo Noel := (p8 Noel) hFL
+  -- Noel does not retain info, so she has good memory
+  have hGM : GoodMemory Noel := by
+    cases hOr with
+    | inl gm => exact gm
+    | inr ri => exact False.elim (p3 ri)
+  -- From polyglot XOR (good memory vs speaks multiple langs)
+  have hGMorS_and_notBoth :
+      (GoodMemory Noel ∨ SpeaksMultipleLangs Noel) ∧ ¬(GoodMemory Noel ∧ SpeaksMultipleLangs Noel) := p9 p5
+  have hNotBothGMS : ¬(GoodMemory Noel ∧ SpeaksMultipleLangs Noel) := hGMorS_and_notBoth.right
+  have hNotSpeaks : ¬ SpeaksMultipleLangs Noel := by
+    intro hS
+    exact hNotBothGMS (And.intro hGM hS)
+  -- From XOR (speaks vs communicates), and ¬speaks, deduce communicates
+  have hSC := p15
+  have hCommOrSpeaks : SpeaksMultipleLangs Noel ∨ CommunicatesEffectively Noel := hSC.left
+  have hComm : CommunicatesEffectively Noel := by
+    cases hCommOrSpeaks with
+    | inl hs => exact False.elim (hNotSpeaks hs)
+    | inr hc => exact hc
+  -- From XOR (communicates vs intelligent) and communicates, deduce ¬intelligent
+  have hNotBothCI : ¬(CommunicatesEffectively Noel ∧ Intelligent Noel) := p10.right
+  have hNotInt : ¬ Intelligent Noel := by
+    intro hI
+    exact hNotBothCI (And.intro hComm hI)
+  -- From (Intelligent ∨ Adventurous) and ¬Intelligent, deduce Adventurous
+  cases p2 with
+  | inl hI => exact False.elim (hNotInt hI)
+  | inr hA => exact hA
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Andi : Person
+axiom Noel : Person
+axiom Cielo : Person
+axiom Evander : Person
+
+-- Predicates
+axiom ReadsAvidly : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom FastLearner : Person → Prop
+axiom Intelligent : Person → Prop
+axiom Adventurous : Person → Prop
+axiom RetainsInfo : Person → Prop
+axiom Polyglot : Person → Prop
+axiom GoodMemory : Person → Prop
+axiom SignificantlyContributes : Person → Prop
+axiom CommunicatesEffectively : Person → Prop
+axiom SpeaksMultipleLanguages : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom UncoversSecrets : Person → Prop
+
+-- Premises
+-- 1. If Andi either reads avidly or analyzes data (but not both), then she is a fast learner.
+axiom p1 :
+  ((ReadsAvidly Andi ∨ AnalyzesData Andi) ∧ ¬(ReadsAvidly Andi ∧ AnalyzesData Andi)) → FastLearner Andi
+
+-- 2. Noel is intelligent or adventurous.
+axiom p2 : Intelligent Noel ∨ Adventurous Noel
+
+-- 3. Noel does not retain information.
+axiom p3 : ¬RetainsInfo Noel
+
+-- 4. If Noel either reads avidly or analyzes data (but not both), then she is a fast learner.
+axiom p4 :
+  ((ReadsAvidly Noel ∨ AnalyzesData Noel) ∧ ¬(ReadsAvidly Noel ∧ AnalyzesData Noel)) → FastLearner Noel
+
+-- 5. Noel is a polyglot.
+axiom p5 : Polyglot Noel
+
+-- 6. If someone significantly contributes to their field, then they are intelligent.
+axiom p6 : ∀ x : Person, SignificantlyContributes x → Intelligent x
+
+-- 7. Cielo does not read avidly.
+axiom p7 : ¬ReadsAvidly Cielo
+
+-- 8. Everyone who is a fast learner either has a good memory or retains information (or both).
+axiom p8 : ∀ x : Person, FastLearner x → (GoodMemory x ∨ RetainsInfo x)
+
+-- 9. If Noel is a polyglot, then she either has a good memory or speaks multiple languages, but not both.
+axiom p9 :
+  Polyglot Noel →
+    ((GoodMemory Noel ∨ SpeaksMultipleLanguages Noel) ∧ ¬(GoodMemory Noel ∧ SpeaksMultipleLanguages Noel))
+
+-- 10. Noel either communicates effectively or is intelligent, but not both.
+axiom p10 :
+  (CommunicatesEffectively Noel ∨ Intelligent Noel) ∧ ¬(CommunicatesEffectively Noel ∧ Intelligent Noel)
+
+-- 11. Noel does not read avidly.
+axiom p11 : ¬ReadsAvidly Noel
+
+-- 12. If Noel conducts research, then she either uncovers secrets or has a good memory (or both).
+axiom p12 : ConductsResearch Noel → (UncoversSecrets Noel ∨ GoodMemory Noel)
+
+-- 13. Cielo does not retain information.
+axiom p13 : ¬RetainsInfo Cielo
+
+-- 14. Evander is intelligent or adventurous.
+axiom p14 : Intelligent Evander ∨ Adventurous Evander
+
+-- 15. Noel either speaks multiple languages or communicates effectively, but not both.
+axiom p15 :
+  (SpeaksMultipleLanguages Noel ∨ CommunicatesEffectively Noel) ∧ ¬(SpeaksMultipleLanguages Noel ∧ CommunicatesEffectively Noel)
+
+-- 16. Noel analyzes data.
+axiom p16 : AnalyzesData Noel
+
+-- From the premises, Noel is actually adventurous (derivation shown).
+theorem noel_adventurous : Adventurous Noel := by
+  -- Noel satisfies the XOR (reads ∨ analyzes) and not both, since she analyzes and does not read.
+  have hXOR : (ReadsAvidly Noel ∨ AnalyzesData Noel) ∧ ¬(ReadsAvidly Noel ∧ AnalyzesData Noel) := by
+    have hOr : ReadsAvidly Noel ∨ AnalyzesData Noel := Or.inr p16
+    have hNotBoth : ¬(ReadsAvidly Noel ∧ AnalyzesData Noel) := by
+      intro hBoth
+      have hRead : ReadsAvidly Noel := hBoth.left
+      exact p11 hRead
+    exact And.intro hOr hNotBoth
+  have hFL : FastLearner Noel := p4 hXOR
+  have hGMorR : GoodMemory Noel ∨ RetainsInfo Noel := p8 Noel hFL
+  have hGM : GoodMemory Noel := by
+    cases hGMorR with
+    | inl hgm => exact hgm
+    | inr hri => exact False.elim (p3 hri)
+  have hPolySplit : (GoodMemory Noel ∨ SpeaksMultipleLanguages Noel) ∧ ¬(GoodMemory Noel ∧ SpeaksMultipleLanguages Noel) := p9 p5
+  have hNotBothGMSML : ¬(GoodMemory Noel ∧ SpeaksMultipleLanguages Noel) := hPolySplit.right
+  have hNotSML : ¬SpeaksMultipleLanguages Noel := by
+    intro hSML
+    apply hNotBothGMSML
+    exact And.intro hGM hSML
+  have hSMLorCE : SpeaksMultipleLanguages Noel ∨ CommunicatesEffectively Noel := p15.left
+  have hCE : CommunicatesEffectively Noel := by
+    cases hSMLorCE with
+    | inl hSML => exact False.elim (hNotSML hSML)
+    | inr hCE => exact hCE
+  have hCEintNotBoth : ¬(CommunicatesEffectively Noel ∧ Intelligent Noel) := p10.right
+  have hNotInt : ¬Intelligent Noel := by
+    intro hI
+    apply hCEintNotBoth
+    exact And.intro hCE hI
+  -- From (Intelligent ∨ Adventurous) and ¬Intelligent, conclude Adventurous.
+  cases p2 with
+  | inl hI => exact False.elim (hNotInt hI)
+  | inr hA => exact hA
+
+-- Goal: prove the negation of the conclusion (that Noel is NOT adventurous).
+-- This is not derivable from the given premises (indeed, the opposite is derivable as shown above).
+theorem goal : ¬Adventurous Noel := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

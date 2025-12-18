@@ -1,0 +1,146 @@
+Story ID: 0
+Example ID: 360
+Premises: Valeria prioritizes efficiency. Valeria either prioritizes efficiency or values compassion, but not necessarily both. If someone either seeks power or craves wealth (but not both), then they are driven by a desire to pursue personal gain. Valeria is either selfless or selfish, but not both. If Valeria is ambitious, then she either craves wealth or desires recognition, but not both. Valeria either values compassion or may crave wealth, but not necessarily both. Valeria either serves others or seeks power, but not both. If Valeria holds authority, then she either seeks power or takes initiative (or both). Valeria is either driven by a desire to pursue personal gain or acts selflessly, but not both. Valeria serves others.
+Conclusion: Valeria is not selfish.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Valeria : Person
+
+-- Predicates
+axiom PrioritizesEfficiency : Person → Prop
+axiom ValuesCompassion : Person → Prop
+axiom SeeksPower : Person → Prop
+axiom CravesWealth : Person → Prop
+axiom DrivenByPersonalGain : Person → Prop
+axiom Selfless : Person → Prop          -- also used for “acts selflessly” and “serves others”
+axiom Selfish : Person → Prop
+axiom Ambitious : Person → Prop
+axiom DesiresRecognition : Person → Prop
+axiom TakesInitiative : Person → Prop
+axiom HoldsAuthority : Person → Prop
+
+-- Premises
+axiom p1  : PrioritizesEfficiency Valeria
+axiom p2  : PrioritizesEfficiency Valeria ∨ ValuesCompassion Valeria
+axiom p3  : ∀ x : Person, ((SeeksPower x ∨ CravesWealth x) ∧ ¬(SeeksPower x ∧ CravesWealth x)) → DrivenByPersonalGain x
+axiom p4  : (Selfless Valeria ∨ Selfish Valeria) ∧ ¬(Selfless Valeria ∧ Selfish Valeria)
+axiom p5  : Ambitious Valeria → ((CravesWealth Valeria ∨ DesiresRecognition Valeria) ∧ ¬(CravesWealth Valeria ∧ DesiresRecognition Valeria))
+axiom p6  : ValuesCompassion Valeria ∨ CravesWealth Valeria
+axiom p7  : (Selfless Valeria ∨ SeeksPower Valeria) ∧ ¬(Selfless Valeria ∧ SeeksPower Valeria)
+axiom p8  : HoldsAuthority Valeria → (SeeksPower Valeria ∨ TakesInitiative Valeria)
+axiom p9  : (DrivenByPersonalGain Valeria ∨ Selfless Valeria) ∧ ¬(DrivenByPersonalGain Valeria ∧ Selfless Valeria)
+axiom p10 : Selfless Valeria  -- “Valeria serves others.” modeled as Selfless
+
+-- Goal: Valeria is not selfish.
+theorem conclusion : ¬ Selfish Valeria := by
+  have h_not_both : ¬ (Selfless Valeria ∧ Selfish Valeria) := (And.right p4)
+  intro hSelfish
+  have hSelfless : Selfless Valeria := p10
+  exact h_not_both ⟨hSelfless, hSelfish⟩
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Valeria : Person
+
+axiom PrioritizesEfficiency : Person → Prop
+axiom ValuesCompassion : Person → Prop
+axiom SeeksPower : Person → Prop
+axiom CravesWealth : Person → Prop
+axiom DrivenByPersonalGain : Person → Prop
+axiom Selfless : Person → Prop
+axiom Selfish : Person → Prop
+axiom Ambitious : Person → Prop
+axiom DesiresRecognition : Person → Prop
+axiom TakesInitiative : Person → Prop
+axiom HoldsAuthority : Person → Prop
+axiom ServesOthers : Person → Prop
+
+-- Premises
+axiom premise_eff_true : PrioritizesEfficiency Valeria
+axiom premise_eff_or_comp : PrioritizesEfficiency Valeria ∨ ValuesCompassion Valeria
+axiom premise_power_wealth_xor_imp_gain :
+  ∀ x : Person,
+    ((SeeksPower x ∧ ¬CravesWealth x) ∨ (CravesWealth x ∧ ¬SeeksPower x)) → DrivenByPersonalGain x
+axiom premise_selfless_xor_selfish :
+  (Selfless Valeria ∧ ¬Selfish Valeria) ∨ (Selfish Valeria ∧ ¬Selfless Valeria)
+axiom premise_ambitious_imp_wealth_xor_recog :
+  Ambitious Valeria →
+    ((CravesWealth Valeria ∧ ¬DesiresRecognition Valeria) ∨ (DesiresRecognition Valeria ∧ ¬CravesWealth Valeria))
+axiom premise_comp_or_wealth : ValuesCompassion Valeria ∨ CravesWealth Valeria
+axiom premise_serves_or_power_xor :
+  (ServesOthers Valeria ∧ ¬SeeksPower Valeria) ∨ (SeeksPower Valeria ∧ ¬ServesOthers Valeria)
+axiom premise_authority_imp_power_or_init :
+  HoldsAuthority Valeria → (SeeksPower Valeria ∨ TakesInitiative Valeria)
+axiom premise_gain_xor_selfless :
+  (DrivenByPersonalGain Valeria ∧ ¬Selfless Valeria) ∨ (Selfless Valeria ∧ ¬DrivenByPersonalGain Valeria)
+axiom premise_serves : ServesOthers Valeria
+
+-- Goal: negate the conclusion "Valeria is not selfish", i.e., prove Selfish Valeria
+theorem goal : Selfish Valeria := by
+  -- From "serves others XOR seeks power" and "serves others", derive ¬seeks power
+  have notSeeks : ¬ SeeksPower Valeria := by
+    intro sp
+    have hs := premise_serves
+    have hx := premise_serves_or_power_xor
+    cases hx with
+    | inl h =>
+        exact h.right sp
+    | inr h =>
+        exact h.right hs
+  -- Case analysis on (ValuesCompassion ∨ CravesWealth)
+  cases premise_comp_or_wealth with
+  | inr hWealth =>
+      -- Build the XOR antecedent (power XOR wealth), using ¬seeks power and craves wealth
+      have hx : (SeeksPower Valeria ∧ ¬CravesWealth Valeria) ∨ (CravesWealth Valeria ∧ ¬SeeksPower Valeria) :=
+        Or.inr ⟨hWealth, notSeeks⟩
+      -- Hence, Valeria is driven by personal gain
+      have hGain : DrivenByPersonalGain Valeria := premise_power_wealth_xor_imp_gain Valeria hx
+      -- Use the XOR between personal gain and selfless
+      have hGX := premise_gain_xor_selfless
+      cases hGX with
+      | inl h1 =>
+          -- h1: gain ∧ ¬selfless
+          have notSelfless : ¬ Selfless Valeria := h1.right
+          -- From selfless XOR selfish and ¬selfless, conclude selfish
+          have hSS := premise_selfless_xor_selfish
+          cases hSS with
+          | inl hs1 =>
+              -- Contradiction: selfless ∧ ¬selfish with ¬selfless
+              exact False.elim (notSelfless hs1.left)
+          | inr hs2 =>
+              exact hs2.left
+      | inr h2 =>
+          -- h2: selfless ∧ ¬gain contradicts hGain; derive contradiction and conclude selfish by explosion
+          have : False := h2.right hGain
+          exact False.elim this
+  | inl hComp =>
+      -- In this branch (only knowing ValuesCompassion), the available premises do not suffice
+      -- to force CravesWealth or SeeksPower, hence we cannot derive DrivenByPersonalGain
+      -- and thus cannot conclude Selfish from the given information.
+      sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: True
+Correct: No

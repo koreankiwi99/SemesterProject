@@ -1,0 +1,191 @@
+Story ID: 0
+Example ID: 272
+Premises: Amiyah does not pioneer medical breakthroughs. Amiyah does not make new discoveries. If Amiyah is an expert or makes new discoveries, then she gains recognition. If Amiyah has sapremia, then she can either receive innovative treatment or contribute to medical research, but not both. Amiyah does not gain recognition. Amiyah attends conferences. Amiyah teaches at a university. If Amiyah works in a lab, then she can either contribute to medical research or teach at a university, but not both. If someone publishes scientific papers and attends conferences, then they can become an expert. Amiyah does not have a rare condition. If Amiyah receives innovative treatment, then she either has a rare condition or pioneers medical breakthroughs (or both). Amiyah either publishes scientific papers or works in a lab, but not both. If Amiyah collects data or analyzes results, then she can publish scientific papers.
+Conclusion: Amiyah has sapremia.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Amiyah : Person
+
+axiom Pioneer : Person → Prop
+axiom NewDiscoveries : Person → Prop
+axiom Expert : Person → Prop
+axiom Recognized : Person → Prop
+axiom Sapremia : Person → Prop
+axiom InnovativeTreatment : Person → Prop
+axiom ContributeResearch : Person → Prop
+axiom WorksLab : Person → Prop
+axiom Publishes : Person → Prop
+axiom Attends : Person → Prop
+axiom Teaches : Person → Prop
+axiom Rare : Person → Prop
+axiom Collects : Person → Prop
+axiom Analyzes : Person → Prop
+
+-- Premises
+axiom h1  : ¬ Pioneer Amiyah
+axiom h2  : ¬ NewDiscoveries Amiyah
+axiom h3  : (Expert Amiyah ∨ NewDiscoveries Amiyah) → Recognized Amiyah
+axiom h4  : Sapremia Amiyah →
+            ((InnovativeTreatment Amiyah ∨ ContributeResearch Amiyah) ∧
+             ¬ (InnovativeTreatment Amiyah ∧ ContributeResearch Amiyah))
+axiom h5  : ¬ Recognized Amiyah
+axiom h6  : Attends Amiyah
+axiom h7  : Teaches Amiyah
+axiom h8  : WorksLab Amiyah →
+            ((ContributeResearch Amiyah ∨ Teaches Amiyah) ∧
+             ¬ (ContributeResearch Amiyah ∧ Teaches Amiyah))
+axiom h9  : ∀ x : Person, (Publishes x ∧ Attends x) → Expert x
+axiom h10 : ¬ Rare Amiyah
+axiom h11 : InnovativeTreatment Amiyah → (Rare Amiyah ∨ Pioneer Amiyah)
+axiom h12 : (Publishes Amiyah ∨ WorksLab Amiyah) ∧ ¬ (Publishes Amiyah ∧ WorksLab Amiyah)
+axiom h13 : ∀ x : Person, (Collects x ∨ Analyzes x) → Publishes x
+
+-- The requested conclusion (unprovable from the premises)
+-- theorem goal : Sapremia Amiyah := by
+--   admit
+
+-- We can, however, derive its negation from the premises:
+theorem not_sapremia : ¬ Sapremia Amiyah := by
+  -- From h3 and h5, we get ¬(Expert ∨ NewDiscoveries), hence ¬Expert.
+  have hNotEorN : ¬ (Expert Amiyah ∨ NewDiscoveries Amiyah) := by
+    intro h
+    exact h5 (h3 h)
+  have hNotE : ¬ Expert Amiyah := (not_or.mp hNotEorN).left
+
+  -- From h9 and h6, Publishes would imply Expert; thus ¬Publishes.
+  have h9A : (Publishes Amiyah ∧ Attends Amiyah) → Expert Amiyah := h9 Amiyah
+  have hNotPub : ¬ Publishes Amiyah := by
+    intro hPub
+    have hpair : Publishes Amiyah ∧ Attends Amiyah := And.intro hPub h6
+    have hExp : Expert Amiyah := h9A hpair
+    exact hNotE hExp
+
+  -- From the XOR premise h12 and ¬Publishes, deduce WorksLab.
+  have hOr : Publishes Amiyah ∨ WorksLab Amiyah := (And.left h12)
+  have hWork : WorksLab Amiyah := by
+    cases hOr with
+    | inl hP => exact False.elim (hNotPub hP)
+    | inr hW => exact hW
+
+  -- From h8 (XOR between ContributeResearch and Teaches) and Teaches, deduce ¬ContributeResearch.
+  have hWconj : (ContributeResearch Amiyah ∨ Teaches Amiyah) ∧ ¬ (ContributeResearch Amiyah ∧ Teaches Amiyah) := h8 hWork
+  have hNotBoth_CT : ¬ (ContributeResearch Amiyah ∧ Teaches Amiyah) := And.right hWconj
+  have hNotContrib : ¬ ContributeResearch Amiyah := by
+    intro hC
+    exact hNotBoth_CT (And.intro hC h7)
+
+  -- From h11 together with h1 and h10, deduce ¬InnovativeTreatment.
+  have hNotInnov : ¬ InnovativeTreatment Amiyah := by
+    intro hI
+    have hsum : Rare Amiyah ∨ Pioneer Amiyah := h11 hI
+    cases hsum with
+    | inl hR => exact h10 hR
+    | inr hP => exact h1 hP
+
+  -- The RHS of h4 is impossible (neither disjunct holds), hence by contrapositive, ¬Sapremia.
+  have hNotRHS :
+      ¬ ((InnovativeTreatment Amiyah ∨ ContributeResearch Amiyah) ∧
+         ¬ (InnovativeTreatment Amiyah ∧ ContributeResearch Amiyah)) := by
+    intro h
+    have hOrIC : InnovativeTreatment Amiyah ∨ ContributeResearch Amiyah := h.left
+    cases hOrIC with
+    | inl hI => exact hNotInnov hI
+    | inr hC => exact hNotContrib hC
+
+  intro hS
+  exact hNotRHS (h4 hS)
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Amiyah : Person
+
+axiom Pioneers : Person → Prop
+axiom Discovers : Person → Prop
+axiom Expert : Person → Prop
+axiom Recognized : Person → Prop
+axiom Sapremia : Person → Prop
+axiom Treatment : Person → Prop
+axiom Research : Person → Prop
+axiom Attends : Person → Prop
+axiom Teaches : Person → Prop
+axiom WorksLab : Person → Prop
+axiom Publishes : Person → Prop
+axiom CollectsData : Person → Prop
+axiom AnalyzesResults : Person → Prop
+axiom RareCondition : Person → Prop
+
+-- Premises
+axiom p1 : ¬ Pioneers Amiyah
+axiom p2 : ¬ Discovers Amiyah
+axiom p3 : (Expert Amiyah ∨ Discovers Amiyah) → Recognized Amiyah
+axiom p4 : Sapremia Amiyah → ((Treatment Amiyah ∨ Research Amiyah) ∧ ¬(Treatment Amiyah ∧ Research Amiyah))
+axiom p5 : ¬ Recognized Amiyah
+axiom p6 : Attends Amiyah
+axiom p7 : Teaches Amiyah
+axiom p8 : WorksLab Amiyah → ((Research Amiyah ∨ Teaches Amiyah) ∧ ¬(Research Amiyah ∧ Teaches Amiyah))
+axiom p9 : ∀ x : Person, (Publishes x ∧ Attends x) → Expert x
+axiom p10 : ¬ RareCondition Amiyah
+axiom p11 : Treatment Amiyah → (RareCondition Amiyah ∨ Pioneers Amiyah)
+axiom p12 : (Publishes Amiyah ∨ WorksLab Amiyah) ∧ ¬(Publishes Amiyah ∧ WorksLab Amiyah)
+axiom p13 : (CollectsData Amiyah ∨ AnalyzesResults Amiyah) → Publishes Amiyah
+
+-- Negation of the conclusion: Amiyah does not have sapremia
+theorem not_sapremia : ¬ Sapremia Amiyah := by
+  -- From the XOR (Publishes ⊕ WorksLab) and recognition constraints, derive WorksLab and ¬Research
+  have h_or : Publishes Amiyah ∨ WorksLab Amiyah := p12.left
+  have _h_nand : ¬ (Publishes Amiyah ∧ WorksLab Amiyah) := p12.right
+  have not_pub : ¬ Publishes Amiyah := by
+    intro hpub
+    have hexp : Expert Amiyah := by
+      have hpa : Publishes Amiyah ∧ Attends Amiyah := And.intro hpub p6
+      exact p9 Amiyah hpa
+    have hrec : Recognized Amiyah := p3 (Or.inl hexp)
+    exact p5 hrec
+  have hwork : WorksLab Amiyah := by
+    cases h_or with
+    | inl hpub => exact False.elim (not_pub hpub)
+    | inr hwl => exact hwl
+  have h8 := p8 hwork
+  have hnot_R_and_Teach : ¬ (Research Amiyah ∧ Teaches Amiyah) := h8.right
+  have hteach : Teaches Amiyah := p7
+  have not_research : ¬ Research Amiyah := by
+    intro hR
+    exact hnot_R_and_Teach ⟨hR, hteach⟩
+
+  -- Now show Sapremia leads to a contradiction
+  intro hsap
+  have hsap_info := p4 hsap
+  have hTR_or : Treatment Amiyah ∨ Research Amiyah := hsap_info.left
+  have hTreatment : Treatment Amiyah := by
+    cases hTR_or with
+    | inl hT => exact hT
+    | inr hR => exact False.elim (not_research hR)
+  have hRareOrPion : RareCondition Amiyah ∨ Pioneers Amiyah := p11 hTreatment
+  cases hRareOrPion with
+  | inl hRare => exact p10 hRare
+  | inr hPion => exact p1 hPion
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

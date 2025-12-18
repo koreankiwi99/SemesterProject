@@ -1,0 +1,149 @@
+Story ID: 0
+Example ID: 377
+Premises: Tate utilizes a plant. Tate protects species or exploits resources. If Tate utilizes a plant, then he either reduces waste or exploits resources, but not both. If someone either consumes excessively or wastes resources (but not both), then they overuse resources. Tate lives extravagantly. Tate reduces waste. Anyone who overuses resources and ignores warnings can disrupt the ecosystem. If Walter pursues research, then he either disrupts the ecosystem or conserves the environment, but not both. Tate ignores warnings. Tate pursues research. If Tate pursues research, then he either disrupts the ecosystem or conserves the environment, but not both. If Tate seeks knowledge, then he either finds innovative solutions or respects nature (or both). If someone lives extravagantly, then they will overuse resources.
+Conclusion: Tate either respects nature or harms nature, but not both.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Tate : Person
+axiom Walter : Person
+
+-- Predicates
+axiom UtilizesPlant : Person → Prop
+axiom ProtectsSpecies : Person → Prop
+axiom ExploitsResources : Person → Prop
+axiom ReducesWaste : Person → Prop
+axiom ConsumesExcessively : Person → Prop
+axiom WastesResources : Person → Prop
+axiom OverusesResources : Person → Prop
+axiom LivesExtravagantly : Person → Prop
+axiom IgnoresWarnings : Person → Prop
+axiom DisruptsEcosystem : Person → Prop
+axiom ConservesEnvironment : Person → Prop
+axiom PursuesResearch : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom FindsInnovativeSolutions : Person → Prop
+
+-- We interpret:
+--   HarmsNature as DisruptsEcosystem
+--   RespectsNature as ConservesEnvironment
+def HarmsNature (x : Person) : Prop := DisruptsEcosystem x
+def RespectsNature (x : Person) : Prop := ConservesEnvironment x
+
+-- Premises
+axiom a1 : UtilizesPlant Tate
+axiom a2 : ProtectsSpecies Tate ∨ ExploitsResources Tate
+axiom a3 : UtilizesPlant Tate → ((ReducesWaste Tate ∨ ExploitsResources Tate) ∧ ¬(ReducesWaste Tate ∧ ExploitsResources Tate))
+axiom a4 : ∀ x : Person, ((ConsumesExcessively x ∨ WastesResources x) ∧ ¬(ConsumesExcessively x ∧ WastesResources x)) → OverusesResources x
+axiom a5 : LivesExtravagantly Tate
+axiom a6 : ReducesWaste Tate
+axiom a7 : ∀ x : Person, OverusesResources x ∧ IgnoresWarnings x → DisruptsEcosystem x
+axiom a8 : PursuesResearch Walter → ((DisruptsEcosystem Walter ∨ ConservesEnvironment Walter) ∧ ¬(DisruptsEcosystem Walter ∧ ConservesEnvironment Walter))
+axiom a9 : IgnoresWarnings Tate
+axiom a10 : PursuesResearch Tate
+axiom a11 : PursuesResearch Tate → ((DisruptsEcosystem Tate ∨ ConservesEnvironment Tate) ∧ ¬(DisruptsEcosystem Tate ∧ ConservesEnvironment Tate))
+axiom a12 : SeeksKnowledge Tate → (FindsInnovativeSolutions Tate ∨ RespectsNature Tate)
+axiom a13 : ∀ x : Person, LivesExtravagantly x → OverusesResources x
+
+-- Conclusion: Tate either respects nature or harms nature, but not both.
+theorem conclusion :
+  (RespectsNature Tate ∨ HarmsNature Tate) ∧ ¬(RespectsNature Tate ∧ HarmsNature Tate) := by
+  -- From living extravagantly, Tate overuses resources
+  have h_over : OverusesResources Tate := a13 Tate a5
+  -- From overusing resources and ignoring warnings, Tate disrupts the ecosystem
+  have h_disrupts : DisruptsEcosystem Tate := by
+    have hw : OverusesResources Tate ∧ IgnoresWarnings Tate := And.intro h_over a9
+    exact a7 Tate hw
+  -- From pursuing research, Tate satisfies (disrupts ∨ conserves) ∧ ¬(disrupts ∧ conserves)
+  have h_xor := a11 a10
+  have h_not_both_DC : ¬(DisruptsEcosystem Tate ∧ ConservesEnvironment Tate) := And.right h_xor
+  -- Since he disrupts, he cannot conserve
+  have h_not_conserve : ¬ ConservesEnvironment Tate := by
+    intro hC
+    exact h_not_both_DC (And.intro h_disrupts hC)
+  -- Map to HarmsNature and RespectsNature via definitions
+  have h_harms : HarmsNature Tate := by simpa [HarmsNature] using h_disrupts
+  have h_not_respects : ¬ RespectsNature Tate := by simpa [RespectsNature] using h_not_conserve
+  -- Build the XOR: (Respects ∨ Harms) ∧ ¬(Respects ∧ Harms)
+  refine And.intro ?disj ?notboth
+  · exact Or.inr h_harms
+  · intro hboth
+    have hR : RespectsNature Tate := And.left hboth
+    exact h_not_respects hR
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Tate : Person
+axiom Walter : Person
+
+-- Predicates
+axiom UsesPlant : Person → Prop
+axiom ProtectsSpecies : Person → Prop
+axiom ExploitsResources : Person → Prop
+axiom RespectsNature : Person → Prop          -- we align "respects nature" with "reduces waste" in the premises
+axiom ConsumesExcessively : Person → Prop
+axiom WastesResources : Person → Prop
+axiom OverusesResources : Person → Prop
+axiom LivesExtravagantly : Person → Prop
+axiom IgnoresWarnings : Person → Prop
+axiom HarmsNature : Person → Prop             -- we align "harms nature" with "disrupts the ecosystem" in the premises
+axiom ConservesEnvironment : Person → Prop
+axiom PursuesResearch : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom FindsInnovativeSolutions : Person → Prop
+
+-- Premises
+axiom premise1 : UsesPlant Tate
+axiom premise2 : ProtectsSpecies Tate ∨ ExploitsResources Tate
+axiom premise3 : ∀ x : Person, UsesPlant x → ((RespectsNature x ∨ ExploitsResources x) ∧ ¬(RespectsNature x ∧ ExploitsResources x))
+axiom premise4 : ∀ x : Person, ((ConsumesExcessively x ∨ WastesResources x) ∧ ¬(ConsumesExcessively x ∧ WastesResources x)) → OverusesResources x
+axiom premise5 : LivesExtravagantly Tate
+axiom premise6 : RespectsNature Tate
+axiom premise7 : ∀ x : Person, OverusesResources x ∧ IgnoresWarnings x → HarmsNature x
+axiom premise8 : PursuesResearch Walter → ((HarmsNature Walter ∨ ConservesEnvironment Walter) ∧ ¬(HarmsNature Walter ∧ ConservesEnvironment Walter))
+axiom premise9 : IgnoresWarnings Tate
+axiom premise10 : PursuesResearch Tate
+axiom premise11 : PursuesResearch Tate → ((HarmsNature Tate ∨ ConservesEnvironment Tate) ∧ ¬(HarmsNature Tate ∧ ConservesEnvironment Tate))
+axiom premise12 : ∀ x : Person, SeeksKnowledge x → (FindsInnovativeSolutions x ∨ RespectsNature x)
+axiom premise13 : ∀ x : Person, LivesExtravagantly x → OverusesResources x
+
+-- Negation of the conclusion: It is NOT the case that (RespectsNature or HarmsNature) but not both.
+theorem goal : ¬((RespectsNature Tate ∨ HarmsNature Tate) ∧ ¬(RespectsNature Tate ∧ HarmsNature Tate)) := by
+  -- From living extravagantly, Tate overuses resources
+  have hOver : OverusesResources Tate := premise13 Tate premise5
+  -- Tate ignores warnings
+  have hIgn : IgnoresWarnings Tate := premise9
+  -- Therefore, Tate harms nature (disrupts the ecosystem)
+  have hHarm : HarmsNature Tate := premise7 Tate ⟨hOver, hIgn⟩
+  -- Tate respects nature (reduces waste)
+  have hRespect : RespectsNature Tate := premise6
+  -- So both hold
+  have hBoth : RespectsNature Tate ∧ HarmsNature Tate := And.intro hRespect hHarm
+  -- Negate the XOR by contradiction with the "not both" part
+  intro hXor
+  exact (And.right hXor) hBoth
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: BOTH_SUCCESS
+Formalization Error Detected: True
+Used Fallback: True
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Unknown
+Correct: Yes

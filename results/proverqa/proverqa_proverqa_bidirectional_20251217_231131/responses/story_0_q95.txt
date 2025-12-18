@@ -1,0 +1,131 @@
+Story ID: 0
+Example ID: 95
+Premises: Anyone who worked under a mentor or studied design has experience. Maci does not have good taste. If Maci has experience in fashion design, then she is either a perfectionist or creates quality work, but not both. Maci is not a perfectionist. Maci runs her own business. If Maci pays attention to details or has good taste, then she will produce beautiful designs. Maci either runs her own business or studies design, but not both. Maci learns from others. Maci does not produce beautiful designs. If Maci learns from others, then she has worked under a mentor.
+Conclusion: Maci either values precision or cares about her appearance (or both).
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Maci : Person
+
+-- Predicates
+axiom WorkedUnderMentor : Person → Prop
+axiom StudiedDesign : Person → Prop
+axiom Experience : Person → Prop
+axiom GoodTaste : Person → Prop
+axiom Perfectionist : Person → Prop
+axiom CreatesQualityWork : Person → Prop
+axiom RunsBusiness : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom ProducesBeautifulDesigns : Person → Prop
+axiom LearnsFromOthers : Person → Prop
+
+-- Conclusion predicates (not linked by premises)
+axiom ValuesPrecision : Person → Prop
+axiom CaresAppearance : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x : Person, (WorkedUnderMentor x ∨ StudiedDesign x) → Experience x
+axiom p2 : ¬ GoodTaste Maci
+axiom p3 : Experience Maci → ((Perfectionist Maci ∨ CreatesQualityWork Maci) ∧ ¬(Perfectionist Maci ∧ CreatesQualityWork Maci))
+axiom p4 : ¬ Perfectionist Maci
+axiom p5 : RunsBusiness Maci
+axiom p6 : (PaysAttentionToDetails Maci ∨ GoodTaste Maci) → ProducesBeautifulDesigns Maci
+axiom p7 : (RunsBusiness Maci ∨ StudiedDesign Maci) ∧ ¬(RunsBusiness Maci ∧ StudiedDesign Maci)
+axiom p8 : LearnsFromOthers Maci
+axiom p9 : ¬ ProducesBeautifulDesigns Maci
+axiom p10 : LearnsFromOthers Maci → WorkedUnderMentor Maci
+
+-- Derived facts
+lemma worked : WorkedUnderMentor Maci := by
+  exact p10 p8
+
+lemma experienced : Experience Maci := by
+  have hw : WorkedUnderMentor Maci ∨ StudiedDesign Maci := Or.inl worked
+  exact p1 Maci hw
+
+lemma createsQualityWork : CreatesQualityWork Maci := by
+  have h := p3 experienced
+  have hOr : Perfectionist Maci ∨ CreatesQualityWork Maci := And.left h
+  have _hNotBoth : ¬(Perfectionist Maci ∧ CreatesQualityWork Maci) := And.right h
+  cases hOr with
+  | inl hPerf =>
+      exact False.elim (p4 hPerf)
+  | inr hCQW =>
+      exact hCQW
+
+lemma notStudiedDesign : ¬ StudiedDesign Maci := by
+  have hNotBoth : ¬(RunsBusiness Maci ∧ StudiedDesign Maci) := And.right p7
+  intro hSD
+  exact hNotBoth (And.intro p5 hSD)
+
+lemma notPaysAttentionToDetails : ¬ PaysAttentionToDetails Maci := by
+  have hNotOr : ¬ (PaysAttentionToDetails Maci ∨ GoodTaste Maci) := by
+    intro hOr
+    exact p9 (p6 hOr)
+  intro hPAD
+  exact hNotOr (Or.inl hPAD)
+
+-- Target conclusion (no premises connect ValuesPrecision/CaresAppearance to known facts)
+theorem goal : ValuesPrecision Maci ∨ CaresAppearance Maci := by
+  -- No derivation path from given premises to this conclusion.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Maci : Person
+
+-- Predicates
+axiom WorkedUnderMentor : Person → Prop
+axiom StudiesDesign : Person → Prop
+axiom HasExperience : Person → Prop
+axiom GoodTaste : Person → Prop
+axiom ExperienceFashionDesign : Person → Prop
+axiom Perfectionist : Person → Prop
+axiom CreatesQualityWork : Person → Prop
+axiom RunsOwnBusiness : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom ProducesBeautifulDesigns : Person → Prop
+axiom LearnsFromOthers : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, (WorkedUnderMentor x ∨ StudiesDesign x) → HasExperience x
+axiom premise2 : ¬ GoodTaste Maci
+axiom premise3 : ExperienceFashionDesign Maci → ((Perfectionist Maci ∨ CreatesQualityWork Maci) ∧ ¬(Perfectionist Maci ∧ CreatesQualityWork Maci))
+axiom premise4 : ¬ Perfectionist Maci
+axiom premise5 : RunsOwnBusiness Maci
+axiom premise6 : (PaysAttentionToDetails Maci ∨ GoodTaste Maci) → ProducesBeautifulDesigns Maci
+axiom premise7 : (RunsOwnBusiness Maci ∨ StudiesDesign Maci) ∧ ¬(RunsOwnBusiness Maci ∧ StudiesDesign Maci)
+axiom premise8 : LearnsFromOthers Maci
+axiom premise9 : ¬ ProducesBeautifulDesigns Maci
+axiom premise10 : LearnsFromOthers Maci → WorkedUnderMentor Maci
+
+-- Negation of the conclusion: It's not the case that Maci either values precision or cares about her appearance.
+-- We model "values precision" as PaysAttentionToDetails, and "cares about her appearance" as GoodTaste.
+theorem negConclusion : ¬ (PaysAttentionToDetails Maci ∨ GoodTaste Maci) := by
+  intro h
+  have hb : ProducesBeautifulDesigns Maci := premise6 h
+  exact premise9 hb
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: False
+Correct: No

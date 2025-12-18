@@ -1,0 +1,244 @@
+Story ID: 0
+Example ID: 498
+Premises: Saul does not achieve his goals. Saul is not receiving support. Saul does not set realistic goals. If Saul either regains confidence or builds self-esteem (but not both), then he overcomes adversity. If Saul meets challenges, then he either becomes discouraged or finds new strength, but not both. If Saul either uses assistive devices or requires medical attention (but not both), then he is disabled. If someone requires medical attention and has a strong will, then they can achieve goals. Anyone who achieves success will build their self-esteem. If Saul faces obstacles, then he either loses motivation or finds new strength, but not both. Saul uses assistive devices. Saul does not overcome adversity. If someone suffers injuries, then they face obstacles and develop resilience. Saul has a strong will. Saul either builds self-esteem or sets realistic goals, but not both. If Saul finds new strength, then he either regains confidence or rediscovers purpose, but not both. Saul rediscovers his purpose. If someone recognizes their ability and makes progress, then they can regain confidence. If Saul is disabled, then he is either receiving support or suffering injuries (but not both).
+Conclusion: Saul does not lose motivation.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Saul : Person
+
+axiom AchievesGoals : Person → Prop
+axiom ReceivingSupport : Person → Prop
+axiom SetsRealisticGoals : Person → Prop
+axiom RegainsConfidence : Person → Prop
+axiom BuildsSelfEsteem : Person → Prop
+axiom OvercomesAdversity : Person → Prop
+axiom MeetsChallenges : Person → Prop
+axiom BecomesDiscouraged : Person → Prop
+axiom FindsNewStrength : Person → Prop
+axiom UsesAssistiveDevices : Person → Prop
+axiom RequiresMedicalAttention : Person → Prop
+axiom Disabled : Person → Prop
+axiom StrongWill : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom FacesObstacles : Person → Prop
+axiom LosesMotivation : Person → Prop
+axiom SuffersInjuries : Person → Prop
+axiom DevelopResilience : Person → Prop
+axiom RediscoversPurpose : Person → Prop
+axiom RecognizesAbility : Person → Prop
+axiom MakesProgress : Person → Prop
+
+-- Premises
+axiom p1  : ¬ AchievesGoals Saul
+axiom p2  : ¬ ReceivingSupport Saul
+axiom p3  : ¬ SetsRealisticGoals Saul
+axiom p4  : ((RegainsConfidence Saul ∨ BuildsSelfEsteem Saul) ∧ ¬(RegainsConfidence Saul ∧ BuildsSelfEsteem Saul)) → OvercomesAdversity Saul
+axiom p5  : MeetsChallenges Saul → ((BecomesDiscouraged Saul ∨ FindsNewStrength Saul) ∧ ¬(BecomesDiscouraged Saul ∧ FindsNewStrength Saul))
+axiom p6  : ((UsesAssistiveDevices Saul ∨ RequiresMedicalAttention Saul) ∧ ¬(UsesAssistiveDevices Saul ∧ RequiresMedicalAttention Saul)) → Disabled Saul
+axiom p7  : ∀ x : Person, RequiresMedicalAttention x ∧ StrongWill x → AchievesGoals x
+axiom p8  : ∀ x : Person, AchievesSuccess x → BuildsSelfEsteem x
+axiom p9  : FacesObstacles Saul → ((LosesMotivation Saul ∨ FindsNewStrength Saul) ∧ ¬(LosesMotivation Saul ∧ FindsNewStrength Saul))
+axiom p10 : UsesAssistiveDevices Saul
+axiom p11 : ¬ OvercomesAdversity Saul
+axiom p12 : ∀ x : Person, SuffersInjuries x → FacesObstacles x ∧ DevelopResilience x
+axiom p13 : StrongWill Saul
+axiom p14 : (BuildsSelfEsteem Saul ∨ SetsRealisticGoals Saul) ∧ ¬(BuildsSelfEsteem Saul ∧ SetsRealisticGoals Saul)
+axiom p15 : FindsNewStrength Saul → ((RegainsConfidence Saul ∨ RediscoversPurpose Saul) ∧ ¬(RegainsConfidence Saul ∧ RediscoversPurpose Saul))
+axiom p16 : RediscoversPurpose Saul
+axiom p17 : ∀ x : Person, RecognizesAbility x ∧ MakesProgress x → RegainsConfidence x
+axiom p18 : Disabled Saul → ((ReceivingSupport Saul ∨ SuffersInjuries Saul) ∧ ¬(ReceivingSupport Saul ∧ SuffersInjuries Saul))
+
+-- Useful derived facts
+
+-- From p1, p7, p13 we derive that Saul does not require medical attention.
+lemma not_RA : ¬ RequiresMedicalAttention Saul := by
+  intro hRA
+  have hAG : AchievesGoals Saul := (p7 Saul) ⟨hRA, p13⟩
+  exact p1 hAG
+
+-- From p6, p10, and not_RA we derive that Saul is disabled.
+lemma disabled_Saul : Disabled Saul := by
+  have disj : UsesAssistiveDevices Saul ∨ RequiresMedicalAttention Saul := Or.inl p10
+  have notBoth : ¬(UsesAssistiveDevices Saul ∧ RequiresMedicalAttention Saul) := by
+    intro h
+    exact not_RA h.right
+  exact p6 ⟨disj, notBoth⟩
+
+-- From disability and p2 (not receiving support), derive that Saul suffers injuries, hence faces obstacles.
+lemma faces_obstacles_Saul : FacesObstacles Saul := by
+  have h := p18 disabled_Saul
+  have h_or : ReceivingSupport Saul ∨ SuffersInjuries Saul := h.left
+  have h_si : SuffersInjuries Saul := by
+    cases h_or with
+    | inl hRS => exact False.elim (p2 hRS)
+    | inr hSI => exact hSI
+  exact (p12 Saul h_si).left
+
+-- From p14 and p3, derive that Saul builds self-esteem.
+lemma builds_self_esteem_Saul : BuildsSelfEsteem Saul := by
+  have h := (p14).left
+  cases h with
+  | inl hB => exact hB
+  | inr hSRG => exact False.elim (p3 hSRG)
+
+-- From p15, p16, p4, p11, and the above, show that Saul cannot have found new strength.
+lemma not_finds_new_strength_Saul : ¬ FindsNewStrength Saul := by
+  intro hFNS
+  -- From hFNS, we get (RC ∨ RP) and not (RC ∧ RP)
+  have h_xor := p15 hFNS
+  -- From RP true, deduce ¬RC
+  have notRC : ¬ RegainsConfidence Saul := by
+    intro hRC
+    have both : RegainsConfidence Saul ∧ RediscoversPurpose Saul := And.intro hRC p16
+    exact h_xor.right both
+  -- Build XOR for (RC, BSE) using BSE and ¬RC
+  have bse : BuildsSelfEsteem Saul := builds_self_esteem_Saul
+  have xor_rc_bse : (RegainsConfidence Saul ∨ BuildsSelfEsteem Saul) ∧ ¬(RegainsConfidence Saul ∧ BuildsSelfEsteem Saul) := by
+    refine And.intro (Or.inr bse) ?_
+    intro hboth
+    exact notRC hboth.left
+  -- From p4, we get OvercomesAdversity, contradicting p11
+  have hOA : OvercomesAdversity Saul := p4 xor_rc_bse
+  exact p11 hOA
+
+-- From facing obstacles and not_finds_new_strength, deduce loses motivation.
+lemma loses_motivation_Saul : LosesMotivation Saul := by
+  have h := p9 faces_obstacles_Saul
+  have h_or : LosesMotivation Saul ∨ FindsNewStrength Saul := h.left
+  cases h_or with
+  | inl hLM => exact hLM
+  | inr hFNS => exact False.elim (not_finds_new_strength_Saul hFNS)
+
+-- Requested conclusion (which is actually refuted by the derived lemma above).
+theorem goal : ¬ LosesMotivation Saul := by
+  -- This does not follow from the premises; in fact, from the premises we derived LosesMotivation Saul.
+  -- Hence, this goal is unprovable from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Saul : Person
+
+axiom AchieveGoals : Person → Prop
+axiom ReceivingSupport : Person → Prop
+axiom SetRealisticGoals : Person → Prop
+axiom RegainsConfidence : Person → Prop
+axiom BuildsSelfEsteem : Person → Prop
+axiom OvercomesAdversity : Person → Prop
+axiom MeetsChallenges : Person → Prop
+axiom BecomesDiscouraged : Person → Prop
+axiom FindsNewStrength : Person → Prop
+axiom UsesAssistiveDevices : Person → Prop
+axiom RequiresMedicalAttention : Person → Prop
+axiom Disabled : Person → Prop
+axiom HasStrongWill : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom FacesObstacles : Person → Prop
+axiom LosesMotivation : Person → Prop
+axiom SuffersInjuries : Person → Prop
+axiom DevelopsResilience : Person → Prop
+axiom RediscoversPurpose : Person → Prop
+axiom RecognizesAbility : Person → Prop
+axiom MakesProgress : Person → Prop
+
+-- Premises
+axiom p1 : ¬AchieveGoals Saul
+axiom p2 : ¬ReceivingSupport Saul
+axiom p3 : ¬SetRealisticGoals Saul
+axiom p4 : ((RegainsConfidence Saul ∧ ¬BuildsSelfEsteem Saul) ∨ (BuildsSelfEsteem Saul ∧ ¬RegainsConfidence Saul)) → OvercomesAdversity Saul
+axiom p5 : MeetsChallenges Saul → ((BecomesDiscouraged Saul ∧ ¬FindsNewStrength Saul) ∨ (FindsNewStrength Saul ∧ ¬BecomesDiscouraged Saul))
+axiom p6 : ((UsesAssistiveDevices Saul ∧ ¬RequiresMedicalAttention Saul) ∨ (RequiresMedicalAttention Saul ∧ ¬UsesAssistiveDevices Saul)) → Disabled Saul
+axiom p7 : ∀ x : Person, (RequiresMedicalAttention x ∧ HasStrongWill x) → AchieveGoals x
+axiom p8 : ∀ x : Person, AchievesSuccess x → BuildsSelfEsteem x
+axiom p9 : FacesObstacles Saul → ((LosesMotivation Saul ∧ ¬FindsNewStrength Saul) ∨ (FindsNewStrength Saul ∧ ¬LosesMotivation Saul))
+axiom p10 : UsesAssistiveDevices Saul
+axiom p11 : ¬OvercomesAdversity Saul
+axiom p12 : ∀ x : Person, SuffersInjuries x → (FacesObstacles x ∧ DevelopsResilience x)
+axiom p13 : HasStrongWill Saul
+axiom p14 : (BuildsSelfEsteem Saul ∧ ¬SetRealisticGoals Saul) ∨ (SetRealisticGoals Saul ∧ ¬BuildsSelfEsteem Saul)
+axiom p15 : FindsNewStrength Saul → ((RegainsConfidence Saul ∧ ¬RediscoversPurpose Saul) ∨ (RediscoversPurpose Saul ∧ ¬RegainsConfidence Saul))
+axiom p16 : RediscoversPurpose Saul
+axiom p17 : ∀ x : Person, (RecognizesAbility x ∧ MakesProgress x) → RegainsConfidence x
+axiom p18 : Disabled Saul → ((ReceivingSupport Saul ∧ ¬SuffersInjuries Saul) ∨ (SuffersInjuries Saul ∧ ¬ReceivingSupport Saul))
+
+theorem neg_conclusion : LosesMotivation Saul := by
+  -- From strong will, requiring medical attention would imply achieving goals; but he does not achieve goals.
+  have hRM_imp_AG : RequiresMedicalAttention Saul → AchieveGoals Saul := by
+    intro hrm
+    have hconj : RequiresMedicalAttention Saul ∧ HasStrongWill Saul := And.intro hrm p13
+    have : AchieveGoals Saul := p7 Saul hconj
+    exact this
+  have hNotRM : ¬RequiresMedicalAttention Saul := by
+    intro hrm
+    have hAG : AchieveGoals Saul := hRM_imp_AG hrm
+    exact p1 hAG
+  -- Uses assistive devices and not requiring medical attention triggers disabled
+  have hXorUR : (UsesAssistiveDevices Saul ∧ ¬RequiresMedicalAttention Saul) ∨ (RequiresMedicalAttention Saul ∧ ¬UsesAssistiveDevices Saul) :=
+    Or.inl (And.intro p10 hNotRM)
+  have hDisabled : Disabled Saul := p6 hXorUR
+  -- Disabled together with not receiving support implies injuries
+  have hRSorSI : (ReceivingSupport Saul ∧ ¬SuffersInjuries Saul) ∨ (SuffersInjuries Saul ∧ ¬ReceivingSupport Saul) := p18 hDisabled
+  have hSI : SuffersInjuries Saul := by
+    cases hRSorSI with
+    | inl h =>
+        exact False.elim (p2 h.left)
+    | inr h =>
+        exact h.left
+  -- Injuries imply facing obstacles
+  have hFO_DR : FacesObstacles Saul ∧ DevelopsResilience Saul := p12 Saul hSI
+  have hFO : FacesObstacles Saul := hFO_DR.left
+  -- Facing obstacles yields xor of losing motivation or finding new strength
+  have hLMorFNS : (LosesMotivation Saul ∧ ¬FindsNewStrength Saul) ∨ (FindsNewStrength Saul ∧ ¬LosesMotivation Saul) := p9 hFO
+  -- From xor of (builds self-esteem, realistic goals) and not realistic goals, deduce builds self-esteem
+  have hBSE : BuildsSelfEsteem Saul := by
+    cases p14 with
+    | inl h =>
+        exact h.left
+    | inr h =>
+        exact False.elim (p3 h.left)
+  -- Show finds new strength leads to contradiction with not overcoming adversity
+  have hNotFNS : ¬FindsNewStrength Saul := by
+    intro hFNS
+    have hRCorRP : (RegainsConfidence Saul ∧ ¬RediscoversPurpose Saul) ∨ (RediscoversPurpose Saul ∧ ¬RegainsConfidence Saul) := p15 hFNS
+    have hNotRC : ¬RegainsConfidence Saul := by
+      cases hRCorRP with
+      | inl h =>
+          exact False.elim (h.right p16)
+      | inr h =>
+          exact h.right
+    have hx : (RegainsConfidence Saul ∧ ¬BuildsSelfEsteem Saul) ∨ (BuildsSelfEsteem Saul ∧ ¬RegainsConfidence Saul) :=
+      Or.inr (And.intro hBSE hNotRC)
+    have hOA : OvercomesAdversity Saul := p4 hx
+    exact p11 hOA
+  -- Conclude losing motivation from the xor and ¬(finds new strength)
+  cases hLMorFNS with
+  | inl h =>
+      exact h.left
+  | inr h =>
+      exact False.elim (hNotFNS h.left)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

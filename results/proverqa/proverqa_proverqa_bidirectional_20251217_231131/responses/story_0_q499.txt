@@ -1,0 +1,210 @@
+Story ID: 0
+Example ID: 499
+Premises: If Ashlynn develops resilience, then she achieves success. Ashlynn does not achieve success. If Ashlynn experiences failure, then she is either someone who learns from mistakes or faces life challenges, but not both. If Ashlynn faces life challenges, then she either develops resilience or has a supportive family (or both). Buster either lacks motivation or struggles with decisions. Ashlynn either lacks motivation or struggles with decisions. Ashlynn does not struggle with decisions. If Ashlynn has a supportive family, then she either becomes dependent or becomes independent (or both, as evidenced by her transformation). If Ashlynn values her loved ones, then she feels secure and has a supportive family. If Ashlynn takes risks, then she either faces life challenges or builds confidence (but not both). Haven experiences failure. Ashlynn either learns from mistakes or avoids risks, but not both. Ashlynn avoids risks. Ashlynn experiences failure. If someone takes calculated risks, then they value feedback and learn from mistakes. Ashlynn has low self-esteem. If Ashlynn becomes dependent, then she either lacks motivation or has low self-esteem (but not both).
+Conclusion: Ashlynn does not become independent.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ashlynn : Person
+axiom Buster : Person
+axiom Haven : Person
+
+axiom DevelopsResilience : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom ExperiencesFailure : Person → Prop
+axiom LearnsFromMistakes : Person → Prop
+axiom FacesLifeChallenges : Person → Prop
+axiom SupportiveFamily : Person → Prop
+axiom LacksMotivation : Person → Prop
+axiom StrugglesDecisions : Person → Prop
+axiom BecomesDependent : Person → Prop
+axiom BecomesIndependent : Person → Prop
+axiom ValuesLovedOnes : Person → Prop
+axiom FeelsSecure : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom BuildsConfidence : Person → Prop
+axiom AvoidsRisks : Person → Prop
+axiom TakesCalculatedRisks : Person → Prop
+axiom ValuesFeedback : Person → Prop
+axiom LowSelfEsteem : Person → Prop
+
+-- Premises
+axiom prem1  : DevelopsResilience Ashlynn → AchievesSuccess Ashlynn
+axiom prem2  : ¬ AchievesSuccess Ashlynn
+axiom prem3  : ExperiencesFailure Ashlynn → ((LearnsFromMistakes Ashlynn ∨ FacesLifeChallenges Ashlynn) ∧ ¬(LearnsFromMistakes Ashlynn ∧ FacesLifeChallenges Ashlynn))
+axiom prem4  : FacesLifeChallenges Ashlynn → (DevelopsResilience Ashlynn ∨ SupportiveFamily Ashlynn)
+axiom prem5  : LacksMotivation Buster ∨ StrugglesDecisions Buster
+axiom prem6  : LacksMotivation Ashlynn ∨ StrugglesDecisions Ashlynn
+axiom prem7  : ¬ StrugglesDecisions Ashlynn
+axiom prem8  : SupportiveFamily Ashlynn → (BecomesDependent Ashlynn ∨ BecomesIndependent Ashlynn)
+axiom prem9  : ValuesLovedOnes Ashlynn → (FeelsSecure Ashlynn ∧ SupportiveFamily Ashlynn)
+axiom prem10 : TakesRisks Ashlynn → ((FacesLifeChallenges Ashlynn ∨ BuildsConfidence Ashlynn) ∧ ¬(FacesLifeChallenges Ashlynn ∧ BuildsConfidence Ashlynn))
+axiom prem11 : ExperiencesFailure Haven
+axiom prem12 : (LearnsFromMistakes Ashlynn ∨ AvoidsRisks Ashlynn) ∧ ¬(LearnsFromMistakes Ashlynn ∧ AvoidsRisks Ashlynn)
+axiom prem13 : AvoidsRisks Ashlynn
+axiom prem14 : ExperiencesFailure Ashlynn
+axiom prem15 : ∀ x : Person, TakesCalculatedRisks x → (ValuesFeedback x ∧ LearnsFromMistakes x)
+axiom prem16 : LowSelfEsteem Ashlynn
+axiom prem17 : BecomesDependent Ashlynn → ((LacksMotivation Ashlynn ∨ LowSelfEsteem Ashlynn) ∧ ¬(LacksMotivation Ashlynn ∧ LowSelfEsteem Ashlynn))
+
+-- From the premises we can actually prove that Ashlynn becomes independent.
+theorem Ashlynn_becomes_independent : BecomesIndependent Ashlynn := by
+  -- From avoids risks and the XOR with learning from mistakes, conclude ¬LearnsFromMistakes Ashlynn
+  have h_xor := prem12
+  have h_or : LearnsFromMistakes Ashlynn ∨ AvoidsRisks Ashlynn := And.left h_xor
+  have h_not_both : ¬(LearnsFromMistakes Ashlynn ∧ AvoidsRisks Ashlynn) := And.right h_xor
+  have h_ar : AvoidsRisks Ashlynn := prem13
+  have h_not_L : ¬ LearnsFromMistakes Ashlynn := by
+    intro hL
+    exact h_not_both ⟨hL, h_ar⟩
+  -- From failure and the XOR (L ∨ C) with ¬L, deduce C
+  have h_fail := prem14
+  have h_LCpair := prem3 h_fail
+  have h_LorC : LearnsFromMistakes Ashlynn ∨ FacesLifeChallenges Ashlynn := And.left h_LCpair
+  have hC : FacesLifeChallenges Ashlynn := by
+    cases h_LorC with
+    | inl hL => exact False.elim (h_not_L hL)
+    | inr hC => exact hC
+  -- From C, deduce R ∨ SF; but R → S and ¬S, hence ¬R; thus SF
+  have h_RorSF : DevelopsResilience Ashlynn ∨ SupportiveFamily Ashlynn := prem4 hC
+  have h_not_R : ¬ DevelopsResilience Ashlynn := by
+    intro hR
+    have hS : AchievesSuccess Ashlynn := prem1 hR
+    exact prem2 hS
+  have h_SF : SupportiveFamily Ashlynn := by
+    cases h_RorSF with
+    | inl hR => exact False.elim (h_not_R hR)
+    | inr hsf => exact hsf
+  -- From SF, deduce Dep ∨ Ind
+  have h_DepOrInd : BecomesDependent Ashlynn ∨ BecomesIndependent Ashlynn := prem8 h_SF
+  -- From LM ∨ SD and ¬SD, deduce LM
+  have h_LM : LacksMotivation Ashlynn := by
+    cases prem6 with
+    | inl hLM => exact hLM
+    | inr hSD => exact False.elim (prem7 hSD)
+  -- From Dep → ¬(LM ∧ LSE), together with LM and LSE, deduce ¬Dep
+  have h_not_Dep : ¬ BecomesDependent Ashlynn := by
+    intro hDep
+    have h_conj := prem17 hDep
+    have h_not_both_LM_LSE : ¬(LacksMotivation Ashlynn ∧ LowSelfEsteem Ashlynn) := And.right h_conj
+    exact h_not_both_LM_LSE ⟨h_LM, prem16⟩
+  -- Thus Ind
+  cases h_DepOrInd with
+  | inl hDep => exact False.elim (h_not_Dep hDep)
+  | inr hInd => exact hInd
+
+-- Claimed conclusion
+theorem conclusion : ¬ BecomesIndependent Ashlynn := by
+  -- Attempt to prove the stated conclusion; however, it contradicts Ashlynn_becomes_independent above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ashlynn : Person
+axiom Buster : Person
+axiom Haven : Person
+
+axiom DevelopsResilience : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom ExperiencesFailure : Person → Prop
+axiom LearnsFromMistakes : Person → Prop
+axiom FacesLifeChallenges : Person → Prop
+axiom SupportiveFamily : Person → Prop
+axiom LacksMotivation : Person → Prop
+axiom StrugglesWithDecisions : Person → Prop
+axiom BecomesDependent : Person → Prop
+axiom BecomesIndependent : Person → Prop
+axiom ValuesLovedOnes : Person → Prop
+axiom FeelsSecure : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom BuildsConfidence : Person → Prop
+axiom AvoidsRisks : Person → Prop
+axiom TakesCalculatedRisks : Person → Prop
+axiom ValuesFeedback : Person → Prop
+axiom LowSelfEsteem : Person → Prop
+
+-- Premises
+axiom p1 : DevelopsResilience Ashlynn → AchievesSuccess Ashlynn
+axiom p2 : ¬ AchievesSuccess Ashlynn
+axiom p3 : ExperiencesFailure Ashlynn → ((LearnsFromMistakes Ashlynn ∨ FacesLifeChallenges Ashlynn) ∧ ¬(LearnsFromMistakes Ashlynn ∧ FacesLifeChallenges Ashlynn))
+axiom p4 : FacesLifeChallenges Ashlynn → (DevelopsResilience Ashlynn ∨ SupportiveFamily Ashlynn)
+axiom p5 : LacksMotivation Buster ∨ StrugglesWithDecisions Buster
+axiom p6 : LacksMotivation Ashlynn ∨ StrugglesWithDecisions Ashlynn
+axiom p7 : ¬ StrugglesWithDecisions Ashlynn
+axiom p8 : SupportiveFamily Ashlynn → (BecomesDependent Ashlynn ∨ BecomesIndependent Ashlynn)
+axiom p9 : ValuesLovedOnes Ashlynn → (FeelsSecure Ashlynn ∧ SupportiveFamily Ashlynn)
+axiom p10 : TakesRisks Ashlynn → ((FacesLifeChallenges Ashlynn ∨ BuildsConfidence Ashlynn) ∧ ¬(FacesLifeChallenges Ashlynn ∧ BuildsConfidence Ashlynn))
+axiom p11 : ExperiencesFailure Haven
+axiom p12 : (LearnsFromMistakes Ashlynn ∨ AvoidsRisks Ashlynn) ∧ ¬(LearnsFromMistakes Ashlynn ∧ AvoidsRisks Ashlynn)
+axiom p13 : AvoidsRisks Ashlynn
+axiom p14 : ExperiencesFailure Ashlynn
+axiom p15 : ∀ x : Person, TakesCalculatedRisks x → (ValuesFeedback x ∧ LearnsFromMistakes x)
+axiom p16 : LowSelfEsteem Ashlynn
+axiom p17 : BecomesDependent Ashlynn → ((LacksMotivation Ashlynn ∨ LowSelfEsteem Ashlynn) ∧ ¬(LacksMotivation Ashlynn ∧ LowSelfEsteem Ashlynn))
+
+theorem goal : BecomesIndependent Ashlynn := by
+  -- From avoids risks and exclusive or with learns from mistakes, deduce not learns from mistakes
+  have h12_left : LearnsFromMistakes Ashlynn ∨ AvoidsRisks Ashlynn := And.left p12
+  have h12_not_both : ¬ (LearnsFromMistakes Ashlynn ∧ AvoidsRisks Ashlynn) := And.right p12
+  have not_L : ¬ LearnsFromMistakes Ashlynn := by
+    intro hL
+    have both : LearnsFromMistakes Ashlynn ∧ AvoidsRisks Ashlynn := And.intro hL p13
+    exact h12_not_both both
+  -- From failure deduce faces life challenges (since not learns from mistakes)
+  have h3 := p3 p14
+  have hL_or_C : LearnsFromMistakes Ashlynn ∨ FacesLifeChallenges Ashlynn := And.left h3
+  have hC : FacesLifeChallenges Ashlynn := by
+    cases hL_or_C with
+    | inl hL => exact False.elim (not_L hL)
+    | inr hC => exact hC
+  -- From challenges deduce supportive family (since resilience would contradict no success)
+  have hR_or_SF : DevelopsResilience Ashlynn ∨ SupportiveFamily Ashlynn := p4 hC
+  have hSF : SupportiveFamily Ashlynn := by
+    cases hR_or_SF with
+    | inl hR =>
+        have hS : AchievesSuccess Ashlynn := p1 hR
+        have : False := p2 hS
+        exact False.elim this
+    | inr hSF => exact hSF
+  -- From supportive family deduce dependent or independent
+  have hDep_or_Ind : BecomesDependent Ashlynn ∨ BecomesIndependent Ashlynn := p8 hSF
+  -- Show independent; dependent leads to contradiction with both LM and LSE true
+  have hLM : LacksMotivation Ashlynn := by
+    cases p6 with
+    | inl lm => exact lm
+    | inr sd =>
+        have : False := p7 sd
+        exact False.elim this
+  have hLSE : LowSelfEsteem Ashlynn := p16
+  cases hDep_or_Ind with
+  | inl hDep =>
+      have hDepInfo := p17 hDep
+      have not_both : ¬ (LacksMotivation Ashlynn ∧ LowSelfEsteem Ashlynn) := And.right hDepInfo
+      have both : LacksMotivation Ashlynn ∧ LowSelfEsteem Ashlynn := And.intro hLM hLSE
+      have : False := not_both both
+      exact False.elim this
+  | inr hInd => exact hInd
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

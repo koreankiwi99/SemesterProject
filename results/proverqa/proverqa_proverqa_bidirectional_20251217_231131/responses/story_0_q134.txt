@@ -1,0 +1,289 @@
+Story ID: 0
+Example ID: 134
+Premises: If Ensley either conserves water or reduces waste (but not both), then she is environmentally conscious. Ensley is either a city enthusiast or a rural resident, but not both. If Ensley prefers a simple life, then she is either a rural resident or a city native, but not both. Ensley does not support sustainability. Ensley is an entrepreneur. If Marianna is a local business owner, then she is either environmentally conscious or lives in the suburbs, but not both. Ensley is not community oriented. If Ensley is an entrepreneur, then she is either environmentally conscious or supports sustainability (but not both). Ensley is either a nature lover or a city enthusiast, but not both. If Ensley is a local business owner, then she is either environmentally conscious or lives in the suburbs, but not both. Ensley is a local business owner. If Ensley is either an urban dweller or living in the suburbs (but not both), then she is community oriented. Ensley is either an urban dweller or a rural resident. If Ensley either attends street festivals or visits local landmarks (but not both), then she is a city enthusiast. If Kenzie is an entrepreneur, then she is either environmentally conscious or supports sustainability (but not both).
+Conclusion: Ensley is a nature lover.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ensley : Person
+axiom Marianna : Person
+axiom Kenzie : Person
+
+axiom ConservesWater : Person → Prop
+axiom ReducesWaste : Person → Prop
+axiom EnvConscious : Person → Prop
+axiom CityEnthusiast : Person → Prop
+axiom RuralResident : Person → Prop
+axiom PrefersSimpleLife : Person → Prop
+axiom CityNative : Person → Prop
+axiom SupportsSustainability : Person → Prop
+axiom Entrepreneur : Person → Prop
+axiom LocalBusinessOwner : Person → Prop
+axiom LivesInSuburbs : Person → Prop
+axiom CommunityOriented : Person → Prop
+axiom UrbanDweller : Person → Prop
+axiom AttendsStreetFestivals : Person → Prop
+axiom VisitsLocalLandmarks : Person → Prop
+axiom NatureLover : Person → Prop
+
+-- Premises
+axiom p1 :
+  ((ConservesWater Ensley ∨ ReducesWaste Ensley) ∧ ¬ (ConservesWater Ensley ∧ ReducesWaste Ensley))
+  → EnvConscious Ensley
+
+axiom p2 :
+  (CityEnthusiast Ensley ∨ RuralResident Ensley) ∧ ¬ (CityEnthusiast Ensley ∧ RuralResident Ensley)
+
+axiom p3 :
+  PrefersSimpleLife Ensley →
+    ((RuralResident Ensley ∨ CityNative Ensley) ∧ ¬ (RuralResident Ensley ∧ CityNative Ensley))
+
+axiom p4 : ¬ SupportsSustainability Ensley
+
+axiom p5 : Entrepreneur Ensley
+
+axiom p6 :
+  LocalBusinessOwner Marianna →
+    ((EnvConscious Marianna ∨ LivesInSuburbs Marianna) ∧ ¬ (EnvConscious Marianna ∧ LivesInSuburbs Marianna))
+
+axiom p7 : ¬ CommunityOriented Ensley
+
+axiom p8 :
+  Entrepreneur Ensley →
+    ((EnvConscious Ensley ∨ SupportsSustainability Ensley) ∧ ¬ (EnvConscious Ensley ∧ SupportsSustainability Ensley))
+
+axiom p9 :
+  (NatureLover Ensley ∨ CityEnthusiast Ensley) ∧ ¬ (NatureLover Ensley ∧ CityEnthusiast Ensley)
+
+axiom p10 :
+  LocalBusinessOwner Ensley →
+    ((EnvConscious Ensley ∨ LivesInSuburbs Ensley) ∧ ¬ (EnvConscious Ensley ∧ LivesInSuburbs Ensley))
+
+axiom p11 : LocalBusinessOwner Ensley
+
+axiom p12 :
+  ((UrbanDweller Ensley ∨ LivesInSuburbs Ensley) ∧ ¬ (UrbanDweller Ensley ∧ LivesInSuburbs Ensley))
+  → CommunityOriented Ensley
+
+axiom p13 : UrbanDweller Ensley ∨ RuralResident Ensley
+
+axiom p14 :
+  ((AttendsStreetFestivals Ensley ∨ VisitsLocalLandmarks Ensley) ∧ ¬ (AttendsStreetFestivals Ensley ∧ VisitsLocalLandmarks Ensley))
+  → CityEnthusiast Ensley
+
+axiom p15 :
+  Entrepreneur Kenzie →
+    ((EnvConscious Kenzie ∨ SupportsSustainability Kenzie) ∧ ¬ (EnvConscious Kenzie ∧ SupportsSustainability Kenzie))
+
+-- Conclusion: Ensley is a nature lover.
+theorem goal : NatureLover Ensley := by
+  -- From entrepreneur and xor with sustainability, plus ¬supports, get EnvConscious Ensley
+  have hx := p8 p5
+  have hx_or : EnvConscious Ensley ∨ SupportsSustainability Ensley := And.left hx
+  have hEC : EnvConscious Ensley := by
+    cases hx_or with
+    | inl h => exact h
+    | inr h => exact False.elim (p4 h)
+
+  -- From local business owner, get (EC ∨ LS) ∧ ¬(EC ∧ LS)
+  have hL := p10 p11
+  have hNotBoth_EC_LS : ¬ (EnvConscious Ensley ∧ LivesInSuburbs Ensley) := And.right hL
+
+  -- Hence ¬LS
+  have hNotLS : ¬ LivesInSuburbs Ensley := by
+    intro hLS
+    exact hNotBoth_EC_LS ⟨hEC, hLS⟩
+
+  -- From p12 and ¬CO, get ¬ antecedent ((UD ∨ LS) ∧ ¬(UD ∧ LS))
+  have hNotAnte :
+      ¬ ((UrbanDweller Ensley ∨ LivesInSuburbs Ensley) ∧ ¬ (UrbanDweller Ensley ∧ LivesInSuburbs Ensley)) := by
+    intro hA
+    exact p7 (p12 hA)
+
+  -- Thus ¬UD (since with UD and ¬LS we'd make the antecedent true)
+  have hNotUD : ¬ UrbanDweller Ensley := by
+    intro hUD
+    have hOr : UrbanDweller Ensley ∨ LivesInSuburbs Ensley := Or.inl hUD
+    have hNA : ¬ (UrbanDweller Ensley ∧ LivesInSuburbs Ensley) := by
+      intro hAnd
+      exact hNotLS hAnd.right
+    exact hNotAnte ⟨hOr, hNA⟩
+
+  -- From UD ∨ RR and ¬UD, deduce RR
+  have hRR : RuralResident Ensley := by
+    cases p13 with
+    | inl hUD => exact False.elim (hNotUD hUD)
+    | inr hRR => exact hRR
+
+  -- From (CE ∨ RR) ∧ ¬(CE ∧ RR) and RR, deduce ¬CE
+  have h2 := p2
+  have hNotBoth_CE_RR : ¬ (CityEnthusiast Ensley ∧ RuralResident Ensley) := And.right h2
+  have hNotCE : ¬ CityEnthusiast Ensley := by
+    intro hCE
+    exact hNotBoth_CE_RR ⟨hCE, hRR⟩
+
+  -- From (NL ∨ CE) and ¬CE, deduce NL
+  have hNL_or_CE : NatureLover Ensley ∨ CityEnthusiast Ensley := And.left p9
+  have hNL : NatureLover Ensley := by
+    cases hNL_or_CE with
+    | inl h => exact h
+    | inr hCE => exact False.elim (hNotCE hCE)
+  exact hNL
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Ensley Marianna Kenzie : Person
+axiom ConservesWater : Person → Prop
+axiom ReducesWaste : Person → Prop
+axiom EnvConscious : Person → Prop
+axiom CityEnthusiast : Person → Prop
+axiom RuralResident : Person → Prop
+axiom SimpleLife : Person → Prop
+axiom CityNative : Person → Prop
+axiom SupportsSustainability : Person → Prop
+axiom Entrepreneur : Person → Prop
+axiom LocalBusinessOwner : Person → Prop
+axiom LivesInSuburbs : Person → Prop
+axiom CommunityOriented : Person → Prop
+axiom UrbanDweller : Person → Prop
+axiom AttendsStreetFestivals : Person → Prop
+axiom VisitsLocalLandmarks : Person → Prop
+axiom NatureLover : Person → Prop
+
+-- Premises (axioms)
+axiom premise1 :
+  (((ConservesWater Ensley) ∧ ¬ (ReducesWaste Ensley)) ∨ ((ReducesWaste Ensley) ∧ ¬ (ConservesWater Ensley)))
+  → (EnvConscious Ensley)
+
+axiom premise2 :
+  ((CityEnthusiast Ensley) ∧ ¬ (RuralResident Ensley)) ∨ ((RuralResident Ensley) ∧ ¬ (CityEnthusiast Ensley))
+
+axiom premise3 :
+  (SimpleLife Ensley) → (((RuralResident Ensley) ∧ ¬ (CityNative Ensley)) ∨ ((CityNative Ensley) ∧ ¬ (RuralResident Ensley)))
+
+axiom premise4 : ¬ (SupportsSustainability Ensley)
+
+axiom premise5 : Entrepreneur Ensley
+
+axiom premise6 :
+  (LocalBusinessOwner Marianna) → (((EnvConscious Marianna) ∧ ¬ (LivesInSuburbs Marianna)) ∨ ((LivesInSuburbs Marianna) ∧ ¬ (EnvConscious Marianna)))
+
+axiom premise7 : ¬ (CommunityOriented Ensley)
+
+axiom premise8 :
+  (Entrepreneur Ensley) → (((EnvConscious Ensley) ∧ ¬ (SupportsSustainability Ensley)) ∨ ((SupportsSustainability Ensley) ∧ ¬ (EnvConscious Ensley)))
+
+axiom premise9 :
+  ((NatureLover Ensley) ∧ ¬ (CityEnthusiast Ensley)) ∨ ((CityEnthusiast Ensley) ∧ ¬ (NatureLover Ensley))
+
+axiom premise10 :
+  (LocalBusinessOwner Ensley) → (((EnvConscious Ensley) ∧ ¬ (LivesInSuburbs Ensley)) ∨ ((LivesInSuburbs Ensley) ∧ ¬ (EnvConscious Ensley)))
+
+axiom premise11 : LocalBusinessOwner Ensley
+
+axiom premise12 :
+  (((UrbanDweller Ensley) ∧ ¬ (LivesInSuburbs Ensley)) ∨ ((LivesInSuburbs Ensley) ∧ ¬ (UrbanDweller Ensley)))
+  → (CommunityOriented Ensley)
+
+axiom premise13 : (UrbanDweller Ensley) ∨ (RuralResident Ensley)
+
+axiom premise14 :
+  (((AttendsStreetFestivals Ensley) ∧ ¬ (VisitsLocalLandmarks Ensley)) ∨ ((VisitsLocalLandmarks Ensley) ∧ ¬ (AttendsStreetFestivals Ensley)))
+  → (CityEnthusiast Ensley)
+
+axiom premise15 :
+  (Entrepreneur Kenzie) → (((EnvConscious Kenzie) ∧ ¬ (SupportsSustainability Kenzie)) ∨ ((SupportsSustainability Kenzie) ∧ ¬ (EnvConscious Kenzie)))
+
+-- Useful derived facts
+theorem envEnsley : EnvConscious Ensley := by
+  have hx := premise8 premise5
+  cases hx with
+  | inl h =>
+      exact h.left
+  | inr h =>
+      exact False.elim (premise4 h.left)
+
+theorem notSuburbsEnsley : ¬ (LivesInSuburbs Ensley) := by
+  have hx := premise10 premise11
+  have hE : EnvConscious Ensley := envEnsley
+  cases hx with
+  | inl h =>
+      exact h.right
+  | inr h =>
+      -- h : LivesInSuburbs Ensley ∧ ¬ EnvConscious Ensley, contradicts envEnsley
+      exact False.elim (h.right hE)
+
+theorem notXorUrbanSuburbs :
+  ¬ (((UrbanDweller Ensley) ∧ ¬ (LivesInSuburbs Ensley)) ∨ ((LivesInSuburbs Ensley) ∧ ¬ (UrbanDweller Ensley))) := by
+  intro h
+  exact premise7 (premise12 h)
+
+theorem notUrbanEnsley : ¬ (UrbanDweller Ensley) := by
+  -- from ¬(Urban ∧ ¬Suburbs) and ¬Suburbs derive ¬Urban
+  have h1 : ¬ ((UrbanDweller Ensley) ∧ ¬ (LivesInSuburbs Ensley)) := by
+    intro h
+    exact notXorUrbanSuburbs (Or.inl h)
+  have hNS : ¬ (LivesInSuburbs Ensley) := notSuburbsEnsley
+  intro hU
+  exact h1 ⟨hU, hNS⟩
+
+theorem ruralEnsley : RuralResident Ensley := by
+  have h := premise13
+  have hNU : ¬ UrbanDweller Ensley := notUrbanEnsley
+  cases h with
+  | inl hU =>
+      exact False.elim (hNU hU)
+  | inr hR =>
+      exact hR
+
+theorem notCityEnsley : ¬ (CityEnthusiast Ensley) := by
+  have hR : RuralResident Ensley := ruralEnsley
+  have hx := premise2
+  cases hx with
+  | inl h =>
+      -- h : City ∧ ¬Rural contradicts hR
+      exact False.elim (h.right hR)
+  | inr h =>
+      -- h : Rural ∧ ¬City
+      exact h.right
+
+theorem natureEnsley : NatureLover Ensley := by
+  have hNC : ¬ CityEnthusiast Ensley := notCityEnsley
+  have hx := premise9
+  cases hx with
+  | inl h =>
+      -- Nature ∧ ¬City
+      exact h.left
+  | inr h =>
+      -- City ∧ ¬Nature contradicts ¬City
+      exact False.elim (hNC h.left)
+
+-- Goal: prove the negation of the conclusion (that Ensley is not a nature lover)
+theorem goal : ¬ (NatureLover Ensley) := by
+  -- Attempt to derive a contradiction with NatureLover Ensley, but premises actually imply NatureLover Ensley.
+  -- Hence this goal is not derivable from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

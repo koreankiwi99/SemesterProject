@@ -1,0 +1,134 @@
+Story ID: 0
+Example ID: 423
+Premises: Anyone who has curiosity and seeks experience can decide to study abroad. Everyone who values education either seeks experience or explores opportunities. If Aileen studies abroad, then she will love foreign languages. Aileen does not explore opportunities. Aileen either loves foreign languages or appreciates Argentine culture, but not necessarily both. For Aileen, either she stays in her home country or she has curiosity, but not both. Aileen values education. Anyone who has a passport or gets a scholarship can study abroad. Aileen does not stay in her home country. Aileen either appreciates Argentine culture or enjoys dancing (or both).
+Conclusion: Aileen does not enjoy dancing.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aileen : Person
+
+-- Predicates
+axiom Curious : Person → Prop
+axiom SeeksExp : Person → Prop
+axiom CanStudyAbroad : Person → Prop
+axiom ValuesEdu : Person → Prop
+axiom ExploresOpp : Person → Prop
+axiom StudiesAbroad : Person → Prop
+axiom LovesFL : Person → Prop
+axiom AppreciatesArgentineCulture : Person → Prop
+axiom StaysHome : Person → Prop
+axiom HasPassport : Person → Prop
+axiom GetsScholarship : Person → Prop
+axiom EnjoysDancing : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x, Curious x ∧ SeeksExp x → CanStudyAbroad x
+axiom p2 : ∀ x, ValuesEdu x → SeeksExp x ∨ ExploresOpp x
+axiom p3 : StudiesAbroad Aileen → LovesFL Aileen
+axiom p4 : ¬ExploresOpp Aileen
+axiom p5 : LovesFL Aileen ∨ AppreciatesArgentineCulture Aileen
+axiom p6a : StaysHome Aileen ∨ Curious Aileen
+axiom p6b : ¬(StaysHome Aileen ∧ Curious Aileen)  -- exclusive-or "but not both" part
+axiom p7 : ValuesEdu Aileen
+axiom p8 : ∀ x, HasPassport x ∨ GetsScholarship x → CanStudyAbroad x
+axiom p9 : ¬StaysHome Aileen
+axiom p10 : AppreciatesArgentineCulture Aileen ∨ EnjoysDancing Aileen
+
+-- Conclusion to analyze: Aileen does not enjoy dancing.
+theorem conclusion : ¬EnjoysDancing Aileen := by
+  -- Derive some consequences of the premises
+  have hCur : Curious Aileen := by
+    have h := p6a
+    cases h with
+    | inl hStay => exact False.elim (p9 hStay)
+    | inr hCur => exact hCur
+  have hSeek : SeeksExp Aileen := by
+    have h := p2 Aileen p7
+    cases h with
+    | inl hSeeks => exact hSeeks
+    | inr hExplores => exact False.elim (p4 hExplores)
+  have _hCan : CanStudyAbroad Aileen := p1 Aileen ⟨hCur, hSeek⟩
+  -- Attempt proof by contradiction
+  intro hDance
+  -- No contradiction can be derived from the given premises
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aileen : Person
+
+axiom Curious : Person → Prop
+axiom SeeksExp : Person → Prop
+axiom StudiesAbroad : Person → Prop
+axiom ValuesEdu : Person → Prop
+axiom ExploresOpp : Person → Prop
+axiom LoveForeignLang : Person → Prop
+axiom AppreciatesArgCulture : Person → Prop
+axiom EnjoysDancing : Person → Prop
+axiom StaysHome : Person → Prop
+axiom HasPassport : Person → Prop
+axiom GetsScholarship : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, Curious x ∧ SeeksExp x → StudiesAbroad x
+axiom premise2 : ∀ x : Person, ValuesEdu x → (SeeksExp x ∨ ExploresOpp x)
+axiom premise3 : StudiesAbroad Aileen → LoveForeignLang Aileen
+axiom premise4 : ¬ExploresOpp Aileen
+axiom premise5 : LoveForeignLang Aileen ∨ AppreciatesArgCulture Aileen
+-- "either stays home or has curiosity, but not both" (we include both parts: or, and not both)
+axiom premise6a : StaysHome Aileen ∨ Curious Aileen
+axiom premise6b : ¬(StaysHome Aileen ∧ Curious Aileen)
+axiom premise7 : ValuesEdu Aileen
+axiom premise8 : ∀ x : Person, HasPassport x ∨ GetsScholarship x → StudiesAbroad x
+axiom premise9 : ¬StaysHome Aileen
+axiom premise10 : AppreciatesArgCulture Aileen ∨ EnjoysDancing Aileen
+
+-- Negation of the conclusion to analyze: we attempt to prove EnjoysDancing Aileen
+theorem negConclusion : EnjoysDancing Aileen := by
+  -- Derive curiosity from "stay home or curiosity" plus "not stay home"
+  have hCur : Curious Aileen := by
+    have h := premise6a
+    have hNotStay := premise9
+    cases h with
+    | inl hStay => exact False.elim (hNotStay hStay)
+    | inr hCur => exact hCur
+  -- From valuing education and not exploring opportunities, derive seeking experience
+  have hSeeks : SeeksExp Aileen := by
+    have h := premise2 Aileen premise7
+    cases h with
+    | inl hSeek => exact hSeek
+    | inr hExpl => exact False.elim (premise4 hExpl)
+  -- From curiosity and seeking experience, conclude studies abroad
+  have hStudy : StudiesAbroad Aileen := by
+    apply premise1
+    exact And.intro hCur hSeeks
+  -- Hence she loves foreign languages
+  have hLove : LoveForeignLang Aileen := premise3 hStudy
+  -- We have AppreciatesArgCulture ∨ EnjoysDancing, but no way to eliminate the left disjunct
+  -- to conclude EnjoysDancing from the given premises.
+  -- Therefore, the desired conclusion cannot be derived from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: Uncertain
+Correct: Yes

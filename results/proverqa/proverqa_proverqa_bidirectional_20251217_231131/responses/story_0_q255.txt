@@ -1,0 +1,195 @@
+Story ID: 0
+Example ID: 255
+Premises: Emelia manages finances or overspends money. If someone inherits a large sum of money, then they have excessive wealth. If Esteban either craves luxuries or prioritizes status (but not both), then he has excessive wealth. Esteban does not prioritize status. Esteban pursues materialism. Vihaan craves luxuries. Esteban craves luxuries. Esteban lives wastefully. If Esteban has excessive wealth, then he either makes impulsive decisions or is selfish, but not both. If Esteban lives wastefully, then he will either lose his fortune or regret his actions later, but not both. Esteban does not manage finances. If Esteban has disposable income, then he either overspends money or makes frequent purchases (but not both). If Esteban ignores warnings or acts recklessly, then he will regret his actions later. If Vihaan either craves luxuries or prioritizes status (but not both), then he has excessive wealth. Anyone who overspends money or makes impulsive decisions will regret their actions later. Esteban disregards others. Esteban manages finances or overspends money. Anyone who pursues materialism and disregards others can be selfish.
+Conclusion: Esteban loses his fortune.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Emelia : Person
+axiom Esteban : Person
+axiom Vihaan : Person
+
+axiom ManagesFinances : Person → Prop
+axiom OverspendsMoney : Person → Prop
+axiom InheritsLargeSum : Person → Prop
+axiom ExcessiveWealth : Person → Prop
+axiom CravesLuxuries : Person → Prop
+axiom PrioritizesStatus : Person → Prop
+axiom PursuesMaterialism : Person → Prop
+axiom LivesWastefully : Person → Prop
+axiom MakesImpulsiveDecisions : Person → Prop
+axiom Selfish : Person → Prop
+axiom LosesFortune : Person → Prop
+axiom RegretsActionsLater : Person → Prop
+axiom DisposableIncome : Person → Prop
+axiom MakesFrequentPurchases : Person → Prop
+axiom IgnoresWarnings : Person → Prop
+axiom ActsRecklessly : Person → Prop
+axiom DisregardsOthers : Person → Prop
+
+-- Premises
+axiom emelia_manages_or_overspends :
+  ManagesFinances Emelia ∨ OverspendsMoney Emelia
+
+axiom inherit_implies_wealth :
+  ∀ x : Person, InheritsLargeSum x → ExcessiveWealth x
+
+axiom esteban_xor_crave_status_implies_wealth :
+  ((CravesLuxuries Esteban ∧ ¬ PrioritizesStatus Esteban) ∨
+   (PrioritizesStatus Esteban ∧ ¬ CravesLuxuries Esteban)) →
+  ExcessiveWealth Esteban
+
+axiom esteban_not_prioritize : ¬ PrioritizesStatus Esteban
+axiom esteban_materialism : PursuesMaterialism Esteban
+axiom vihaan_craves : CravesLuxuries Vihaan
+axiom esteban_craves : CravesLuxuries Esteban
+axiom esteban_wasteful : LivesWastefully Esteban
+
+axiom esteban_wealth_implies_xor_impulsive_selfish :
+  ExcessiveWealth Esteban →
+  ((MakesImpulsiveDecisions Esteban ∧ ¬ Selfish Esteban) ∨
+   (Selfish Esteban ∧ ¬ MakesImpulsiveDecisions Esteban))
+
+axiom esteban_wasteful_implies_xor_lose_regret :
+  LivesWastefully Esteban →
+  ((LosesFortune Esteban ∧ ¬ RegretsActionsLater Esteban) ∨
+   (RegretsActionsLater Esteban ∧ ¬ LosesFortune Esteban))
+
+axiom esteban_not_manage : ¬ ManagesFinances Esteban
+
+axiom esteban_disposable_implies_xor_overspend_frequent :
+  DisposableIncome Esteban →
+  ((OverspendsMoney Esteban ∧ ¬ MakesFrequentPurchases Esteban) ∨
+   (MakesFrequentPurchases Esteban ∧ ¬ OverspendsMoney Esteban))
+
+axiom esteban_ignore_or_reckless_implies_regret :
+  (IgnoresWarnings Esteban ∨ ActsRecklessly Esteban) →
+  RegretsActionsLater Esteban
+
+axiom vihaan_xor_crave_status_implies_wealth :
+  ((CravesLuxuries Vihaan ∧ ¬ PrioritizesStatus Vihaan) ∨
+   (PrioritizesStatus Vihaan ∧ ¬ CravesLuxuries Vihaan)) →
+  ExcessiveWealth Vihaan
+
+axiom overspend_or_impulsive_implies_regret :
+  ∀ x : Person, (OverspendsMoney x ∨ MakesImpulsiveDecisions x) →
+  RegretsActionsLater x
+
+axiom esteban_disregards : DisregardsOthers Esteban
+
+axiom esteban_manages_or_overspends :
+  ManagesFinances Esteban ∨ OverspendsMoney Esteban
+
+axiom mat_and_disregard_implies_selfish :
+  ∀ x : Person, (PursuesMaterialism x ∧ DisregardsOthers x) → Selfish x
+
+-- Conclusion to analyze: Esteban loses his fortune.
+theorem goal : LosesFortune Esteban := by
+  -- From (Manages ∨ Overspends) and ¬Manages, we get Overspends.
+  have h_over : OverspendsMoney Esteban :=
+    Or.resolve_left esteban_manages_or_overspends esteban_not_manage
+  -- From Overspends, we get Regrets (by the "anyone who overspends or is impulsive regrets" rule).
+  have h_regret : RegretsActionsLater Esteban :=
+    overspend_or_impulsive_implies_regret Esteban (Or.inl h_over)
+  -- From LivesWastefully, we have XOR (Loses ∧ ¬Regrets) ∨ (Regrets ∧ ¬Loses).
+  have h_xor := esteban_wasteful_implies_xor_lose_regret esteban_wasteful
+  -- The XOR together with h_regret actually yields ¬Loses; hence the desired goal is not derivable.
+  have h_not_lose : ¬ LosesFortune Esteban := by
+    intro hlose
+    cases h_xor with
+    | inl h =>
+        -- h: (Loses ∧ ¬Regrets); contradicts h_regret
+        exact h.right h_regret
+    | inr h =>
+        -- h: (Regrets ∧ ¬Loses)
+        exact h.right hlose
+  -- Unable to conclude LosesFortune Esteban from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Emelia : Person
+axiom Esteban : Person
+axiom Vihaan : Person
+
+axiom ManagesFinances : Person → Prop
+axiom OverspendsMoney : Person → Prop
+axiom InheritsLargeSum : Person → Prop
+axiom ExcessiveWealth : Person → Prop
+axiom CravesLuxuries : Person → Prop
+axiom PrioritizesStatus : Person → Prop
+axiom PursuesMaterialism : Person → Prop
+axiom LivesWastefully : Person → Prop
+axiom MakesImpulsiveDecisions : Person → Prop
+axiom Selfish : Person → Prop
+axiom LosesFortune : Person → Prop
+axiom RegretsActionsLater : Person → Prop
+axiom HasDisposableIncome : Person → Prop
+axiom MakesFrequentPurchases : Person → Prop
+axiom IgnoresWarnings : Person → Prop
+axiom ActsRecklessly : Person → Prop
+axiom DisregardsOthers : Person → Prop
+
+-- Premises
+axiom premise1 : ManagesFinances Emelia ∨ OverspendsMoney Emelia
+axiom premise2 : ∀ x : Person, InheritsLargeSum x → ExcessiveWealth x
+axiom premise3 : ((CravesLuxuries Esteban ∨ PrioritizesStatus Esteban) ∧ ¬(CravesLuxuries Esteban ∧ PrioritizesStatus Esteban)) → ExcessiveWealth Esteban
+axiom premise4 : ¬PrioritizesStatus Esteban
+axiom premise5 : PursuesMaterialism Esteban
+axiom premise6 : CravesLuxuries Vihaan
+axiom premise7 : CravesLuxuries Esteban
+axiom premise8 : LivesWastefully Esteban
+axiom premise9 : ExcessiveWealth Esteban → ((MakesImpulsiveDecisions Esteban ∨ Selfish Esteban) ∧ ¬(MakesImpulsiveDecisions Esteban ∧ Selfish Esteban))
+axiom premise10 : LivesWastefully Esteban → ((LosesFortune Esteban ∨ RegretsActionsLater Esteban) ∧ ¬(LosesFortune Esteban ∧ RegretsActionsLater Esteban))
+axiom premise11 : ¬ManagesFinances Esteban
+axiom premise12 : HasDisposableIncome Esteban → ((OverspendsMoney Esteban ∨ MakesFrequentPurchases Esteban) ∧ ¬(OverspendsMoney Esteban ∧ MakesFrequentPurchases Esteban))
+axiom premise13 : (IgnoresWarnings Esteban ∨ ActsRecklessly Esteban) → RegretsActionsLater Esteban
+axiom premise14 : ((CravesLuxuries Vihaan ∨ PrioritizesStatus Vihaan) ∧ ¬(CravesLuxuries Vihaan ∧ PrioritizesStatus Vihaan)) → ExcessiveWealth Vihaan
+axiom premise15 : ∀ x : Person, (OverspendsMoney x ∨ MakesImpulsiveDecisions x) → RegretsActionsLater x
+axiom premise16 : DisregardsOthers Esteban
+axiom premise17 : ManagesFinances Esteban ∨ OverspendsMoney Esteban
+axiom premise18 : ∀ x : Person, (PursuesMaterialism x ∧ DisregardsOthers x) → Selfish x
+
+-- Goal: Prove the negation of the conclusion "Esteban loses his fortune"
+theorem not_Esteban_loses_fortune : ¬LosesFortune Esteban := by
+  -- From (Manages ∨ Overspends) and ¬Manages, derive Overspends
+  have hOver : OverspendsMoney Esteban := by
+    cases premise17 with
+    | inl hManage =>
+      exact False.elim (premise11 hManage)
+    | inr hOver =>
+      exact hOver
+  -- Anyone who overspends (or makes impulsive decisions) regrets later
+  have hRegret : RegretsActionsLater Esteban :=
+    premise15 Esteban (Or.inl hOver)
+  -- From living wastefully, not both losing fortune and regretting later
+  have hNotBoth : ¬(LosesFortune Esteban ∧ RegretsActionsLater Esteban) :=
+    (premise10 premise8).right
+  -- Conclude not losing fortune, since regret holds and both cannot hold
+  intro hLose
+  exact hNotBoth ⟨hLose, hRegret⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

@@ -1,0 +1,199 @@
+Story ID: 0
+Example ID: 298
+Premises: Muppet does not become more efficient. All robots that acquire new skills learn from experience and improve their performance. If Muppet either executes predefined programs or follows scheduled routines (but not both), then it receives remote commands. Muppet improves its performance. Any robot that can process information is able to analyze data. If a robot learns from experience and achieves its mission objectives, then it becomes more efficient. Muppet does not operate offline. Muppet either performs tasks autonomously or has advanced sensors. For all robots, if a robot has advanced sensors and has deep learning capabilities, then it can make informed decisions. Muppet can process information. Muppet either receives remote commands or performs tasks autonomously, but not both. If Muppet makes precise calculations, then it will achieve its mission objectives. Muppet either receives remote commands or operates offline, but not both. Muppet acquires new skills. Every robot that can analyze data either has deep learning capabilities or can make precise calculations.
+Conclusion: Muppet can make informed decisions.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Robot : Type
+axiom Muppet : Robot
+
+axiom BecomesMoreEfficient : Robot → Prop
+axiom AcquiresNewSkills : Robot → Prop
+axiom LearnsFromExperience : Robot → Prop
+axiom ImprovesPerformance : Robot → Prop
+axiom ExecutesPredefinedPrograms : Robot → Prop
+axiom FollowsScheduledRoutines : Robot → Prop
+axiom ReceivesRemoteCommands : Robot → Prop
+axiom CanProcessInformation : Robot → Prop
+axiom CanAnalyzeData : Robot → Prop
+axiom AchievesMissionObjectives : Robot → Prop
+axiom OperatesOffline : Robot → Prop
+axiom PerformsTasksAutonomously : Robot → Prop
+axiom HasAdvancedSensors : Robot → Prop
+axiom HasDeepLearningCapabilities : Robot → Prop
+axiom CanMakeInformedDecisions : Robot → Prop
+axiom MakesPreciseCalculations : Robot → Prop
+
+-- Premises
+axiom p1 : ¬ BecomesMoreEfficient Muppet
+axiom p2 : ∀ r : Robot, AcquiresNewSkills r → (LearnsFromExperience r ∧ ImprovesPerformance r)
+axiom p3 :
+  ( (ExecutesPredefinedPrograms Muppet ∧ ¬ FollowsScheduledRoutines Muppet)
+  ∨ (FollowsScheduledRoutines Muppet ∧ ¬ ExecutesPredefinedPrograms Muppet) ) → ReceivesRemoteCommands Muppet
+axiom p4 : ImprovesPerformance Muppet
+axiom p5 : ∀ r : Robot, CanProcessInformation r → CanAnalyzeData r
+axiom p6 : ∀ r : Robot, (LearnsFromExperience r ∧ AchievesMissionObjectives r) → BecomesMoreEfficient r
+axiom p7 : ¬ OperatesOffline Muppet
+axiom p8 : PerformsTasksAutonomously Muppet ∨ HasAdvancedSensors Muppet
+axiom p9 : ∀ r : Robot, (HasAdvancedSensors r ∧ HasDeepLearningCapabilities r) → CanMakeInformedDecisions r
+axiom p10 : CanProcessInformation Muppet
+axiom p11 :
+  ( (ReceivesRemoteCommands Muppet ∧ ¬ PerformsTasksAutonomously Muppet)
+  ∨ (PerformsTasksAutonomously Muppet ∧ ¬ ReceivesRemoteCommands Muppet) )
+axiom p12 : MakesPreciseCalculations Muppet → AchievesMissionObjectives Muppet
+axiom p13 :
+  ( (ReceivesRemoteCommands Muppet ∧ ¬ OperatesOffline Muppet)
+  ∨ (OperatesOffline Muppet ∧ ¬ ReceivesRemoteCommands Muppet) )
+axiom p14 : AcquiresNewSkills Muppet
+axiom p15 : ∀ r : Robot, CanAnalyzeData r → (HasDeepLearningCapabilities r ∨ MakesPreciseCalculations r)
+
+theorem goal : CanMakeInformedDecisions Muppet := by
+  -- From p13 and ¬ OperatesOffline, we get ReceivesRemoteCommands
+  have hRecv : ReceivesRemoteCommands Muppet := by
+    cases p13 with
+    | inl h => exact h.left
+    | inr h =>
+      have : OperatesOffline Muppet := h.left
+      exact False.elim (p7 this)
+  -- From the XOR in p11 and hRecv, we get ¬ PerformsTasksAutonomously
+  have hNotAut : ¬ PerformsTasksAutonomously Muppet := by
+    cases p11 with
+    | inl h => exact h.right
+    | inr h =>
+      intro ha
+      have hnr : ¬ ReceivesRemoteCommands Muppet := h.right
+      exact hnr hRecv
+  -- From p8 and ¬Autonomous, we get HasAdvancedSensors
+  have hAdv : HasAdvancedSensors Muppet := by
+    cases p8 with
+    | inl ha => exact False.elim (hNotAut ha)
+    | inr hs => exact hs
+  -- From processing information, get analyze data
+  have hAnalyze : CanAnalyzeData Muppet := p5 Muppet p10
+  -- From analysis, either deep learning or precise calculations
+  have hDeepOrPrec : HasDeepLearningCapabilities Muppet ∨ MakesPreciseCalculations Muppet :=
+    p15 Muppet hAnalyze
+  -- Show that precise calculations lead to contradiction, hence not precise
+  have hNotPrecise : ¬ MakesPreciseCalculations Muppet := by
+    intro hpc
+    have hAch : AchievesMissionObjectives Muppet := p12 hpc
+    have hLearn : LearnsFromExperience Muppet := (p2 Muppet p14).left
+    have hEff : BecomesMoreEfficient Muppet := p6 Muppet ⟨hLearn, hAch⟩
+    exact p1 hEff
+  -- Therefore, we must have deep learning
+  have hDeep : HasDeepLearningCapabilities Muppet := by
+    cases hDeepOrPrec with
+    | inl hd => exact hd
+    | inr hpc => exact False.elim (hNotPrecise hpc)
+  -- Advanced sensors and deep learning imply informed decisions
+  exact p9 Muppet ⟨hAdv, hDeep⟩
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Robot : Type
+axiom Muppet : Robot
+
+-- Predicates
+axiom BecomesEfficient : Robot → Prop
+axiom AcquireNewSkills : Robot → Prop
+axiom LearnFromExperience : Robot → Prop
+axiom ImprovePerformance : Robot → Prop
+axiom ExecutesPredefinedPrograms : Robot → Prop
+axiom FollowsScheduledRoutines : Robot → Prop
+axiom ReceivesRemoteCommands : Robot → Prop
+axiom CanProcessInformation : Robot → Prop
+axiom AnalyzeData : Robot → Prop
+axiom AchieveMissionObjectives : Robot → Prop
+axiom OperateOffline : Robot → Prop
+axiom PerformsTasksAutonomously : Robot → Prop
+axiom HasAdvancedSensors : Robot → Prop
+axiom DeepLearningCapabilities : Robot → Prop
+axiom MakeInformedDecisions : Robot → Prop
+axiom MakesPreciseCalculations : Robot → Prop
+
+-- Premises as axioms
+axiom premise1 : ¬ BecomesEfficient Muppet
+axiom premise2 : ∀ r : Robot, AcquireNewSkills r → LearnFromExperience r ∧ ImprovePerformance r
+axiom premise3 : ((ExecutesPredefinedPrograms Muppet ∧ ¬ FollowsScheduledRoutines Muppet) ∨ (¬ ExecutesPredefinedPrograms Muppet ∧ FollowsScheduledRoutines Muppet)) → ReceivesRemoteCommands Muppet
+axiom premise4 : ImprovePerformance Muppet
+axiom premise5 : ∀ r : Robot, CanProcessInformation r → AnalyzeData r
+axiom premise6 : ∀ r : Robot, LearnFromExperience r ∧ AchieveMissionObjectives r → BecomesEfficient r
+axiom premise7 : ¬ OperateOffline Muppet
+axiom premise8 : PerformsTasksAutonomously Muppet ∨ HasAdvancedSensors Muppet
+axiom premise9 : ∀ r : Robot, HasAdvancedSensors r ∧ DeepLearningCapabilities r → MakeInformedDecisions r
+axiom premise10 : CanProcessInformation Muppet
+axiom premise11 : (ReceivesRemoteCommands Muppet ∧ ¬ PerformsTasksAutonomously Muppet) ∨ (¬ ReceivesRemoteCommands Muppet ∧ PerformsTasksAutonomously Muppet)
+axiom premise12 : MakesPreciseCalculations Muppet → AchieveMissionObjectives Muppet
+axiom premise13 : (ReceivesRemoteCommands Muppet ∧ ¬ OperateOffline Muppet) ∨ (¬ ReceivesRemoteCommands Muppet ∧ OperateOffline Muppet)
+axiom premise14 : AcquireNewSkills Muppet
+axiom premise15 : ∀ r : Robot, AnalyzeData r → DeepLearningCapabilities r ∨ MakesPreciseCalculations r
+
+-- From the premises, we can actually derive that Muppet can make informed decisions.
+theorem informed_decisions : MakeInformedDecisions Muppet := by
+  -- From premise13 and premise7, derive ReceivesRemoteCommands Muppet
+  have hRemote : ReceivesRemoteCommands Muppet := by
+    cases premise13 with
+    | inl h => exact h.left
+    | inr h =>
+      have hOff : OperateOffline Muppet := h.right
+      exact False.elim (premise7 hOff)
+  -- From premise11 and hRemote, derive ¬PerformsTasksAutonomously Muppet
+  have hNotAuto : ¬ PerformsTasksAutonomously Muppet := by
+    cases premise11 with
+    | inl h => exact h.right
+    | inr h =>
+      intro _
+      have : False := h.left hRemote
+      exact this.elim
+  -- From premise8 and ¬Auto, derive HasAdvancedSensors Muppet
+  have hSensors : HasAdvancedSensors Muppet := by
+    cases premise8 with
+    | inl hAuto => exact False.elim (hNotAuto hAuto)
+    | inr hSens => exact hSens
+  -- From premise10 and premise5, derive AnalyzeData Muppet
+  have hAnaly : AnalyzeData Muppet := premise5 Muppet premise10
+  -- From premise15, get DeepLearning ∨ PreciseCalculations
+  have hDisj : DeepLearningCapabilities Muppet ∨ MakesPreciseCalculations Muppet :=
+    premise15 Muppet hAnaly
+  -- Show DeepLearningCapabilities Muppet (the other disjunct leads to contradiction with premise1)
+  have hDeep : DeepLearningCapabilities Muppet := by
+    cases hDisj with
+    | inl hd => exact hd
+    | inr hcalc =>
+      have hAch : AchieveMissionObjectives Muppet := premise12 hcalc
+      have hLearn : LearnFromExperience Muppet := (premise2 Muppet premise14).left
+      have hEff : BecomesEfficient Muppet := premise6 Muppet ⟨hLearn, hAch⟩
+      exact False.elim (premise1 hEff)
+  -- Conclude MakeInformedDecisions from sensors and deep learning (premise9)
+  exact premise9 Muppet ⟨hSensors, hDeep⟩
+
+-- Goal: prove the negation of the conclusion (attempt)
+theorem goal_negation : ¬ MakeInformedDecisions Muppet := by
+  intro h
+  -- Attempt to derive a contradiction from h and the premises.
+  -- However, from the premises we can derive MakeInformedDecisions Muppet (see informed_decisions),
+  -- which shows the negation is not derivable from these premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

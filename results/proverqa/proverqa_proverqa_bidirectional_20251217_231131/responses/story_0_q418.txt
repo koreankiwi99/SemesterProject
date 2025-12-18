@@ -1,0 +1,246 @@
+Story ID: 0
+Example ID: 418
+Premises: If Dr. Alaina Thompson either funds medical research or develops new treatments (but not both), then she combats serious diseases. Alaina receives a noble award. Dr. Marleigh Thompson does not develop new treatments. Alaina does not gain international recognition. Dr. Marleigh Thompson funds medical research. Dr. Alaina Thompson does not develop new treatments. If Dr. Alaina Thompson is an advocate for patients' rights, then she does not pioneer a medical breakthrough, and vice versa. If Dr. Alaina Thompson combats serious diseases, then she either advocates for patients' rights or gains international recognition (or both). Dr. Alaina Thompson contributes to medicine or makes groundbreaking discoveries. If Dr. Alaina Thompson cares about people and speaks out against injustice, then she advocates for patients' rights. Dr. Alaina Thompson funds medical research. If Dr. Alaina Thompson is dedicated to cancer research, then she can either make groundbreaking discoveries or improve patients' lives, but not both. Alaina does not contribute to medicine. Dr. Alaina Thompson works in healthcare or combats serious diseases. If Dr. Alaina Thompson receives a noble award, then she is either dedicated to cancer research or pioneers a medical breakthrough, but not both.
+Conclusion: Dr. Alaina Thompson does not improve patients' lives.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alaina : Person
+axiom Marleigh : Person
+
+axiom FundsMedicalResearch : Person → Prop
+axiom DevelopsNewTreatments : Person → Prop
+axiom CombatsSeriousDiseases : Person → Prop
+axiom ReceivesNobleAward : Person → Prop
+axiom GainsInternationalRecognition : Person → Prop
+axiom AdvocateForPatientsRights : Person → Prop
+axiom PioneersMedicalBreakthrough : Person → Prop
+axiom ContributesToMedicine : Person → Prop
+axiom MakesGroundbreakingDiscoveries : Person → Prop
+axiom CaresAboutPeople : Person → Prop
+axiom SpeaksOutAgainstInjustice : Person → Prop
+axiom DedicatedToCancerResearch : Person → Prop
+axiom ImprovesPatientsLives : Person → Prop
+axiom WorksInHealthcare : Person → Prop
+
+-- Premises
+axiom ax1 :
+  (((FundsMedicalResearch Alaina ∧ ¬ DevelopsNewTreatments Alaina) ∨
+    (¬ FundsMedicalResearch Alaina ∧ DevelopsNewTreatments Alaina))
+    → CombatsSeriousDiseases Alaina)
+axiom ax2 : ReceivesNobleAward Alaina
+axiom ax3 : ¬ DevelopsNewTreatments Marleigh
+axiom ax4 : ¬ GainsInternationalRecognition Alaina
+axiom ax5 : FundsMedicalResearch Marleigh
+axiom ax6 : ¬ DevelopsNewTreatments Alaina
+axiom ax7a : AdvocateForPatientsRights Alaina → ¬ PioneersMedicalBreakthrough Alaina
+axiom ax7b : ¬ PioneersMedicalBreakthrough Alaina → AdvocateForPatientsRights Alaina
+axiom ax8 :
+  CombatsSeriousDiseases Alaina →
+    (AdvocateForPatientsRights Alaina ∨ GainsInternationalRecognition Alaina)
+axiom ax9 : ContributesToMedicine Alaina ∨ MakesGroundbreakingDiscoveries Alaina
+axiom ax10 :
+  CaresAboutPeople Alaina ∧ SpeaksOutAgainstInjustice Alaina →
+    AdvocateForPatientsRights Alaina
+axiom ax11 : FundsMedicalResearch Alaina
+axiom ax12 :
+  DedicatedToCancerResearch Alaina →
+    ((MakesGroundbreakingDiscoveries Alaina ∧ ¬ ImprovesPatientsLives Alaina) ∨
+     (¬ MakesGroundbreakingDiscoveries Alaina ∧ ImprovesPatientsLives Alaina))
+axiom ax13 : ¬ ContributesToMedicine Alaina
+axiom ax14 : WorksInHealthcare Alaina ∨ CombatsSeriousDiseases Alaina
+axiom ax15 :
+  ReceivesNobleAward Alaina →
+    ((DedicatedToCancerResearch Alaina ∧ ¬ PioneersMedicalBreakthrough Alaina) ∨
+     (¬ DedicatedToCancerResearch Alaina ∧ PioneersMedicalBreakthrough Alaina))
+
+-- Conclusion: Dr. Alaina Thompson does not improve patients' lives.
+theorem conclusion : ¬ ImprovesPatientsLives Alaina := by
+  -- From FMR and not DNT (exclusive-or antecedent), get combats serious diseases
+  have hxor : (FundsMedicalResearch Alaina ∧ ¬ DevelopsNewTreatments Alaina) ∨
+              (¬ FundsMedicalResearch Alaina ∧ DevelopsNewTreatments Alaina) := by
+    apply Or.inl
+    exact And.intro ax11 ax6
+  have hC : CombatsSeriousDiseases Alaina := ax1 hxor
+
+  -- From combats and not gaining recognition, deduce advocate
+  have hAorG := ax8 hC
+  have hA : AdvocateForPatientsRights Alaina := by
+    cases hAorG with
+    | inl hA => exact hA
+    | inr hG => exact False.elim (ax4 hG)
+
+  -- From advocate, get not pioneer
+  have hNotP : ¬ PioneersMedicalBreakthrough Alaina := ax7a hA
+
+  -- From award and not pioneer, deduce dedicated to cancer research
+  have hDXorP := ax15 ax2
+  have hD : DedicatedToCancerResearch Alaina := by
+    cases hDXorP with
+    | inl h => exact h.left
+    | inr h =>
+        have hp : PioneersMedicalBreakthrough Alaina := h.right
+        exact False.elim (hNotP hp)
+
+  -- From dedication, get XOR between makes and improves
+  have hMXorI :
+      (MakesGroundbreakingDiscoveries Alaina ∧ ¬ ImprovesPatientsLives Alaina) ∨
+      (¬ MakesGroundbreakingDiscoveries Alaina ∧ ImprovesPatientsLives Alaina) :=
+    ax12 hD
+
+  -- From contributes or makes together with not contributes, deduce makes
+  have hM : MakesGroundbreakingDiscoveries Alaina := by
+    cases ax9 with
+    | inl hCtm => exact False.elim (ax13 hCtm)
+    | inr hM => exact hM
+
+  -- Conclude not improves
+  have hNotI : ¬ ImprovesPatientsLives Alaina := by
+    cases hMXorI with
+    | inl hMi => exact hMi.right
+    | inr hNotM_I =>
+        have contra : False := hNotM_I.left hM
+        exact False.elim contra
+  exact hNotI
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alaina : Person
+axiom Marleigh : Person
+
+-- Predicates
+axiom Funds : Person → Prop
+axiom Develops : Person → Prop
+axiom Combats : Person → Prop
+axiom Noble : Person → Prop
+axiom Recognized : Person → Prop
+axiom Advocate : Person → Prop
+axiom Pioneer : Person → Prop
+axiom Contributes : Person → Prop
+axiom Groundbreaking : Person → Prop
+axiom Cares : Person → Prop
+axiom SpeaksOut : Person → Prop
+axiom DedicatedCancer : Person → Prop
+axiom ImprovesLives : Person → Prop
+axiom WorksHealthcare : Person → Prop
+
+-- Premises
+-- 1. If (Funds ⊕ Develops) then Combats (for Alaina)
+axiom premise1 :
+  ((Funds Alaina ∨ Develops Alaina) ∧ ¬(Funds Alaina ∧ Develops Alaina)) → Combats Alaina
+
+-- 2. Alaina receives a noble award
+axiom premise2 : Noble Alaina
+
+-- 3. Marleigh does not develop new treatments
+axiom premise3 : ¬Develops Marleigh
+
+-- 4. Alaina does not gain international recognition
+axiom premise4 : ¬Recognized Alaina
+
+-- 5. Marleigh funds medical research
+axiom premise5 : Funds Marleigh
+
+-- 6. Alaina does not develop new treatments
+axiom premise6 : ¬Develops Alaina
+
+-- 7. If Alaina advocates, then not pioneer, and vice versa (¬Pioneer → Advocate)
+axiom premise7a : Advocate Alaina → ¬Pioneer Alaina
+axiom premise7b : ¬Pioneer Alaina → Advocate Alaina
+
+-- 8. If Alaina combats, then advocates or recognized
+axiom premise8 : Combats Alaina → (Advocate Alaina ∨ Recognized Alaina)
+
+-- 9. Alaina contributes or makes groundbreaking discoveries
+axiom premise9 : Contributes Alaina ∨ Groundbreaking Alaina
+
+-- 10. If Alaina cares and speaks out, then advocates
+axiom premise10 : (Cares Alaina ∧ SpeaksOut Alaina) → Advocate Alaina
+
+-- 11. Alaina funds medical research
+axiom premise11 : Funds Alaina
+
+-- 12. If dedicated to cancer research, then (groundbreaking ⊕ improves lives)
+axiom premise12 :
+  DedicatedCancer Alaina →
+  ((Groundbreaking Alaina ∨ ImprovesLives Alaina) ∧ ¬(Groundbreaking Alaina ∧ ImprovesLives Alaina))
+
+-- 13. Alaina does not contribute to medicine
+axiom premise13 : ¬Contributes Alaina
+
+-- 14. Alaina works in healthcare or combats serious diseases
+axiom premise14 : WorksHealthcare Alaina ∨ Combats Alaina
+
+-- 15. If receives a noble award, then (dedicated to cancer research ⊕ pioneer)
+axiom premise15 :
+  Noble Alaina →
+  ((DedicatedCancer Alaina ∨ Pioneer Alaina) ∧ ¬(DedicatedCancer Alaina ∧ Pioneer Alaina))
+
+-- We attempt to prove the negation of the conclusion, i.e., that Alaina improves patients' lives.
+-- This proof is expected to fail given the premises are actually strong enough to imply ¬ImprovesLives Alaina.
+
+theorem goal : ImprovesLives Alaina := by
+  -- proof attempt (cannot be completed given the premises)
+  sorry
+
+-- For reference, the premises actually entail the original conclusion (¬ImprovesLives Alaina):
+theorem derives_conclusion : ¬ImprovesLives Alaina := by
+  -- From Funds Alaina and ¬Develops Alaina, we get the XOR antecedent
+  have hFDxor : (Funds Alaina ∨ Develops Alaina) ∧ ¬(Funds Alaina ∧ Develops Alaina) := by
+    have hForD : Funds Alaina ∨ Develops Alaina := Or.inl premise11
+    have hNotBoth : ¬(Funds Alaina ∧ Develops Alaina) := by
+      intro hBoth
+      exact premise6 hBoth.right
+    exact And.intro hForD hNotBoth
+  -- Hence Alaina combats serious diseases
+  have hC : Combats Alaina := premise1 hFDxor
+  -- From combats and ¬recognized, we get advocate
+  have hAorR : Advocate Alaina ∨ Recognized Alaina := premise8 hC
+  have hA : Advocate Alaina := by
+    cases hAorR with
+    | inl ha => exact ha
+    | inr hr => exact False.elim (premise4 hr)
+  -- Advocates implies not pioneer
+  have hNotP : ¬Pioneer Alaina := premise7a hA
+  -- From noble award and not pioneer, deduce dedicated to cancer research
+  have hK : DedicatedCancer Alaina := by
+    have hKR := premise15 premise2
+    have hKorP : DedicatedCancer Alaina ∨ Pioneer Alaina := hKR.left
+    cases hKorP with
+    | inl hk => exact hk
+    | inr hp => exact False.elim (hNotP hp)
+  -- From dedication, get (G ∨ I) ∧ ¬(G ∧ I)
+  have hGorI_and_notBoth := premise12 hK
+  have hNotBoth : ¬(Groundbreaking Alaina ∧ ImprovesLives Alaina) := hGorI_and_notBoth.right
+  -- From (Contributes ∨ Groundbreaking) and ¬Contributes, deduce Groundbreaking
+  have hG : Groundbreaking Alaina := by
+    cases premise9 with
+    | inl hCM => exact False.elim (premise13 hCM)
+    | inr hG => exact hG
+  -- Therefore, cannot have ImprovesLives simultaneously
+  intro hI
+  exact hNotBoth ⟨hG, hI⟩
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

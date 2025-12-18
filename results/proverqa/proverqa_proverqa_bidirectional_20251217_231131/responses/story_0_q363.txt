@@ -1,0 +1,238 @@
+Story ID: 0
+Example ID: 363
+Premises: If Lenora either eats balanced meals or gets enough sleep (but not both), then she takes regular exercise. Coleson does not cook at home. Lenora chooses natural remedies. For Lenora, she either chooses natural remedies or avoids additives, but not both, when it comes to her health and wellness. For Coleson, she either chooses natural remedies or avoids additives, but not both, when it comes to her health and wellness. Anyone who reads nutrition labels or cooks at home eats balanced meals. Either Coleson has chronic pain or she is pain-free, but not both. Either Lenora has chronic pain or she is pain-free, but not both. If Lenora prioritizes wellness, then she makes informed choices and avoids additives. If someone either buys organic or avoids additives (but not both), then they shop healthy. Lenora buys organic. Lenora does not cook at home. Anyone who plans out their meals or tracks their nutrition eats balanced meals. Either Lenora takes regular exercise or she has chronic pain, but not both. Alena does not get enough sleep. If Lenora shops healthy, then she will read nutrition labels. Lenora does not get enough sleep. If Lenora has good habits, then she either practices mindfulness or shops healthy, but not both.
+Conclusion: Lenora is pain-free.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Lenora : Person
+axiom Coleson : Person
+axiom Alena : Person
+
+axiom EatsBalanced : Person → Prop
+axiom EnoughSleep : Person → Prop
+axiom RegularExercise : Person → Prop
+axiom CooksAtHome : Person → Prop
+axiom ChoosesNaturalRemedies : Person → Prop
+axiom AvoidsAdditives : Person → Prop
+axiom ReadsLabels : Person → Prop
+axiom ChronicPain : Person → Prop
+axiom PainFree : Person → Prop
+axiom PrioritizesWellness : Person → Prop
+axiom MakesInformedChoices : Person → Prop
+axiom BuysOrganic : Person → Prop
+axiom ShopsHealthy : Person → Prop
+axiom PlansMeals : Person → Prop
+axiom TracksNutrition : Person → Prop
+axiom PracticesMindfulness : Person → Prop
+axiom GoodHabits : Person → Prop
+
+-- Premises
+axiom premise1 :
+  ((EatsBalanced Lenora ∧ ¬EnoughSleep Lenora) ∨ (EnoughSleep Lenora ∧ ¬EatsBalanced Lenora)) →
+  RegularExercise Lenora
+
+axiom premise2 : ¬CooksAtHome Coleson
+
+axiom premise3 : ChoosesNaturalRemedies Lenora
+
+axiom premise4 :
+  (ChoosesNaturalRemedies Lenora ∧ ¬AvoidsAdditives Lenora) ∨
+  (AvoidsAdditives Lenora ∧ ¬ChoosesNaturalRemedies Lenora)
+
+axiom premise5 :
+  (ChoosesNaturalRemedies Coleson ∧ ¬AvoidsAdditives Coleson) ∨
+  (AvoidsAdditives Coleson ∧ ¬ChoosesNaturalRemedies Coleson)
+
+axiom premise6 : ∀ x : Person, (ReadsLabels x ∨ CooksAtHome x) → EatsBalanced x
+
+axiom premise7 :
+  (ChronicPain Coleson ∧ ¬PainFree Coleson) ∨
+  (PainFree Coleson ∧ ¬ChronicPain Coleson)
+
+axiom premise8 :
+  (ChronicPain Lenora ∧ ¬PainFree Lenora) ∨
+  (PainFree Lenora ∧ ¬ChronicPain Lenora)
+
+axiom premise9 :
+  PrioritizesWellness Lenora → (MakesInformedChoices Lenora ∧ AvoidsAdditives Lenora)
+
+axiom premise10 :
+  ∀ x : Person,
+    ((BuysOrganic x ∧ ¬AvoidsAdditives x) ∨ (AvoidsAdditives x ∧ ¬BuysOrganic x)) →
+    ShopsHealthy x
+
+axiom premise11 : BuysOrganic Lenora
+
+axiom premise12 : ¬CooksAtHome Lenora
+
+axiom premise13 : ∀ x : Person, (PlansMeals x ∨ TracksNutrition x) → EatsBalanced x
+
+axiom premise14 :
+  (RegularExercise Lenora ∧ ¬ChronicPain Lenora) ∨
+  (ChronicPain Lenora ∧ ¬RegularExercise Lenora)
+
+axiom premise15 : ¬EnoughSleep Alena
+
+axiom premise16 : ShopsHealthy Lenora → ReadsLabels Lenora
+
+axiom premise17 : ¬EnoughSleep Lenora
+
+axiom premise18 :
+  GoodHabits Lenora →
+  ((PracticesMindfulness Lenora ∧ ¬ShopsHealthy Lenora) ∨
+   (ShopsHealthy Lenora ∧ ¬PracticesMindfulness Lenora))
+
+theorem goal : PainFree Lenora := by
+  -- From 3 and 4, deduce ¬AvoidsAdditives Lenora
+  have hCNR : ChoosesNaturalRemedies Lenora := premise3
+  have hNotAA : ¬AvoidsAdditives Lenora := by
+    cases premise4 with
+    | inl h =>
+        exact h.right
+    | inr h =>
+        intro _
+        exact h.right hCNR
+  -- From 11 and hNotAA, deduce ShopsHealthy Lenora via 10
+  have hShop : ShopsHealthy Lenora := by
+    apply premise10 Lenora
+    exact Or.inl ⟨premise11, hNotAA⟩
+  -- From 16, get ReadsLabels Lenora
+  have hRL : ReadsLabels Lenora := premise16 hShop
+  -- From 6, get EatsBalanced Lenora
+  have hEB : EatsBalanced Lenora := by
+    apply premise6 Lenora
+    exact Or.inl hRL
+  -- From 17, ¬EnoughSleep Lenora
+  have hNotES : ¬EnoughSleep Lenora := premise17
+  -- From 1, using EB and ¬ES, get RegularExercise Lenora
+  have hRE : RegularExercise Lenora := by
+    apply premise1
+    exact Or.inl ⟨hEB, hNotES⟩
+  -- From 14 and hRE, deduce ¬ChronicPain Lenora
+  have hNotCP : ¬ChronicPain Lenora := by
+    cases premise14 with
+    | inl h =>
+        exact h.right
+    | inr h =>
+        intro _
+        exact h.right hRE
+  -- From 8 and ¬ChronicPain, deduce PainFree Lenora
+  cases premise8 with
+  | inl h =>
+      exact False.elim (hNotCP h.left)
+  | inr h =>
+      exact h.left
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Lenora : Person
+axiom Coleson : Person
+axiom Alena : Person
+
+axiom Balanced : Person → Prop
+axiom Sleep : Person → Prop
+axiom Exercise : Person → Prop
+axiom Cook : Person → Prop
+axiom Remedies : Person → Prop
+axiom Avoids : Person → Prop
+axiom Reads : Person → Prop
+axiom Organic : Person → Prop
+axiom Plan : Person → Prop
+axiom Track : Person → Prop
+axiom Pain : Person → Prop
+axiom PainFree : Person → Prop
+axiom Wellness : Person → Prop
+axiom Informed : Person → Prop
+axiom Shop : Person → Prop
+axiom Good : Person → Prop
+axiom Mindful : Person → Prop
+
+-- Premises
+axiom p1 : ((Balanced Lenora ∨ Sleep Lenora) ∧ ¬(Balanced Lenora ∧ Sleep Lenora)) → Exercise Lenora
+axiom p2 : ¬ Cook Coleson
+axiom p3 : Remedies Lenora
+axiom p4 : (Remedies Lenora ∨ Avoids Lenora) ∧ ¬(Remedies Lenora ∧ Avoids Lenora)
+axiom p5 : (Remedies Coleson ∨ Avoids Coleson) ∧ ¬(Remedies Coleson ∧ Avoids Coleson)
+axiom p6 : ∀ x : Person, (Reads x ∨ Cook x) → Balanced x
+axiom p7 : (Pain Coleson ∨ PainFree Coleson) ∧ ¬(Pain Coleson ∧ PainFree Coleson)
+axiom p8 : (Pain Lenora ∨ PainFree Lenora) ∧ ¬(Pain Lenora ∧ PainFree Lenora)
+axiom p9 : Wellness Lenora → (Informed Lenora ∧ Avoids Lenora)
+axiom p10 : ∀ x : Person, ((Organic x ∨ Avoids x) ∧ ¬(Organic x ∧ Avoids x)) → Shop x
+axiom p11 : Organic Lenora
+axiom p12 : ¬ Cook Lenora
+axiom p13 : ∀ x : Person, (Plan x ∨ Track x) → Balanced x
+axiom p14 : (Exercise Lenora ∨ Pain Lenora) ∧ ¬(Exercise Lenora ∧ Pain Lenora)
+axiom p15 : ¬ Sleep Alena
+axiom p16 : Shop Lenora → Reads Lenora
+axiom p17 : ¬ Sleep Lenora
+axiom p18 : Good Lenora → ((Mindful Lenora ∨ Shop Lenora) ∧ ¬(Mindful Lenora ∧ Shop Lenora))
+
+-- Useful derived fact: Lenora does not avoid additives
+lemma notAvoidsLenora : ¬ Avoids Lenora := by
+  have hnotboth : ¬ (Remedies Lenora ∧ Avoids Lenora) := And.right p4
+  have hRem : Remedies Lenora := p3
+  intro hA
+  exact hnotboth ⟨hRem, hA⟩
+
+-- From the premises we can actually derive that Lenora is pain-free
+theorem painfree_lenora : PainFree Lenora := by
+  -- From Organic and ¬Avoids, get the XOR needed for healthy shopping
+  have hx : ((Organic Lenora ∨ Avoids Lenora) ∧ ¬(Organic Lenora ∧ Avoids Lenora)) := by
+    have left : (Organic Lenora ∨ Avoids Lenora) := Or.inl p11
+    have right : ¬(Organic Lenora ∧ Avoids Lenora) := by
+      intro h
+      exact notAvoidsLenora h.right
+    exact And.intro left right
+  have hShop : Shop Lenora := p10 Lenora hx
+  have hReads : Reads Lenora := p16 hShop
+  have hBal : Balanced Lenora := p6 Lenora (Or.inl hReads)
+  -- Use lack of sleep to satisfy the XOR in p1
+  have hx2 : (Balanced Lenora ∨ Sleep Lenora) ∧ ¬(Balanced Lenora ∧ Sleep Lenora) := by
+    have left : Balanced Lenora ∨ Sleep Lenora := Or.inl hBal
+    have right : ¬(Balanced Lenora ∧ Sleep Lenora) := by
+      intro h
+      exact p17 h.right
+    exact And.intro left right
+  have hEx : Exercise Lenora := p1 hx2
+  -- From XOR between Exercise and Pain, deduce ¬Pain
+  have notBothExPain : ¬ (Exercise Lenora ∧ Pain Lenora) := And.right p14
+  have noPain : ¬ Pain Lenora := by
+    intro hPain
+    exact notBothExPain ⟨hEx, hPain⟩
+  -- From XOR between Pain and PainFree, and ¬Pain, conclude PainFree
+  have hpOr : Pain Lenora ∨ PainFree Lenora := And.left p8
+  cases hpOr with
+  | inl hPain =>
+      exact False.elim (noPain hPain)
+  | inr hpf =>
+      exact hpf
+
+-- Goal: prove the negation of the conclusion (that Lenora is NOT pain-free)
+-- This is not derivable from the given premises (indeed, painfree_lenora above proves the opposite).
+theorem negGoal : ¬ PainFree Lenora := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

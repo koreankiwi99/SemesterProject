@@ -1,0 +1,211 @@
+Story ID: 0
+Example ID: 389
+Premises: Jemma does not empower families. If Jemma either drives social change or advocates for rights (but not both), then she makes a difference. Anyone who fosters connection either leads by example or drives social change (or both). If Jemma either designs neighborhoods or creates communities (but not both), then she fosters connection. Everyone who provides shelter either empowers families or builds homes (or both). If Jemma builds homes, then she either creates communities or inspires others, but not both. Jemma pursues innovation or drives social change. Jemma does not make a difference. Jemma does not support local initiatives. If Jemma works for a non-profit, then she either provides shelter or supports local initiatives (but not both). Jemma does not advocate for rights. Jemma does not lead by example. Jemma works for a non-profit. Jemma designs neighborhoods.
+Conclusion: Jemma inspires others.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Person : Type
+axiom Jemma : Person
+
+axiom EmpowersFamilies : Person → Prop
+axiom DrivesSocialChange : Person → Prop
+axiom AdvocatesForRights : Person → Prop
+axiom MakesADifference : Person → Prop
+axiom FostersConnection : Person → Prop
+axiom LeadsByExample : Person → Prop
+axiom DesignsNeighborhoods : Person → Prop
+axiom CreatesCommunities : Person → Prop
+axiom ProvidesShelter : Person → Prop
+axiom BuildsHomes : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom PursuesInnovation : Person → Prop
+axiom SupportsLocalInitiatives : Person → Prop
+axiom WorksForNonProfit : Person → Prop
+
+-- Premises
+axiom h1 : ¬ EmpowersFamilies Jemma
+axiom h2 : ((DrivesSocialChange Jemma ∨ AdvocatesForRights Jemma) ∧ ¬(DrivesSocialChange Jemma ∧ AdvocatesForRights Jemma)) → MakesADifference Jemma
+axiom h3 : ∀ x : Person, FostersConnection x → (LeadsByExample x ∨ DrivesSocialChange x)
+axiom h4 : ((DesignsNeighborhoods Jemma ∨ CreatesCommunities Jemma) ∧ ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma)) → FostersConnection Jemma
+axiom h5 : ∀ x : Person, ProvidesShelter x → (EmpowersFamilies x ∨ BuildsHomes x)
+axiom h6 : BuildsHomes Jemma → ((CreatesCommunities Jemma ∨ InspiresOthers Jemma) ∧ ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma))
+axiom h7 : PursuesInnovation Jemma ∨ DrivesSocialChange Jemma
+axiom h8 : ¬ MakesADifference Jemma
+axiom h9 : ¬ SupportsLocalInitiatives Jemma
+axiom h10 : WorksForNonProfit Jemma → ((ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧ ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma))
+axiom h11 : ¬ AdvocatesForRights Jemma
+axiom h12 : ¬ LeadsByExample Jemma
+axiom h13 : WorksForNonProfit Jemma
+axiom h14 : DesignsNeighborhoods Jemma
+
+-- From the premises we can actually derive that Jemma does not inspire others.
+theorem not_inspires : ¬ InspiresOthers Jemma := by
+  -- From h13, h10, and h9, obtain ProvidesShelter Jemma
+  have hx : (ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧ ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma) := h10 h13
+  have hs_or : ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma := hx.left
+  have hs : ProvidesShelter Jemma := by
+    cases hs_or with
+    | inl ps => exact ps
+    | inr u => exact False.elim (h9 u)
+  -- From h5 and h1, obtain BuildsHomes Jemma
+  have heb : EmpowersFamilies Jemma ∨ BuildsHomes Jemma := h5 Jemma hs
+  have hb : BuildsHomes Jemma := by
+    cases heb with
+    | inl ef => exact False.elim (h1 ef)
+    | inr bh => exact bh
+  -- From h2, h8, and h11, get ¬ DrivesSocialChange Jemma
+  have hnotD : ¬ DrivesSocialChange Jemma := by
+    intro d
+    have xorda : (DrivesSocialChange Jemma ∨ AdvocatesForRights Jemma) ∧ ¬(DrivesSocialChange Jemma ∧ AdvocatesForRights Jemma) :=
+      And.intro (Or.inl d) (by intro h; exact h11 h.right)
+    have md : MakesADifference Jemma := h2 xorda
+    exact h8 md
+  -- From h3, h12, and hnotD, obtain ¬ FostersConnection Jemma
+  have hnotF : ¬ FostersConnection Jemma := by
+    intro f
+    have l_or_d : LeadsByExample Jemma ∨ DrivesSocialChange Jemma := h3 Jemma f
+    cases l_or_d with
+    | inl l => exact h12 l
+    | inr d => exact hnotD d
+  -- From h4 and hnotF, deduce ¬ xor(DesignsNeighborhoods, CreatesCommunities)
+  have hnotXorNC : ¬ ((DesignsNeighborhoods Jemma ∨ CreatesCommunities Jemma) ∧ ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma)) := by
+    intro hx
+    have f : FostersConnection Jemma := h4 hx
+    exact hnotF f
+  -- Using h14 and notXor, deduce CreatesCommunities Jemma
+  have hC : CreatesCommunities Jemma := by
+    by_contra hc
+    have hx' : (DesignsNeighborhoods Jemma ∨ CreatesCommunities Jemma) ∧ ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma) :=
+      And.intro (Or.inl h14) (by intro hNC; exact hc hNC.right)
+    exact hnotXorNC hx'
+  -- From hb and h6, get xor(CreatesCommunities, InspiresOthers); with hC conclude ¬ InspiresOthers
+  have hnotCandI : ¬ (CreatesCommunities Jemma ∧ InspiresOthers Jemma) := (h6 hb).right
+  intro i
+  exact hnotCandI (And.intro hC i)
+
+-- Target conclusion (cannot be derived from the given premises)
+theorem goal : InspiresOthers Jemma := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Entity : Type
+axiom Jemma : Entity
+
+axiom EmpowersFamilies : Entity → Prop
+axiom DrivesSocialChange : Entity → Prop
+axiom AdvocatesForRights : Entity → Prop
+axiom MakesADifference : Entity → Prop
+axiom FostersConnection : Entity → Prop
+axiom LeadsByExample : Entity → Prop
+axiom DesignsNeighborhoods : Entity → Prop
+axiom CreatesCommunities : Entity → Prop
+axiom ProvidesShelter : Entity → Prop
+axiom BuildsHomes : Entity → Prop
+axiom InspiresOthers : Entity → Prop
+axiom PursuesInnovation : Entity → Prop
+axiom SupportsLocalInitiatives : Entity → Prop
+axiom WorksForNonProfit : Entity → Prop
+
+axiom premise1 : ¬ EmpowersFamilies Jemma
+axiom premise2 :
+  ((DrivesSocialChange Jemma ∨ AdvocatesForRights Jemma) ∧
+   ¬(DrivesSocialChange Jemma ∧ AdvocatesForRights Jemma)) →
+  MakesADifference Jemma
+axiom premise3 : ∀ x : Entity, FostersConnection x → (LeadsByExample x ∨ DrivesSocialChange x)
+axiom premise4 :
+  ((DesignsNeighborhoods Jemma ∨ CreatesCommunities Jemma) ∧
+   ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma)) →
+  FostersConnection Jemma
+axiom premise5 : ∀ x : Entity, ProvidesShelter x → (EmpowersFamilies x ∨ BuildsHomes x)
+axiom premise6 :
+  BuildsHomes Jemma →
+  ((CreatesCommunities Jemma ∨ InspiresOthers Jemma) ∧
+   ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma))
+axiom premise7 : PursuesInnovation Jemma ∨ DrivesSocialChange Jemma
+axiom premise8 : ¬ MakesADifference Jemma
+axiom premise9 : ¬ SupportsLocalInitiatives Jemma
+axiom premise10 :
+  WorksForNonProfit Jemma →
+  ((ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧
+   ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma))
+axiom premise11 : ¬ AdvocatesForRights Jemma
+axiom premise12 : ¬ LeadsByExample Jemma
+axiom premise13 : WorksForNonProfit Jemma
+axiom premise14 : DesignsNeighborhoods Jemma
+
+open Classical
+
+theorem negate_conclusion : ¬ InspiresOthers Jemma := by
+  -- From non-profit and XOR with supports-local, plus ¬ supports-local, get provides-shelter
+  have hPS_or_SLI_and :
+      (ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧
+      ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma) :=
+    premise10 premise13
+  have hPS : ProvidesShelter Jemma :=
+    Or.elim hPS_or_SLI_and.left
+      (fun hps => hps)
+      (fun hsli => False.elim (premise9 hsli))
+  -- From provides-shelter and ¬ empowers-families, deduce builds-homes
+  have hEF_or_BH : EmpowersFamilies Jemma ∨ BuildsHomes Jemma := premise5 Jemma hPS
+  have hBH : BuildsHomes Jemma :=
+    Or.elim hEF_or_BH
+      (fun hEF => False.elim (premise1 hEF))
+      (fun hBH => hBH)
+  -- From builds-homes, get (CC ∨ IO) ∧ ¬(CC ∧ IO)
+  have hCC_IO_and :
+      (CreatesCommunities Jemma ∨ InspiresOthers Jemma) ∧
+      ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma) :=
+    premise6 hBH
+  have hNotBoth_CC_IO : ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma) :=
+    hCC_IO_and.right
+  -- Show CC by contradiction using DN, ¬LE, ¬AR, and ¬MAD
+  have hCC : CreatesCommunities Jemma := by
+    classical
+    by_contra hNotCC
+    have hNotBoth_DN_CC : ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma) :=
+      fun h => hNotCC h.right
+    have hAnte :
+        (DesignsNeighborhoods Jemma ∨ CreatesCommunities Jemma) ∧
+        ¬(DesignsNeighborhoods Jemma ∧ CreatesCommunities Jemma) :=
+      And.intro (Or.inl premise14) hNotBoth_DN_CC
+    have hFC : FostersConnection Jemma := premise4 hAnte
+    have hLBE_or_DSC : LeadsByExample Jemma ∨ DrivesSocialChange Jemma := premise3 Jemma hFC
+    have hDSC : DrivesSocialChange Jemma :=
+      Or.elim hLBE_or_DSC
+        (fun hLBE => False.elim (premise12 hLBE))
+        (fun hDSC => hDSC)
+    have hNotBoth_DSC_AFR : ¬(DrivesSocialChange Jemma ∧ AdvocatesForRights Jemma) :=
+      fun h => premise11 h.right
+    have hMAD : MakesADifference Jemma :=
+      premise2 (And.intro (Or.inl hDSC) hNotBoth_DSC_AFR)
+    exact premise8 hMAD
+  -- With CC and ¬(CC ∧ IO), conclude ¬IO
+  intro hIO
+  exact hNotBoth_CC_IO (And.intro hCC hIO)
+
+Verification Success: False
+Errors: ['unknown tactic', 'unsolved goals\nhPS_or_SLI_and :\n  (ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧ ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma)\nhPS : ProvidesShelter Jemma\nhEF_or_BH : EmpowersFamilies Jemma ∨ BuildsHomes Jemma\nhBH : BuildsHomes Jemma\nhCC_IO_and : (CreatesCommunities Jemma ∨ InspiresOthers Jemma) ∧ ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma)\nhNotBoth_CC_IO : ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma)\n⊢ CreatesCommunities Jemma', 'unsolved goals\nhPS_or_SLI_and :\n  (ProvidesShelter Jemma ∨ SupportsLocalInitiatives Jemma) ∧ ¬(ProvidesShelter Jemma ∧ SupportsLocalInitiatives Jemma)\nhPS : ProvidesShelter Jemma\nhEF_or_BH : EmpowersFamilies Jemma ∨ BuildsHomes Jemma\nhBH : BuildsHomes Jemma\nhCC_IO_and : (CreatesCommunities Jemma ∨ InspiresOthers Jemma) ∧ ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma)\nhNotBoth_CC_IO : ¬(CreatesCommunities Jemma ∧ InspiresOthers Jemma)\nhCC : CreatesCommunities Jemma\n⊢ ¬InspiresOthers Jemma']
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: Uncertain
+Correct: Yes

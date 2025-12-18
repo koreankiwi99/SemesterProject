@@ -1,0 +1,254 @@
+Story ID: 0
+Example ID: 233
+Premises: If Boone is a meticulous artist, then he produces high-quality soaps and innovates recipes. Albert takes pride in his work. Boone either follows traditional methods or uses natural ingredients, but not both. If Hayden either mass-produces goods or creates unique items (but not both), then he is a custom maker. Boone does not value handcrafting. Albert does not value handcrafting. If Boone either follows traditional methods or values handcrafting (but not both), then he is a craftsman. Boone is either a craftsman or mass-produces goods, but not both. Boone creates unique items. Boone is not a custom maker. If Albert either follows traditional methods or values handcrafting (but not both), then he is a craftsman. Natalie is a passionate craftsman. If Boone either mass-produces goods or creates unique items (but not both), then he is a custom maker. Hayden shares knowledge. Anyone who uses machinery and follows a standardized process can mass-produce goods. Natalie is not a custom maker. Hayden either follows traditional methods or uses natural ingredients, but not both. Natalie is either a craftsman or mass-produces goods, but not both.
+Conclusion: Boone is a skilled soap maker.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+-- Entities
+axiom Person : Type
+axiom Boone : Person
+axiom Albert : Person
+axiom Hayden : Person
+axiom Natalie : Person
+
+-- Predicates
+axiom MeticulousArtist : Person → Prop
+axiom ProducesHighQualitySoaps : Person → Prop
+axiom InnovatesRecipes : Person → Prop
+axiom TakesPride : Person → Prop
+axiom FollowsTraditional : Person → Prop
+axiom UsesNaturalIngredients : Person → Prop
+axiom ValuesHandcrafting : Person → Prop
+axiom Craftsman : Person → Prop
+axiom MassProduces : Person → Prop
+axiom CreatesUnique : Person → Prop
+axiom CustomMaker : Person → Prop
+axiom Passionate : Person → Prop
+axiom SharesKnowledge : Person → Prop
+axiom UsesMachinery : Person → Prop
+axiom FollowsStandardizedProcess : Person → Prop
+axiom SkilledSoapMaker : Person → Prop
+
+-- Exclusive-or on propositions
+def Xor (P Q : Prop) : Prop := (P ∨ Q) ∧ ¬(P ∧ Q)
+
+open Classical
+
+-- Premises
+axiom p1  : MeticulousArtist Boone → (ProducesHighQualitySoaps Boone ∧ InnovatesRecipes Boone)
+axiom p2  : TakesPride Albert
+axiom p3  : Xor (FollowsTraditional Boone) (UsesNaturalIngredients Boone)
+axiom p4  : Xor (MassProduces Hayden) (CreatesUnique Hayden) → CustomMaker Hayden
+axiom p5  : ¬ ValuesHandcrafting Boone
+axiom p6  : ¬ ValuesHandcrafting Albert
+axiom p7  : Xor (FollowsTraditional Boone) (ValuesHandcrafting Boone) → Craftsman Boone
+axiom p8  : Xor (Craftsman Boone) (MassProduces Boone)
+axiom p9  : CreatesUnique Boone
+axiom p10 : ¬ CustomMaker Boone
+axiom p11 : Xor (FollowsTraditional Albert) (ValuesHandcrafting Albert) → Craftsman Albert
+axiom p12a : Passionate Natalie
+axiom p12b : Craftsman Natalie
+axiom p13 : Xor (MassProduces Boone) (CreatesUnique Boone) → CustomMaker Boone
+axiom p14 : SharesKnowledge Hayden
+axiom p15 : ∀ x : Person, UsesMachinery x ∧ FollowsStandardizedProcess x → MassProduces x
+axiom p16 : ¬ CustomMaker Natalie
+axiom p17 : Xor (FollowsTraditional Hayden) (UsesNaturalIngredients Hayden)
+axiom p18 : Xor (Craftsman Natalie) (MassProduces Natalie)
+
+-- Some derived facts about Boone
+
+-- From ¬CustomMaker Boone and (Xor MP CU → CustomMaker), we get ¬ Xor(MP, CU)
+lemma boone_not_xor_MP_CU : ¬ Xor (MassProduces Boone) (CreatesUnique Boone) := by
+  intro hxor
+  exact p10 (p13 hxor)
+
+-- From ¬ Xor(MP, CU) and CreatesUnique Boone, we derive MassProduces Boone
+lemma boone_MP : MassProduces Boone := by
+  have hcu : CreatesUnique Boone := p9
+  have hnotxor := boone_not_xor_MP_CU
+  by_contra hnotmp
+  -- Build Xor(MP, CU) from ¬MP and CU to contradict ¬Xor
+  have hx : Xor (MassProduces Boone) (CreatesUnique Boone) := by
+    unfold Xor
+    constructor
+    · exact Or.inr hcu
+    · intro hconj
+      exact hnotmp hconj.left
+  exact hnotxor hx
+
+-- From Xor(Craftsman, MassProduces) and MassProduces, we get ¬Craftsman
+lemma boone_not_Craftsman : ¬ Craftsman Boone := by
+  have hmp := boone_MP
+  have hx := p8
+  have hnotconj : ¬ (Craftsman Boone ∧ MassProduces Boone) := (And.right hx)
+  intro hc
+  exact hnotconj ⟨hc, hmp⟩
+
+-- From ¬Craftsman and (Xor FT VH → Craftsman), we get ¬ Xor(FT, VH)
+lemma boone_not_xor_FT_VH : ¬ Xor (FollowsTraditional Boone) (ValuesHandcrafting Boone) := by
+  intro hxor
+  exact boone_not_Craftsman (p7 hxor)
+
+-- From ¬Xor(FT, VH) and ¬VH, we can derive ¬FT
+lemma boone_not_FT : ¬ FollowsTraditional Boone := by
+  have hnotxor := boone_not_xor_FT_VH
+  have hnotVH : ¬ ValuesHandcrafting Boone := p5
+  intro hFT
+  -- Build Xor(FT, VH) from FT and ¬(FT ∧ VH) (which follows from ¬VH)
+  have hnotconj : ¬ (FollowsTraditional Boone ∧ ValuesHandcrafting Boone) := by
+    intro hconj
+    exact hnotVH hconj.right
+  have hx : Xor (FollowsTraditional Boone) (ValuesHandcrafting Boone) := by
+    unfold Xor
+    exact And.intro (Or.inl hFT) hnotconj
+  exact hnotxor hx
+
+-- From Xor(FT, UN) and ¬FT, we get UN
+lemma boone_UN : UsesNaturalIngredients Boone := by
+  have hx := p3
+  have hor : FollowsTraditional Boone ∨ UsesNaturalIngredients Boone := (And.left hx)
+  have hnotFT := boone_not_FT
+  cases hor with
+  | inl hFT => exact False.elim (hnotFT hFT)
+  | inr hUN => exact hUN
+
+-- Conclusion to analyze: Boone is a skilled soap maker.
+theorem goal : SkilledSoapMaker Boone := by
+  -- Despite several derived properties about Boone, the premises do not entail
+  -- that Boone is a skilled soap maker.
+  -- Attempted derivations lead to no contradiction that would allow explosion,
+  -- and there is no direct link from given properties to SkilledSoapMaker.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Boone : Person
+axiom Albert : Person
+axiom Hayden : Person
+axiom Natalie : Person
+
+axiom MeticulousArtist : Person → Prop
+axiom ProducesHighQualitySoaps : Person → Prop
+axiom InnovatesRecipes : Person → Prop
+axiom TakesPride : Person → Prop
+axiom FollowsTraditional : Person → Prop
+axiom UsesNaturalIngredients : Person → Prop
+axiom ValuesHandcrafting : Person → Prop
+axiom Craftsman : Person → Prop
+axiom MassProduces : Person → Prop
+axiom CreatesUniqueItems : Person → Prop
+axiom CustomMaker : Person → Prop
+axiom SharesKnowledge : Person → Prop
+axiom UsesMachinery : Person → Prop
+axiom FollowsStandardizedProcess : Person → Prop
+axiom PassionateCraftsman : Person → Prop
+axiom SkilledSoapMaker : Person → Prop
+
+-- Premises
+axiom premise1 :
+  MeticulousArtist Boone → (ProducesHighQualitySoaps Boone ∧ InnovatesRecipes Boone)
+
+axiom premise2 : TakesPride Albert
+
+axiom premise3 :
+  (FollowsTraditional Boone ∧ ¬UsesNaturalIngredients Boone) ∨
+  (UsesNaturalIngredients Boone ∧ ¬FollowsTraditional Boone)
+
+axiom premise4 :
+  ((MassProduces Hayden ∧ ¬CreatesUniqueItems Hayden) ∨ (CreatesUniqueItems Hayden ∧ ¬MassProduces Hayden)) →
+  CustomMaker Hayden
+
+axiom premise5 : ¬ValuesHandcrafting Boone
+axiom premise6 : ¬ValuesHandcrafting Albert
+
+axiom premise7 :
+  ((FollowsTraditional Boone ∧ ¬ValuesHandcrafting Boone) ∨ (ValuesHandcrafting Boone ∧ ¬FollowsTraditional Boone)) →
+  Craftsman Boone
+
+axiom premise8 :
+  (Craftsman Boone ∧ ¬MassProduces Boone) ∨ (MassProduces Boone ∧ ¬Craftsman Boone)
+
+axiom premise9 : CreatesUniqueItems Boone
+axiom premise10 : ¬CustomMaker Boone
+
+axiom premise11 :
+  ((FollowsTraditional Albert ∧ ¬ValuesHandcrafting Albert) ∨ (ValuesHandcrafting Albert ∧ ¬FollowsTraditional Albert)) →
+  Craftsman Albert
+
+axiom premise12 : PassionateCraftsman Natalie
+
+axiom premise13 :
+  ((MassProduces Boone ∧ ¬CreatesUniqueItems Boone) ∨ (CreatesUniqueItems Boone ∧ ¬MassProduces Boone)) →
+  CustomMaker Boone
+
+axiom premise14 : SharesKnowledge Hayden
+
+axiom premise15 :
+  ∀ x : Person, (UsesMachinery x ∧ FollowsStandardizedProcess x) → MassProduces x
+
+axiom premise16 : ¬CustomMaker Natalie
+
+axiom premise17 :
+  (FollowsTraditional Hayden ∧ ¬UsesNaturalIngredients Hayden) ∨
+  (UsesNaturalIngredients Hayden ∧ ¬FollowsTraditional Hayden)
+
+axiom premise18 :
+  (Craftsman Natalie ∧ ¬MassProduces Natalie) ∨ (MassProduces Natalie ∧ ¬Craftsman Natalie)
+
+-- Negation of the conclusion: Boone is not a skilled soap maker
+theorem neg_conclusion : ¬SkilledSoapMaker Boone := by
+  intro hSSM
+  -- From premise8 and premise9 and premise13 with premise10, we can force the right disjunct of premise8:
+  have h8 := premise8
+  have hMP_and_notCraftsman : (MassProduces Boone ∧ ¬Craftsman Boone) := by
+    cases h8 with
+    | inl hC =>
+      -- Then CreatesUniqueItems Boone (premise9) and ¬MassProduces (hC.right) trigger premise13, contradicting premise10
+      have hxor :
+          (MassProduces Boone ∧ ¬CreatesUniqueItems Boone) ∨
+          (CreatesUniqueItems Boone ∧ ¬MassProduces Boone) :=
+        Or.inr ⟨premise9, hC.right⟩
+      have hcm : CustomMaker Boone := premise13 hxor
+      exact False.elim (premise10 hcm)
+    | inr hM => exact hM
+  -- Case split on Boone's traditional vs natural XOR
+  have hFTorNI := premise3
+  cases hFTorNI with
+  | inl hFT =>
+      -- Here we can conclude Craftsman Boone, contradicting ¬Craftsman Boone from above
+      have hx :
+          (FollowsTraditional Boone ∧ ¬ValuesHandcrafting Boone) ∨
+          (ValuesHandcrafting Boone ∧ ¬FollowsTraditional Boone) :=
+        Or.inl ⟨hFT.left, premise5⟩
+      have hCraft : Craftsman Boone := premise7 hx
+      exact (hMP_and_notCraftsman.right) hCraft
+  | inr hNI =>
+      -- In this branch, we do not have a way to derive Craftsman Boone or reach a contradiction from given premises.
+      -- Therefore, we cannot complete the derivation of False needed for ¬SkilledSoapMaker Boone.
+      sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

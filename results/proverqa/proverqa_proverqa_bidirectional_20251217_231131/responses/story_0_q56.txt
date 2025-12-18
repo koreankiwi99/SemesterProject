@@ -1,0 +1,175 @@
+Story ID: 0
+Example ID: 56
+Premises: Yosef farms his own food or lives off the land. Yosef either lives simply or is harmonious with nature (or both). If Yosef dedicates his life to his faith, then he is a monk. If Yosef is spiritual, then he is either in harmony with nature or he dominates his environment, but not both. Yosef does not practice meditation. Yosef does not farm his own food. If Yosef leads a quiet life, then he is either a monk or clergy, but not both. Yosef practices meditation or dedicates his life to his faith. Either Yosef is harmonious with nature or he is disruptive to nature, but not both. If Yosef has strong faith, then he either lives off the land or is self-sufficient, but not both. If Yosef is a monk, then he either lives off the land or lives simply, but not both.
+Conclusion: Yosef is disruptive to nature.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We model each relevant property about Yosef as a propositional variable.
+axiom F L S H Sp D M DLF Monk Clergy Disrupt SF SS Quiet : Prop
+
+-- Premises as axioms:
+-- 1. Yosef farms his own food or lives off the land.
+axiom ax1 : F ∨ L
+-- 2. Yosef either lives simply or is harmonious with nature (or both).
+axiom ax2 : S ∨ H
+-- 3. If Yosef dedicates his life to his faith, then he is a monk.
+axiom ax3 : DLF → Monk
+-- 4. If Yosef is spiritual, then he is either in harmony with nature or he dominates his environment, but not both.
+axiom ax4 : Sp → ((H ∨ D) ∧ ¬(H ∧ D))
+-- 5. Yosef does not practice meditation.
+axiom ax5 : ¬ M
+-- 6. Yosef does not farm his own food.
+axiom ax6 : ¬ F
+-- 7. If Yosef leads a quiet life, then he is either a monk or clergy, but not both.
+axiom ax7 : Quiet → ((Monk ∨ Clergy) ∧ ¬(Monk ∧ Clergy))
+-- 8. Yosef practices meditation or dedicates his life to his faith.
+axiom ax8 : M ∨ DLF
+-- 9. Either Yosef is harmonious with nature or he is disruptive to nature, but not both.
+axiom ax9 : (H ∨ Disrupt) ∧ ¬(H ∧ Disrupt)
+-- 10. If Yosef has strong faith, then he either lives off the land or is self-sufficient, but not both.
+axiom ax10 : SF → ((L ∨ SS) ∧ ¬(L ∧ SS))
+-- 11. If Yosef is a monk, then he either lives off the land or lives simply, but not both.
+axiom ax11 : Monk → ((L ∨ S) ∧ ¬(L ∧ S))
+
+-- Useful derived facts:
+theorem deduce_L : L := by
+  cases ax1 with
+  | inl f => exact (False.elim (ax6 f))
+  | inr l => exact l
+
+theorem deduce_DLF : DLF := by
+  cases ax8 with
+  | inl m => exact (False.elim (ax5 m))
+  | inr dlf => exact dlf
+
+theorem deduce_Monk : Monk := by
+  exact ax3 deduce_DLF
+
+theorem not_S : ¬ S := by
+  have hpair : (L ∨ S) ∧ ¬(L ∧ S) := ax11 deduce_Monk
+  have hnot : ¬(L ∧ S) := And.right hpair
+  have l : L := deduce_L
+  intro s
+  apply hnot
+  exact And.intro l s
+
+theorem deduce_H : H := by
+  cases ax2 with
+  | inl s => exact False.elim (not_S s)
+  | inr h => exact h
+
+theorem not_Disrupt : ¬ Disrupt := by
+  have hnotboth : ¬(H ∧ Disrupt) := And.right ax9
+  have h : H := deduce_H
+  intro dis
+  exact hnotboth ⟨h, dis⟩
+
+-- Conclusion to analyze: Yosef is disruptive to nature.
+-- From the derived facts, we actually obtained ¬ Disrupt.
+-- We include the requested theorem but cannot prove it from the premises.
+theorem goal : Disrupt := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Yosef : Person
+
+axiom Farms : Person → Prop
+axiom LivesOffLand : Person → Prop
+axiom LivesSimply : Person → Prop
+axiom Harmonious : Person → Prop
+axiom Monk : Person → Prop
+axiom Spiritual : Person → Prop
+axiom DominatesEnv : Person → Prop
+axiom Meditates : Person → Prop
+axiom Quiet : Person → Prop
+axiom Clergy : Person → Prop
+axiom Dedicates : Person → Prop
+axiom Disruptive : Person → Prop
+axiom StrongFaith : Person → Prop
+axiom SelfSufficient : Person → Prop
+
+-- Premises
+axiom p1 : Farms Yosef ∨ LivesOffLand Yosef
+axiom p2 : LivesSimply Yosef ∨ Harmonious Yosef
+axiom p3 : Dedicates Yosef → Monk Yosef
+axiom p4 : Spiritual Yosef → ((Harmonious Yosef ∧ ¬DominatesEnv Yosef) ∨ (DominatesEnv Yosef ∧ ¬Harmonious Yosef))
+axiom p5 : ¬Meditates Yosef
+axiom p6 : ¬Farms Yosef
+axiom p7 : Quiet Yosef → ((Monk Yosef ∧ ¬Clergy Yosef) ∨ (Clergy Yosef ∧ ¬Monk Yosef))
+axiom p8 : Meditates Yosef ∨ Dedicates Yosef
+axiom p9 : (Harmonious Yosef ∧ ¬Disruptive Yosef) ∨ (Disruptive Yosef ∧ ¬Harmonious Yosef)
+axiom p10 : StrongFaith Yosef → ((LivesOffLand Yosef ∧ ¬SelfSufficient Yosef) ∨ (SelfSufficient Yosef ∧ ¬LivesOffLand Yosef))
+axiom p11 : Monk Yosef → ((LivesOffLand Yosef ∧ ¬LivesSimply Yosef) ∨ (LivesSimply Yosef ∧ ¬LivesOffLand Yosef))
+
+-- Negation of the conclusion: Yosef is not disruptive to nature.
+theorem goal : ¬Disruptive Yosef := by
+  -- From p1 and p6, derive LivesOffLand Yosef
+  have hLoL : LivesOffLand Yosef := by
+    cases p1 with
+    | inl hF => exact False.elim (p6 hF)
+    | inr hL => exact hL
+
+  -- From p8 and p5, derive Dedicates Yosef
+  have hDed : Dedicates Yosef := by
+    cases p8 with
+    | inl hM => exact False.elim (p5 hM)
+    | inr hD => exact hD
+
+  -- From p3, derive Monk Yosef
+  have hMonk : Monk Yosef := p3 hDed
+
+  -- From p11 and LivesOffLand, derive ¬LivesSimply Yosef
+  have hNotSimple : ¬LivesSimply Yosef := by
+    have hxor := p11 hMonk
+    cases hxor with
+    | inl h => 
+        -- h : LivesOffLand ∧ ¬LivesSimply
+        exact h.right
+    | inr h =>
+        -- h : LivesSimply ∧ ¬LivesOffLand, contradicts hLoL
+        have contra : False := h.right hLoL
+        exact fun _ => contra
+
+  -- From p2 and ¬LivesSimply, derive Harmonious Yosef
+  have hH : Harmonious Yosef := by
+    cases p2 with
+    | inl hS => exact False.elim (hNotSimple hS)
+    | inr hH => exact hH
+
+  -- From p9 and Harmonious, derive ¬Disruptive Yosef
+  have hNDis : ¬Disruptive Yosef := by
+    cases p9 with
+    | inl hHnD => 
+        -- hHnD : Harmonious ∧ ¬Disruptive
+        exact hHnD.right
+    | inr hDnH =>
+        -- hDnH : Disruptive ∧ ¬Harmonious, contradicts hH
+        have contra : False := hDnH.right hH
+        exact fun _ => contra
+
+  exact hNDis
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

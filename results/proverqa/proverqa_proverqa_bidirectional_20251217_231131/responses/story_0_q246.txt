@@ -1,0 +1,125 @@
+Story ID: 0
+Example ID: 246
+Premises: For every person, either they find inner peace or they discover a new meaning in life, but these two are not necessarily related. For Matthew, facing challenges and finding solace are mutually exclusive. Matthew loses everything. If Matthew reassesses his priorities, then he either discovers a new meaning in life or restarts his life (or both). If someone hits rock bottom, then they reassess their priorities. Matthew faces challenges. If Matthew restarts his life, then he will either pursue his passion or find solace, but not both. Anyone who loses everything will hit rock bottom. Matthew finds inner peace.
+Conclusion: Matthew pursues his passion.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Matthew : Person
+
+axiom InnerPeace : Person → Prop
+axiom NewMeaning : Person → Prop
+axiom Challenges : Person → Prop
+axiom Solace : Person → Prop
+axiom LosesEverything : Person → Prop
+axiom Reassess : Person → Prop
+axiom RockBottom : Person → Prop
+axiom Restart : Person → Prop
+axiom PursuePassion : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, InnerPeace x ∨ NewMeaning x
+axiom P2 : ¬ (Challenges Matthew ∧ Solace Matthew)
+axiom P3 : LosesEverything Matthew
+axiom P4 : Reassess Matthew → (NewMeaning Matthew ∨ Restart Matthew)
+axiom P5 : ∀ x : Person, RockBottom x → Reassess x
+axiom P6 : Challenges Matthew
+axiom P7 : Restart Matthew → ((PursuePassion Matthew ∨ Solace Matthew) ∧ ¬(PursuePassion Matthew ∧ Solace Matthew))
+axiom P8 : ∀ x : Person, LosesEverything x → RockBottom x
+axiom P9 : InnerPeace Matthew
+
+-- Derived facts
+lemma no_solace_Matthew : ¬ Solace Matthew := by
+  intro hs
+  have hboth : Challenges Matthew ∧ Solace Matthew := And.intro P6 hs
+  exact P2 hboth
+
+lemma restart_implies_pursue : Restart Matthew → PursuePassion Matthew := by
+  intro hR
+  have h := P7 hR
+  have hdisj : PursuePassion Matthew ∨ Solace Matthew := h.left
+  cases hdisj with
+  | inl hp => exact hp
+  | inr hs => exact False.elim (no_solace_Matthew hs)
+
+-- Goal: Matthew pursues his passion
+theorem goal : PursuePassion Matthew := by
+  -- loses everything → rock bottom → reassess
+  have h_rb : RockBottom Matthew := P8 Matthew P3
+  have h_reassess : Reassess Matthew := P5 Matthew h_rb
+  have h_or : NewMeaning Matthew ∨ Restart Matthew := P4 h_reassess
+  -- If Restart holds, we can conclude PursuePassion; if only NewMeaning holds, we are stuck.
+  cases h_or with
+  | inl h_nm =>
+      -- Insufficient to conclude Restart or PursuePassion from NewMeaning alone
+      sorry
+  | inr h_restart =>
+      exact restart_implies_pursue h_restart
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Matthew : Person
+
+axiom InnerPeace : Person → Prop
+axiom NewMeaning : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom FindsSolace : Person → Prop
+axiom LosesEverything : Person → Prop
+axiom HitsRockBottom : Person → Prop
+axiom ReassessPriorities : Person → Prop
+axiom RestartsLife : Person → Prop
+axiom PursuesPassion : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, InnerPeace x ∨ NewMeaning x
+axiom premise2 : ¬ (FacesChallenges Matthew ∧ FindsSolace Matthew)
+axiom premise3 : LosesEverything Matthew
+axiom premise4 : ReassessPriorities Matthew → (NewMeaning Matthew ∨ RestartsLife Matthew)
+axiom premise5 : ∀ x : Person, HitsRockBottom x → ReassessPriorities x
+axiom premise6 : FacesChallenges Matthew
+axiom premise7 : RestartsLife Matthew → (PursuesPassion Matthew ∨ FindsSolace Matthew) ∧ ¬ (PursuesPassion Matthew ∧ FindsSolace Matthew)
+axiom premise8 : ∀ x : Person, LosesEverything x → HitsRockBottom x
+axiom premise9 : InnerPeace Matthew
+
+-- Goal: prove the negation of the conclusion (i.e., show the conclusion is false)
+theorem neg_conclusion : ¬ PursuesPassion Matthew := by
+  intro hP
+  have hNoSol : ¬ FindsSolace Matthew := by
+    intro hS
+    exact premise2 ⟨premise6, hS⟩
+  have hRB : HitsRockBottom Matthew := by
+    apply premise8
+    exact premise3
+  have hRe : ReassessPriorities Matthew := by
+    apply premise5
+    exact hRB
+  have hDisj : NewMeaning Matthew ∨ RestartsLife Matthew := by
+    apply premise4
+    exact hRe
+  -- From here, the assumptions do not yield a contradiction with PursuesPassion Matthew.
+  -- Proof cannot be completed with given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: Uncertain
+Correct: Yes

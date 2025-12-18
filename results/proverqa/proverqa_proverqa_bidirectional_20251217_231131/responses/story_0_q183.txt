@@ -1,0 +1,221 @@
+Story ID: 0
+Example ID: 183
+Premises: If Caden has a vision, then he either sets goals or creates plans, but not both. If Caden either sets goals or tracks progress (but not both), then he stays motivated. Caden does not make an impact. Caden suffers setbacks. Ainhoa suffers setbacks. If Clay has ambition, then he either creates plans or takes action, but not both. If Ainhoa either sets goals or tracks progress (but not both), then he stays motivated. If Clay suffers setbacks, then he either refuses to give up or stays motivated, but not both. Clay pursues his passion. Caden takes action. Caden pursues his passion. If Caden suffers setbacks, then he either refuses to give up or stays motivated, but not both. If Caden has ambition, then he either creates plans or takes action, but not both. Clay takes action. Anyone who has support or learns from failure can stay motivated. If someone believes in themselves, then they work hard and set goals. Caden does not track progress. If Caden either identifies problems or evaluates risks (but not both), then he creates plans. Everyone who pursues their passion either makes an impact or has a vision (or both). Ainhoa has ambition. Caden has ambition. Brinley does not face adversity.
+Conclusion: Caden can overcome challenges.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Caden : Person
+axiom Clay : Person
+axiom Ainhoa : Person
+axiom Brinley : Person
+
+-- Predicates
+axiom Vision : Person → Prop
+axiom SetsGoals : Person → Prop
+axiom CreatesPlans : Person → Prop
+axiom TracksProgress : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom MakesImpact : Person → Prop
+axiom SuffersSetbacks : Person → Prop
+axiom RefusesGiveUp : Person → Prop
+axiom TakesAction : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom HasAmbition : Person → Prop
+axiom HasSupport : Person → Prop
+axiom LearnsFromFailure : Person → Prop
+axiom BelievesInSelf : Person → Prop
+axiom WorksHard : Person → Prop
+axiom IdentifiesProblems : Person → Prop
+axiom EvaluatesRisks : Person → Prop
+axiom FacesAdversity : Person → Prop
+axiom OvercomeChallenges : Person → Prop
+
+-- Premises
+axiom a1 : Vision Caden → ((SetsGoals Caden ∨ CreatesPlans Caden) ∧ ¬(SetsGoals Caden ∧ CreatesPlans Caden))
+axiom a2 : ((SetsGoals Caden ∨ TracksProgress Caden) ∧ ¬(SetsGoals Caden ∧ TracksProgress Caden)) → StaysMotivated Caden
+axiom a3 : ¬MakesImpact Caden
+axiom a4 : SuffersSetbacks Caden
+axiom a5 : SuffersSetbacks Ainhoa
+axiom a6 : HasAmbition Clay → ((CreatesPlans Clay ∨ TakesAction Clay) ∧ ¬(CreatesPlans Clay ∧ TakesAction Clay))
+axiom a7 : ((SetsGoals Ainhoa ∨ TracksProgress Ainhoa) ∧ ¬(SetsGoals Ainhoa ∧ TracksProgress Ainhoa)) → StaysMotivated Ainhoa
+axiom a8 : SuffersSetbacks Clay → ((RefusesGiveUp Clay ∨ StaysMotivated Clay) ∧ ¬(RefusesGiveUp Clay ∧ StaysMotivated Clay))
+axiom a9 : PursuesPassion Clay
+axiom a10 : TakesAction Caden
+axiom a11 : PursuesPassion Caden
+axiom a12 : SuffersSetbacks Caden → ((RefusesGiveUp Caden ∨ StaysMotivated Caden) ∧ ¬(RefusesGiveUp Caden ∧ StaysMotivated Caden))
+axiom a13 : HasAmbition Caden → ((CreatesPlans Caden ∨ TakesAction Caden) ∧ ¬(CreatesPlans Caden ∧ TakesAction Caden))
+axiom a14 : TakesAction Clay
+axiom a15 : ∀ x : Person, (HasSupport x ∨ LearnsFromFailure x) → StaysMotivated x
+axiom a16 : ∀ x : Person, BelievesInSelf x → (WorksHard x ∧ SetsGoals x)
+axiom a17 : ¬TracksProgress Caden
+axiom a18 : ((IdentifiesProblems Caden ∨ EvaluatesRisks Caden) ∧ ¬(IdentifiesProblems Caden ∧ EvaluatesRisks Caden)) → CreatesPlans Caden
+axiom a19 : ∀ x : Person, PursuesPassion x → (MakesImpact x ∨ Vision x)
+axiom a20 : HasAmbition Ainhoa
+axiom a21 : HasAmbition Caden
+axiom a22 : ¬FacesAdversity Brinley
+
+-- Conclusion to prove
+theorem goal : OvercomeChallenges Caden := by
+  -- Derive Vision Caden from PursuesPassion and ¬MakesImpact
+  have hOr1 : MakesImpact Caden ∨ Vision Caden := a19 Caden a11
+  have hVis : Vision Caden := by
+    cases hOr1 with
+    | inl hImp => exact False.elim (a3 hImp)
+    | inr hV => exact hV
+  -- From Vision, get (SetsGoals ∨ CreatesPlans) and not both
+  have hSGorCP_and : (SetsGoals Caden ∨ CreatesPlans Caden) ∧ ¬(SetsGoals Caden ∧ CreatesPlans Caden) := a1 hVis
+  -- From Ambition and known TakesAction, deduce ¬CreatesPlans
+  have hCPorTA_and : (CreatesPlans Caden ∨ TakesAction Caden) ∧ ¬(CreatesPlans Caden ∧ TakesAction Caden) := a13 a21
+  have hNotCP : ¬CreatesPlans Caden := by
+    intro hcp
+    have hcontra := hCPorTA_and.right
+    exact hcontra ⟨hcp, a10⟩
+  -- From (SetsGoals ∨ CreatesPlans) and ¬CreatesPlans, deduce SetsGoals
+  have hSG : SetsGoals Caden := by
+    have hOr := hSGorCP_and.left
+    cases hOr with
+    | inl hS => exact hS
+    | inr hC => exact False.elim (hNotCP hC)
+  -- Build XOR (SetsGoals ⊕ TracksProgress) using ¬TracksProgress
+  have hXOR_SG_TP : (SetsGoals Caden ∨ TracksProgress Caden) ∧ ¬(SetsGoals Caden ∧ TracksProgress Caden) := by
+    refine And.intro (Or.inl hSG) ?_
+    intro hAnd
+    exact a17 hAnd.right
+  -- Hence Caden stays motivated
+  have hSM : StaysMotivated Caden := a2 hXOR_SG_TP
+  -- No given premise links StaysMotivated or RefusesGiveUp to OvercomeChallenges
+  -- Thus we cannot conclude OvercomeChallenges Caden from the provided premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Caden : Person
+axiom Ainhoa : Person
+axiom Clay : Person
+axiom Brinley : Person
+
+-- Predicates
+axiom Vision : Person → Prop
+axiom SetsGoals : Person → Prop
+axiom CreatesPlans : Person → Prop
+axiom TracksProgress : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom MakesImpact : Person → Prop
+axiom SuffersSetbacks : Person → Prop
+axiom RefusesToGiveUp : Person → Prop
+axiom TakesAction : Person → Prop
+axiom PursuesPassion : Person → Prop
+axiom HasAmbition : Person → Prop
+axiom HasSupport : Person → Prop
+axiom LearnsFromFailure : Person → Prop
+axiom BelievesInSelf : Person → Prop
+axiom WorksHard : Person → Prop
+axiom IdentifiesProblems : Person → Prop
+axiom EvaluatesRisks : Person → Prop
+axiom OvercomeChallenges : Person → Prop
+axiom FacesAdversity : Person → Prop
+
+-- Premises
+axiom premise1 :
+  Vision Caden → ((SetsGoals Caden ∨ CreatesPlans Caden) ∧ ¬(SetsGoals Caden ∧ CreatesPlans Caden))
+axiom premise2 :
+  ((SetsGoals Caden ∨ TracksProgress Caden) ∧ ¬(SetsGoals Caden ∧ TracksProgress Caden)) → StaysMotivated Caden
+axiom premise3 : ¬MakesImpact Caden
+axiom premise4 : SuffersSetbacks Caden
+axiom premise5 : SuffersSetbacks Ainhoa
+axiom premise6 :
+  HasAmbition Clay → ((CreatesPlans Clay ∨ TakesAction Clay) ∧ ¬(CreatesPlans Clay ∧ TakesAction Clay))
+axiom premise7 :
+  ((SetsGoals Ainhoa ∨ TracksProgress Ainhoa) ∧ ¬(SetsGoals Ainhoa ∧ TracksProgress Ainhoa)) → StaysMotivated Ainhoa
+axiom premise8 :
+  SuffersSetbacks Clay → ((RefusesToGiveUp Clay ∨ StaysMotivated Clay) ∧ ¬(RefusesToGiveUp Clay ∧ StaysMotivated Clay))
+axiom premise9 : PursuesPassion Clay
+axiom premise10 : TakesAction Caden
+axiom premise11 : PursuesPassion Caden
+axiom premise12 :
+  SuffersSetbacks Caden → ((RefusesToGiveUp Caden ∨ StaysMotivated Caden) ∧ ¬(RefusesToGiveUp Caden ∧ StaysMotivated Caden))
+axiom premise13 :
+  HasAmbition Caden → ((CreatesPlans Caden ∨ TakesAction Caden) ∧ ¬(CreatesPlans Caden ∧ TakesAction Caden))
+axiom premise14 : TakesAction Clay
+axiom premise15 :
+  ∀ x : Person, (HasSupport x ∨ LearnsFromFailure x) → StaysMotivated x
+axiom premise16 :
+  ∀ x : Person, BelievesInSelf x → (WorksHard x ∧ SetsGoals x)
+axiom premise17 : ¬TracksProgress Caden
+axiom premise18 :
+  ((IdentifiesProblems Caden ∨ EvaluatesRisks Caden) ∧ ¬(IdentifiesProblems Caden ∧ EvaluatesRisks Caden)) → CreatesPlans Caden
+axiom premise19 :
+  ∀ x : Person, PursuesPassion x → (MakesImpact x ∨ Vision x)
+axiom premise20 : HasAmbition Ainhoa
+axiom premise21 : HasAmbition Caden
+axiom premise22 : ¬FacesAdversity Brinley
+
+-- We attempt to prove the negation of the conclusion: ¬OvercomeChallenges Caden
+theorem goal : ¬OvercomeChallenges Caden := by
+  -- Derive Vision Caden from PursuesPassion and ¬MakesImpact
+  have hV : Vision Caden := by
+    have h := premise19 Caden premise11
+    exact Or.elim h
+      (fun hmi => False.elim (premise3 hmi))
+      (fun hv => hv)
+  -- From Vision, get XOR of SetsGoals and CreatesPlans
+  have hxor1 := premise1 hV
+  have hSG_or_CP : SetsGoals Caden ∨ CreatesPlans Caden := hxor1.left
+  have _hnot_both_SGCP : ¬(SetsGoals Caden ∧ CreatesPlans Caden) := hxor1.right
+  -- From HasAmbition and TakesAction, deduce ¬CreatesPlans Caden
+  have hnotCP : ¬CreatesPlans Caden := by
+    have hx := premise13 premise21
+    have hnotboth := hx.right
+    have hTA := premise10
+    intro hcp
+    exact hnotboth ⟨hcp, hTA⟩
+  -- So we must have SetsGoals Caden
+  have hSG : SetsGoals Caden := by
+    cases hSG_or_CP with
+    | inl hsg => exact hsg
+    | inr hcp => exact False.elim (hnotCP hcp)
+  -- Build the XOR (SetsGoals ⊕ TracksProgress) to get StaysMotivated Caden
+  have hxSGTP : (SetsGoals Caden ∨ TracksProgress Caden) ∧ ¬(SetsGoals Caden ∧ TracksProgress Caden) := by
+    apply And.intro
+    · exact Or.inl hSG
+    · intro hboth
+      apply premise17
+      exact hboth.right
+  have hSM : StaysMotivated Caden := premise2 hxSGTP
+  -- From setbacks XOR (Refuses ⊕ StaysMotivated) and hSM, deduce ¬RefusesToGiveUp Caden
+  have hxRS := premise12 premise4
+  have hnotbothRS : ¬(RefusesToGiveUp Caden ∧ StaysMotivated Caden) := hxRS.right
+  have _hnotRefuse : ¬RefusesToGiveUp Caden := by
+    intro href
+    exact hnotbothRS ⟨href, hSM⟩
+  -- No given premises relate OvercomeChallenges to the above facts,
+  -- so we cannot derive ¬OvercomeChallenges Caden from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

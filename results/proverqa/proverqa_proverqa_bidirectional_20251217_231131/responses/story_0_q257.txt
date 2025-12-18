@@ -1,0 +1,268 @@
+Story ID: 0
+Example ID: 257
+Premises: If Callan has a unique design, then it either pioneers a discovery or breaks boundaries (or both). If Galilea is either remarkable or has a unique design (but not both), then it makes history. Galilea does not make history. Galilea runs smoothly. Galilea has advanced sensors. If Galilea has a unique design, then it either pioneers a discovery or breaks boundaries (or both). Galilea either travels a long distance or is remarkable. Any spacecraft that meets specifications or is well maintained is fully functional. Callan does not make history. Galilea is maintained. Galilea does not break boundaries. If Callan is either remarkable or has a unique design (but not both), then it makes history. If Galilea is either fully functional or completely damaged (but not both), then it is remarkable. Galilea either pioneers a discovery or gathers critical data, but not both. Kenji runs smoothly. Any spacecraft with advanced sensors gathers critical data. Galilea operates normally or is fully functional. Kenji has advanced sensors. All maintained spacecraft either operate normally or run smoothly.
+Conclusion: Galilea is completely damaged.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- We formalize the domain of spacecraft and predicates
+axiom Spacecraft : Type
+
+axiom Callan : Spacecraft
+axiom Galilea : Spacecraft
+axiom Kenji : Spacecraft
+
+axiom UniqueDesign : Spacecraft → Prop
+axiom Pioneers : Spacecraft → Prop
+axiom BreaksBoundaries : Spacecraft → Prop
+axiom Remarkable : Spacecraft → Prop
+axiom MakesHistory : Spacecraft → Prop
+axiom RunsSmoothly : Spacecraft → Prop
+axiom AdvancedSensors : Spacecraft → Prop
+axiom TravelsLongDistance : Spacecraft → Prop
+axiom MeetsSpecifications : Spacecraft → Prop
+axiom Maintained : Spacecraft → Prop
+axiom FullyFunctional : Spacecraft → Prop
+axiom CompletelyDamaged : Spacecraft → Prop
+axiom GathersCriticalData : Spacecraft → Prop
+axiom OperatesNormally : Spacecraft → Prop
+
+-- Premises
+axiom UniqueDesign_implies_Pioneers_or_Breaks_Callan :
+  UniqueDesign Callan → (Pioneers Callan ∨ BreaksBoundaries Callan)
+
+axiom Galilea_Xor_R_or_U_implies_MH :
+  ((Remarkable Galilea ∨ UniqueDesign Galilea) ∧ ¬(Remarkable Galilea ∧ UniqueDesign Galilea)) → MakesHistory Galilea
+
+axiom Galilea_not_MH : ¬ MakesHistory Galilea
+
+axiom Galilea_runs_smoothly : RunsSmoothly Galilea
+
+axiom Galilea_advanced_sensors : AdvancedSensors Galilea
+
+axiom Galilea_UD_implies_P_or_B :
+  UniqueDesign Galilea → (Pioneers Galilea ∨ BreaksBoundaries Galilea)
+
+axiom Galilea_travels_or_remarkable :
+  TravelsLongDistance Galilea ∨ Remarkable Galilea
+
+axiom meets_or_maintained_implies_fully :
+  ∀ x : Spacecraft, (MeetsSpecifications x ∨ Maintained x) → FullyFunctional x
+
+axiom Callan_not_MH : ¬ MakesHistory Callan
+
+axiom Galilea_maintained : Maintained Galilea
+
+axiom Galilea_not_breaks : ¬ BreaksBoundaries Galilea
+
+axiom Callan_Xor_R_or_U_implies_MH :
+  ((Remarkable Callan ∨ UniqueDesign Callan) ∧ ¬(Remarkable Callan ∧ UniqueDesign Callan)) → MakesHistory Callan
+
+axiom Galilea_Xor_FF_or_CD_implies_R :
+  ((FullyFunctional Galilea ∨ CompletelyDamaged Galilea) ∧ ¬(FullyFunctional Galilea ∧ CompletelyDamaged Galilea)) → Remarkable Galilea
+
+axiom Galilea_pioneers_xor_gathers :
+  (Pioneers Galilea ∨ GathersCriticalData Galilea) ∧ ¬(Pioneers Galilea ∧ GathersCriticalData Galilea)
+
+axiom Kenji_runs_smoothly : RunsSmoothly Kenji
+
+axiom advanced_sensors_implies_gathers :
+  ∀ x : Spacecraft, AdvancedSensors x → GathersCriticalData x
+
+axiom Galilea_operates_or_fully : OperatesNormally Galilea ∨ FullyFunctional Galilea
+
+axiom Kenji_advanced_sensors : AdvancedSensors Kenji
+
+axiom maintained_implies_operates_or_runs :
+  ∀ x : Spacecraft, Maintained x → (OperatesNormally x ∨ RunsSmoothly x)
+
+open Classical
+
+theorem conclusion : CompletelyDamaged Galilea := by
+  -- From advanced sensors, Galilea gathers critical data
+  have hGD : GathersCriticalData Galilea :=
+    advanced_sensors_implies_gathers Galilea Galilea_advanced_sensors
+  -- From the XOR about pioneers/gathers and having gathers, deduce not pioneers
+  have hNotBoth : ¬(Pioneers Galilea ∧ GathersCriticalData Galilea) :=
+    And.right Galilea_pioneers_xor_gathers
+  have hNotPioneers : ¬ Pioneers Galilea :=
+    fun hP => hNotBoth ⟨hP, hGD⟩
+  -- From UD → (P ∨ B), together with ¬P and ¬B, deduce ¬UD
+  have hNotUD : ¬ UniqueDesign Galilea :=
+    fun hUD =>
+      match Galilea_UD_implies_P_or_B hUD with
+      | Or.inl hP => hNotPioneers hP
+      | Or.inr hB => Galilea_not_breaks hB
+  -- From (XOR(R,U) → MH) and ¬MH, deduce ¬XOR(R,U)
+  have hNotXorRU :
+      ¬ ((Remarkable Galilea ∨ UniqueDesign Galilea) ∧ ¬(Remarkable Galilea ∧ UniqueDesign Galilea)) :=
+    fun hx => Galilea_not_MH (Galilea_Xor_R_or_U_implies_MH hx)
+  -- Using ¬UD and ¬XOR(R,U), deduce ¬Remarkable
+  have hNotRemarkable : ¬ Remarkable Galilea :=
+    fun hR =>
+      let hx : (Remarkable Galilea ∨ UniqueDesign Galilea) ∧ ¬(Remarkable Galilea ∧ UniqueDesign Galilea) :=
+        And.intro (Or.inl hR) (fun hAnd => hNotUD hAnd.right)
+      hNotXorRU hx
+  -- From Maintained and the rule, Galilea is FullyFunctional
+  have hFF : FullyFunctional Galilea :=
+    meets_or_maintained_implies_fully Galilea (Or.inr Galilea_maintained)
+  -- From (XOR(FF,CD) → R) and ¬R, deduce ¬XOR(FF,CD)
+  have hNotXorFC :
+      ¬ ((FullyFunctional Galilea ∨ CompletelyDamaged Galilea) ∧ ¬(FullyFunctional Galilea ∧ CompletelyDamaged Galilea)) :=
+    fun hx => hNotRemarkable (Galilea_Xor_FF_or_CD_implies_R hx)
+  -- Use classical EM on CD; if not CD, build XOR with FF and contradict hNotXorFC
+  have hCDor : CompletelyDamaged Galilea ∨ ¬ CompletelyDamaged Galilea := Classical.em (CompletelyDamaged Galilea)
+  match hCDor with
+  | Or.inl hCD => exact hCD
+  | Or.inr hNotCD =>
+      have hx1 : FullyFunctional Galilea ∨ CompletelyDamaged Galilea := Or.inl hFF
+      have hx2 : ¬(FullyFunctional Galilea ∧ CompletelyDamaged Galilea) :=
+        fun hAnd => hNotCD hAnd.right
+      have contra : False := hNotXorFC ⟨hx1, hx2⟩
+      exact False.elim contra
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Spacecraft : Type
+axiom Callan : Spacecraft
+axiom Galilea : Spacecraft
+axiom Kenji : Spacecraft
+
+axiom UniqueDesign : Spacecraft → Prop
+axiom PioneersDiscovery : Spacecraft → Prop
+axiom BreaksBoundaries : Spacecraft → Prop
+axiom Remarkable : Spacecraft → Prop
+axiom MakesHistory : Spacecraft → Prop
+axiom RunsSmoothly : Spacecraft → Prop
+axiom AdvancedSensors : Spacecraft → Prop
+axiom TravelsLongDistance : Spacecraft → Prop
+axiom MeetsSpecifications : Spacecraft → Prop
+axiom Maintained : Spacecraft → Prop
+axiom FullyFunctional : Spacecraft → Prop
+axiom CompletelyDamaged : Spacecraft → Prop
+axiom GathersCriticalData : Spacecraft → Prop
+axiom OperatesNormally : Spacecraft → Prop
+
+-- Premises
+axiom ax1 :
+  UniqueDesign Callan → (PioneersDiscovery Callan ∨ BreaksBoundaries Callan)
+
+axiom ax2 :
+  ((Remarkable Galilea ∨ UniqueDesign Galilea) ∧ ¬(Remarkable Galilea ∧ UniqueDesign Galilea)) →
+  MakesHistory Galilea
+
+axiom ax3 : ¬MakesHistory Galilea
+axiom ax4 : RunsSmoothly Galilea
+axiom ax5 : AdvancedSensors Galilea
+
+axiom ax6 :
+  UniqueDesign Galilea → (PioneersDiscovery Galilea ∨ BreaksBoundaries Galilea)
+
+axiom ax7 : TravelsLongDistance Galilea ∨ Remarkable Galilea
+
+axiom ax8 :
+  ∀ s : Spacecraft, (MeetsSpecifications s ∨ Maintained s) → FullyFunctional s
+
+axiom ax9 : ¬MakesHistory Callan
+
+axiom ax10 : Maintained Galilea
+axiom ax11 : ¬BreaksBoundaries Galilea
+
+axiom ax12 :
+  ((Remarkable Callan ∨ UniqueDesign Callan) ∧ ¬(Remarkable Callan ∧ UniqueDesign Callan)) →
+  MakesHistory Callan
+
+axiom ax13 :
+  ((FullyFunctional Galilea ∨ CompletelyDamaged Galilea) ∧ ¬(FullyFunctional Galilea ∧ CompletelyDamaged Galilea)) →
+  Remarkable Galilea
+
+axiom ax14 :
+  ((PioneersDiscovery Galilea ∨ GathersCriticalData Galilea) ∧
+   ¬(PioneersDiscovery Galilea ∧ GathersCriticalData Galilea))
+
+axiom ax15 : RunsSmoothly Kenji
+axiom ax16 : ∀ s : Spacecraft, AdvancedSensors s → GathersCriticalData s
+axiom ax17 : OperatesNormally Galilea ∨ FullyFunctional Galilea
+axiom ax18 : AdvancedSensors Kenji
+axiom ax19 : ∀ s : Spacecraft, Maintained s → (OperatesNormally s ∨ RunsSmoothly s)
+
+-- Useful derived facts
+lemma galilea_gathers : GathersCriticalData Galilea := by
+  exact ax16 Galilea ax5
+
+lemma not_pioneers_galilea : ¬PioneersDiscovery Galilea := by
+  have hx := ax14
+  have not_both : ¬(PioneersDiscovery Galilea ∧ GathersCriticalData Galilea) := hx.right
+  have g := galilea_gathers
+  intro hp
+  apply not_both
+  exact And.intro hp g
+
+lemma not_p_or_b_galilea : ¬(PioneersDiscovery Galilea ∨ BreaksBoundaries Galilea) := by
+  intro h
+  cases h with
+  | inl hp => exact not_pioneers_galilea hp
+  | inr hb => exact ax11 hb
+
+lemma not_unique_galilea : ¬UniqueDesign Galilea := by
+  intro hU
+  have disj := ax6 hU
+  exact not_p_or_b_galilea disj
+
+lemma not_remarkable_galilea : ¬Remarkable Galilea := by
+  intro hR
+  have notU := not_unique_galilea
+  have conj :
+      ((Remarkable Galilea ∨ UniqueDesign Galilea) ∧
+       ¬(Remarkable Galilea ∧ UniqueDesign Galilea)) :=
+    And.intro (Or.inl hR)
+              (by intro hRU; exact notU hRU.right)
+  have hH := ax2 conj
+  exact ax3 hH
+
+lemma long_distance_galilea : TravelsLongDistance Galilea := by
+  cases ax7 with
+  | inl hL => exact hL
+  | inr hR => exact False.elim (not_remarkable_galilea hR)
+
+lemma fully_functional_galilea : FullyFunctional Galilea := by
+  have h : MeetsSpecifications Galilea ∨ Maintained Galilea := Or.inr ax10
+  exact ax8 Galilea h
+
+-- In fact, from the premises we can derive that Galilea is completely damaged
+lemma completely_damaged_galilea : CompletelyDamaged Galilea := by
+  classical
+  by_contra hnot
+  have conj :
+      ((FullyFunctional Galilea ∨ CompletelyDamaged Galilea) ∧
+       ¬(FullyFunctional Galilea ∧ CompletelyDamaged Galilea)) :=
+    And.intro (Or.inl fully_functional_galilea)
+              (by intro hboth; exact hnot hboth.right)
+  have hR := ax13 conj
+  exact not_remarkable_galilea hR
+
+-- Goal: negate the conclusion (attempt; this is in fact false given the premises)
+theorem goal : ¬CompletelyDamaged Galilea := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

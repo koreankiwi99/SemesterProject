@@ -1,0 +1,254 @@
+Story ID: 0
+Example ID: 438
+Premises: Holly is not hard-working. If Coraline is either charismatic or talented (but not both), then she is successful. Mae is not ambitious. For Mae, being passionate and being selfless are mutually exclusive. Anyone who performs solo either commands attention or has stage fright (or both). Holly either has stage fright or is charismatic, but not both. If Holly is successful, then she is both hard-working and passionate. If Mae faces criticism, then she gets nervous and feels sensitive. If Mae speaks in front of a crowd, then she is either confident or gets nervous, but not both. Mae faces criticism. If Mae follows her heart, then she either puts others first or is selfless (or both). Mae is either ambitious or selfless, but not both. Sexy faces criticism. Holly either performs in public or sings alone. For Sexy, being passionate and being selfless are mutually exclusive. If Mae loves music, then she has charisma and performs in public. If Coraline performs in public, then she either has stage fright or is confident, but not both. If Mae is either charismatic or talented (but not both), then she is successful. If Coraline faces criticism, then she gets nervous and feels sensitive. Holly speaks in front of a crowd. Mae is not hard-working. If Mae is successful, then she is both hard-working and passionate. Mae speaks in front of a crowd. Holly is either ambitious or selfless, but not both. If Mae performs in public, then she either has stage fright or is confident, but not both. Mae does not sing alone. Mae either performs in public or sings alone. Mae either has stage fright or is charismatic, but not both. If Mae fears failure and meets expectations, then she gets nervous.
+Conclusion: Mae is talented.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+-- Basic setup
+axiom Person : Type u
+axiom Mae Holly Coraline Sexy : Person
+
+-- Predicates
+axiom HardWorking : Person → Prop
+axiom Charismatic : Person → Prop
+axiom Talented : Person → Prop
+axiom Successful : Person → Prop
+axiom Passionate : Person → Prop
+axiom Selfless : Person → Prop
+axiom PerformsSolo : Person → Prop
+axiom PerformsPublic : Person → Prop
+axiom SpeaksCrowd : Person → Prop
+axiom CommandsAttention : Person → Prop
+axiom StageFright : Person → Prop
+axiom Nervous : Person → Prop
+axiom Sensitive : Person → Prop
+axiom Confident : Person → Prop
+axiom Ambitious : Person → Prop
+axiom FacesCriticism : Person → Prop
+axiom LovesMusic : Person → Prop
+axiom FollowsHeart : Person → Prop
+axiom PutsOthersFirst : Person → Prop
+axiom FearsFailure : Person → Prop
+axiom MeetsExpectations : Person → Prop
+
+-- Exclusive or on propositions
+def Xor (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+-- Premises
+axiom p1  : ¬ HardWorking Holly
+axiom p2  : Xor (Charismatic Coraline) (Talented Coraline) → Successful Coraline
+axiom p3  : ¬ Ambitious Mae
+axiom p4  : ¬ (Passionate Mae ∧ Selfless Mae)
+axiom p5  : ∀ x : Person, PerformsSolo x → (CommandsAttention x ∨ StageFright x)
+axiom p6  : Xor (StageFright Holly) (Charismatic Holly)
+axiom p7  : Successful Holly → (HardWorking Holly ∧ Passionate Holly)
+axiom p8  : FacesCriticism Mae → (Nervous Mae ∧ Sensitive Mae)
+axiom p9  : SpeaksCrowd Mae → Xor (Confident Mae) (Nervous Mae)
+axiom p10 : FacesCriticism Mae
+axiom p11 : FollowsHeart Mae → (PutsOthersFirst Mae ∨ Selfless Mae)
+axiom p12 : Xor (Ambitious Mae) (Selfless Mae)
+axiom p13 : FacesCriticism Sexy
+axiom p14 : PerformsPublic Holly ∨ PerformsSolo Holly
+axiom p15 : ¬ (Passionate Sexy ∧ Selfless Sexy)
+axiom p16 : LovesMusic Mae → (Charismatic Mae ∧ PerformsPublic Mae)
+axiom p17 : PerformsPublic Coraline → Xor (StageFright Coraline) (Confident Coraline)
+axiom p18 : Xor (Charismatic Mae) (Talented Mae) → Successful Mae
+axiom p19 : FacesCriticism Coraline → (Nervous Coraline ∧ Sensitive Coraline)
+axiom p20 : SpeaksCrowd Holly
+axiom p21 : ¬ HardWorking Mae
+axiom p22 : Successful Mae → (HardWorking Mae ∧ Passionate Mae)
+axiom p23 : SpeaksCrowd Mae
+axiom p24 : Xor (Ambitious Holly) (Selfless Holly)
+axiom p25 : PerformsPublic Mae → Xor (StageFright Mae) (Confident Mae)
+axiom p26 : ¬ PerformsSolo Mae
+axiom p27 : PerformsPublic Mae ∨ PerformsSolo Mae
+axiom p28 : Xor (StageFright Mae) (Charismatic Mae)
+axiom p29 : (FearsFailure Mae ∧ MeetsExpectations Mae) → Nervous Mae
+
+-- Useful derived facts
+
+-- Mae is not successful (from p21 and p22)
+theorem not_success_Mae : ¬ Successful Mae := by
+  intro hsucc
+  have h := p22 hsucc
+  exact p21 h.left
+
+-- Mae is nervous (from p10 and p8)
+theorem nervous_Mae : Nervous Mae :=
+  (p8 p10).left
+
+-- Mae is not confident (from p9, p23, and nervous)
+theorem not_confident_Mae : ¬ Confident Mae := by
+  intro hconf
+  have hx : Xor (Confident Mae) (Nervous Mae) := p9 p23
+  have hcn : Confident Mae ∧ Nervous Mae := And.intro hconf nervous_Mae
+  exact hx.right hcn
+
+-- Mae performs in public (from p27 and p26)
+theorem performs_public_Mae : PerformsPublic Mae := by
+  cases p27 with
+  | inl hpub => exact hpub
+  | inr hsolo => exact False.elim (p26 hsolo)
+
+-- Mae has stage fright (from p25, performs in public, and not confident)
+theorem stagefright_Mae : StageFright Mae := by
+  have hx : Xor (StageFright Mae) (Confident Mae) := p25 performs_public_Mae
+  have hdisj : StageFright Mae ∨ Confident Mae := hx.left
+  cases hdisj with
+  | inl hs => exact hs
+  | inr hc => exact False.elim (not_confident_Mae hc)
+
+-- Mae is not charismatic (from p28 and stage fright)
+theorem not_charismatic_Mae : ¬ Charismatic Mae := by
+  intro hchar
+  have hx : Xor (StageFright Mae) (Charismatic Mae) := p28
+  have hboth : StageFright Mae ∧ Charismatic Mae := And.intro stagefright_Mae hchar
+  exact hx.right hboth
+
+-- Therefore, Mae is not talented (since talented would imply success via xor with not charismatic)
+theorem not_talented_Mae : ¬ Talented Mae := by
+  intro ht
+  -- build the XOR(Charismatic Mae, Talented Mae) using not_charismatic_Mae and ht
+  have hx : Xor (Charismatic Mae) (Talented Mae) := by
+    refine And.intro (Or.inr ht) ?_
+    intro hboth
+    exact not_charismatic_Mae hboth.left
+  have hs : Successful Mae := p18 hx
+  exact not_success_Mae hs
+
+-- Requested conclusion (cannot be proven from the premises; left as sorry)
+theorem conclusion : Talented Mae := by
+  -- Attempt to prove, but the premises actually lead to ¬ Talented Mae (see not_talented_Mae).
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Holly : Person
+axiom Coraline : Person
+axiom Mae : Person
+axiom Sexy : Person
+
+axiom HardWorking : Person → Prop
+axiom Charismatic : Person → Prop
+axiom Talented : Person → Prop
+axiom Successful : Person → Prop
+axiom Passionate : Person → Prop
+axiom Selfless : Person → Prop
+axiom Solo : Person → Prop
+axiom CommandsAttention : Person → Prop
+axiom StageFright : Person → Prop
+axiom SpeaksInFront : Person → Prop
+axiom Confident : Person → Prop
+axiom Nervous : Person → Prop
+axiom Sensitive : Person → Prop
+axiom FacesCriticism : Person → Prop
+axiom FollowsHeart : Person → Prop
+axiom PutsOthersFirst : Person → Prop
+axiom PerformsPublic : Person → Prop
+axiom Ambitious : Person → Prop
+axiom LovesMusic : Person → Prop
+axiom FearsFailure : Person → Prop
+axiom MeetsExpectations : Person → Prop
+
+-- Premises
+axiom p1 : ¬ HardWorking Holly
+axiom p2 : ((Charismatic Coraline ∨ Talented Coraline) ∧ ¬(Charismatic Coraline ∧ Talented Coraline)) → Successful Coraline
+axiom p3 : ¬ Ambitious Mae
+axiom p4 : ¬ (Passionate Mae ∧ Selfless Mae)
+axiom p5 : ∀ x : Person, Solo x → (CommandsAttention x ∨ StageFright x)
+axiom p6a : StageFright Holly ∨ Charismatic Holly
+axiom p6b : ¬ (StageFright Holly ∧ Charismatic Holly)
+axiom p7 : Successful Holly → (HardWorking Holly ∧ Passionate Holly)
+axiom p8 : FacesCriticism Mae → (Nervous Mae ∧ Sensitive Mae)
+axiom p9a : SpeaksInFront Mae → (Confident Mae ∨ Nervous Mae)
+axiom p9b : SpeaksInFront Mae → ¬(Confident Mae ∧ Nervous Mae)
+axiom p10 : FacesCriticism Mae
+axiom p11 : FollowsHeart Mae → (PutsOthersFirst Mae ∨ Selfless Mae)
+axiom p12a : Ambitious Mae ∨ Selfless Mae
+axiom p12b : ¬ (Ambitious Mae ∧ Selfless Mae)
+axiom p13 : FacesCriticism Sexy
+axiom p14 : PerformsPublic Holly ∨ Solo Holly
+axiom p15 : ¬ (Passionate Sexy ∧ Selfless Sexy)
+axiom p16 : LovesMusic Mae → (Charismatic Mae ∧ PerformsPublic Mae)
+axiom p17a : PerformsPublic Coraline → (StageFright Coraline ∨ Confident Coraline)
+axiom p17b : PerformsPublic Coraline → ¬(StageFright Coraline ∧ Confident Coraline)
+axiom p18 : ((Charismatic Mae ∨ Talented Mae) ∧ ¬(Charismatic Mae ∧ Talented Mae)) → Successful Mae
+axiom p19 : FacesCriticism Coraline → (Nervous Coraline ∧ Sensitive Coraline)
+axiom p20 : SpeaksInFront Holly
+axiom p21 : ¬ HardWorking Mae
+axiom p22 : Successful Mae → (HardWorking Mae ∧ Passionate Mae)
+axiom p23 : SpeaksInFront Mae
+axiom p24a : Ambitious Holly ∨ Selfless Holly
+axiom p24b : ¬ (Ambitious Holly ∧ Selfless Holly)
+axiom p25a : PerformsPublic Mae → (StageFright Mae ∨ Confident Mae)
+axiom p25b : PerformsPublic Mae → ¬(StageFright Mae ∧ Confident Mae)
+axiom p26 : ¬ Solo Mae
+axiom p27 : PerformsPublic Mae ∨ Solo Mae
+axiom p28a : StageFright Mae ∨ Charismatic Mae
+axiom p28b : ¬ (StageFright Mae ∧ Charismatic Mae)
+axiom p29 : (FearsFailure Mae ∧ MeetsExpectations Mae) → Nervous Mae
+
+-- Goal: prove the negation of the conclusion "Mae is talented"
+theorem not_talented_Mae : ¬ Talented Mae := by
+  intro hTal
+  -- From not singing alone and (public ∨ alone), Mae performs in public
+  have hPub : PerformsPublic Mae := by
+    have h := p27
+    cases h with
+    | inl hpub => exact hpub
+    | inr hsolo =>
+        exact False.elim (p26 hsolo)
+  -- Mae is nervous (faces criticism -> nervous)
+  have hNerv : Nervous Mae := (p8 p10).left
+  -- From speaking in front and XOR, get ¬Confident
+  have hNotConf : ¬ Confident Mae := by
+    have hNotBoth := p9b p23
+    intro hC
+    exact hNotBoth ⟨hC, hNerv⟩
+  -- From performing in public, get StageFright ∨ Confident; with ¬Confident, deduce StageFright
+  have hSF : StageFright Mae := by
+    have hOr := p25a hPub
+    cases hOr with
+    | inl hs => exact hs
+    | inr hc => exact False.elim (hNotConf hc)
+  -- From XOR of (StageFright, Charismatic), deduce ¬Charismatic
+  have hNotChar : ¬ Charismatic Mae := by
+    intro hChar
+    exact p28b ⟨hSF, hChar⟩
+  -- Build XOR antecedent for (Charismatic ∨ Talented) but not both
+  have hAnte : (Charismatic Mae ∨ Talented Mae) ∧ ¬(Charismatic Mae ∧ Talented Mae) := by
+    refine And.intro (Or.inr hTal) ?_
+    intro hCT
+    exact hNotChar hCT.left
+  -- So Mae is successful
+  have hSucc : Successful Mae := p18 hAnte
+  -- Success implies hard-working; contradiction with ¬hard-working
+  have hHW : HardWorking Mae := (p22 hSucc).left
+  exact p21 hHW
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

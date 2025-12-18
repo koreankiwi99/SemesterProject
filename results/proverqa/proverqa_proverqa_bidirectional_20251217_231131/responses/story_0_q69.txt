@@ -1,0 +1,214 @@
+Story ID: 0
+Example ID: 69
+Premises: If Jamir faces health challenges, then he remains optimistic and takes personal responsibility. For Drew, either he needs external help or he is self-sufficient, but not both. Drew has healthcare coverage. If Drew faces health challenges, then he remains optimistic and takes personal responsibility. If Drew has healthcare coverage, then he is either self-sufficient or requires medication (but not both). Jamir has healthcare coverage. If Jamir has a chronic illness or has a supportive doctor, then he manages his condition effectively. Drew either monitors his health or requires medication. Drew needs external help. Alfredo needs external help. If Alfredo requires medication, then he either has a strong support system or a chronic illness (but not both). Joziah has a strong support system. Drew faces health challenges. If Drew either manages his finances or makes independent decisions (but not both), then he is self-sufficient. Joziah faces health challenges. For Joziah, either he needs external help or he is self-sufficient, but not both. Everyone either takes personal responsibility for their health or has a supportive doctor, but not both is not necessarily true. If Drew requires medication, then he either has a strong support system or a chronic illness (but not both). Drew has a strong support system.
+Conclusion: Drew manages his condition effectively.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Jamir : Person
+axiom Drew : Person
+axiom Alfredo : Person
+axiom Joziah : Person
+
+axiom FacesHealthChallenges : Person → Prop
+axiom RemainsOptimistic : Person → Prop
+axiom TakesPersonalResponsibility : Person → Prop
+axiom NeedsExternalHelp : Person → Prop
+axiom SelfSufficient : Person → Prop
+axiom HasHealthcareCoverage : Person → Prop
+axiom RequiresMedication : Person → Prop
+axiom HasChronicIllness : Person → Prop
+axiom HasSupportiveDoctor : Person → Prop
+axiom ManagesConditionEffectively : Person → Prop
+axiom MonitorsHealth : Person → Prop
+axiom ManagesFinances : Person → Prop
+axiom MakesIndependentDecisions : Person → Prop
+axiom HasStrongSupportSystem : Person → Prop
+
+-- Premises
+axiom prem1 : FacesHealthChallenges Jamir → (RemainsOptimistic Jamir ∧ TakesPersonalResponsibility Jamir)
+axiom prem2 : ((NeedsExternalHelp Drew) ∨ (SelfSufficient Drew)) ∧ ¬((NeedsExternalHelp Drew) ∧ (SelfSufficient Drew))
+axiom prem3 : HasHealthcareCoverage Drew
+axiom prem4 : FacesHealthChallenges Drew → (RemainsOptimistic Drew ∧ TakesPersonalResponsibility Drew)
+axiom prem5 : HasHealthcareCoverage Drew → ((SelfSufficient Drew ∨ RequiresMedication Drew) ∧ ¬(SelfSufficient Drew ∧ RequiresMedication Drew))
+axiom prem6 : HasHealthcareCoverage Jamir
+axiom prem7 : (HasChronicIllness Jamir ∨ HasSupportiveDoctor Jamir) → ManagesConditionEffectively Jamir
+axiom prem8 : MonitorsHealth Drew ∨ RequiresMedication Drew
+axiom prem9 : NeedsExternalHelp Drew
+axiom prem10 : NeedsExternalHelp Alfredo
+axiom prem11 : RequiresMedication Alfredo → ((HasStrongSupportSystem Alfredo ∨ HasChronicIllness Alfredo) ∧ ¬(HasStrongSupportSystem Alfredo ∧ HasChronicIllness Alfredo))
+axiom prem12 : HasStrongSupportSystem Joziah
+axiom prem13 : FacesHealthChallenges Drew
+axiom prem14 : ((ManagesFinances Drew ∨ MakesIndependentDecisions Drew) ∧ ¬(ManagesFinances Drew ∧ MakesIndependentDecisions Drew)) → SelfSufficient Drew
+axiom prem15 : FacesHealthChallenges Joziah
+axiom prem16 : ((NeedsExternalHelp Joziah) ∨ (SelfSufficient Joziah)) ∧ ¬((NeedsExternalHelp Joziah) ∧ (SelfSufficient Joziah))
+-- The sentence about universal XOR of responsibility/support is not formalized as a premise.
+axiom prem18 : RequiresMedication Drew → ((HasStrongSupportSystem Drew ∨ HasChronicIllness Drew) ∧ ¬(HasStrongSupportSystem Drew ∧ HasChronicIllness Drew))
+axiom prem19 : HasStrongSupportSystem Drew
+
+-- Conclusion: Drew manages his condition effectively.
+theorem goal : ManagesConditionEffectively Drew := by
+  -- From prem9 and prem2, Drew is not self-sufficient
+  have hNeeds : NeedsExternalHelp Drew := prem9
+  have hNoBoth_NS : ¬(NeedsExternalHelp Drew ∧ SelfSufficient Drew) := And.right prem2
+  have hNotSelf : ¬ SelfSufficient Drew := by
+    intro hS
+    exact hNoBoth_NS ⟨hNeeds, hS⟩
+  -- From prem3 and prem5, Drew is either self-sufficient or requires medication (xor). With ¬self, deduce requires medication.
+  have hXorSelfOrReq : (SelfSufficient Drew ∨ RequiresMedication Drew) ∧ ¬(SelfSufficient Drew ∧ RequiresMedication Drew) := prem5 prem3
+  have hDisj : SelfSufficient Drew ∨ RequiresMedication Drew := And.left hXorSelfOrReq
+  have hReq : RequiresMedication Drew := by
+    cases hDisj with
+    | inl hS => exact False.elim (hNotSelf hS)
+    | inr hR => exact hR
+  -- From prem18 and prem19, we can deduce that Drew does not have a chronic illness, but this does not give effective management.
+  have hSS_or_CI_and_notboth := prem18 hReq
+  have hNotBothSSCI : ¬(HasStrongSupportSystem Drew ∧ HasChronicIllness Drew) := And.right hSS_or_CI_and_notboth
+  have hNoCI : ¬ HasChronicIllness Drew := by
+    intro hCI
+    exact hNotBothSSCI ⟨prem19, hCI⟩
+  -- From prem13 and prem4, Drew takes personal responsibility.
+  have hResp : TakesPersonalResponsibility Drew := (And.right (prem4 prem13))
+  -- No given premise links these facts to ManagesConditionEffectively Drew.
+  -- Therefore, the conclusion does not follow from the provided premises.
+  admit
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Jamir : Person
+axiom Drew : Person
+axiom Alfredo : Person
+axiom Joziah : Person
+
+-- Predicates
+axiom HealthChallenges : Person → Prop
+axiom RemainsOptimistic : Person → Prop
+axiom PersonalResponsibility : Person → Prop
+axiom NeedsExternalHelp : Person → Prop
+axiom SelfSufficient : Person → Prop
+axiom HasHealthcareCoverage : Person → Prop
+axiom RequiresMedication : Person → Prop
+axiom ChronicIllness : Person → Prop
+axiom SupportiveDoctor : Person → Prop
+axiom ManagesConditionEffectively : Person → Prop
+axiom MonitorsHealth : Person → Prop
+axiom StrongSupportSystem : Person → Prop
+axiom ManagesFinances : Person → Prop
+axiom MakesIndependentDecisions : Person → Prop
+
+-- Premises
+-- If Jamir faces health challenges, then he remains optimistic and takes personal responsibility.
+axiom p1 : HealthChallenges Jamir → (RemainsOptimistic Jamir ∧ PersonalResponsibility Jamir)
+
+-- For Drew, either he needs external help or he is self-sufficient, but not both.
+axiom p2 : (NeedsExternalHelp Drew ∨ SelfSufficient Drew) ∧ ¬(NeedsExternalHelp Drew ∧ SelfSufficient Drew)
+
+-- Drew has healthcare coverage.
+axiom p3 : HasHealthcareCoverage Drew
+
+-- If Drew faces health challenges, then he remains optimistic and takes personal responsibility.
+axiom p4 : HealthChallenges Drew → (RemainsOptimistic Drew ∧ PersonalResponsibility Drew)
+
+-- If Drew has healthcare coverage, then he is either self-sufficient or requires medication (but not both).
+axiom p5 : HasHealthcareCoverage Drew → ((SelfSufficient Drew ∨ RequiresMedication Drew) ∧ ¬(SelfSufficient Drew ∧ RequiresMedication Drew))
+
+-- Jamir has healthcare coverage.
+axiom p6 : HasHealthcareCoverage Jamir
+
+-- If Jamir has a chronic illness or has a supportive doctor, then he manages his condition effectively.
+axiom p7 : (ChronicIllness Jamir ∨ SupportiveDoctor Jamir) → ManagesConditionEffectively Jamir
+
+-- Drew either monitors his health or requires medication.
+axiom p8 : MonitorsHealth Drew ∨ RequiresMedication Drew
+
+-- Drew needs external help.
+axiom p9 : NeedsExternalHelp Drew
+
+-- Alfredo needs external help.
+axiom p10 : NeedsExternalHelp Alfredo
+
+-- If Alfredo requires medication, then he either has a strong support system or a chronic illness (but not both).
+axiom p11 : RequiresMedication Alfredo → ((StrongSupportSystem Alfredo ∨ ChronicIllness Alfredo) ∧ ¬(StrongSupportSystem Alfredo ∧ ChronicIllness Alfredo))
+
+-- Joziah has a strong support system.
+axiom p12 : StrongSupportSystem Joziah
+
+-- Drew faces health challenges.
+axiom p13 : HealthChallenges Drew
+
+-- If Drew either manages his finances or makes independent decisions (but not both), then he is self-sufficient.
+axiom p14 : ((ManagesFinances Drew ∨ MakesIndependentDecisions Drew) ∧ ¬(ManagesFinances Drew ∧ MakesIndependentDecisions Drew)) → SelfSufficient Drew
+
+-- Joziah faces health challenges.
+axiom p15 : HealthChallenges Joziah
+
+-- For Joziah, either he needs external help or he is self-sufficient, but not both.
+axiom p16 : (NeedsExternalHelp Joziah ∨ SelfSufficient Joziah) ∧ ¬(NeedsExternalHelp Joziah ∧ SelfSufficient Joziah)
+
+-- "Everyone either takes personal responsibility or has a supportive doctor, but not both" is not necessarily true.
+axiom p17 : ¬ (∀ x : Person, ((PersonalResponsibility x ∨ SupportiveDoctor x) ∧ ¬(PersonalResponsibility x ∧ SupportiveDoctor x)))
+
+-- If Drew requires medication, then he either has a strong support system or a chronic illness (but not both).
+axiom p18 : RequiresMedication Drew → ((StrongSupportSystem Drew ∨ ChronicIllness Drew) ∧ ¬(StrongSupportSystem Drew ∧ ChronicIllness Drew))
+
+-- Drew has a strong support system.
+axiom p19 : StrongSupportSystem Drew
+
+-- Some derived facts about Drew (attempting to reach a contradiction)
+lemma not_self_sufficient_Drew : ¬ SelfSufficient Drew := by
+  have hnotBoth : ¬(NeedsExternalHelp Drew ∧ SelfSufficient Drew) := And.right p2
+  have hNeed : NeedsExternalHelp Drew := p9
+  intro hSelf
+  apply hnotBoth
+  exact And.intro hNeed hSelf
+
+lemma Drew_requires_medication : RequiresMedication Drew := by
+  have hx := p5 p3
+  have hdisj : SelfSufficient Drew ∨ RequiresMedication Drew := And.left hx
+  have hnotBoth : ¬(SelfSufficient Drew ∧ RequiresMedication Drew) := And.right hx
+  have hns : ¬ SelfSufficient Drew := not_self_sufficient_Drew
+  cases hdisj with
+  | inl hs => exact False.elim (hns hs)
+  | inr hr => exact hr
+
+lemma Drew_personal_responsibility : PersonalResponsibility Drew := by
+  have h := p4 p13
+  exact And.right h
+
+lemma Drew_not_chronic : ¬ ChronicIllness Drew := by
+  have hx := p18 Drew_requires_medication
+  have hnotBoth : ¬ (StrongSupportSystem Drew ∧ ChronicIllness Drew) := And.right hx
+  intro hc
+  apply hnotBoth
+  exact And.intro p19 hc
+
+-- NEGATION of the conclusion: We attempt to prove that Drew does NOT manage his condition effectively.
+theorem goal_neg : ¬ ManagesConditionEffectively Drew := by
+  -- Attempted derivation fails: no premise connects Drew's attributes to ManagesConditionEffectively
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

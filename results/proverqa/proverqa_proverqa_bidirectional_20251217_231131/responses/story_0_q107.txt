@@ -1,0 +1,191 @@
+Story ID: 0
+Example ID: 107
+Premises: Anyone who sets goals or makes lists values planning. If Alana enjoys flexibility, then she either values structure or embraces improvisation (or both). For Alana, she either values planning or is spontaneous, but not both. If Alana is either adventurous or artistic (but not both), then she is free-spirited. If Alana is detail-oriented, then she is either a perfectionist or prioritizes creativity, but not both. If Alana enjoys traveling, then she is either adventurous or spontaneous (but not both). Alana goes with her instinct. Alana is artistic. Alana enjoys traveling. Alana either values structure or prioritizes creativity, but not both. Alana enjoys flexibility. Alana does not embrace improvisation. If Alana is a perfectionist, then she either values planning or goes with her instinct, but not both. Alana is detail-oriented.
+Conclusion: Alana is free-spirited.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alana : Person
+
+axiom SetsGoals : Person → Prop
+axiom MakesLists : Person → Prop
+axiom ValuesPlanning : Person → Prop
+axiom EnjoysFlexibility : Person → Prop
+axiom ValuesStructure : Person → Prop
+axiom EmbracesImprovisation : Person → Prop
+axiom Spontaneous : Person → Prop
+axiom Adventurous : Person → Prop
+axiom Artistic : Person → Prop
+axiom FreeSpirited : Person → Prop
+axiom DetailOriented : Person → Prop
+axiom Perfectionist : Person → Prop
+axiom PrioritizesCreativity : Person → Prop
+axiom EnjoysTraveling : Person → Prop
+axiom GoesWithInstinct : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, (SetsGoals x ∨ MakesLists x) → ValuesPlanning x
+axiom premise2 : EnjoysFlexibility Alana → (ValuesStructure Alana ∨ EmbracesImprovisation Alana)
+axiom premise3 : (ValuesPlanning Alana ∨ Spontaneous Alana) ∧ ¬(ValuesPlanning Alana ∧ Spontaneous Alana)
+axiom premise4 : ((Adventurous Alana ∨ Artistic Alana) ∧ ¬(Adventurous Alana ∧ Artistic Alana)) → FreeSpirited Alana
+axiom premise5 : DetailOriented Alana → ((Perfectionist Alana ∨ PrioritizesCreativity Alana) ∧ ¬(Perfectionist Alana ∧ PrioritizesCreativity Alana))
+axiom premise6 : EnjoysTraveling Alana → ((Adventurous Alana ∨ Spontaneous Alana) ∧ ¬(Adventurous Alana ∧ Spontaneous Alana))
+axiom premise7 : GoesWithInstinct Alana
+axiom premise8 : Artistic Alana
+axiom premise9 : EnjoysTraveling Alana
+axiom premise10 : (ValuesStructure Alana ∨ PrioritizesCreativity Alana) ∧ ¬(ValuesStructure Alana ∧ PrioritizesCreativity Alana)
+axiom premise11 : EnjoysFlexibility Alana
+axiom premise12 : ¬ EmbracesImprovisation Alana
+axiom premise13 : Perfectionist Alana → ((ValuesPlanning Alana ∨ GoesWithInstinct Alana) ∧ ¬(ValuesPlanning Alana ∧ GoesWithInstinct Alana))
+axiom premise14 : DetailOriented Alana
+
+theorem goal : FreeSpirited Alana := by
+  -- From enjoys flexibility and not improvisation, get values structure
+  have hVSorEI : ValuesStructure Alana ∨ EmbracesImprovisation Alana := premise2 premise11
+  have hVS : ValuesStructure Alana := by
+    cases hVSorEI with
+    | inl vs => exact vs
+    | inr ei =>
+      exact False.elim (premise12 ei)
+  -- From XOR between values structure and prioritizes creativity, get ¬ prioritizes creativity
+  have hVS_PC_notboth : ¬(ValuesStructure Alana ∧ PrioritizesCreativity Alana) := (And.right premise10)
+  have hNotPC : ¬ PrioritizesCreativity Alana := by
+    intro hpc
+    exact hVS_PC_notboth ⟨hVS, hpc⟩
+  -- From detail-oriented implies xor between perfectionist and prioritizes creativity, deduce perfectionist
+  have hP_or_PC : Perfectionist Alana ∨ PrioritizesCreativity Alana := (And.left (premise5 premise14))
+  have hPerf : Perfectionist Alana := by
+    cases hP_or_PC with
+    | inl p => exact p
+    | inr pc => exact False.elim (hNotPC pc)
+  -- From perfectionist implies xor between values planning and goes with instinct; with goes with instinct, deduce ¬ values planning
+  have hVP_or_GWI_and_notboth := premise13 hPerf
+  have hNotVP : ¬ ValuesPlanning Alana := by
+    have hNotBoth : ¬(ValuesPlanning Alana ∧ GoesWithInstinct Alana) := And.right hVP_or_GWI_and_notboth
+    intro hVP
+    exact hNotBoth ⟨hVP, premise7⟩
+  -- From xor between values planning and spontaneous, and ¬ values planning, deduce spontaneous
+  have hVP_or_S : ValuesPlanning Alana ∨ Spontaneous Alana := And.left premise3
+  have hS : Spontaneous Alana := by
+    cases hVP_or_S with
+    | inl vp => exact False.elim (hNotVP vp)
+    | inr s => exact s
+  -- From enjoys traveling implies xor between adventurous and spontaneous, and spontaneity, deduce ¬ adventurous
+  have hA_or_S_and_notboth : (Adventurous Alana ∨ Spontaneous Alana) ∧ ¬(Adventurous Alana ∧ Spontaneous Alana) := premise6 premise9
+  have hNotA : ¬ Adventurous Alana := by
+    have hNotBothAS : ¬(Adventurous Alana ∧ Spontaneous Alana) := And.right hA_or_S_and_notboth
+    intro hA
+    exact hNotBothAS ⟨hA, hS⟩
+  -- Build the XOR between adventurous and artistic
+  have hAorArt : Adventurous Alana ∨ Artistic Alana := Or.inr premise8
+  have hNotAandArt : ¬(Adventurous Alana ∧ Artistic Alana) := by
+    intro hAnd
+    exact hNotA hAnd.left
+  have hXOR_A_Art : (Adventurous Alana ∨ Artistic Alana) ∧ ¬(Adventurous Alana ∧ Artistic Alana) := And.intro hAorArt hNotAandArt
+  -- Conclude free-spirited
+  exact premise4 hXOR_A_Art
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Alana : Person
+
+axiom SetsGoals : Person → Prop
+axiom MakesLists : Person → Prop
+axiom ValuesPlanning : Person → Prop
+axiom EnjoysFlexibility : Person → Prop
+axiom ValuesStructure : Person → Prop
+axiom EmbracesImprovisation : Person → Prop
+axiom Spontaneous : Person → Prop
+axiom Adventurous : Person → Prop
+axiom Artistic : Person → Prop
+axiom FreeSpirited : Person → Prop
+axiom DetailOriented : Person → Prop
+axiom Perfectionist : Person → Prop
+axiom PrioritizesCreativity : Person → Prop
+axiom EnjoysTraveling : Person → Prop
+axiom GoesWithInstinct : Person → Prop
+
+-- Premises
+axiom p1 : ∀ x : Person, (SetsGoals x ∨ MakesLists x) → ValuesPlanning x
+axiom p2 : EnjoysFlexibility Alana → (ValuesStructure Alana ∨ EmbracesImprovisation Alana)
+axiom p3 : (ValuesPlanning Alana ∨ Spontaneous Alana) ∧ ¬(ValuesPlanning Alana ∧ Spontaneous Alana)
+axiom p4 : ((Adventurous Alana ∨ Artistic Alana) ∧ ¬(Adventurous Alana ∧ Artistic Alana)) → FreeSpirited Alana
+axiom p5 : DetailOriented Alana → ((Perfectionist Alana ∨ PrioritizesCreativity Alana) ∧ ¬(Perfectionist Alana ∧ PrioritizesCreativity Alana))
+axiom p6 : EnjoysTraveling Alana → ((Adventurous Alana ∨ Spontaneous Alana) ∧ ¬(Adventurous Alana ∧ Spontaneous Alana))
+axiom p7 : GoesWithInstinct Alana
+axiom p8 : Artistic Alana
+axiom p9 : EnjoysTraveling Alana
+axiom p10 : (ValuesStructure Alana ∨ PrioritizesCreativity Alana) ∧ ¬(ValuesStructure Alana ∧ PrioritizesCreativity Alana)
+axiom p11 : EnjoysFlexibility Alana
+axiom p12 : ¬ EmbracesImprovisation Alana
+axiom p13 : Perfectionist Alana → ((ValuesPlanning Alana ∨ GoesWithInstinct Alana) ∧ ¬(ValuesPlanning Alana ∧ GoesWithInstinct Alana))
+axiom p14 : DetailOriented Alana
+
+-- We attempt to prove the negation of the conclusion: Alana is NOT free-spirited.
+theorem not_freeSpirited : ¬ FreeSpirited Alana := by
+  intro hfree
+  -- Derive ValuesStructure from EnjoysFlexibility and ¬EmbracesImprovisation
+  have h_vs_or_ei : ValuesStructure Alana ∨ EmbracesImprovisation Alana := p2 p11
+  have hVS : ValuesStructure Alana := by
+    cases h_vs_or_ei with
+    | inl hvs => exact hvs
+    | inr hei => exact False.elim (p12 hei)
+  -- From XOR(ValuesStructure, PrioritizesCreativity) and hVS, get ¬PrioritizesCreativity
+  have h_not_both_vs_pc : ¬ (ValuesStructure Alana ∧ PrioritizesCreativity Alana) := (p10).right
+  have hNotPC : ¬ PrioritizesCreativity Alana := by
+    intro hpc
+    exact h_not_both_vs_pc ⟨hVS, hpc⟩
+  -- From DetailOriented → XOR(Perfectionist, PrioritizesCreativity) and ¬PC, get Perfectionist
+  have h_dx : (Perfectionist Alana ∨ PrioritizesCreativity Alana) ∧ ¬(Perfectionist Alana ∧ PrioritizesCreativity Alana) := p5 p14
+  have hPerf : Perfectionist Alana := by
+    cases h_dx.left with
+    | inl hp => exact hp
+    | inr hpc => exact False.elim (hNotPC hpc)
+  -- From Perfectionist → XOR(ValuesPlanning, GoesWithInstinct) and GoesWithInstinct, get ¬ValuesPlanning
+  have hNotVP : ¬ ValuesPlanning Alana := by
+    have h_not_both_vp_gwi : ¬ (ValuesPlanning Alana ∧ GoesWithInstinct Alana) := (p13 hPerf).right
+    intro h_vp
+    exact h_not_both_vp_gwi ⟨h_vp, p7⟩
+  -- From XOR(ValuesPlanning, Spontaneous) and ¬ValuesPlanning, get Spontaneous
+  have hSpont : Spontaneous Alana := by
+    cases (p3).left with
+    | inl h_vp => exact False.elim (hNotVP h_vp)
+    | inr h_sp => exact h_sp
+  -- From EnjoysTraveling → XOR(Adventurous, Spontaneous) and Spontaneous, get ¬Adventurous
+  have hNotAdv : ¬ Adventurous Alana := by
+    have h_not_both_adv_sp : ¬ (Adventurous Alana ∧ Spontaneous Alana) := (p6 p9).right
+    intro h_adv
+    exact h_not_both_adv_sp ⟨h_adv, hSpont⟩
+  -- With Artistic and ¬Adventurous, the XOR(Adventurous, Artistic) holds, giving FreeSpirited
+  have hXorAdvArt : (Adventurous Alana ∨ Artistic Alana) ∧ ¬(Adventurous Alana ∧ Artistic Alana) := by
+    constructor
+    · exact Or.inr p8
+    · intro hBoth
+      exact hNotAdv hBoth.left
+  have hFree : FreeSpirited Alana := p4 hXorAdvArt
+  -- No contradiction can be derived; the attempt fails.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

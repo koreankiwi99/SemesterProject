@@ -1,0 +1,134 @@
+Story ID: 0
+Example ID: 53
+Premises: Ares is a champion. If Ares has noble bloodlines, then he either has an attractive appearance or excellent jumping skills (or both). If Ares is confident, then he either performs well in competitions or builds strong bonds with Rachel, but not both. If a horse has noble bloodlines, it is not necessarily confident, and if a horse is confident, it does not necessarily have noble bloodlines. Ares either has speed or agility, but not both. If Ares either has a shiny coat or a flowing mane (but not both), then he has an attractive appearance. Ares has a good temper. Ares does not have excellent jumping skills. If Ares is a champion, then he either has an attractive appearance or has speed (but not both). Ares responds to commands. If Ares builds strong bonds with Rachel, then he either has a good temper or responds to commands, but not both. Ares does not have agility.
+Conclusion: Ares performs well in competitions.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Horse : Type
+axiom Ares : Horse
+
+axiom Champion : Horse → Prop
+axiom Noble : Horse → Prop
+axiom Attractive : Horse → Prop
+axiom Jumping : Horse → Prop
+axiom Confident : Horse → Prop
+axiom PerformsWell : Horse → Prop
+axiom BondsRachel : Horse → Prop
+axiom Speed : Horse → Prop
+axiom Agility : Horse → Prop
+axiom ShinyCoat : Horse → Prop
+axiom FlowingMane : Horse → Prop
+axiom GoodTemper : Horse → Prop
+axiom RespondsCommands : Horse → Prop
+
+-- Premises
+axiom p1 : Champion Ares
+axiom p2 : Noble Ares → (Attractive Ares ∨ Jumping Ares)
+axiom p3 : Confident Ares → ((PerformsWell Ares ∨ BondsRachel Ares) ∧ ¬((PerformsWell Ares) ∧ (BondsRachel Ares)))
+axiom p4a : ¬(Noble Ares → Confident Ares)
+axiom p4b : ¬(Confident Ares → Noble Ares)
+axiom p5 : (Speed Ares ∨ Agility Ares) ∧ ¬((Speed Ares) ∧ (Agility Ares))
+axiom p6 : (((ShinyCoat Ares ∨ FlowingMane Ares) ∧ ¬(ShinyCoat Ares ∧ FlowingMane Ares)) → Attractive Ares)
+axiom p7 : GoodTemper Ares
+axiom p8 : ¬(Jumping Ares)
+axiom p9 : Champion Ares → ((Attractive Ares ∨ Speed Ares) ∧ ¬(Attractive Ares ∧ Speed Ares))
+axiom p10 : RespondsCommands Ares
+axiom p11 : BondsRachel Ares → ((GoodTemper Ares ∨ RespondsCommands Ares) ∧ ¬(GoodTemper Ares ∧ RespondsCommands Ares))
+axiom p12 : ¬(Agility Ares)
+
+theorem goal : PerformsWell Ares := by
+  -- From ¬(Noble → Confident), derive ¬Confident
+  have hNotConf : ¬(Confident Ares) := by
+    intro hC
+    have hImp : Noble Ares → Confident Ares := by
+      intro _; exact hC
+    exact p4a hImp
+  -- From ¬(Confident → Noble), derive ¬¬Confident
+  have hNotNotConf : ¬¬(Confident Ares) := by
+    intro hNC
+    have hImp : Confident Ares → Noble Ares := by
+      intro hC
+      exact False.elim (hNC hC)
+    exact p4b hImp
+  -- Contradiction yields False, hence anything
+  have hFalse : False := hNotNotConf hNotConf
+  exact False.elim hFalse
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Champion : Prop
+axiom Noble : Prop
+axiom Attractive : Prop
+axiom Jumping : Prop
+axiom Confident : Prop
+axiom PerformsWell : Prop
+axiom BondsRachel : Prop
+axiom Speed : Prop
+axiom Agility : Prop
+axiom ShinyCoat : Prop
+axiom FlowingMane : Prop
+axiom GoodTemper : Prop
+axiom RespondsCommands : Prop
+
+-- Premises
+axiom ax_champion : Champion
+axiom ax_noble_imp_attr_or_jump : Noble → Attractive ∨ Jumping
+axiom ax_confident_imp_perf_xor_bonds :
+  Confident → ((PerformsWell ∨ BondsRachel) ∧ ¬(PerformsWell ∧ BondsRachel))
+-- Interpreting "not necessarily" as the negations of implications for this subject
+axiom ax_not_necessarily1 : ¬(Noble → Confident)
+axiom ax_not_necessarily2 : ¬(Confident → Noble)
+axiom ax_speed_xor_agility : (Speed ∨ Agility) ∧ ¬(Speed ∧ Agility)
+axiom ax_xor_shiny_mane_imp_attr :
+  ((ShinyCoat ∨ FlowingMane) ∧ ¬(ShinyCoat ∧ FlowingMane)) → Attractive
+axiom ax_good_temper : GoodTemper
+axiom ax_not_jumping : ¬Jumping
+axiom ax_champion_imp_attr_xor_speed :
+  Champion → ((Attractive ∨ Speed) ∧ ¬(Attractive ∧ Speed))
+axiom ax_responds : RespondsCommands
+axiom ax_bonds_imp_good_or_responds_xor :
+  BondsRachel → ((GoodTemper ∨ RespondsCommands) ∧ ¬(GoodTemper ∧ RespondsCommands))
+axiom ax_not_agility : ¬Agility
+
+-- Goal: prove the negation of the conclusion "Ares performs well in competitions"
+theorem goal : ¬PerformsWell := by
+  -- From ¬(Noble → Confident), derive Noble
+  have hNoble : Noble :=
+    Or.elim (Classical.em Noble)
+      (fun h => h)
+      (fun hnot =>
+        let imp : Noble → Confident := fun n => False.elim (hnot n)
+        False.elim (ax_not_necessarily1 imp))
+  -- From ¬(Confident → Noble), derive ¬Noble
+  have hNotNoble : ¬Noble :=
+    fun n =>
+      ax_not_necessarily2 (fun _ => n)
+  -- Contradiction
+  have contra : False := hNotNoble hNoble
+  -- From contradiction, conclude ¬PerformsWell
+  exact fun _ => False.elim contra
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: BOTH_SUCCESS
+Formalization Error Detected: True
+Used Fallback: True
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: False
+Correct: No

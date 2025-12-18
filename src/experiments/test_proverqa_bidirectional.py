@@ -305,8 +305,11 @@ async def test_question_bidirectional_async(example, client, lean_server,
         result['cot_response'] = cot_response
 
     result['prediction'] = prediction
+    # Convert A/B/C labels to True/False/Uncertain for ProverQA
+    label_map = {'A': 'True', 'B': 'False', 'C': 'Uncertain'}
+    ground_truth = label_map.get(example['label'], example['label'])
     result['correct'] = normalize_answer(prediction, answer_format="true_false") == \
-                        normalize_answer(example['label'], answer_format="true_false")
+                        normalize_answer(ground_truth, answer_format="true_false")
 
     return result
 

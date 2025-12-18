@@ -1,0 +1,187 @@
+Story ID: 0
+Example ID: 404
+Premises: If Julian has hidden talents, then he is either organized or creates new opportunities (or both). Julian does not avoid risks. Julian does not read widely. Julian is either curious or avoids risks, but not both. Samson overcomes challenges. Milana does not read widely. If Julian either values knowledge or pursues discovery (but not both), then he is a passionate researcher. All humans with curiosity value knowledge and respect history. If Julian pursues discovery or reads widely, then he will make new breakthroughs. Everyone who has an inquisitive nature will pursue discovery. If someone keeps things tidy and finds the resources they need, then they can achieve success. If Julian has clear goals, then he either works efficiently or finds the resources he needs, but not both. Julian overcomes challenges. Julian does not make new breakthroughs. If Julian is a passionate researcher, then he finds the resources he needs and overcomes challenges. Julian does not achieve success. If Julian is dedicated to his field, then he is a passionate researcher. If Milana either values knowledge or pursues discovery (but not both), then he is a passionate researcher. Everyone who analyzes data either draws conclusions or respects history (or both). Milana loves learning. Julian is either organized or disorganized, but not both.
+Conclusion: Julian is disorganized.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Julian : Person
+axiom Samson : Person
+axiom Milana : Person
+
+-- Predicates
+axiom HiddenTalents : Person → Prop
+axiom Organized : Person → Prop
+axiom Disorganized : Person → Prop
+axiom CreatesNewOpportunities : Person → Prop
+axiom AvoidsRisks : Person → Prop
+axiom ReadsWidely : Person → Prop
+axiom Curious : Person → Prop
+axiom OvercomesChallenges : Person → Prop
+axiom ValuesKnowledge : Person → Prop
+axiom RespectsHistory : Person → Prop
+axiom PursuesDiscovery : Person → Prop
+axiom PassionateResearcher : Person → Prop
+axiom MakesNewBreakthroughs : Person → Prop
+axiom FindsResources : Person → Prop
+axiom AchieveSuccess : Person → Prop
+axiom ClearGoals : Person → Prop
+axiom WorksEfficiently : Person → Prop
+axiom DedicatedField : Person → Prop
+axiom InquisitiveNature : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom DrawsConclusions : Person → Prop
+axiom LovesLearning : Person → Prop
+
+-- Premises
+axiom A1  : HiddenTalents Julian → (Organized Julian ∨ CreatesNewOpportunities Julian)
+axiom A2  : ¬AvoidsRisks Julian
+axiom A3  : ¬ReadsWidely Julian
+axiom A4  : (Curious Julian ∨ AvoidsRisks Julian) ∧ ¬(Curious Julian ∧ AvoidsRisks Julian)
+axiom A5  : OvercomesChallenges Samson
+axiom A6  : ¬ReadsWidely Milana
+axiom A7  : ((ValuesKnowledge Julian ∨ PursuesDiscovery Julian) ∧ ¬(ValuesKnowledge Julian ∧ PursuesDiscovery Julian)) → PassionateResearcher Julian
+axiom A8  : ∀ x, Curious x → (ValuesKnowledge x ∧ RespectsHistory x)
+axiom A9  : (PursuesDiscovery Julian ∨ ReadsWidely Julian) → MakesNewBreakthroughs Julian
+axiom A10 : ∀ x, InquisitiveNature x → PursuesDiscovery x
+axiom A11 : ∀ x, (Organized x ∧ FindsResources x) → AchieveSuccess x
+axiom A12 : ClearGoals Julian → ((WorksEfficiently Julian ∨ FindsResources Julian) ∧ ¬(WorksEfficiently Julian ∧ FindsResources Julian))
+axiom A13 : OvercomesChallenges Julian
+axiom A14 : ¬MakesNewBreakthroughs Julian
+axiom A15 : PassionateResearcher Julian → (FindsResources Julian ∧ OvercomesChallenges Julian)
+axiom A16 : ¬AchieveSuccess Julian
+axiom A17 : DedicatedField Julian → PassionateResearcher Julian
+axiom A18 : ((ValuesKnowledge Milana ∨ PursuesDiscovery Milana) ∧ ¬(ValuesKnowledge Milana ∧ PursuesDiscovery Milana)) → PassionateResearcher Milana
+axiom A19 : ∀ x, AnalyzesData x → (DrawsConclusions x ∨ RespectsHistory x)
+axiom A20 : LovesLearning Milana
+axiom A21 : (Organized Julian ∨ Disorganized Julian) ∧ ¬(Organized Julian ∧ Disorganized Julian)
+
+-- Goal: Julian is disorganized
+theorem goal : Disorganized Julian := by
+  -- From xor(Curious, AvoidsRisks) and ¬AvoidsRisks, deduce Curious
+  have hx := A4
+  have hCur : Curious Julian := by
+    have hOr := And.left hx
+    cases hOr with
+    | inl hc => exact hc
+    | inr ha => exact False.elim (A2 ha)
+  -- Curious → (ValuesKnowledge ∧ RespectsHistory), hence ValuesKnowledge
+  have hVK_RH := A8 Julian hCur
+  have hVK : ValuesKnowledge Julian := And.left hVK_RH
+  -- From (Pursues ∨ Reads) → Breakthroughs and ¬Breakthroughs, deduce ¬(Pursues ∨ Reads), hence ¬Pursues
+  have hNotPorR : ¬(PursuesDiscovery Julian ∨ ReadsWidely Julian) := by
+    intro h
+    have mb := A9 h
+    exact A14 mb
+  have hNotPursues : ¬PursuesDiscovery Julian := by
+    intro hp
+    apply hNotPorR
+    exact Or.inl hp
+  -- Build exclusive-or (ValuesKnowledge xor PursuesDiscovery) to get PassionateResearcher
+  have hXOR : (ValuesKnowledge Julian ∨ PursuesDiscovery Julian) ∧ ¬(ValuesKnowledge Julian ∧ PursuesDiscovery Julian) := by
+    apply And.intro
+    · exact Or.inl hVK
+    · intro hboth
+      exact hNotPursues (And.right hboth)
+  have hPR : PassionateResearcher Julian := A7 hXOR
+  -- From PR, get FindsResources
+  have hFR_OC := A15 hPR
+  have hFR : FindsResources Julian := And.left hFR_OC
+  -- From ¬AchieveSuccess and (Organized ∧ FindsResources) → AchieveSuccess, deduce ¬Organized
+  have hNotOrg : ¬Organized Julian := by
+    intro hOrg
+    have hSucc := A11 Julian (And.intro hOrg hFR)
+    exact A16 hSucc
+  -- From (Organized ∨ Disorganized) and ¬Organized, deduce Disorganized
+  have hOrOD := And.left A21
+  cases hOrOD with
+  | inl hOrg => exact False.elim (hNotOrg hOrg)
+  | inr hDis => exact hDis
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+
+axiom Person : Type u
+axiom Julian : Person
+axiom Samson : Person
+axiom Milana : Person
+
+axiom HiddenTalents : Person → Prop
+axiom Organized : Person → Prop
+axiom CreatesNewOpportunities : Person → Prop
+axiom AvoidsRisks : Person → Prop
+axiom ReadsWidely : Person → Prop
+axiom Curious : Person → Prop
+axiom OvercomesChallenges : Person → Prop
+axiom ValuesKnowledge : Person → Prop
+axiom PursuesDiscovery : Person → Prop
+axiom PassionateResearcher : Person → Prop
+axiom RespectsHistory : Person → Prop
+axiom MakesNewBreakthroughs : Person → Prop
+axiom InquisitiveNature : Person → Prop
+axiom FindsResources : Person → Prop
+axiom AchieveSuccess : Person → Prop
+axiom ClearGoals : Person → Prop
+axiom WorksEfficiently : Person → Prop
+axiom DedicatedToField : Person → Prop
+axiom AnalyzesData : Person → Prop
+axiom DrawsConclusions : Person → Prop
+axiom LovesLearning : Person → Prop
+axiom Disorganized : Person → Prop
+
+-- Premises
+axiom premise1 : HiddenTalents Julian → (Organized Julian ∨ CreatesNewOpportunities Julian)
+axiom premise2 : ¬AvoidsRisks Julian
+axiom premise3 : ¬ReadsWidely Julian
+axiom premise4 : (Curious Julian ∨ AvoidsRisks Julian) ∧ ¬(Curious Julian ∧ AvoidsRisks Julian)
+axiom premise5 : OvercomesChallenges Samson
+axiom premise6 : ¬ReadsWidely Milana
+axiom premise7 : ((ValuesKnowledge Julian ∧ ¬PursuesDiscovery Julian) ∨ (PursuesDiscovery Julian ∧ ¬ValuesKnowledge Julian)) → PassionateResearcher Julian
+axiom premise8 : ∀ x : Person, Curious x → (ValuesKnowledge x ∧ RespectsHistory x)
+axiom premise9 : (PursuesDiscovery Julian ∨ ReadsWidely Julian) → MakesNewBreakthroughs Julian
+axiom premise10 : ∀ x : Person, InquisitiveNature x → PursuesDiscovery x
+axiom premise11 : ∀ x : Person, (Organized x ∧ FindsResources x) → AchieveSuccess x
+axiom premise12 : ClearGoals Julian → ((WorksEfficiently Julian ∨ FindsResources Julian) ∧ ¬(WorksEfficiently Julian ∧ FindsResources Julian))
+axiom premise13 : OvercomesChallenges Julian
+axiom premise14 : ¬MakesNewBreakthroughs Julian
+axiom premise15 : PassionateResearcher Julian → (FindsResources Julian ∧ OvercomesChallenges Julian)
+axiom premise16 : ¬AchieveSuccess Julian
+axiom premise17 : DedicatedToField Julian → PassionateResearcher Julian
+axiom premise18 : ((ValuesKnowledge Milana ∧ ¬PursuesDiscovery Milana) ∨ (PursuesDiscovery Milana ∧ ¬ValuesKnowledge Milana)) → PassionateResearcher Milana
+axiom premise19 : ∀ x : Person, AnalyzesData x → (DrawsConclusions x ∨ RespectsHistory x)
+axiom premise20 : LovesLearning Milana
+axiom premise21 : (Organized Julian ∨ Disorganized Julian) ∧ ¬(Organized Julian ∧ Disorganized Julian)
+
+set_option sorryAllowed true
+
+-- Negation of the conclusion: we try to prove Julian is not disorganized
+theorem neg_conclusion : ¬Disorganized Julian := by
+  -- Attempt to derive a contradiction from assuming Disorganized Julian,
+  -- but the given premises actually tend to imply Disorganized Julian.
+  -- Hence this goal is not derivable from the premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

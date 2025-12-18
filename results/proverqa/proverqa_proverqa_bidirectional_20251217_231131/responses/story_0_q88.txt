@@ -1,0 +1,221 @@
+Story ID: 0
+Example ID: 88
+Premises: For all camels, if they have a dry mouth and feel weak, then they are thirsty. If Goobers carries a heavy load, then he either stumbles frequently or feels exhausted (or both). Goobers does not reach water. Goobers does not have strong legs. If a camel stumbles frequently, then it loses balance and gets injured. For every camel, it is either thirsty or well-hydrated, but not both. If Goobers feels exhausted, then he either rests in the shade or walks briskly, but not both. Every camel that crosses the desert is either thirsty or finds an oasis. Goobers does not lose balance. Goobers gets injured. Goobers carries a heavy load. Goobers either rests in the shade or traverses dunes, but not both at the same time. All camels that have owners are able to carry loads and traverse dunes. If Goobers traverses dunes, then he either crosses the desert or reaches water. Goobers walks briskly. All camels that find an oasis have strong legs and endurance. Blossom does not lose balance.
+Conclusion: Goobers is well-hydrated.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Camel : Type
+axiom Goobers : Camel
+axiom Blossom : Camel
+
+axiom DryMouth : Camel → Prop
+axiom Weak : Camel → Prop
+axiom Thirsty : Camel → Prop
+axiom CarriesHeavy : Camel → Prop
+axiom Stumbles : Camel → Prop
+axiom Exhausted : Camel → Prop
+axiom ReachesWater : Camel → Prop
+axiom StrongLegs : Camel → Prop
+axiom LosesBalance : Camel → Prop
+axiom Injured : Camel → Prop
+axiom WellHydrated : Camel → Prop
+axiom RestsShade : Camel → Prop
+axiom WalksBriskly : Camel → Prop
+axiom CrossesDesert : Camel → Prop
+axiom TraversesDunes : Camel → Prop
+axiom HasOwner : Camel → Prop
+axiom AbleCarryLoads : Camel → Prop
+axiom AbleTraverseDunes : Camel → Prop
+axiom FindsOasis : Camel → Prop
+axiom Endurance : Camel → Prop
+
+-- Premises
+axiom ax1  : ∀ c : Camel, DryMouth c ∧ Weak c → Thirsty c
+axiom ax2  : CarriesHeavy Goobers → (Stumbles Goobers ∨ Exhausted Goobers)
+axiom ax3  : ¬ ReachesWater Goobers
+axiom ax4  : ¬ StrongLegs Goobers
+axiom ax5  : ∀ c : Camel, Stumbles c → (LosesBalance c ∧ Injured c)
+axiom ax6  : ∀ c : Camel, (Thirsty c ∨ WellHydrated c) ∧ ¬(Thirsty c ∧ WellHydrated c)
+axiom ax7  : Exhausted Goobers → ((RestsShade Goobers ∨ WalksBriskly Goobers) ∧ ¬(RestsShade Goobers ∧ WalksBriskly Goobers))
+axiom ax8  : ∀ c : Camel, CrossesDesert c → (Thirsty c ∨ FindsOasis c)
+axiom ax9  : ¬ LosesBalance Goobers
+axiom ax10 : Injured Goobers
+axiom ax11 : CarriesHeavy Goobers
+axiom ax12 : (RestsShade Goobers ∨ TraversesDunes Goobers) ∧ ¬(RestsShade Goobers ∧ TraversesDunes Goobers)
+axiom ax13 : ∀ c : Camel, HasOwner c → (AbleCarryLoads c ∧ AbleTraverseDunes c)
+axiom ax14 : TraversesDunes Goobers → (CrossesDesert Goobers ∨ ReachesWater Goobers)
+axiom ax15 : WalksBriskly Goobers
+axiom ax16 : ∀ c : Camel, FindsOasis c → (StrongLegs c ∧ Endurance c)
+axiom ax17 : ¬ LosesBalance Blossom
+
+-- Useful derived facts showing the conclusion is not derivable
+theorem goobers_not_stumbles : ¬ Stumbles Goobers := by
+  intro hs
+  have hl : LosesBalance Goobers := (ax5 Goobers hs).left
+  exact ax9 hl
+
+theorem goobers_exhausted : Exhausted Goobers := by
+  have h := ax2 ax11
+  cases h with
+  | inl hs =>
+      exact False.elim (ax9 ((ax5 Goobers hs).left))
+  | inr he => exact he
+
+theorem goobers_not_rest : ¬ RestsShade Goobers := by
+  intro r
+  have hx := ax7 goobers_exhausted
+  have hnotboth := hx.right
+  have ww := ax15
+  exact hnotboth ⟨r, ww⟩
+
+theorem goobers_traverses : TraversesDunes Goobers := by
+  have h := ax12.left
+  cases h with
+  | inl r => exact False.elim (goobers_not_rest r)
+  | inr t => exact t
+
+theorem goobers_crosses : CrossesDesert Goobers := by
+  have h := ax14 goobers_traverses
+  cases h with
+  | inl c => exact c
+  | inr rw => exact False.elim (ax3 rw)
+
+theorem goobers_not_oasis : ¬ FindsOasis Goobers := by
+  intro fo
+  have sl : StrongLegs Goobers := (ax16 Goobers fo).left
+  exact ax4 sl
+
+theorem goobers_thirsty : Thirsty Goobers := by
+  have h := ax8 Goobers goobers_crosses
+  cases h with
+  | inl th => exact th
+  | inr fo => exact False.elim (goobers_not_oasis fo)
+
+theorem goobers_not_wellHydrated : ¬ WellHydrated Goobers := by
+  intro wh
+  have h := ax6 Goobers
+  have notboth := h.right
+  exact notboth ⟨goobers_thirsty, wh⟩
+
+-- Conclusion to analyze (cannot be proved from the premises)
+theorem conclusion : WellHydrated Goobers := by
+  -- This goal is not derivable from the given premises; in fact, we proved ¬ WellHydrated Goobers above.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Camel : Type
+axiom Goobers : Camel
+axiom Blossom : Camel
+
+axiom DryMouth : Camel → Prop
+axiom Weak : Camel → Prop
+axiom Thirsty : Camel → Prop
+axiom HeavyLoad : Camel → Prop
+axiom Stumbles : Camel → Prop
+axiom Exhausted : Camel → Prop
+axiom ReachWater : Camel → Prop
+axiom StrongLegs : Camel → Prop
+axiom LoseBalance : Camel → Prop
+axiom Injured : Camel → Prop
+axiom WellHydrated : Camel → Prop
+axiom RestShade : Camel → Prop
+axiom WalksBriskly : Camel → Prop
+axiom CrossDesert : Camel → Prop
+axiom FindsOasis : Camel → Prop
+axiom TraversesDunes : Camel → Prop
+axiom HasOwner : Camel → Prop
+axiom AbleCarryLoads : Camel → Prop
+axiom Endurance : Camel → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Camel, (DryMouth x ∧ Weak x) → Thirsty x
+axiom premise2 : HeavyLoad Goobers → (Stumbles Goobers ∨ Exhausted Goobers)
+axiom premise3 : ¬ ReachWater Goobers
+axiom premise4 : ¬ StrongLegs Goobers
+axiom premise5 : ∀ x : Camel, Stumbles x → (LoseBalance x ∧ Injured x)
+axiom premise6 : ∀ x : Camel, (Thirsty x ∨ WellHydrated x) ∧ ¬(Thirsty x ∧ WellHydrated x)
+axiom premise7 : Exhausted Goobers → ((RestShade Goobers ∨ WalksBriskly Goobers) ∧ ¬(RestShade Goobers ∧ WalksBriskly Goobers))
+axiom premise8 : ∀ x : Camel, CrossDesert x → (Thirsty x ∨ FindsOasis x)
+axiom premise9 : ¬ LoseBalance Goobers
+axiom premise10 : Injured Goobers
+axiom premise11 : HeavyLoad Goobers
+axiom premise12 : (RestShade Goobers ∨ TraversesDunes Goobers) ∧ ¬(RestShade Goobers ∧ TraversesDunes Goobers)
+axiom premise13 : ∀ x : Camel, HasOwner x → (AbleCarryLoads x ∧ TraversesDunes x)
+axiom premise14 : TraversesDunes Goobers → (CrossDesert Goobers ∨ ReachWater Goobers)
+axiom premise15 : WalksBriskly Goobers
+axiom premise16 : ∀ x : Camel, FindsOasis x → (StrongLegs x ∧ Endurance x)
+axiom premise17 : ¬ LoseBalance Blossom
+
+-- Goal: negate the conclusion "Goobers is well-hydrated"
+theorem goal : ¬ WellHydrated Goobers := by
+  -- From heavy load, Goobers either stumbles or is exhausted
+  have hSE : Stumbles Goobers ∨ Exhausted Goobers := premise2 premise11
+  -- Show Goobers does not stumble (would contradict no loss of balance)
+  have hNotStumbles : ¬ Stumbles Goobers := by
+    intro hS
+    have hLB_and_inj := premise5 Goobers hS
+    have hLB : LoseBalance Goobers := And.left hLB_and_inj
+    exact premise9 hLB
+  -- Therefore, Goobers is exhausted
+  have hEx : Exhausted Goobers := by
+    cases hSE with
+    | inl hS => exact False.elim (hNotStumbles hS)
+    | inr hE => exact hE
+  -- From exhaustion, (rest or brisk) and not both; combined with brisk -> not rest
+  have h7 := premise7 hEx
+  have hNotBothRW : ¬ (RestShade Goobers ∧ WalksBriskly Goobers) := And.right h7
+  have hNotRest : ¬ RestShade Goobers := by
+    intro hR
+    exact hNotBothRW (And.intro hR premise15)
+  -- From (rest or traverse) and not rest, deduce traverse
+  have h12 := premise12
+  have hTrav : TraversesDunes Goobers := by
+    cases (And.left h12) with
+    | inl hR => exact False.elim (hNotRest hR)
+    | inr hT => exact hT
+  -- From traverse -> (cross or reach water), but not reach water, so cross
+  have hCross : CrossDesert Goobers := by
+    cases premise14 hTrav with
+    | inl hC => exact hC
+    | inr hW => exact False.elim (premise3 hW)
+  -- From crossing desert -> (thirsty or finds oasis)
+  have hTO : Thirsty Goobers ∨ FindsOasis Goobers := premise8 Goobers hCross
+  -- Can't find oasis (would give strong legs, which is false)
+  have hNotOasis : ¬ FindsOasis Goobers := by
+    intro hO
+    have hSL_and_End := premise16 Goobers hO
+    have hSL : StrongLegs Goobers := And.left hSL_and_End
+    exact premise4 hSL
+  -- Therefore, Goobers is thirsty
+  have hThirst : Thirsty Goobers := by
+    cases hTO with
+    | inl hT => exact hT
+    | inr hO => exact False.elim (hNotOasis hO)
+  -- Use exclusivity to rule out well-hydrated
+  have hNotBoth : ¬ (Thirsty Goobers ∧ WellHydrated Goobers) := And.right (premise6 Goobers)
+  intro hWH
+  exact hNotBoth (And.intro hThirst hWH)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

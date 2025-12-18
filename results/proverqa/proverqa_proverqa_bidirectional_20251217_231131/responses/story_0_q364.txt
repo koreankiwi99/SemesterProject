@@ -1,0 +1,266 @@
+Story ID: 0
+Example ID: 364
+Premises: If someone either handles emergencies or makes quick decisions (but not both), then they work under pressure. Anyone who feels empathy and takes initiative will act selflessly. Kingsley does not prioritize others. If Valeria cares for others and acts selflessly, then she will be remembered as a hero. If someone stays calm, they may not always think critically, and vice versa. Kingsley prioritizes others or puts others first. Valeria does not save lives. Zain does not save lives. Valeria shows empathy or puts others first. Valeria stays calm. Valeria does not make quick decisions. If Valeria works under pressure, then she either saves lives or cares for others (or both). If Kingsley cares for others and acts selflessly, then she will be remembered as a hero. Valeria prioritizes others or puts others first. If Valeria either thinks critically or responds flexibly (but not both), then she is able to handle emergencies. Valeria does not prioritize others. If Kingsley either thinks critically or responds flexibly (but not both), then she is able to handle emergencies. Anyone who helps those in need or puts others first can act selflessly. Valeria responds flexibly. Everyone manages resources or handles emergencies.
+Conclusion: Valeria will not be remembered as a hero.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+set_option sorryAllowed true
+open Classical
+
+axiom Person : Type
+
+-- Individuals
+axiom Kingsley : Person
+axiom Valeria : Person
+axiom Zain : Person
+
+-- Predicates
+axiom HandlesEmergencies : Person → Prop
+axiom MakesQuickDecisions : Person → Prop
+axiom WorksUnderPressure : Person → Prop
+axiom FeelsEmpathy : Person → Prop
+axiom TakesInitiative : Person → Prop
+axiom ActsSelflessly : Person → Prop
+axiom PrioritizesOthers : Person → Prop
+axiom CaresForOthers : Person → Prop
+axiom RememberedAsHero : Person → Prop
+axiom StaysCalm : Person → Prop
+axiom ThinksCritically : Person → Prop
+axiom PutsOthersFirst : Person → Prop
+axiom SavesLives : Person → Prop
+axiom ShowsEmpathy : Person → Prop
+axiom RespondsFlexibly : Person → Prop
+axiom HelpsThoseInNeed : Person → Prop
+axiom ManagesResources : Person → Prop
+axiom AbleToHandleEmergencies : Person → Prop
+
+-- Premises
+-- 1. If someone either handles emergencies or makes quick decisions (but not both), then they work under pressure.
+axiom prem1 :
+  ∀ x : Person,
+    ((HandlesEmergencies x ∨ MakesQuickDecisions x) ∧ ¬(HandlesEmergencies x ∧ MakesQuickDecisions x))
+    → WorksUnderPressure x
+
+-- 2. Anyone who feels empathy and takes initiative will act selflessly.
+axiom prem2 : ∀ x : Person, (FeelsEmpathy x ∧ TakesInitiative x) → ActsSelflessly x
+
+-- 3. Kingsley does not prioritize others.
+axiom prem3 : ¬ PrioritizesOthers Kingsley
+
+-- 4. If Valeria cares for others and acts selflessly, then she will be remembered as a hero.
+axiom prem4 : (CaresForOthers Valeria ∧ ActsSelflessly Valeria) → RememberedAsHero Valeria
+
+-- 5. If someone stays calm, they may not always think critically, and vice versa.
+-- We encode the "and vice versa" as mutual exclusion: calm implies not critical, and critical implies not calm.
+axiom prem5a : ∀ x : Person, StaysCalm x → ¬ ThinksCritically x
+axiom prem5b : ∀ x : Person, ThinksCritically x → ¬ StaysCalm x
+
+-- 6. Kingsley prioritizes others or puts others first.
+axiom prem6 : PrioritizesOthers Kingsley ∨ PutsOthersFirst Kingsley
+
+-- 7. Valeria does not save lives.
+axiom prem7 : ¬ SavesLives Valeria
+
+-- 8. Zain does not save lives.
+axiom prem8 : ¬ SavesLives Zain
+
+-- 9. Valeria shows empathy or puts others first.
+axiom prem9 : ShowsEmpathy Valeria ∨ PutsOthersFirst Valeria
+
+-- 10. Valeria stays calm.
+axiom prem10 : StaysCalm Valeria
+
+-- 11. Valeria does not make quick decisions.
+axiom prem11 : ¬ MakesQuickDecisions Valeria
+
+-- 12. If Valeria works under pressure, then she either saves lives or cares for others (or both).
+axiom prem12 : WorksUnderPressure Valeria → (SavesLives Valeria ∨ CaresForOthers Valeria)
+
+-- 13. If Kingsley cares for others and acts selflessly, then she will be remembered as a hero.
+axiom prem13 : (CaresForOthers Kingsley ∧ ActsSelflessly Kingsley) → RememberedAsHero Kingsley
+
+-- 14. Valeria prioritizes others or puts others first.
+axiom prem14 : PrioritizesOthers Valeria ∨ PutsOthersFirst Valeria
+
+-- 15. If Valeria either thinks critically or responds flexibly (but not both), then she is able to handle emergencies.
+axiom prem15 :
+  ((ThinksCritically Valeria ∨ RespondsFlexibly Valeria) ∧ ¬(ThinksCritically Valeria ∧ RespondsFlexibly Valeria))
+  → AbleToHandleEmergencies Valeria
+
+-- 16. Valeria does not prioritize others.
+axiom prem16 : ¬ PrioritizesOthers Valeria
+
+-- 17. If Kingsley either thinks critically or responds flexibly (but not both), then she is able to handle emergencies.
+axiom prem17 :
+  ((ThinksCritically Kingsley ∨ RespondsFlexibly Kingsley) ∧ ¬(ThinksCritically Kingsley ∧ RespondsFlexibly Kingsley))
+  → AbleToHandleEmergencies Kingsley
+
+-- 18. Anyone who helps those in need or puts others first can act selflessly.
+axiom prem18 : ∀ x : Person, (HelpsThoseInNeed x ∨ PutsOthersFirst x) → ActsSelflessly x
+
+-- 19. Valeria responds flexibly.
+axiom prem19 : RespondsFlexibly Valeria
+
+-- 20. Everyone manages resources or handles emergencies.
+axiom prem20 : ∀ x : Person, ManagesResources x ∨ HandlesEmergencies x
+
+-- Conclusion to prove: Valeria will not be remembered as a hero.
+theorem conclusion : ¬ RememberedAsHero Valeria := by
+  -- Some derived facts:
+  -- From (14) and (16), Valeria puts others first.
+  have v_puts : PutsOthersFirst Valeria := by
+    rcases prem14 with h | h
+    · exact (prem16 h).elim
+    · exact h
+  -- From (18), putting others first implies acting selflessly.
+  have v_selfless : ActsSelflessly Valeria := by
+    exact prem18 Valeria (Or.inr v_puts)
+  -- From (10) and (5a), Valeria does not think critically.
+  have v_not_critical : ¬ ThinksCritically Valeria := by
+    exact prem5a Valeria prem10
+  -- From not critical and responds flexibly, the XOR antecedent of (15) holds, so she is able to handle emergencies.
+  have v_able_handle : AbleToHandleEmergencies Valeria := by
+    apply prem15
+    constructor
+    · exact Or.inr prem19
+    · intro h_and
+      have : ThinksCritically Valeria := And.left h_and
+      exact v_not_critical this
+  -- At this point, we cannot derive that Valeria handles emergencies (only that she is able to),
+  -- and thus cannot derive she works under pressure; consequently we cannot obtain that she cares for others.
+  -- Without ¬(CaresForOthers Valeria) or a link from hero to a contradiction, we cannot prove ¬RememberedAsHero Valeria.
+  -- Hence we leave the goal unproven.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Valeria : Person
+axiom Kingsley : Person
+axiom Zain : Person
+
+axiom HandlesEmergencies : Person → Prop
+axiom MakesQuickDecisions : Person → Prop
+axiom WorksUnderPressure : Person → Prop
+axiom FeelsEmpathy : Person → Prop
+axiom TakesInitiative : Person → Prop
+axiom ActsSelflessly : Person → Prop
+axiom PrioritizesOthers : Person → Prop
+axiom PutsOthersFirst : Person → Prop
+axiom CaresForOthers : Person → Prop
+axiom RememberedAsHero : Person → Prop
+axiom StaysCalm : Person → Prop
+axiom ThinksCritically : Person → Prop
+axiom RespondsFlexibly : Person → Prop
+axiom HelpsThoseInNeed : Person → Prop
+axiom ManagesResources : Person → Prop
+axiom SavesLives : Person → Prop
+
+-- Premises
+axiom p1 :
+  ∀ x : Person,
+    (((HandlesEmergencies x ∧ ¬MakesQuickDecisions x) ∨ (MakesQuickDecisions x ∧ ¬HandlesEmergencies x))
+      → WorksUnderPressure x)
+
+axiom p2 : ∀ x : Person, (FeelsEmpathy x ∧ TakesInitiative x) → ActsSelflessly x
+
+axiom p3 : ¬PrioritizesOthers Kingsley
+
+axiom p4 : (CaresForOthers Valeria ∧ ActsSelflessly Valeria) → RememberedAsHero Valeria
+
+axiom p5a : ∀ x : Person, StaysCalm x → ¬ThinksCritically x
+axiom p5b : ∀ x : Person, ThinksCritically x → ¬StaysCalm x
+
+axiom p6 : PrioritizesOthers Kingsley ∨ PutsOthersFirst Kingsley
+
+axiom p7 : ¬SavesLives Valeria
+
+axiom p8 : ¬SavesLives Zain
+
+axiom p9 : FeelsEmpathy Valeria ∨ PutsOthersFirst Valeria
+
+axiom p10 : StaysCalm Valeria
+
+axiom p11 : ¬MakesQuickDecisions Valeria
+
+axiom p12 : WorksUnderPressure Valeria → (SavesLives Valeria ∨ CaresForOthers Valeria)
+
+axiom p13 : (CaresForOthers Kingsley ∧ ActsSelflessly Kingsley) → RememberedAsHero Kingsley
+
+axiom p14 : PrioritizesOthers Valeria ∨ PutsOthersFirst Valeria
+
+axiom p15 :
+  ((ThinksCritically Valeria ∧ ¬RespondsFlexibly Valeria) ∨ (RespondsFlexibly Valeria ∧ ¬ThinksCritically Valeria))
+    → HandlesEmergencies Valeria
+
+axiom p16 : ¬PrioritizesOthers Valeria
+
+axiom p17 :
+  ((ThinksCritically Kingsley ∧ ¬RespondsFlexibly Kingsley) ∨ (RespondsFlexibly Kingsley ∧ ¬ThinksCritically Kingsley))
+    → HandlesEmergencies Kingsley
+
+axiom p18 : ∀ x : Person, (HelpsThoseInNeed x ∨ PutsOthersFirst x) → ActsSelflessly x
+
+axiom p19 : RespondsFlexibly Valeria
+
+axiom p20 : ∀ x : Person, ManagesResources x ∨ HandlesEmergencies x
+
+-- Negation of the conclusion: Valeria will be remembered as a hero
+theorem goal : RememberedAsHero Valeria := by
+  -- ¬ThinksCritically Valeria from calm
+  have hNotTC : ¬ThinksCritically Valeria := by
+    exact (p5a Valeria) p10
+  -- HandlesEmergencies Valeria from XOR (TC ⊕ RF)
+  have hHE : HandlesEmergencies Valeria := by
+    have xorVRF :
+      (ThinksCritically Valeria ∧ ¬RespondsFlexibly Valeria) ∨
+      (RespondsFlexibly Valeria ∧ ¬ThinksCritically Valeria) := by
+      exact Or.inr ⟨p19, hNotTC⟩
+    exact p15 xorVRF
+  -- WorksUnderPressure Valeria from XOR (HE ⊕ MQD)
+  have hWUP : WorksUnderPressure Valeria := by
+    have xorHE_MQD :
+      (HandlesEmergencies Valeria ∧ ¬MakesQuickDecisions Valeria) ∨
+      (MakesQuickDecisions Valeria ∧ ¬HandlesEmergencies Valeria) := by
+      exact Or.inl ⟨hHE, p11⟩
+    exact (p1 Valeria) xorHE_MQD
+  -- From WUP and ¬SavesLives, get CaresForOthers Valeria
+  have hCare : CaresForOthers Valeria := by
+    have h := p12 hWUP
+    cases h with
+    | inl hSL =>
+        exact False.elim (p7 hSL)
+    | inr hCO =>
+        exact hCO
+  -- From (PO ∨ POF) and ¬PO, get POF, hence Selfless via p18
+  have hPOF : PutsOthersFirst Valeria := by
+    cases p14 with
+    | inl hPO => exact False.elim (p16 hPO)
+    | inr hPF => exact hPF
+  have hSelf : ActsSelflessly Valeria := by
+    exact (p18 Valeria) (Or.inr hPOF)
+  -- Therefore, Valeria is remembered as a hero
+  exact p4 ⟨hCare, hSelf⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

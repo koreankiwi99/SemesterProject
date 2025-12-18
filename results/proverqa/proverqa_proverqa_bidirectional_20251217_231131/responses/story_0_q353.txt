@@ -1,0 +1,202 @@
+Story ID: 0
+Example ID: 353
+Premises: If Cuddlebug either respects nature or harms nature (but not both), then he is responsible. Devin visits beaches or enjoys hiking. If Devin enjoys hiking, then he either grows up outdoors or appreciates biodiversity, but not both. For Devin, he either conserves wildlife or harms nature, but not both. If Cuddlebug grows up outdoors, then he values the ecosystem and promotes sustainability. For anyone, if they love marine life and promote sustainability, then they conserve wildlife. If Devin either protects habitats or preserves water quality (but not both), then he conserves wildlife. Devin does not appreciate biodiversity. If Devin grows up outdoors, then he values the ecosystem and promotes sustainability. Devin does not explore caves. Cuddlebug does not explore caves. Devin loves marine life. Devin collects rocks. If Devin either explores caves or collects rocks (but not both), then he enjoys hiking.
+Conclusion: Devin is not responsible.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Cuddlebug : Person
+axiom Devin : Person
+
+axiom RespectsNature : Person → Prop
+axiom HarmsNature : Person → Prop
+axiom Responsible : Person → Prop
+axiom VisitsBeaches : Person → Prop
+axiom EnjoysHiking : Person → Prop
+axiom GrowsOutdoors : Person → Prop
+axiom AppreciatesBiodiversity : Person → Prop
+axiom ConservesWildlife : Person → Prop
+axiom ProtectsHabitats : Person → Prop
+axiom PreservesWaterQuality : Person → Prop
+axiom ValuesEcosystem : Person → Prop
+axiom PromotesSustainability : Person → Prop
+axiom LovesMarineLife : Person → Prop
+axiom ExploresCaves : Person → Prop
+axiom CollectsRocks : Person → Prop
+
+-- Premises
+axiom A1 :
+  ((RespectsNature Cuddlebug ∨ HarmsNature Cuddlebug) ∧ ¬ (RespectsNature Cuddlebug ∧ HarmsNature Cuddlebug))
+  → Responsible Cuddlebug
+axiom A2 : VisitsBeaches Devin ∨ EnjoysHiking Devin
+axiom A3 :
+  EnjoysHiking Devin →
+  ((GrowsOutdoors Devin ∨ AppreciatesBiodiversity Devin) ∧ ¬ (GrowsOutdoors Devin ∧ AppreciatesBiodiversity Devin))
+axiom A4 :
+  ((ConservesWildlife Devin ∨ HarmsNature Devin) ∧ ¬ (ConservesWildlife Devin ∧ HarmsNature Devin))
+axiom A5 : GrowsOutdoors Cuddlebug → (ValuesEcosystem Cuddlebug ∧ PromotesSustainability Cuddlebug)
+axiom A6 : ∀ x : Person, (LovesMarineLife x ∧ PromotesSustainability x) → ConservesWildlife x
+axiom A7 :
+  ((ProtectsHabitats Devin ∨ PreservesWaterQuality Devin) ∧ ¬ (ProtectsHabitats Devin ∧ PreservesWaterQuality Devin))
+  → ConservesWildlife Devin
+axiom A8 : ¬ AppreciatesBiodiversity Devin
+axiom A9 : GrowsOutdoors Devin → (ValuesEcosystem Devin ∧ PromotesSustainability Devin)
+axiom A10 : ¬ ExploresCaves Devin
+axiom A11 : ¬ ExploresCaves Cuddlebug
+axiom A12 : LovesMarineLife Devin
+axiom A13 : CollectsRocks Devin
+axiom A14 :
+  ((ExploresCaves Devin ∨ CollectsRocks Devin) ∧ ¬ (ExploresCaves Devin ∧ CollectsRocks Devin))
+  → EnjoysHiking Devin
+
+-- Conclusion to prove: Devin is not responsible.
+theorem goal : ¬ Responsible Devin := by
+  -- From ¬ExploresCaves Devin and CollectsRocks Devin, we get the XOR needed for A14
+  have hx_explore_collect :
+      (ExploresCaves Devin ∨ CollectsRocks Devin) ∧ ¬ (ExploresCaves Devin ∧ CollectsRocks Devin) := by
+    apply And.intro
+    · exact Or.inr A13
+    · intro hboth
+      have : ExploresCaves Devin := And.left hboth
+      exact A10 this
+  -- Hence Devin enjoys hiking
+  have h_hike : EnjoysHiking Devin := A14 hx_explore_collect
+  -- From enjoying hiking, Devin either grows outdoors or appreciates biodiversity (but not both)
+  have h_go_or_ab :
+      (GrowsOutdoors Devin ∨ AppreciatesBiodiversity Devin) ∧
+      ¬ (GrowsOutdoors Devin ∧ AppreciatesBiodiversity Devin) := A3 h_hike
+  -- Using ¬ AppreciatesBiodiversity Devin, conclude GrowsOutdoors Devin
+  have h_grow : GrowsOutdoors Devin := by
+    have hor := h_go_or_ab.left
+    cases hor with
+    | inl g => exact g
+    | inr ab => exact False.elim (A8 ab)
+  -- From growing outdoors, Devin promotes sustainability
+  have h_promote : PromotesSustainability Devin := (A9 h_grow).right
+  -- From loving marine life and promoting sustainability, Devin conserves wildlife
+  have h_conserve : ConservesWildlife Devin := by
+    have : LovesMarineLife Devin ∧ PromotesSustainability Devin := And.intro A12 h_promote
+    exact A6 Devin this
+  -- From the XOR between conserving and harming nature, conclude Devin does not harm nature
+  have h_no_harm : ¬ HarmsNature Devin := by
+    have hx := A4
+    have not_both : ¬ (ConservesWildlife Devin ∧ HarmsNature Devin) := hx.right
+    exact fun hH => not_both (And.intro h_conserve hH)
+  -- No premises relate Devin's (non-)responsibility to any established facts, so the goal is not derivable
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Devin : Person
+axiom Cuddlebug : Person
+
+axiom RespectsNature : Person → Prop
+axiom HarmsNature : Person → Prop
+axiom Responsible : Person → Prop
+axiom VisitsBeaches : Person → Prop
+axiom EnjoysHiking : Person → Prop
+axiom GrowsUpOutdoors : Person → Prop
+axiom AppreciatesBiodiversity : Person → Prop
+axiom ConservesWildlife : Person → Prop
+axiom ValuesEcosystem : Person → Prop
+axiom PromotesSustainability : Person → Prop
+axiom ProtectsHabitats : Person → Prop
+axiom PreservesWaterQuality : Person → Prop
+axiom ExploresCaves : Person → Prop
+axiom LovesMarineLife : Person → Prop
+axiom CollectsRocks : Person → Prop
+
+-- Premises
+axiom premise1 :
+  ((RespectsNature Cuddlebug ∧ ¬ HarmsNature Cuddlebug) ∨
+   (HarmsNature Cuddlebug ∧ ¬ RespectsNature Cuddlebug)) → Responsible Cuddlebug
+
+axiom premise2 : VisitsBeaches Devin ∨ EnjoysHiking Devin
+
+axiom premise3 :
+  EnjoysHiking Devin →
+    ((GrowsUpOutdoors Devin ∧ ¬ AppreciatesBiodiversity Devin) ∨
+     (AppreciatesBiodiversity Devin ∧ ¬ GrowsUpOutdoors Devin))
+
+axiom premise4 :
+  (ConservesWildlife Devin ∧ ¬ HarmsNature Devin) ∨
+  (HarmsNature Devin ∧ ¬ ConservesWildlife Devin)
+
+axiom premise5 :
+  GrowsUpOutdoors Cuddlebug → (ValuesEcosystem Cuddlebug ∧ PromotesSustainability Cuddlebug)
+
+axiom premise6 :
+  ∀ x : Person, (LovesMarineLife x ∧ PromotesSustainability x) → ConservesWildlife x
+
+axiom premise7 :
+  ((ProtectsHabitats Devin ∧ ¬ PreservesWaterQuality Devin) ∨
+   (PreservesWaterQuality Devin ∧ ¬ ProtectsHabitats Devin)) → ConservesWildlife Devin
+
+axiom premise8 : ¬ AppreciatesBiodiversity Devin
+
+axiom premise9 :
+  GrowsUpOutdoors Devin → (ValuesEcosystem Devin ∧ PromotesSustainability Devin)
+
+axiom premise10 : ¬ ExploresCaves Devin
+axiom premise11 : ¬ ExploresCaves Cuddlebug
+axiom premise12 : LovesMarineLife Devin
+axiom premise13 : CollectsRocks Devin
+
+axiom premise14 :
+  ((ExploresCaves Devin ∧ ¬ CollectsRocks Devin) ∨
+   (CollectsRocks Devin ∧ ¬ ExploresCaves Devin)) → EnjoysHiking Devin
+
+-- Negation of the conclusion: we try to prove that Devin IS responsible.
+theorem negation_of_conclusion : Responsible Devin := by
+  -- Derive enjoys hiking from exclusive-or of caves vs rocks
+  have hXORcr : (ExploresCaves Devin ∧ ¬ CollectsRocks Devin) ∨ (CollectsRocks Devin ∧ ¬ ExploresCaves Devin) := by
+    right
+    exact And.intro premise13 premise10
+  have hHike : EnjoysHiking Devin := premise14 hXORcr
+
+  -- From hiking and not appreciating biodiversity, get grows up outdoors
+  have hGxor : (GrowsUpOutdoors Devin ∧ ¬ AppreciatesBiodiversity Devin) ∨
+               (AppreciatesBiodiversity Devin ∧ ¬ GrowsUpOutdoors Devin) :=
+    premise3 hHike
+  have hGrow : GrowsUpOutdoors Devin := by
+    cases hGxor with
+    | inl h => exact h.left
+    | inr h =>
+      have : False := premise8 h.left
+      exact False.elim this
+
+  -- From growing up outdoors, get promotes sustainability
+  have hVE_PS : ValuesEcosystem Devin ∧ PromotesSustainability Devin := premise9 hGrow
+  have hPS : PromotesSustainability Devin := hVE_PS.right
+
+  -- From loves marine life and promotes sustainability, get conserves wildlife
+  have hCons : ConservesWildlife Devin :=
+    premise6 Devin (And.intro premise12 hPS)
+
+  -- No premise connects Devin's conservation/responsibility to responsibility.
+  -- Hence we cannot conclude Responsible Devin from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

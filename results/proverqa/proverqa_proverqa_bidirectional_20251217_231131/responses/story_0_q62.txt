@@ -1,0 +1,225 @@
+Story ID: 0
+Example ID: 62
+Premises: If Alice displays courage, then she earns respect and receives high honor. For all humans, if someone is a war hero, then they either receive high honor or inspire others (or both). Alice serves her country or is a war hero. Ila does not help others. Alice does not exemplify integrity. If Kaiden receives high honor, then she demonstrates bravery and shows selflessness. If Alice receives high honor, then she demonstrates bravery and shows selflessness. Alice does not help others. If Alice either shows selflessness or helps others (but not both), then she exemplifies integrity. If Alice shows courage or risks her life, then she is a war hero. Kaiden upholds justice. Ila does not exemplify integrity. All people who enlist in the military either serve their country or defend freedom. If Ila either shows selflessness or helps others (but not both), then she exemplifies integrity. Alice upholds justice. Anyone who follows orders or risks their own life serves their country. Alice enlists in the military. Anyone who risks their life either shows selflessness or earns recognition. If someone upholds justice, then they defend freedom.
+Conclusion: Alice inspires others.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+-- Individuals
+axiom Alice : Person
+axiom Ila : Person
+axiom Kaiden : Person
+
+-- Predicates
+axiom DisplaysCourage : Person → Prop
+axiom EarnsRespect : Person → Prop
+axiom HighHonor : Person → Prop
+axiom WarHero : Person → Prop
+axiom Inspires : Person → Prop
+axiom ServesCountry : Person → Prop
+axiom HelpsOthers : Person → Prop
+axiom Integrity : Person → Prop
+axiom Bravery : Person → Prop
+axiom Selflessness : Person → Prop
+axiom RisksLife : Person → Prop
+axiom UpholdsJustice : Person → Prop
+axiom Enlists : Person → Prop
+axiom DefendFreedom : Person → Prop
+axiom FollowsOrders : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom ShowsCourage : Person → Prop  -- alias if needed (not used)
+
+-- Premises
+axiom p1 : DisplaysCourage Alice → (EarnsRespect Alice ∧ HighHonor Alice)
+axiom p2 : ∀ x : Person, WarHero x → (HighHonor x ∨ Inspires x)
+axiom p3 : ServesCountry Alice ∨ WarHero Alice
+axiom p4 : ¬ HelpsOthers Ila
+axiom p5 : ¬ Integrity Alice
+axiom p6 : HighHonor Kaiden → (Bravery Kaiden ∧ Selflessness Kaiden)
+axiom p7 : HighHonor Alice → (Bravery Alice ∧ Selflessness Alice)
+axiom p8 : ¬ HelpsOthers Alice
+axiom p9 : ((Selflessness Alice ∨ HelpsOthers Alice) ∧ ¬ (Selflessness Alice ∧ HelpsOthers Alice)) → Integrity Alice
+axiom p10 : (DisplaysCourage Alice ∨ RisksLife Alice) → WarHero Alice
+axiom p11 : UpholdsJustice Kaiden
+axiom p12 : ¬ Integrity Ila
+axiom p13 : ∀ x : Person, Enlists x → (ServesCountry x ∨ DefendFreedom x)
+axiom p14 : ((Selflessness Ila ∨ HelpsOthers Ila) ∧ ¬ (Selflessness Ila ∧ HelpsOthers Ila)) → Integrity Ila
+axiom p15 : UpholdsJustice Alice
+axiom p16 : ∀ x : Person, (FollowsOrders x ∨ RisksLife x) → ServesCountry x
+axiom p17 : Enlists Alice
+axiom p18 : ∀ x : Person, RisksLife x → (Selflessness x ∨ EarnsRecognition x)
+axiom p19 : ∀ x : Person, UpholdsJustice x → DefendFreedom x
+
+-- Goal: Alice inspires others.
+theorem goal : Inspires Alice := by
+  -- From ¬Helps Alice and the XOR-to-Integrity rule, we get ¬Selflessness Alice
+  have notSelf : ¬ Selflessness Alice := by
+    intro s
+    have disj : Selflessness Alice ∨ HelpsOthers Alice := Or.inl s
+    have notboth : ¬ (Selflessness Alice ∧ HelpsOthers Alice) := by
+      intro h
+      exact p8 h.right
+    have xorAnte : (Selflessness Alice ∨ HelpsOthers Alice) ∧ ¬ (Selflessness Alice ∧ HelpsOthers Alice) :=
+      And.intro disj notboth
+    have integ : Integrity Alice := p9 xorAnte
+    exact p5 integ
+  -- Hence ¬HighHonor Alice since HighHonor -> Selflessness
+  have notHigh : ¬ HighHonor Alice := by
+    intro hh
+    have selfs : Selflessness Alice := (p7 hh).right
+    exact notSelf selfs
+  -- War hero implies inspires (since the HighHonor branch is impossible)
+  have wh_imp_insp : WarHero Alice → Inspires Alice := by
+    intro wh
+    have hdisj : HighHonor Alice ∨ Inspires Alice := p2 Alice wh
+    cases hdisj with
+    | inl hh => exact False.elim (notHigh hh)
+    | inr ins => exact ins
+  -- Use the disjunction ServesCountry Alice ∨ WarHero Alice
+  cases p3 with
+  | inr wh => exact wh_imp_insp wh
+  | inl serv =>
+    -- Derivable facts (not sufficient to conclude WarHero or Inspires)
+    have _df : DefendFreedom Alice := p19 Alice p15
+    have _sd : ServesCountry Alice ∨ DefendFreedom Alice := p13 Alice p17
+    -- Stuck: no way to derive WarHero or Inspires from ServesCountry with given premises
+    sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Alice : Person
+axiom Ila : Person
+axiom Kaiden : Person
+
+-- Predicates
+axiom Courage : Person → Prop
+axiom EarnsRespect : Person → Prop
+axiom HighHonor : Person → Prop
+axiom WarHero : Person → Prop
+axiom Inspires : Person → Prop
+axiom Serves : Person → Prop
+axiom Helps : Person → Prop
+axiom Integrity : Person → Prop
+axiom Bravery : Person → Prop
+axiom Selfless : Person → Prop
+axiom RisksLife : Person → Prop
+axiom UpholdsJustice : Person → Prop
+axiom Enlists : Person → Prop
+axiom DefendsFreedom : Person → Prop
+axiom FollowsOrders : Person → Prop
+axiom EarnsRecognition : Person → Prop
+
+-- Premises
+-- If Alice displays courage, then she earns respect and receives high honor.
+axiom ax1 : Courage Alice → (EarnsRespect Alice ∧ HighHonor Alice)
+
+-- For all humans, if someone is a war hero, then they either receive high honor or inspire others (or both).
+axiom ax2 : ∀ x : Person, WarHero x → (HighHonor x ∨ Inspires x)
+
+-- Alice serves her country or is a war hero.
+axiom ax3 : Serves Alice ∨ WarHero Alice
+
+-- Ila does not help others.
+axiom ax4 : ¬Helps Ila
+
+-- Alice does not exemplify integrity.
+axiom ax5 : ¬Integrity Alice
+
+-- If Kaiden receives high honor, then she demonstrates bravery and shows selflessness.
+axiom ax6 : HighHonor Kaiden → (Bravery Kaiden ∧ Selfless Kaiden)
+
+-- If Alice receives high honor, then she demonstrates bravery and shows selflessness.
+axiom ax7 : HighHonor Alice → (Bravery Alice ∧ Selfless Alice)
+
+-- Alice does not help others.
+axiom ax8 : ¬Helps Alice
+
+-- If Alice either shows selflessness or helps others (but not both), then she exemplifies integrity.
+axiom ax9 : ((Selfless Alice ∨ Helps Alice) ∧ ¬(Selfless Alice ∧ Helps Alice)) → Integrity Alice
+
+-- If Alice shows courage or risks her life, then she is a war hero.
+axiom ax10 : (Courage Alice ∨ RisksLife Alice) → WarHero Alice
+
+-- Kaiden upholds justice.
+axiom ax11 : UpholdsJustice Kaiden
+
+-- Ila does not exemplify integrity.
+axiom ax12 : ¬Integrity Ila
+
+-- All people who enlist in the military either serve their country or defend freedom.
+axiom ax13 : ∀ x : Person, Enlists x → (Serves x ∨ DefendsFreedom x)
+
+-- If Ila either shows selflessness or helps others (but not both), then she exemplifies integrity.
+axiom ax14 : ((Selfless Ila ∨ Helps Ila) ∧ ¬(Selfless Ila ∧ Helps Ila)) → Integrity Ila
+
+-- Alice upholds justice.
+axiom ax15 : UpholdsJustice Alice
+
+-- Anyone who follows orders or risks their own life serves their country.
+axiom ax16 : ∀ x : Person, (FollowsOrders x ∨ RisksLife x) → Serves x
+
+-- Alice enlists in the military.
+axiom ax17 : Enlists Alice
+
+-- Anyone who risks their life either shows selflessness or earns recognition.
+axiom ax18 : ∀ x : Person, RisksLife x → (Selfless x ∨ EarnsRecognition x)
+
+-- If someone upholds justice, then they defend freedom.
+axiom ax19 : ∀ x : Person, UpholdsJustice x → DefendsFreedom x
+
+-- Useful derived facts
+
+-- From ax7, ax8, ax9, and ax5 we can show Alice cannot have HighHonor.
+theorem notHighHonorAlice : ¬HighHonor Alice := by
+  intro hh
+  have hSelf : Selfless Alice := (ax7 hh).right
+  have hx : (Selfless Alice ∨ Helps Alice) ∧ ¬(Selfless Alice ∧ Helps Alice) := by
+    apply And.intro
+    · exact Or.inl hSelf
+    · intro hboth
+      exact ax8 hboth.right
+  have hInt : Integrity Alice := ax9 hx
+  exact ax5 hInt
+
+-- Consequently, Alice cannot have Courage (since Courage Alice → HighHonor Alice via ax1).
+theorem notCourageAlice : ¬Courage Alice := by
+  intro hc
+  have hh : HighHonor Alice := (ax1 hc).right
+  exact notHighHonorAlice hh
+
+-- Goal: prove the negation of the conclusion (show the conclusion is false)
+-- Conclusion to analyze: Alice inspires others.
+-- We attempt to prove: ¬Inspires Alice
+theorem goal : ¬Inspires Alice := by
+  intro hInspires
+  -- Attempting to derive a contradiction from hInspires, but the given premises
+  -- do not relate Inspires Alice to any statement that conflicts with the derived facts
+  -- such as notHighHonorAlice or notCourageAlice.
+  -- No contradiction can be completed from the available premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: Uncertain
+Correct: Yes

@@ -1,0 +1,220 @@
+Story ID: 0
+Example ID: 105
+Premises: If a farmer works hard, then they value quality and are dedicated to their work. Anders does not use crop rotation. Every dedicated farmer either improves their crops or is experienced (or both). For all farmers, either they diversify their farm or improve their crops, but not necessarily both. Ronan either manages pests or increases crop yields. Ronan does not use crop rotation. Any farmer who uses quality seeds or optimizes soil conditions can increase crop yields. Every farmer monitors soil or manages pests. Ronan rotates fields. If Ronan is experienced, then he can either increase crop yields or develop new techniques, but not both. If Alyssa is experienced, then he can either increase crop yields or develop new techniques, but not both. If Bo either rotates fields or uses crop rotation (but not both), then he is dedicated. Ronan either uses sustainable methods or manages pests, but not both. If Ronan either rotates fields or uses crop rotation (but not both), then he is dedicated. Ronan diversifies his farm. Ronan uses sustainable methods. Bo diversifies his farm.
+Conclusion: Ronan does not develop new techniques.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Types and individuals
+axiom Person : Type
+axiom Anders Ronan Alyssa Bo : Person
+
+-- Predicates
+axiom Farmer : Person → Prop
+axiom WorksHard : Person → Prop
+axiom ValuesQuality : Person → Prop
+axiom Dedicated : Person → Prop
+axiom UsesCropRotation : Person → Prop
+axiom ImprovesCrops : Person → Prop
+axiom Experienced : Person → Prop
+axiom DiversifyFarm : Person → Prop
+axiom ManagesPests : Person → Prop
+axiom IncreaseCropYields : Person → Prop
+axiom UsesQualitySeeds : Person → Prop
+axiom OptimizesSoil : Person → Prop
+axiom MonitorsSoil : Person → Prop
+axiom RotatesFields : Person → Prop
+axiom DevelopNewTechniques : Person → Prop
+axiom UsesSustainableMethods : Person → Prop
+
+-- Premises
+-- If a farmer works hard, then they value quality and are dedicated to their work.
+axiom ax1 : ∀ x : Person, Farmer x → WorksHard x → (ValuesQuality x ∧ Dedicated x)
+
+-- Anders does not use crop rotation.
+axiom ax2 : ¬ UsesCropRotation Anders
+
+-- Every dedicated farmer either improves their crops or is experienced (or both).
+axiom ax3 : ∀ x : Person, Dedicated x → (ImprovesCrops x ∨ Experienced x)
+
+-- For all farmers, either they diversify their farm or improve their crops, but not necessarily both.
+axiom ax4 : ∀ x : Person, Farmer x → (DiversifyFarm x ∨ ImprovesCrops x)
+
+-- Ronan either manages pests or increases crop yields.
+axiom ax5 : ManagesPests Ronan ∨ IncreaseCropYields Ronan
+
+-- Ronan does not use crop rotation.
+axiom ax6 : ¬ UsesCropRotation Ronan
+
+-- Any farmer who uses quality seeds or optimizes soil conditions can increase crop yields.
+axiom ax7 : ∀ x : Person, Farmer x → (UsesQualitySeeds x ∨ OptimizesSoil x) → IncreaseCropYields x
+
+-- Every farmer monitors soil or manages pests.
+axiom ax8 : ∀ x : Person, Farmer x → (MonitorsSoil x ∨ ManagesPests x)
+
+-- Ronan rotates fields.
+axiom ax9 : RotatesFields Ronan
+
+-- If Ronan is experienced, then he can either increase crop yields or develop new techniques, but not both.
+axiom ax10 :
+  Experienced Ronan →
+  ((IncreaseCropYields Ronan ∨ DevelopNewTechniques Ronan) ∧
+   ¬ (IncreaseCropYields Ronan ∧ DevelopNewTechniques Ronan))
+
+-- If Alyssa is experienced, then he can either increase crop yields or develop new techniques, but not both.
+axiom ax11 :
+  Experienced Alyssa →
+  ((IncreaseCropYields Alyssa ∨ DevelopNewTechniques Alyssa) ∧
+   ¬ (IncreaseCropYields Alyssa ∧ DevelopNewTechniques Alyssa))
+
+-- If Bo either rotates fields or uses crop rotation (but not both), then he is dedicated.
+axiom ax12 :
+  ((RotatesFields Bo ∨ UsesCropRotation Bo) ∧ ¬ (RotatesFields Bo ∧ UsesCropRotation Bo)) →
+  Dedicated Bo
+
+-- Ronan either uses sustainable methods or manages pests, but not both.
+axiom ax13 :
+  ((UsesSustainableMethods Ronan ∨ ManagesPests Ronan) ∧
+   ¬ (UsesSustainableMethods Ronan ∧ ManagesPests Ronan))
+
+-- If Ronan either rotates fields or uses crop rotation (but not both), then he is dedicated.
+axiom ax14 :
+  ((RotatesFields Ronan ∨ UsesCropRotation Ronan) ∧ ¬ (RotatesFields Ronan ∧ UsesCropRotation Ronan)) →
+  Dedicated Ronan
+
+-- Ronan diversifies his farm.
+axiom ax15 : DiversifyFarm Ronan
+
+-- Ronan uses sustainable methods.
+axiom ax16 : UsesSustainableMethods Ronan
+
+-- Bo diversifies his farm.
+axiom ax17 : DiversifyFarm Bo
+
+-- Conclusion: Ronan does not develop new techniques.
+theorem goal : ¬ DevelopNewTechniques Ronan := by
+  -- From ax13 and ax16, deduce ¬ ManagesPests Ronan
+  have hNotBoth_SM_MP : ¬ (UsesSustainableMethods Ronan ∧ ManagesPests Ronan) := by
+    exact (And.right ax13)
+  have hNotMP : ¬ ManagesPests Ronan := by
+    intro hMP
+    exact hNotBoth_SM_MP (And.intro ax16 hMP)
+
+  -- From ax5 and ¬ ManagesPests Ronan, deduce IncreaseCropYields Ronan
+  have hInc : IncreaseCropYields Ronan := by
+    cases ax5 with
+    | inl hmp => exact False.elim (hNotMP hmp)
+    | inr hinc => exact hinc
+
+  -- From ax9 and ax6, build XOR to get Dedicated Ronan (though not used to conclude)
+  have hNotBothRotCrop : ¬ (RotatesFields Ronan ∧ UsesCropRotation Ronan) := by
+    intro h
+    exact ax6 h.right
+  have hXorRotCrop :
+      (RotatesFields Ronan ∨ UsesCropRotation Ronan) ∧
+      ¬ (RotatesFields Ronan ∧ UsesCropRotation Ronan) := by
+    exact And.intro (Or.inl ax9) hNotBothRotCrop
+  have _hDed : Dedicated Ronan := by
+    exact ax14 hXorRotCrop
+
+  -- Attempt to show ¬ DevelopNewTechniques Ronan
+  intro hDev
+  -- From ax10, if Experienced then not (Increase ∧ Develop); with Increase and Develop, deduce ¬ Experienced
+  have hNotExp : ¬ Experienced Ronan := by
+    intro hExp
+    have h := ax10 hExp
+    have hnboth : ¬ (IncreaseCropYields Ronan ∧ DevelopNewTechniques Ronan) := h.right
+    exact hnboth (And.intro hInc hDev)
+
+  -- No further contradiction is derivable from the given premises to rule out DevelopNewTechniques Ronan.
+  -- The proof cannot be completed with the current premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Farmer : Type
+axiom Anders : Farmer
+axiom Ronan : Farmer
+axiom Alyssa : Farmer
+axiom Bo : Farmer
+
+axiom WorksHard : Farmer → Prop
+axiom ValuesQuality : Farmer → Prop
+axiom Dedicated : Farmer → Prop
+axiom UsesCropRotation : Farmer → Prop
+axiom ImprovesCrops : Farmer → Prop
+axiom Experienced : Farmer → Prop
+axiom DiversifiesFarm : Farmer → Prop
+axiom ManagesPests : Farmer → Prop
+axiom IncreaseCropYields : Farmer → Prop
+axiom UsesQualitySeeds : Farmer → Prop
+axiom OptimizesSoil : Farmer → Prop
+axiom MonitorsSoil : Farmer → Prop
+axiom RotatesFields : Farmer → Prop
+axiom DevelopsNewTech : Farmer → Prop
+axiom UsesSustainableMethods : Farmer → Prop
+
+-- Premises
+axiom ax1 : ∀ x : Farmer, WorksHard x → ValuesQuality x ∧ Dedicated x
+axiom ax2 : ¬ UsesCropRotation Anders
+axiom ax3 : ∀ x : Farmer, Dedicated x → ImprovesCrops x ∨ Experienced x
+axiom ax4 : ∀ x : Farmer, DiversifiesFarm x ∨ ImprovesCrops x
+axiom ax5 : ManagesPests Ronan ∨ IncreaseCropYields Ronan
+axiom ax6 : ¬ UsesCropRotation Ronan
+axiom ax7 : ∀ x : Farmer, (UsesQualitySeeds x ∨ OptimizesSoil x) → IncreaseCropYields x
+axiom ax8 : ∀ x : Farmer, MonitorsSoil x ∨ ManagesPests x
+axiom ax9 : RotatesFields Ronan
+axiom ax10 : Experienced Ronan → ((IncreaseCropYields Ronan ∨ DevelopsNewTech Ronan) ∧ ¬(IncreaseCropYields Ronan ∧ DevelopsNewTech Ronan))
+axiom ax11 : Experienced Alyssa → ((IncreaseCropYields Alyssa ∨ DevelopsNewTech Alyssa) ∧ ¬(IncreaseCropYields Alyssa ∧ DevelopsNewTech Alyssa))
+axiom ax12 : ((RotatesFields Bo ∨ UsesCropRotation Bo) ∧ ¬(RotatesFields Bo ∧ UsesCropRotation Bo)) → Dedicated Bo
+axiom ax13 : (UsesSustainableMethods Ronan ∨ ManagesPests Ronan) ∧ ¬(UsesSustainableMethods Ronan ∧ ManagesPests Ronan)
+axiom ax14 : ((RotatesFields Ronan ∨ UsesCropRotation Ronan) ∧ ¬(RotatesFields Ronan ∧ UsesCropRotation Ronan)) → Dedicated Ronan
+axiom ax15 : DiversifiesFarm Ronan
+axiom ax16 : UsesSustainableMethods Ronan
+axiom ax17 : DiversifiesFarm Bo
+
+-- Negation of the conclusion to analyze: we attempt to prove that Ronan develops new techniques
+theorem negate_conclusion : DevelopsNewTech Ronan := by
+  -- From ax13 and ax16, derive ¬ ManagesPests Ronan
+  have hnot_both : ¬ (UsesSustainableMethods Ronan ∧ ManagesPests Ronan) := And.right ax13
+  have hUsm : UsesSustainableMethods Ronan := ax16
+  have hNotMP : ¬ ManagesPests Ronan := by
+    intro hmp
+    exact hnot_both ⟨hUsm, hmp⟩
+  -- From ax5 and ¬ ManagesPests Ronan, deduce IncreaseCropYields Ronan
+  have hInc : IncreaseCropYields Ronan := by
+    cases ax5 with
+    | inl hmp => exact False.elim (hNotMP hmp)
+    | inr hinc => exact hinc
+  -- From ax9 and ax6, the XOR antecedent for ax14 holds, yielding Dedicated Ronan
+  have hxorprem : (RotatesFields Ronan ∨ UsesCropRotation Ronan) ∧ ¬(RotatesFields Ronan ∧ UsesCropRotation Ronan) := by
+    refine And.intro (Or.inl ax9) ?_
+    intro hconj
+    exact ax6 (And.right hconj)
+  have hDed : Dedicated Ronan := ax14 hxorprem
+  -- From dedication, we only get ImprovesCrops Ronan ∨ Experienced Ronan, which is insufficient to derive DevelopsNewTech Ronan
+  have _hImpOrExp : ImprovesCrops Ronan ∨ Experienced Ronan := ax3 Ronan hDed
+  -- No available premises yield Experienced Ronan or directly yield DevelopsNewTech Ronan
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: Uncertain
+Correct: Yes

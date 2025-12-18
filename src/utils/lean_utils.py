@@ -141,12 +141,13 @@ async def verify_with_lean_async(lean_code, lean_server, verbose=False, timeout=
         }
 
 
-def create_lean_server(lean_version=None, verbose=False):
+def create_lean_server(lean_version=None, verbose=False, max_total_memory=0.95):
     """Create and initialize a Lean REPL server.
 
     Args:
         lean_version: Specific Lean version to use (None for latest)
         verbose: Whether to enable verbose output
+        max_total_memory: Max system memory threshold before restart (default 0.95 for macOS)
 
     Returns:
         AutoLeanServer: Initialized Lean server instance with automatic memory management
@@ -156,4 +157,4 @@ def create_lean_server(lean_version=None, verbose=False):
         config_kwargs['lean_version'] = lean_version
 
     config = LeanREPLConfig(**config_kwargs)
-    return AutoLeanServer(config)
+    return AutoLeanServer(config, max_total_memory=max_total_memory)

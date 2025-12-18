@@ -1,0 +1,223 @@
+Story ID: 0
+Example ID: 262
+Premises: If Johan either eats nutritious food or has good genes (but not both), then she looks healthy. If Laurel either eats nutritious food or has good genes (but not both), then she looks healthy. Laurel does not have a noble bloodline. For Juan, receiving proper grooming and getting regular vaccinations are mutually exclusive, but not necessarily, as Juan may or may not receive one or the other. Johan gets regular exercise. Laurel is either a champion or has a noble bloodline, but not necessarily both. If Laurel has a shiny mane, then she is either a spirited animal or has a radiant coat (or both). For Laurel, receiving proper grooming and getting regular vaccinations are mutually exclusive, but not necessarily, as Laurel may or may not receive one or the other. If Laurel either possesses strength or has agility (but not both), then she can become a champion. If Laurel has a radiant coat, then she can either excel in show jumping or become a champion, but not both. If Laurel gets regular exercise, then she either eats nutritious food or has access to clean water, but not both. If Juan has a radiant coat, then she can either excel in show jumping or become a champion, but not both. Laurel does not look healthy. Any horse that receives proper grooming or has good genes can have a radiant coat. Laurel does not have access to clean water. Laurel gets regular vaccinations. Laurel gets regular exercise.
+Conclusion: Laurel does not excel in show jumping.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Horse : Type
+
+axiom Johan : Horse
+axiom Laurel : Horse
+axiom Juan : Horse
+
+axiom EatsNutritiousFood : Horse → Prop
+axiom GoodGenes : Horse → Prop
+axiom LooksHealthy : Horse → Prop
+axiom NobleBloodline : Horse → Prop
+axiom ProperGrooming : Horse → Prop
+axiom RegularVaccinations : Horse → Prop
+axiom RegularExercise : Horse → Prop
+axiom Champion : Horse → Prop
+axiom ShinyMane : Horse → Prop
+axiom SpiritedAnimal : Horse → Prop
+axiom RadiantCoat : Horse → Prop
+axiom PossessesStrength : Horse → Prop
+axiom Agility : Horse → Prop
+axiom CleanWater : Horse → Prop
+axiom ExcelShowJumping : Horse → Prop
+
+-- Premises
+axiom p1 :
+  ((EatsNutritiousFood Johan ∧ ¬ GoodGenes Johan) ∨
+   (GoodGenes Johan ∧ ¬ EatsNutritiousFood Johan)) → LooksHealthy Johan
+
+axiom p2 :
+  ((EatsNutritiousFood Laurel ∧ ¬ GoodGenes Laurel) ∨
+   (GoodGenes Laurel ∧ ¬ EatsNutritiousFood Laurel)) → LooksHealthy Laurel
+
+axiom p3 : ¬ NobleBloodline Laurel
+
+axiom p4 : ¬ (ProperGrooming Juan ∧ RegularVaccinations Juan)
+
+axiom p5 : RegularExercise Johan
+
+axiom p6 : Champion Laurel ∨ NobleBloodline Laurel
+
+axiom p7 : ShinyMane Laurel → (SpiritedAnimal Laurel ∨ RadiantCoat Laurel)
+
+axiom p8 : ¬ (ProperGrooming Laurel ∧ RegularVaccinations Laurel)
+
+axiom p9 :
+  ((PossessesStrength Laurel ∧ ¬ Agility Laurel) ∨
+   (Agility Laurel ∧ ¬ PossessesStrength Laurel)) → Champion Laurel
+
+axiom p10 :
+  RadiantCoat Laurel →
+    ((ExcelShowJumping Laurel ∧ ¬ Champion Laurel) ∨
+     (Champion Laurel ∧ ¬ ExcelShowJumping Laurel))
+
+axiom p11 :
+  RegularExercise Laurel →
+    ((EatsNutritiousFood Laurel ∧ ¬ CleanWater Laurel) ∨
+     (CleanWater Laurel ∧ ¬ EatsNutritiousFood Laurel))
+
+axiom p12 :
+  RadiantCoat Juan →
+    ((ExcelShowJumping Juan ∧ ¬ Champion Juan) ∨
+     (Champion Juan ∧ ¬ ExcelShowJumping Juan))
+
+axiom p13 : ¬ LooksHealthy Laurel
+
+axiom p14 : ∀ x : Horse, (ProperGrooming x ∨ GoodGenes x) → RadiantCoat x
+
+axiom p15 : ¬ CleanWater Laurel
+
+axiom p16 : RegularVaccinations Laurel
+
+axiom p17 : RegularExercise Laurel
+
+theorem conclusion : ¬ ExcelShowJumping Laurel := by
+  -- From p6 and p3, we get Champion Laurel
+  have hCH : Champion Laurel := by
+    exact Or.elim p6 (fun hc => hc) (fun hNB => False.elim (p3 hNB))
+  -- From p11, p17, and p15, we get EatsNutritiousFood Laurel
+  have hENF : EatsNutritiousFood Laurel := by
+    have hx := p11 p17
+    exact Or.elim hx
+      (fun h => h.left)
+      (fun h => False.elim (p15 h.left))
+  -- From p2 and p13, the XOR antecedent must be false
+  have hNotXor :
+      ¬ ((EatsNutritiousFood Laurel ∧ ¬ GoodGenes Laurel) ∨
+         (GoodGenes Laurel ∧ ¬ EatsNutritiousFood Laurel)) := by
+    intro hx
+    exact p13 (p2 hx)
+  -- In particular, ¬ (Eats ∧ ¬ GG)
+  have hNotEnfNotGg : ¬ (EatsNutritiousFood Laurel ∧ ¬ GoodGenes Laurel) := by
+    intro h
+    exact hNotXor (Or.inl h)
+  -- Hence GoodGenes Laurel
+  have hGG : GoodGenes Laurel := by
+    by_cases h : GoodGenes Laurel
+    · exact h
+    · exact False.elim (hNotEnfNotGg ⟨hENF, h⟩)
+  -- From GoodGenes, we get RadiantCoat via p14
+  have hRC : RadiantCoat Laurel := p14 Laurel (Or.inr hGG)
+  -- From hRC and p10, we get the XOR between SJ and CH; together with hCH, conclude ¬SJ
+  have hx10 := p10 hRC
+  exact Or.elim hx10
+    (fun h => False.elim (h.right hCH))
+    (fun h => h.right)
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Horse : Type
+
+axiom Johan : Horse
+axiom Laurel : Horse
+axiom Juan : Horse
+
+-- Predicates
+axiom EatsNutritious : Horse → Prop
+axiom GoodGenes : Horse → Prop
+axiom LooksHealthy : Horse → Prop
+axiom NobleBloodline : Horse → Prop
+axiom Grooming : Horse → Prop
+axiom Vaccinations : Horse → Prop
+axiom Exercise : Horse → Prop
+axiom Champion : Horse → Prop
+axiom ShinyMane : Horse → Prop
+axiom Spirited : Horse → Prop
+axiom RadiantCoat : Horse → Prop
+axiom Strength : Horse → Prop
+axiom Agility : Horse → Prop
+axiom ShowJumping : Horse → Prop
+axiom CleanWater : Horse → Prop
+
+def Xor (A B : Prop) : Prop := (A ∧ ¬B) ∨ (B ∧ ¬A)
+
+-- Premises
+axiom p1  : Xor (EatsNutritious Johan) (GoodGenes Johan) → LooksHealthy Johan
+axiom p2  : Xor (EatsNutritious Laurel) (GoodGenes Laurel) → LooksHealthy Laurel
+axiom p3  : ¬ NobleBloodline Laurel
+axiom p4  : ¬ (Grooming Juan ∧ Vaccinations Juan)
+axiom p5  : Exercise Johan
+axiom p6  : Champion Laurel ∨ NobleBloodline Laurel
+axiom p7  : ShinyMane Laurel → (Spirited Laurel ∨ RadiantCoat Laurel)
+axiom p8  : ¬ (Grooming Laurel ∧ Vaccinations Laurel)
+axiom p9  : Xor (Strength Laurel) (Agility Laurel) → Champion Laurel
+axiom p10 : RadiantCoat Laurel → Xor (ShowJumping Laurel) (Champion Laurel)
+axiom p11 : Exercise Laurel → Xor (EatsNutritious Laurel) (CleanWater Laurel)
+axiom p12 : RadiantCoat Juan → Xor (ShowJumping Juan) (Champion Juan)
+axiom p13 : ¬ LooksHealthy Laurel
+axiom p14 : ∀ x : Horse, (Grooming x ∨ GoodGenes x) → RadiantCoat x
+axiom p15 : ¬ CleanWater Laurel
+axiom p16 : Vaccinations Laurel
+axiom p17 : Exercise Laurel
+
+-- We can actually derive ¬ShowJumping Laurel from the premises:
+theorem conclusion_holds : ¬ ShowJumping Laurel := by
+  -- Laurel is a Champion (since she is Champion or NobleBloodline, and not NobleBloodline)
+  have hChamp : Champion Laurel := by
+    cases p6 with
+    | inl hC => exact hC
+    | inr hNB => exact False.elim (p3 hNB)
+  -- From Exercise and the XOR with CleanWater, together with ¬CleanWater, get EatsNutritious Laurel
+  have hEats : EatsNutritious Laurel := by
+    have hx := p11 p17
+    cases hx with
+    | inl h => exact h.left
+    | inr h =>
+        exact False.elim (p15 h.left)
+  -- From (Xor Eats GoodGenes) → LooksHealthy and ¬LooksHealthy, get ¬(Xor Eats GoodGenes)
+  have hNotXorEG : ¬ Xor (EatsNutritious Laurel) (GoodGenes Laurel) := by
+    intro hx
+    have : LooksHealthy Laurel := p2 hx
+    exact p13 this
+  -- Using classical reasoning, deduce GoodGenes Laurel
+  open Classical in
+  have hGG : GoodGenes Laurel := by
+    by_cases hgg : GoodGenes Laurel
+    · exact hgg
+    · have hx : Xor (EatsNutritious Laurel) (GoodGenes Laurel) := Or.inl ⟨hEats, hgg⟩
+      exact False.elim (hNotXorEG hx)
+  -- From GoodGenes, get RadiantCoat Laurel
+  have hRad : RadiantCoat Laurel := by
+    exact p14 Laurel (Or.inr hGG)
+  -- From RadiantCoat and the XOR rule with Champion, together with hChamp, conclude ¬ShowJumping
+  intro hShow
+  have hx := p10 hRad
+  cases hx with
+  | inl h => exact h.right hChamp
+  | inr h => exact h.right hShow
+
+-- NEGATION of the given conclusion is: Laurel excels in show jumping.
+-- Attempt to prove it (expected to fail given the premises).
+theorem goal : ShowJumping Laurel := by
+  -- The premises actually entail ¬ShowJumping Laurel (see conclusion_holds above),
+  -- so deriving ShowJumping Laurel is not possible from these premises.
+  -- Proof attempt cannot be completed.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

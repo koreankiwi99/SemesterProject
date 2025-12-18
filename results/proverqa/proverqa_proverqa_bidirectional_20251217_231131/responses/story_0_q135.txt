@@ -1,0 +1,216 @@
+Story ID: 0
+Example ID: 135
+Premises: If someone is passionate, then they push boundaries and have an experimental approach. Johanna is not creative. If someone is a diligent worker, then they have high standards and are passionate. Johanna does not gain widespread recognition. Johanna either has an experimental approach or values tradition. Anyone who puts in extra effort is a diligent worker. If Johanna is talented, then she either pushes boundaries or takes risks, but not both. Johanna puts in extra effort. Johanna does not influence others. Johanna either follows trends or creates unique pieces, but not both. If Johanna either sets style standards or follows trends (but not both), then she is creative. Johanna has high standards. For all humans, if someone is a renowned designer, then they create unique pieces and gain widespread recognition. Johanna does not value tradition. If Johanna either influences others or pushes boundaries (but not both), then she sets style standards. Johanna develops skills or creates unique pieces.
+Conclusion: Johanna is a renowned designer.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Types and constants
+axiom Person : Type
+axiom Johanna : Person
+
+-- Predicates
+axiom Passionate : Person → Prop
+axiom PushBoundaries : Person → Prop
+axiom ExperimentalApproach : Person → Prop
+axiom Creative : Person → Prop
+axiom DiligentWorker : Person → Prop
+axiom HighStandards : Person → Prop
+axiom GainWidespreadRecognition : Person → Prop
+axiom Talented : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom PutsInExtraEffort : Person → Prop
+axiom InfluencesOthers : Person → Prop
+axiom FollowsTrends : Person → Prop
+axiom CreatesUniquePieces : Person → Prop
+axiom SetsStyleStandards : Person → Prop
+axiom ValuesTradition : Person → Prop
+axiom RenownedDesigner : Person → Prop
+axiom DevelopsSkills : Person → Prop
+
+-- Premises
+-- 1. If someone is passionate, then they push boundaries and have an experimental approach.
+axiom ax1 : ∀ x : Person, Passionate x → (PushBoundaries x ∧ ExperimentalApproach x)
+
+-- 2. Johanna is not creative.
+axiom ax2 : ¬ Creative Johanna
+
+-- 3. If someone is a diligent worker, then they have high standards and are passionate.
+axiom ax3 : ∀ x : Person, DiligentWorker x → (HighStandards x ∧ Passionate x)
+
+-- 4. Johanna does not gain widespread recognition.
+axiom ax4 : ¬ GainWidespreadRecognition Johanna
+
+-- 5. Johanna either has an experimental approach or values tradition.
+axiom ax5 : ExperimentalApproach Johanna ∨ ValuesTradition Johanna
+
+-- 6. Anyone who puts in extra effort is a diligent worker.
+axiom ax6 : ∀ x : Person, PutsInExtraEffort x → DiligentWorker x
+
+-- 7. If Johanna is talented, then she either pushes boundaries or takes risks, but not both.
+axiom ax7 :
+  Talented Johanna →
+    ((PushBoundaries Johanna ∧ ¬ TakesRisks Johanna) ∨
+     (TakesRisks Johanna ∧ ¬ PushBoundaries Johanna))
+
+-- 8. Johanna puts in extra effort.
+axiom ax8 : PutsInExtraEffort Johanna
+
+-- 9. Johanna does not influence others.
+axiom ax9 : ¬ InfluencesOthers Johanna
+
+-- 10. Johanna either follows trends or creates unique pieces, but not both.
+axiom ax10 :
+  (FollowsTrends Johanna ∧ ¬ CreatesUniquePieces Johanna) ∨
+  (CreatesUniquePieces Johanna ∧ ¬ FollowsTrends Johanna)
+
+-- 11. If Johanna either sets style standards or follows trends (but not both), then she is creative.
+axiom ax11 :
+  ((SetsStyleStandards Johanna ∧ ¬ FollowsTrends Johanna) ∨
+   (FollowsTrends Johanna ∧ ¬ SetsStyleStandards Johanna)) → Creative Johanna
+
+-- 12. Johanna has high standards.
+axiom ax12 : HighStandards Johanna
+
+-- 13. For all humans, if someone is a renowned designer, then they create unique pieces and gain widespread recognition.
+axiom ax13 : ∀ x : Person, RenownedDesigner x → (CreatesUniquePieces x ∧ GainWidespreadRecognition x)
+
+-- 14. Johanna does not value tradition.
+axiom ax14 : ¬ ValuesTradition Johanna
+
+-- 15. If Johanna either influences others or pushes boundaries (but not both), then she sets style standards.
+axiom ax15 :
+  ((InfluencesOthers Johanna ∧ ¬ PushBoundaries Johanna) ∨
+   (PushBoundaries Johanna ∧ ¬ InfluencesOthers Johanna)) → SetsStyleStandards Johanna
+
+-- 16. Johanna develops skills or creates unique pieces.
+axiom ax16 : DevelopsSkills Johanna ∨ CreatesUniquePieces Johanna
+
+-- A helpful derived lemma: Johanna pushes boundaries and has an experimental approach (from effort → diligent → passionate → ...)
+lemma push_and_experimental : PushBoundaries Johanna ∧ ExperimentalApproach Johanna := by
+  have hDW : DiligentWorker Johanna := ax6 Johanna ax8
+  have hHS_P : HighStandards Johanna ∧ Passionate Johanna := ax3 Johanna hDW
+  have hP : Passionate Johanna := hHS_P.right
+  exact ax1 Johanna hP
+
+-- Another helpful lemma: Johanna sets style standards (since she pushes boundaries and does not influence others, giving XOR premise for ax15)
+lemma sets_style_standards : SetsStyleStandards Johanna := by
+  have hPB : PushBoundaries Johanna := (push_and_experimental).left
+  have hPrem :
+      (InfluencesOthers Johanna ∧ ¬ PushBoundaries Johanna) ∨
+      (PushBoundaries Johanna ∧ ¬ InfluencesOthers Johanna) :=
+    Or.inr ⟨hPB, ax9⟩
+  exact ax15 hPrem
+
+-- From the premises we can actually derive that Johanna is NOT a renowned designer (modus tollens on ax13 and ax4).
+theorem not_renowned : ¬ RenownedDesigner Johanna := by
+  intro hRD
+  have hUG : CreatesUniquePieces Johanna ∧ GainWidespreadRecognition Johanna := ax13 Johanna hRD
+  have hG : GainWidespreadRecognition Johanna := hUG.right
+  exact ax4 hG
+
+-- Requested conclusion (not derivable from the given premises)
+theorem goal : RenownedDesigner Johanna := by
+  -- We try to proceed by cases on the XOR about trends vs unique pieces.
+  have hSet : SetsStyleStandards Johanna := sets_style_standards
+  cases ax10 with
+  | inl hFnotU =>
+      -- Case: follows trends and not unique pieces
+      -- No way to derive the required XOR of (sets standards) vs (follows trends) from the premises here,
+      -- and other premises do not yield a contradiction that would allow explosion.
+      admit
+  | inr hUnotF =>
+      -- Case: unique pieces and not follows trends
+      have hNotF : ¬ FollowsTrends Johanna := hUnotF.right
+      have hXorSF :
+          (SetsStyleStandards Johanna ∧ ¬ FollowsTrends Johanna) ∨
+          (FollowsTrends Johanna ∧ ¬ SetsStyleStandards Johanna) :=
+        Or.inl ⟨hSet, hNotF⟩
+      have hC : Creative Johanna := ax11 hXorSF
+      have hFalse : False := ax2 hC
+      exact False.elim hFalse
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Human : Type
+axiom Johanna : Human
+
+axiom Passionate : Human → Prop
+axiom PushBoundaries : Human → Prop
+axiom ExperimentalApproach : Human → Prop
+axiom Creative : Human → Prop
+axiom DiligentWorker : Human → Prop
+axiom HighStandards : Human → Prop
+axiom WidespreadRecognition : Human → Prop
+axiom PutsExtraEffort : Human → Prop
+axiom Talented : Human → Prop
+axiom TakesRisks : Human → Prop
+axiom InfluencesOthers : Human → Prop
+axiom FollowsTrends : Human → Prop
+axiom CreatesUniquePieces : Human → Prop
+axiom SetsStyleStandards : Human → Prop
+axiom RenownedDesigner : Human → Prop
+axiom ValuesTradition : Human → Prop
+axiom DevelopsSkills : Human → Prop
+
+-- If someone is passionate, then they push boundaries and have an experimental approach.
+axiom premise1 : ∀ x : Human, Passionate x → (PushBoundaries x ∧ ExperimentalApproach x)
+-- Johanna is not creative.
+axiom premise2 : ¬ Creative Johanna
+-- If someone is a diligent worker, then they have high standards and are passionate.
+axiom premise3 : ∀ x : Human, DiligentWorker x → (HighStandards x ∧ Passionate x)
+-- Johanna does not gain widespread recognition.
+axiom premise4 : ¬ WidespreadRecognition Johanna
+-- Johanna either has an experimental approach or values tradition.
+axiom premise5 : ExperimentalApproach Johanna ∨ ValuesTradition Johanna
+-- Anyone who puts in extra effort is a diligent worker.
+axiom premise6 : ∀ x : Human, PutsExtraEffort x → DiligentWorker x
+-- If Johanna is talented, then she either pushes boundaries or takes risks, but not both.
+axiom premise7 : Talented Johanna → ((PushBoundaries Johanna ∧ ¬ TakesRisks Johanna) ∨ (TakesRisks Johanna ∧ ¬ PushBoundaries Johanna))
+-- Johanna puts in extra effort.
+axiom premise8 : PutsExtraEffort Johanna
+-- Johanna does not influence others.
+axiom premise9 : ¬ InfluencesOthers Johanna
+-- Johanna either follows trends or creates unique pieces, but not both.
+axiom premise10 : (FollowsTrends Johanna ∧ ¬ CreatesUniquePieces Johanna) ∨ (CreatesUniquePieces Johanna ∧ ¬ FollowsTrends Johanna)
+-- If Johanna either sets style standards or follows trends (but not both), then she is creative.
+axiom premise11 : ((SetsStyleStandards Johanna ∧ ¬ FollowsTrends Johanna) ∨ (FollowsTrends Johanna ∧ ¬ SetsStyleStandards Johanna)) → Creative Johanna
+-- Johanna has high standards.
+axiom premise12 : HighStandards Johanna
+-- For all humans, if someone is a renowned designer, then they create unique pieces and gain widespread recognition.
+axiom premise13 : ∀ x : Human, RenownedDesigner x → (CreatesUniquePieces x ∧ WidespreadRecognition x)
+-- Johanna does not value tradition.
+axiom premise14 : ¬ ValuesTradition Johanna
+-- If Johanna either influences others or pushes boundaries (but not both), then she sets style standards.
+axiom premise15 : ((InfluencesOthers Johanna ∧ ¬ PushBoundaries Johanna) ∨ (PushBoundaries Johanna ∧ ¬ InfluencesOthers Johanna)) → SetsStyleStandards Johanna
+-- Johanna develops skills or creates unique pieces.
+axiom premise16 : DevelopsSkills Johanna ∨ CreatesUniquePieces Johanna
+
+-- Prove the negation of the conclusion: Johanna is not a renowned designer.
+theorem goal : ¬ RenownedDesigner Johanna := by
+  intro hRen
+  have hPair := premise13 Johanna hRen
+  have hWR : WidespreadRecognition Johanna := And.right hPair
+  exact premise4 hWR
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

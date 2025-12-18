@@ -1,0 +1,234 @@
+Story ID: 0
+Example ID: 166
+Premises: Henrik either works with his local community or exposes corruption, but not both. Rocco either works with his local community or exposes corruption, but not both. If Rocco is outspoken, then he either supports human rights or stands up for others, but not both. Rocco either raises awareness or speaks against discrimination. Anyone who stands up for others and challenges unfair systems fights for equality. Rocco either helps those in need or challenges unfair systems. If Ivanna either speaks against discrimination or exposes corruption (but not both), then he challenges unfair systems. Rocco does not support human rights. Kylie either fights for equality or values social justice (or both). Anyone who believes in fairness and respects all people fights for equality. Henrik does not raise awareness. Rocco does not raise awareness. Rocco is outspoken. If Rocco either speaks against discrimination or exposes corruption (but not both), then he challenges unfair systems. Rocco works with his local community.
+Conclusion: Rocco values social justice.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Henrik : Person
+axiom Rocco : Person
+axiom Ivanna : Person
+axiom Kylie : Person
+
+axiom WorksWithLocalCommunity : Person → Prop
+axiom ExposesCorruption : Person → Prop
+axiom Outspoken : Person → Prop
+axiom SupportsHumanRights : Person → Prop
+axiom StandsUpForOthers : Person → Prop
+axiom RaisesAwareness : Person → Prop
+axiom SpeaksAgainstDiscrimination : Person → Prop
+axiom ChallengesUnfairSystems : Person → Prop
+axiom HelpsThoseInNeed : Person → Prop
+axiom FightsForEquality : Person → Prop
+axiom ValuesSocialJustice : Person → Prop
+axiom BelievesInFairness : Person → Prop
+axiom RespectsAllPeople : Person → Prop
+
+-- Premises
+axiom xor_Henrik :
+  (WorksWithLocalCommunity Henrik ∧ ¬ ExposesCorruption Henrik) ∨
+  (ExposesCorruption Henrik ∧ ¬ WorksWithLocalCommunity Henrik)
+
+axiom xor_Rocco :
+  (WorksWithLocalCommunity Rocco ∧ ¬ ExposesCorruption Rocco) ∨
+  (ExposesCorruption Rocco ∧ ¬ WorksWithLocalCommunity Rocco)
+
+axiom outspoken_implies_xor_Rocco :
+  Outspoken Rocco →
+  ((SupportsHumanRights Rocco ∧ ¬ StandsUpForOthers Rocco) ∨
+   (StandsUpForOthers Rocco ∧ ¬ SupportsHumanRights Rocco))
+
+axiom raises_or_speaks_Rocco :
+  RaisesAwareness Rocco ∨ SpeaksAgainstDiscrimination Rocco
+
+axiom standup_and_challenge_implies_fight :
+  ∀ x : Person, (StandsUpForOthers x ∧ ChallengesUnfairSystems x) → FightsForEquality x
+
+axiom helps_or_challenges_Rocco :
+  HelpsThoseInNeed Rocco ∨ ChallengesUnfairSystems Rocco
+
+axiom ivanna_xor_speaks_or_exposes_implies_challenge :
+  ((SpeaksAgainstDiscrimination Ivanna ∧ ¬ ExposesCorruption Ivanna) ∨
+   (ExposesCorruption Ivanna ∧ ¬ SpeaksAgainstDiscrimination Ivanna)) →
+  ChallengesUnfairSystems Ivanna
+
+axiom not_supportsHR_Rocco : ¬ SupportsHumanRights Rocco
+
+axiom kylie_fight_or_values :
+  FightsForEquality Kylie ∨ ValuesSocialJustice Kylie
+
+axiom believes_and_respects_implies_fight :
+  ∀ x : Person, (BelievesInFairness x ∧ RespectsAllPeople x) → FightsForEquality x
+
+axiom not_raises_Henrik : ¬ RaisesAwareness Henrik
+axiom not_raises_Rocco : ¬ RaisesAwareness Rocco
+
+axiom outspoken_Rocco : Outspoken Rocco
+
+axiom roc_xor_sad_or_ec_implies_challenge :
+  ((SpeaksAgainstDiscrimination Rocco ∧ ¬ ExposesCorruption Rocco) ∨
+   (ExposesCorruption Rocco ∧ ¬ SpeaksAgainstDiscrimination Rocco)) →
+  ChallengesUnfairSystems Rocco
+
+axiom works_Rocco : WorksWithLocalCommunity Rocco
+
+-- Conclusion to analyze:
+theorem goal : ValuesSocialJustice Rocco := by
+  -- From outspoken and not supporting HR, Rocco stands up for others
+  have h_su_or :=
+    outspoken_implies_xor_Rocco outspoken_Rocco
+  have suR : StandsUpForOthers Rocco := by
+    cases h_su_or with
+    | inl h1 =>
+        exact False.elim (not_supportsHR_Rocco h1.left)
+    | inr h2 =>
+        exact h2.left
+  -- From not raising awareness and (raises ∨ speaks), Rocco speaks against discrimination
+  have sadR : SpeaksAgainstDiscrimination Rocco := by
+    cases raises_or_speaks_Rocco with
+    | inl hr =>
+        exact False.elim (not_raises_Rocco hr)
+    | inr hs => exact hs
+  -- From XOR (works ⊕ exposes) and works, deduce not exposes
+  have notEC_R : ¬ ExposesCorruption Rocco := by
+    cases xor_Rocco with
+    | inl h1 =>
+        exact h1.right
+    | inr h2 =>
+        intro _
+        exact h2.right works_Rocco
+  -- Hence Rocco challenges unfair systems
+  have challengeR : ChallengesUnfairSystems Rocco :=
+    roc_xor_sad_or_ec_implies_challenge (Or.inl ⟨sadR, notEC_R⟩)
+  -- Therefore Rocco fights for equality
+  have _fightR : FightsForEquality Rocco :=
+    standup_and_challenge_implies_fight Rocco ⟨suR, challengeR⟩
+  -- But no premise links fighting for equality to valuing social justice for Rocco
+  -- Thus the requested conclusion does not follow from the given premises
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Henrik : Person
+axiom Rocco : Person
+axiom Ivanna : Person
+axiom Kylie : Person
+
+axiom Works : Person → Prop
+axiom Exposes : Person → Prop
+axiom Outspoken : Person → Prop
+axiom HumanRights : Person → Prop
+axiom StandsUp : Person → Prop
+axiom Raises : Person → Prop
+axiom SpeaksAgainst : Person → Prop
+axiom Challenges : Person → Prop
+axiom Equality : Person → Prop
+axiom Helps : Person → Prop
+axiom SocialJustice : Person → Prop
+axiom Fairness : Person → Prop
+axiom Respects : Person → Prop
+
+-- Premises
+axiom henrik_work_or_expose_xor :
+  (Works Henrik ∨ Exposes Henrik) ∧ ¬(Works Henrik ∧ Exposes Henrik)
+
+axiom rocco_work_or_expose_xor :
+  (Works Rocco ∨ Exposes Rocco) ∧ ¬(Works Rocco ∧ Exposes Rocco)
+
+axiom outspoken_rocco_imp_hr_or_stand_xor :
+  Outspoken Rocco → ((HumanRights Rocco ∨ StandsUp Rocco) ∧ ¬(HumanRights Rocco ∧ StandsUp Rocco))
+
+axiom rocco_raises_or_speaks :
+  Raises Rocco ∨ SpeaksAgainst Rocco
+
+axiom stand_and_challenge_imp_equality :
+  ∀ x : Person, (StandsUp x ∧ Challenges x) → Equality x
+
+axiom rocco_helps_or_challenges :
+  Helps Rocco ∨ Challenges Rocco
+
+axiom ivanna_speak_or_expose_xor_imp_challenge :
+  ((SpeaksAgainst Ivanna ∨ Exposes Ivanna) ∧ ¬(SpeaksAgainst Ivanna ∧ Exposes Ivanna)) → Challenges Ivanna
+
+axiom rocco_not_human_rights :
+  ¬ HumanRights Rocco
+
+axiom kylie_equality_or_social_justice :
+  Equality Kylie ∨ SocialJustice Kylie
+
+axiom fairness_and_respects_imp_equality :
+  ∀ x : Person, (Fairness x ∧ Respects x) → Equality x
+
+axiom henrik_not_raises :
+  ¬ Raises Henrik
+
+axiom rocco_not_raises :
+  ¬ Raises Rocco
+
+axiom rocco_outspoken :
+  Outspoken Rocco
+
+axiom rocco_speak_or_expose_xor_imp_challenge :
+  ((SpeaksAgainst Rocco ∨ Exposes Rocco) ∧ ¬(SpeaksAgainst Rocco ∧ Exposes Rocco)) → Challenges Rocco
+
+axiom rocco_works :
+  Works Rocco
+
+-- Goal: prove the NEGATION of the conclusion (i.e., show the conclusion is false)
+theorem goal : ¬ SocialJustice Rocco := by
+  intro hSJ
+  -- Derive useful consequences from the premises
+  have hWorks : Works Rocco := rocco_works
+  have hNotBothWE : ¬(Works Rocco ∧ Exposes Rocco) := (And.right rocco_work_or_expose_xor)
+  have hNotExpose : ¬ Exposes Rocco := by
+    intro hE
+    exact hNotBothWE (And.intro hWorks hE)
+  have hSpeaks : SpeaksAgainst Rocco := by
+    cases rocco_raises_or_speaks with
+    | inl hR =>
+        exact False.elim (rocco_not_raises hR)
+    | inr hS => exact hS
+  have hXOR_speak_expose :
+      (SpeaksAgainst Rocco ∨ Exposes Rocco) ∧ ¬(SpeaksAgainst Rocco ∧ Exposes Rocco) := by
+    apply And.intro
+    · exact Or.inl hSpeaks
+    · intro hAnd
+      exact hNotExpose (And.right hAnd)
+  have hChallenges : Challenges Rocco :=
+    rocco_speak_or_expose_xor_imp_challenge hXOR_speak_expose
+  have hStand : StandsUp Rocco := by
+    have h := outspoken_rocco_imp_hr_or_stand_xor rocco_outspoken
+    have hAlt : HumanRights Rocco ∨ StandsUp Rocco := And.left h
+    cases hAlt with
+    | inl hHR => exact False.elim (rocco_not_human_rights hHR)
+    | inr hS  => exact hS
+  have hEq : Equality Rocco :=
+    stand_and_challenge_imp_equality Rocco (And.intro hStand hChallenges)
+  -- No premise connects SocialJustice Rocco to any contradiction; proof cannot be completed.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

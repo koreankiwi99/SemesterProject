@@ -1,0 +1,236 @@
+Story ID: 0
+Example ID: 417
+Premises: If Tristan either builds trust or wins cases (but not both), then he is a successful lawyer. Tristan is straightforward. Matthew is either introspective or has good listening skills, but not necessarily both. If Tristan either avoids confrontation or values privacy (but not both), then he is introspective. Tristan does not value privacy. Tristan does not prefer solo work. Tristan is reserved. If someone is straightforward, then they may not necessarily empathize with others, and vice versa. If Tristan either is reserved or prefers solo work (but not both), then he tends to avoid confrontation. Tristan has good listening skills or is persuasive. Tristan is either introspective or has good listening skills, but not necessarily both. Anyone who is attentive or understands feelings can empathize with others.
+Conclusion: If Tristan is charismatic or persuasive, then he is a successful lawyer.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Tristan : Person
+axiom Matthew : Person
+
+-- Predicates
+axiom BuildsTrust : Person → Prop
+axiom WinsCases : Person → Prop
+axiom SuccessfulLawyer : Person → Prop
+axiom Straightforward : Person → Prop
+axiom Introspective : Person → Prop
+axiom GoodListener : Person → Prop
+axiom AvoidsConfront : Person → Prop
+axiom ValuesPrivacy : Person → Prop
+axiom PrefersSolo : Person → Prop
+axiom Reserved : Person → Prop
+axiom Empathizes : Person → Prop
+axiom Attentive : Person → Prop
+axiom UnderstandsFeelings : Person → Prop
+axiom Charismatic : Person → Prop
+axiom Persuasive : Person → Prop
+
+-- Premises
+-- 1. If Tristan either builds trust or wins cases (but not both), then he is a successful lawyer.
+axiom prem1 :
+  ((BuildsTrust Tristan ∧ ¬ WinsCases Tristan) ∨ (WinsCases Tristan ∧ ¬ BuildsTrust Tristan))
+  → SuccessfulLawyer Tristan
+
+-- 2. Tristan is straightforward.
+axiom prem2 : Straightforward Tristan
+
+-- 3. Matthew is either introspective or has good listening skills, but not necessarily both.
+axiom prem3 : Introspective Matthew ∨ GoodListener Matthew
+
+-- 4. If Tristan either avoids confrontation or values privacy (but not both), then he is introspective.
+axiom prem4 :
+  ((AvoidsConfront Tristan ∧ ¬ ValuesPrivacy Tristan) ∨ (ValuesPrivacy Tristan ∧ ¬ AvoidsConfront Tristan))
+  → Introspective Tristan
+
+-- 5. Tristan does not value privacy.
+axiom prem5 : ¬ ValuesPrivacy Tristan
+
+-- 6. Tristan does not prefer solo work.
+axiom prem6 : ¬ PrefersSolo Tristan
+
+-- 7. Tristan is reserved.
+axiom prem7 : Reserved Tristan
+
+-- 8. If someone is straightforward, then they may not necessarily empathize with others, and vice versa.
+--    We formalize this as mutual exclusivity:
+axiom prem8a : ∀ x : Person, Straightforward x → ¬ Empathizes x
+axiom prem8b : ∀ x : Person, Empathizes x → ¬ Straightforward x
+
+-- 9. If Tristan either is reserved or prefers solo work (but not both), then he tends to avoid confrontation.
+axiom prem9 :
+  ((Reserved Tristan ∧ ¬ PrefersSolo Tristan) ∨ (PrefersSolo Tristan ∧ ¬ Reserved Tristan))
+  → AvoidsConfront Tristan
+
+-- 10. Tristan has good listening skills or is persuasive.
+axiom prem10 : GoodListener Tristan ∨ Persuasive Tristan
+
+-- 11. Tristan is either introspective or has good listening skills, but not necessarily both.
+axiom prem11 : Introspective Tristan ∨ GoodListener Tristan
+
+-- 12. Anyone who is attentive or understands feelings can empathize with others.
+axiom prem12 : ∀ x : Person, (Attentive x ∨ UnderstandsFeelings x) → Empathizes x
+
+-- Useful derived facts about Tristan
+lemma avoid_confront_tristan : AvoidsConfront Tristan := by
+  -- From Reserved Tristan and ¬ PrefersSolo Tristan, we satisfy the XOR antecedent of prem9.
+  have h : (Reserved Tristan ∧ ¬ PrefersSolo Tristan) ∨ (PrefersSolo Tristan ∧ ¬ Reserved Tristan) :=
+    Or.inl ⟨prem7, prem6⟩
+  exact prem9 h
+
+lemma introspective_tristan : Introspective Tristan := by
+  -- From AvoidsConfront Tristan and ¬ ValuesPrivacy Tristan, we satisfy the XOR antecedent of prem4.
+  have h : (AvoidsConfront Tristan ∧ ¬ ValuesPrivacy Tristan) ∨ (ValuesPrivacy Tristan ∧ ¬ AvoidsConfront Tristan) :=
+    Or.inl ⟨avoid_confront_tristan, prem5⟩
+  exact prem4 h
+
+lemma not_empathizes_tristan : ¬ Empathizes Tristan :=
+  prem8a Tristan prem2
+
+lemma not_attentive_tristan : ¬ Attentive Tristan := by
+  -- Using prem12 and not_empathizes_tristan, derive ¬(Attentive ∨ UnderstandsFeelings), hence ¬Attentive.
+  have hNoAU : ¬ (Attentive Tristan ∨ UnderstandsFeelings Tristan) := by
+    intro hAU
+    exact not_empathizes_tristan (prem12 Tristan hAU)
+  intro hA
+  exact hNoAU (Or.inl hA)
+
+lemma not_understands_tristan : ¬ UnderstandsFeelings Tristan := by
+  have hNoAU : ¬ (Attentive Tristan ∨ UnderstandsFeelings Tristan) := by
+    intro hAU
+    exact not_empathizes_tristan (prem12 Tristan hAU)
+  intro hU
+  exact hNoAU (Or.inr hU)
+
+-- Conclusion to analyze:
+-- If Tristan is charismatic or persuasive, then he is a successful lawyer.
+theorem goal :
+  (Charismatic Tristan ∨ Persuasive Tristan) → SuccessfulLawyer Tristan := by
+  intro h
+  -- We can derive several traits of Tristan (avoids confrontation, introspective, etc.),
+  -- but there is no given link from charisma or persuasiveness to building trust or winning cases,
+  -- which are required (in XOR form) to conclude SuccessfulLawyer Tristan via prem1.
+  -- Therefore, from the provided premises, the conclusion does not follow.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+set_option sorryElab true
+
+axiom Person : Type
+axiom Tristan : Person
+axiom Matthew : Person
+
+axiom BuildsTrust : Person → Prop
+axiom WinsCases : Person → Prop
+axiom SuccessfulLawyer : Person → Prop
+axiom Straightforward : Person → Prop
+axiom Introspective : Person → Prop
+axiom GoodListening : Person → Prop
+axiom AvoidsConfrontation : Person → Prop
+axiom ValuesPrivacy : Person → Prop
+axiom PrefersSoloWork : Person → Prop
+axiom Reserved : Person → Prop
+axiom Empathizes : Person → Prop
+axiom Attentive : Person → Prop
+axiom UnderstandsFeelings : Person → Prop
+axiom Persuasive : Person → Prop
+axiom Charismatic : Person → Prop
+
+-- Premises
+-- If Tristan either builds trust or wins cases (but not both), then he is a successful lawyer.
+axiom premise1 :
+  ((BuildsTrust Tristan ∨ WinsCases Tristan) ∧ ¬ (BuildsTrust Tristan ∧ WinsCases Tristan)) →
+  SuccessfulLawyer Tristan
+
+-- Tristan is straightforward.
+axiom premise2 : Straightforward Tristan
+
+-- Matthew is either introspective or has good listening skills.
+axiom premise3 : Introspective Matthew ∨ GoodListening Matthew
+
+-- If Tristan either avoids confrontation or values privacy (but not both), then he is introspective.
+axiom premise4 :
+  ((AvoidsConfrontation Tristan ∨ ValuesPrivacy Tristan) ∧ ¬ (AvoidsConfrontation Tristan ∧ ValuesPrivacy Tristan)) →
+  Introspective Tristan
+
+-- Tristan does not value privacy.
+axiom premise5 : ¬ ValuesPrivacy Tristan
+
+-- Tristan does not prefer solo work.
+axiom premise6 : ¬ PrefersSoloWork Tristan
+
+-- Tristan is reserved.
+axiom premise7 : Reserved Tristan
+
+-- If someone is straightforward, then they may not necessarily empathize with others, and vice versa.
+axiom premise8a : ∀ x : Person, Straightforward x → ¬ Empathizes x
+axiom premise8b : ∀ x : Person, ¬ Empathizes x → Straightforward x
+
+-- If Tristan either is reserved or prefers solo work (but not both), then he tends to avoid confrontation.
+axiom premise9 :
+  ((Reserved Tristan ∨ PrefersSoloWork Tristan) ∧ ¬ (Reserved Tristan ∧ PrefersSoloWork Tristan)) →
+  AvoidsConfrontation Tristan
+
+-- Tristan has good listening skills or is persuasive.
+axiom premise10 : GoodListening Tristan ∨ Persuasive Tristan
+
+-- Tristan is either introspective or has good listening skills.
+axiom premise11 : Introspective Tristan ∨ GoodListening Tristan
+
+-- Anyone who is attentive or understands feelings can empathize with others.
+axiom premise12 : ∀ x : Person, (Attentive x ∨ UnderstandsFeelings x) → Empathizes x
+
+-- Some derived facts we can prove from the premises
+
+lemma avoidsTristan : AvoidsConfrontation Tristan := by
+  apply premise9
+  refine And.intro ?h1 ?h2
+  · exact Or.inl premise7
+  · intro h
+    exact premise6 h.right
+
+lemma introspectiveTristan : Introspective Tristan := by
+  apply premise4
+  refine And.intro ?h1 ?h2
+  · exact Or.inl avoidsTristan
+  · intro h
+    exact premise5 h.right
+
+lemma notEmpathizesTristan : ¬ Empathizes Tristan :=
+  premise8a Tristan premise2
+
+-- NEGATION of the conclusion:
+-- Conclusion to analyze: If Tristan is charismatic or persuasive, then he is a successful lawyer.
+-- Negation we aim to prove: (Charismatic Tristan ∨ Persuasive Tristan) ∧ ¬ SuccessfulLawyer Tristan.
+theorem neg_conclusion :
+  (Charismatic Tristan ∨ Persuasive Tristan) ∧ ¬ SuccessfulLawyer Tristan := by
+  -- We attempt to produce the left conjunct from the given disjunctions.
+  -- From premise10 we have GoodListening Tristan ∨ Persuasive Tristan, which does not suffice
+  -- to derive Charismatic Tristan ∨ Persuasive Tristan without further links between GoodListening and Charismatic.
+  -- We also lack any premise that would yield ¬ SuccessfulLawyer Tristan.
+  -- Therefore, we cannot complete this proof from the provided premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

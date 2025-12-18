@@ -1,0 +1,215 @@
+Story ID: 0
+Example ID: 227
+Premises: Clay understands human psychology. Clay performs miracles. Patrick performs miracles. Everyone who holds attention either evokes curiosity or manipulates emotions (or both). Clay does not evoke curiosity. Adonis understands human psychology. Clay either engages the audience or has charisma. Canaan either engages the audience or has charisma. If Clay has charisma, then he either manipulates emotions or creates illusions, but not both. For Clay, either he understands human psychology or he is a skilled conjurer, but not necessarily both. If Clay either uses persuasion or reads body language (but not both), then he manipulates emotions. For Adonis, either he holds attention or ignites imagination, but not necessarily both. If Clay either uses light tricks or plays sleight of hand (but not both), then he creates illusions. If Canaan has charisma, then he either manipulates emotions or creates illusions, but not both. If Clay either creates illusions or performs miracles (but not both), then he is a master of deception. For Clay, either he holds attention or ignites imagination, but not necessarily both. Clay does not engage the audience. Clay does not ignite imagination. For Patrick, either he understands human psychology or he is a skilled conjurer, but not necessarily both. Clay has creativity or is a skilled conjurer. Patrick does not evoke curiosity. If Adonis either creates illusions or performs miracles (but not both), then he is a master of deception. Canaan does not engage the audience.
+Conclusion: Clay possesses a unique talent.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Clay : Person
+axiom Patrick : Person
+axiom Adonis : Person
+axiom Canaan : Person
+
+-- Predicates
+axiom UnderstandsHumanPsychology : Person → Prop
+axiom PerformsMiracles : Person → Prop
+axiom HoldsAttention : Person → Prop
+axiom EvokesCuriosity : Person → Prop
+axiom ManipulatesEmotions : Person → Prop
+axiom CreatesIllusions : Person → Prop
+axiom EngagesAudience : Person → Prop
+axiom HasCharisma : Person → Prop
+axiom SkilledConjurer : Person → Prop
+axiom UsesPersuasion : Person → Prop
+axiom ReadsBodyLanguage : Person → Prop
+axiom UsesLightTricks : Person → Prop
+axiom PlaysSleightOfHand : Person → Prop
+axiom MasterOfDeception : Person → Prop
+axiom IgnitesImagination : Person → Prop
+axiom Creativity : Person → Prop
+
+-- Premises
+axiom p1  : UnderstandsHumanPsychology Clay
+axiom p2  : PerformsMiracles Clay
+axiom p3  : PerformsMiracles Patrick
+axiom p4  : ∀ x, HoldsAttention x → (EvokesCuriosity x ∨ ManipulatesEmotions x)
+axiom p5  : ¬ EvokesCuriosity Clay
+axiom p6  : UnderstandsHumanPsychology Adonis
+axiom p7  : EngagesAudience Clay ∨ HasCharisma Clay
+axiom p8  : EngagesAudience Canaan ∨ HasCharisma Canaan
+axiom p9  : HasCharisma Clay →
+            ((ManipulatesEmotions Clay ∨ CreatesIllusions Clay) ∧
+             ¬(ManipulatesEmotions Clay ∧ CreatesIllusions Clay))
+axiom p10 : UnderstandsHumanPsychology Clay ∨ SkilledConjurer Clay
+axiom p11 : ((UsesPersuasion Clay ∨ ReadsBodyLanguage Clay) ∧
+             ¬(UsesPersuasion Clay ∧ ReadsBodyLanguage Clay)) →
+             ManipulatesEmotions Clay
+axiom p12 : HoldsAttention Adonis ∨ IgnitesImagination Adonis
+axiom p13 : ((UsesLightTricks Clay ∨ PlaysSleightOfHand Clay) ∧
+             ¬(UsesLightTricks Clay ∧ PlaysSleightOfHand Clay)) →
+             CreatesIllusions Clay
+axiom p14 : HasCharisma Canaan →
+            ((ManipulatesEmotions Canaan ∨ CreatesIllusions Canaan) ∧
+             ¬(ManipulatesEmotions Canaan ∧ CreatesIllusions Canaan))
+axiom p15 : ((CreatesIllusions Clay ∨ PerformsMiracles Clay) ∧
+             ¬(CreatesIllusions Clay ∧ PerformsMiracles Clay)) →
+             MasterOfDeception Clay
+axiom p16 : HoldsAttention Clay ∨ IgnitesImagination Clay
+axiom p17 : ¬ EngagesAudience Clay
+axiom p18 : ¬ IgnitesImagination Clay
+axiom p19 : UnderstandsHumanPsychology Patrick ∨ SkilledConjurer Patrick
+axiom p20 : Creativity Clay ∨ SkilledConjurer Clay
+axiom p21 : ¬ EvokesCuriosity Patrick
+axiom p22 : ((CreatesIllusions Adonis ∨ PerformsMiracles Adonis) ∧
+             ¬(CreatesIllusions Adonis ∧ PerformsMiracles Adonis)) →
+             MasterOfDeception Adonis
+axiom p23 : ¬ EngagesAudience Canaan
+
+-- Interpret "possesses a unique talent" as "is a master of deception".
+def UniqueTalent (x : Person) : Prop := MasterOfDeception x
+
+theorem goal : UniqueTalent Clay := by
+  -- From p7 and p17, Clay has charisma
+  have hChar : HasCharisma Clay := by
+    cases p7 with
+    | inl hEng => exact False.elim (p17 hEng)
+    | inr hCh  => exact hCh
+  -- From p16 and p18, Clay holds attention
+  have hHold : HoldsAttention Clay := by
+    cases p16 with
+    | inl hH => exact hH
+    | inr hI => exact False.elim (p18 hI)
+  -- From p4 and p5, Clay manipulates emotions
+  have hManip : ManipulatesEmotions Clay := by
+    have h := p4 Clay hHold
+    cases h with
+    | inl hEv => exact False.elim (p5 hEv)
+    | inr hMe => exact hMe
+  -- From p9 and hChar, not both (Manipulates ∧ Illusions); thus not Illusions
+  have hNotIll : ¬ CreatesIllusions Clay := by
+    have hNotBoth : ¬ (ManipulatesEmotions Clay ∧ CreatesIllusions Clay) :=
+      (p9 hChar).right
+    intro hIll
+    exact hNotBoth ⟨hManip, hIll⟩
+  -- Build the XOR (CreatesIllusions Clay) ⊻ (PerformsMiracles Clay)
+  have hXor :
+      (CreatesIllusions Clay ∨ PerformsMiracles Clay) ∧
+      ¬(CreatesIllusions Clay ∧ PerformsMiracles Clay) := by
+    refine And.intro (Or.inr p2) ?_
+    intro hAnd
+    exact hNotIll hAnd.left
+  -- Apply p15 to conclude MasterOfDeception Clay
+  have hMD : MasterOfDeception Clay := p15 hXor
+  -- Conclude UniqueTalent Clay by definition
+  exact hMD
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities
+axiom Person : Type
+axiom Clay : Person
+axiom Patrick : Person
+axiom Adonis : Person
+axiom Canaan : Person
+
+-- Predicates
+axiom UnderstandsPsychology : Person → Prop
+axiom PerformsMiracles : Person → Prop
+axiom HoldsAttention : Person → Prop
+axiom EvokesCuriosity : Person → Prop
+axiom ManipulatesEmotions : Person → Prop
+axiom EngagesAudience : Person → Prop
+axiom HasCharisma : Person → Prop
+axiom CreatesIllusions : Person → Prop
+axiom SkilledConjurer : Person → Prop
+axiom UsesPersuasion : Person → Prop
+axiom ReadsBodyLanguage : Person → Prop
+axiom UsesLightTricks : Person → Prop
+axiom PlaysSleightOfHand : Person → Prop
+axiom MasterOfDeception : Person → Prop
+axiom IgnitesImagination : Person → Prop
+axiom HasCreativity : Person → Prop
+axiom UniqueTalent : Person → Prop
+
+-- Exclusive-or over propositions
+def Xor (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+-- Premises
+axiom a1  : UnderstandsPsychology Clay
+axiom a2  : PerformsMiracles Clay
+axiom a3  : PerformsMiracles Patrick
+axiom a4  : ∀ x : Person, HoldsAttention x → (EvokesCuriosity x ∨ ManipulatesEmotions x)
+axiom a5  : ¬ EvokesCuriosity Clay
+axiom a6  : UnderstandsPsychology Adonis
+axiom a7  : EngagesAudience Clay ∨ HasCharisma Clay
+axiom a8  : EngagesAudience Canaan ∨ HasCharisma Canaan
+axiom a9  : HasCharisma Clay → Xor (ManipulatesEmotions Clay) (CreatesIllusions Clay)
+axiom a10 : UnderstandsPsychology Clay ∨ SkilledConjurer Clay
+axiom a11 : Xor (UsesPersuasion Clay) (ReadsBodyLanguage Clay) → ManipulatesEmotions Clay
+axiom a12 : HoldsAttention Adonis ∨ IgnitesImagination Adonis
+axiom a13 : Xor (UsesLightTricks Clay) (PlaysSleightOfHand Clay) → CreatesIllusions Clay
+axiom a14 : HasCharisma Canaan → Xor (ManipulatesEmotions Canaan) (CreatesIllusions Canaan)
+axiom a15 : Xor (CreatesIllusions Clay) (PerformsMiracles Clay) → MasterOfDeception Clay
+axiom a16 : HoldsAttention Clay ∨ IgnitesImagination Clay
+axiom a17 : ¬ EngagesAudience Clay
+axiom a18 : ¬ IgnitesImagination Clay
+axiom a19 : UnderstandsPsychology Patrick ∨ SkilledConjurer Patrick
+axiom a20 : HasCreativity Clay ∨ SkilledConjurer Clay
+axiom a21 : ¬ EvokesCuriosity Patrick
+axiom a22 : Xor (CreatesIllusions Adonis) (PerformsMiracles Adonis) → MasterOfDeception Adonis
+axiom a23 : ¬ EngagesAudience Canaan
+
+-- Negation of the conclusion to prove
+theorem not_conclusion : ¬ UniqueTalent Clay := by
+  -- Derivations from the premises (attempt)
+  have hCharisma : HasCharisma Clay := by
+    cases a7 with
+    | inl hEA => exact False.elim (a17 hEA)
+    | inr hHC => exact hHC
+  have hXor : Xor (ManipulatesEmotions Clay) (CreatesIllusions Clay) := a9 hCharisma
+  have hHA : HoldsAttention Clay := by
+    cases a16 with
+    | inl h => exact h
+    | inr hi => exact False.elim (a18 hi)
+  have hME : ManipulatesEmotions Clay := by
+    have h := a4 Clay hHA
+    cases h with
+    | inl hev => exact False.elim (a5 hev)
+    | inr hme => exact hme
+  have hNotBoth : ¬ (ManipulatesEmotions Clay ∧ CreatesIllusions Clay) := (And.right hXor)
+  have hNotCI : ¬ CreatesIllusions Clay := by
+    intro hci
+    exact hNotBoth ⟨hME, hci⟩
+  have hxor2 : Xor (CreatesIllusions Clay) (PerformsMiracles Clay) := by
+    have hOr : CreatesIllusions Clay ∨ PerformsMiracles Clay := Or.inr a2
+    have hNotAnd : ¬ (CreatesIllusions Clay ∧ PerformsMiracles Clay) := by
+      intro hpair
+      exact hNotCI hpair.left
+    exact And.intro hOr hNotAnd
+  have _hMD : MasterOfDeception Clay := a15 hxor2
+  -- No premise connects UniqueTalent to any derived facts; goal appears unprovable from given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: True
+Correct: No

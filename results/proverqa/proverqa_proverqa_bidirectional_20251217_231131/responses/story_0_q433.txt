@@ -1,0 +1,159 @@
+Story ID: 0
+Example ID: 433
+Premises: Shiloh pursues her personal goals. Shiloh does not have good intentions. Anyone who works hard or learns quickly can gain experience. If someone makes a difference and inspires others, then they can improve their community. Shiloh inspires others. Shiloh either pursues her personal goals or enhances the lives of others, but these two pursuits can be mutually exclusive. Anyone who has experience or is educated can make a difference. Everyone has skills or makes a difference. Anyone who volunteers regularly or improves their community can enhance the lives of others. Everyone either has good intentions or gains knowledge, but these two are not necessarily related. If Shiloh either reads books or attends seminars (but not both), then she gains knowledge. Shiloh is selfless or educated (or both).
+Conclusion: Shiloh is selfless.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Shiloh : Person
+
+axiom pursuesPersonalGoals : Person → Prop
+axiom goodIntentions : Person → Prop
+axiom worksHard : Person → Prop
+axiom learnsQuickly : Person → Prop
+axiom gainsExperience : Person → Prop
+axiom makesDifference : Person → Prop
+axiom inspiresOthers : Person → Prop
+axiom improvesCommunity : Person → Prop
+axiom enhancesLivesOfOthers : Person → Prop
+axiom educated : Person → Prop
+axiom skills : Person → Prop
+axiom volunteersRegularly : Person → Prop
+axiom gainsKnowledge : Person → Prop
+axiom readsBooks : Person → Prop
+axiom attendsSeminars : Person → Prop
+axiom selfless : Person → Prop
+
+-- Premises
+axiom p1 : pursuesPersonalGoals Shiloh
+axiom p2 : ¬ goodIntentions Shiloh
+axiom p3 : ∀ x : Person, (worksHard x ∨ learnsQuickly x) → gainsExperience x
+axiom p4 : ∀ x : Person, (makesDifference x ∧ inspiresOthers x) → improvesCommunity x
+axiom p5 : inspiresOthers Shiloh
+-- Exclusive-or style: either P or E, and not both
+axiom p6_or : pursuesPersonalGoals Shiloh ∨ enhancesLivesOfOthers Shiloh
+axiom p6_not_both : ¬ (pursuesPersonalGoals Shiloh ∧ enhancesLivesOfOthers Shiloh)
+axiom p7 : ∀ x : Person, (gainsExperience x ∨ educated x) → makesDifference x
+axiom p8 : ∀ x : Person, (skills x ∨ makesDifference x)
+axiom p9 : ∀ x : Person, (volunteersRegularly x ∨ improvesCommunity x) → enhancesLivesOfOthers x
+axiom p10 : ∀ x : Person, goodIntentions x ∨ gainsKnowledge x
+axiom p11 : ((readsBooks Shiloh ∨ attendsSeminars Shiloh) ∧ ¬ (readsBooks Shiloh ∧ attendsSeminars Shiloh)) → gainsKnowledge Shiloh
+axiom p12 : selfless Shiloh ∨ educated Shiloh
+
+theorem goal : selfless Shiloh := by
+  -- From p1 and not-both, get not enhancesLivesOfOthers Shiloh
+  have h_not_enh : ¬ enhancesLivesOfOthers Shiloh := by
+    intro hEnh
+    exact p6_not_both (And.intro p1 hEnh)
+  -- From (volunteers ∨ improves) → enhances, and ¬enhances, get ¬improves (and ¬volunteers)
+  have h_not_improve : ¬ improvesCommunity Shiloh := by
+    have h_contra : ¬ (volunteersRegularly Shiloh ∨ improvesCommunity Shiloh) := by
+      intro hVorI
+      have hEnh := p9 Shiloh hVorI
+      exact h_not_enh hEnh
+    intro hImp
+    apply h_contra
+    exact Or.inr hImp
+  -- From (makesDifference ∧ inspires) → improves, and ¬improves plus inspires, get ¬makesDifference
+  have h_not_md : ¬ makesDifference Shiloh := by
+    intro hMD
+    have h_pair : makesDifference Shiloh ∧ inspiresOthers Shiloh := And.intro hMD p5
+    have hImp := p4 Shiloh h_pair
+    exact h_not_improve hImp
+  -- From (experience ∨ educated) → makesDifference and ¬makesDifference, get ¬educated
+  have h_not_ed_or_exp : ¬ (gainsExperience Shiloh ∨ educated Shiloh) := by
+    intro h
+    exact h_not_md (p7 Shiloh h)
+  have h_not_educated : ¬ educated Shiloh := by
+    intro hE
+    apply h_not_ed_or_exp
+    exact Or.inr hE
+  -- From selfless ∨ educated and ¬educated, conclude selfless
+  cases p12 with
+  | inl hSelfless => exact hSelfless
+  | inr hEducated =>
+      exact False.elim (h_not_educated hEducated)
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Shiloh : Person
+
+axiom PursuesGoals : Person → Prop
+axiom GoodIntentions : Person → Prop
+axiom WorksHard : Person → Prop
+axiom LearnsQuickly : Person → Prop
+axiom GainsExperience : Person → Prop
+axiom MakesDifference : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom ImprovesCommunity : Person → Prop
+axiom EnhancesLives : Person → Prop
+axiom HasSkills : Person → Prop
+axiom VolunteersRegularly : Person → Prop
+axiom GainsKnowledge : Person → Prop
+axiom ReadsBooks : Person → Prop
+axiom AttendsSeminars : Person → Prop
+axiom Selfless : Person → Prop
+axiom Educated : Person → Prop
+
+axiom premise1 : PursuesGoals Shiloh
+axiom premise2 : ¬ GoodIntentions Shiloh
+axiom premise3 : ∀ x : Person, (WorksHard x ∨ LearnsQuickly x) → GainsExperience x
+axiom premise4 : ∀ x : Person, (MakesDifference x ∧ InspiresOthers x) → ImprovesCommunity x
+axiom premise5 : InspiresOthers Shiloh
+axiom premise6a : PursuesGoals Shiloh ∨ EnhancesLives Shiloh
+axiom premise6b : ¬ (PursuesGoals Shiloh ∧ EnhancesLives Shiloh)
+axiom premise7 : ∀ x : Person, (GainsExperience x ∨ Educated x) → MakesDifference x
+axiom premise8 : ∀ x : Person, HasSkills x ∨ MakesDifference x
+axiom premise9 : ∀ x : Person, (VolunteersRegularly x ∨ ImprovesCommunity x) → EnhancesLives x
+axiom premise10 : ∀ x : Person, GoodIntentions x ∨ GainsKnowledge x
+axiom premise11 : ((ReadsBooks Shiloh ∧ ¬AttendsSeminars Shiloh) ∨ (AttendsSeminars Shiloh ∧ ¬ReadsBooks Shiloh)) → GainsKnowledge Shiloh
+axiom premise12 : Selfless Shiloh ∨ Educated Shiloh
+
+-- From the premises we can actually derive that Shiloh is selfless.
+theorem selfless_true : Selfless Shiloh := by
+  -- From premise1 and premise6b, we get ¬ EnhancesLives Shiloh
+  have notEnh : ¬ EnhancesLives Shiloh := by
+    intro hE
+    exact premise6b ⟨premise1, hE⟩
+  -- Educated implies EnhancesLives via the chain: Educated → MakesDifference → ImprovesCommunity → EnhancesLives
+  have edu_implies_enh : Educated Shiloh → EnhancesLives Shiloh := by
+    intro hEdu
+    have md : MakesDifference Shiloh := premise7 Shiloh (Or.inr hEdu)
+    have ic : ImprovesCommunity Shiloh := premise4 Shiloh ⟨md, premise5⟩
+    exact premise9 Shiloh (Or.inr ic)
+  -- Case analysis on Selfless ∨ Educated
+  cases premise12 with
+  | inl hS => exact hS
+  | inr hEdu =>
+      have hE : EnhancesLives Shiloh := edu_implies_enh hEdu
+      exact False.elim (notEnh hE)
+
+-- Goal: prove the negation of the conclusion (that Shiloh is selfless)
+theorem goal : ¬ Selfless Shiloh := by
+  intro h
+  -- The premises actually entail Selfless Shiloh (see selfless_true), so this negation is not provable.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

@@ -1,0 +1,190 @@
+Story ID: 0
+Example ID: 249
+Premises: If Aliya is a skilled chef, then he runs a popular kitchen. Anyone who sources local ingredients or uses traditional techniques values quality. If Roger is a passionate cook, then he is either a skilled chef or creative, but not both. Holden values quality or cares about customers. Roger does not run a popular kitchen. Holden cannot build a loyal customer base. Holden is a passionate cook. Aliya cannot build a loyal customer base. Girlfriend values quality or cares about customers. If Holden is a passionate cook, then he is either a skilled chef or creative, but not both. Roger does not care about customers. If Girlfriend is either meticulous or creative (but not both), then he is successful. If Holden is a skilled chef, then he runs a popular kitchen. Anyone who pays attention to details or is successful can build a loyal customer base. Holden does not run a popular kitchen. If Holden is either meticulous or creative (but not both), then he is successful. Holden does not care about customers. Holden works hard or pays attention to details.
+Conclusion: Holden is meticulous.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aliya : Person
+axiom Roger : Person
+axiom Holden : Person
+axiom Girlfriend : Person
+
+axiom SkilledChef : Person → Prop
+axiom RunsPopularKitchen : Person → Prop
+axiom SourcesLocalIngredients : Person → Prop
+axiom UsesTraditionalTechniques : Person → Prop
+axiom ValuesQuality : Person → Prop
+axiom PassionateCook : Person → Prop
+axiom Creative : Person → Prop
+axiom CaresAboutCustomers : Person → Prop
+axiom CanBuildLoyalCustomerBase : Person → Prop
+axiom Meticulous : Person → Prop
+axiom Successful : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom WorksHard : Person → Prop
+
+def XOR (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+axiom Prem1 : SkilledChef Aliya → RunsPopularKitchen Aliya
+axiom Prem2 : ∀ x : Person, (SourcesLocalIngredients x ∨ UsesTraditionalTechniques x) → ValuesQuality x
+axiom Prem3 : PassionateCook Roger → XOR (SkilledChef Roger) (Creative Roger)
+axiom Prem4 : ValuesQuality Holden ∨ CaresAboutCustomers Holden
+axiom Prem5 : ¬ RunsPopularKitchen Roger
+axiom Prem6 : ¬ CanBuildLoyalCustomerBase Holden
+axiom Prem7 : PassionateCook Holden
+axiom Prem8 : ¬ CanBuildLoyalCustomerBase Aliya
+axiom Prem9 : ValuesQuality Girlfriend ∨ CaresAboutCustomers Girlfriend
+axiom Prem10 : PassionateCook Holden → XOR (SkilledChef Holden) (Creative Holden)
+axiom Prem11 : ¬ CaresAboutCustomers Roger
+axiom Prem12 : XOR (Meticulous Girlfriend) (Creative Girlfriend) → Successful Girlfriend
+axiom Prem13 : SkilledChef Holden → RunsPopularKitchen Holden
+axiom Prem14 : ∀ x : Person, (PaysAttentionToDetails x ∨ Successful x) → CanBuildLoyalCustomerBase x
+axiom Prem15 : ¬ RunsPopularKitchen Holden
+axiom Prem16 : XOR (Meticulous Holden) (Creative Holden) → Successful Holden
+axiom Prem17 : ¬ CaresAboutCustomers Holden
+axiom Prem18 : WorksHard Holden ∨ PaysAttentionToDetails Holden
+
+open Classical
+
+theorem goal : Meticulous Holden := by
+  -- ¬ SkilledChef Holden
+  have h_not_skilled : ¬ SkilledChef Holden := by
+    intro hsc
+    have hruns : RunsPopularKitchen Holden := Prem13 hsc
+    exact Prem15 hruns
+  -- From passionate cook and exclusivity: (Skilled ∨ Creative) ∧ ¬(Skilled ∧ Creative)
+  have h_xor_SC_C : XOR (SkilledChef Holden) (Creative Holden) := Prem10 Prem7
+  have h_SC_or_C : SkilledChef Holden ∨ Creative Holden := And.left h_xor_SC_C
+  -- deduce Creative Holden
+  have h_creative : Creative Holden := by
+    cases h_SC_or_C with
+    | inl hsc =>
+        exact False.elim (h_not_skilled hsc)
+    | inr hc =>
+        exact hc
+  -- From ¬CanBuild and universal rule, derive ¬Successful and ¬PaysAttentionToDetails
+  have h_not_pord : ¬ (PaysAttentionToDetails Holden ∨ Successful Holden) := by
+    intro hpor
+    have hcan : CanBuildLoyalCustomerBase Holden := Prem14 Holden hpor
+    exact Prem6 hcan
+  have h_not_details : ¬ PaysAttentionToDetails Holden := by
+    intro hdet
+    apply h_not_pord
+    exact Or.inl hdet
+  have h_not_success : ¬ Successful Holden := by
+    intro hsuc
+    apply h_not_pord
+    exact Or.inr hsuc
+  -- From ¬Successful and implication from XOR to Successful, deduce ¬XOR (Meticulous, Creative)
+  have h_not_xor_MC : ¬ XOR (Meticulous Holden) (Creative Holden) := by
+    intro hxor
+    have hs : Successful Holden := Prem16 hxor
+    exact h_not_success hs
+  -- Use Creative to get (Meticulous ∨ Creative)
+  have h_M_or_C : Meticulous Holden ∨ Creative Holden := Or.inr h_creative
+  -- From ¬( (M ∨ C) ∧ ¬(M ∧ C) ) and (M ∨ C), deduce ¬¬(M ∧ C)
+  have h_not_not_and : ¬¬(Meticulous Holden ∧ Creative Holden) := by
+    intro h_not_and
+    apply h_not_xor_MC
+    exact And.intro h_M_or_C h_not_and
+  -- Classical double negation to get (M ∧ C)
+  have h_and : Meticulous Holden ∧ Creative Holden := not_not.mp h_not_not_and
+  exact And.left h_and
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aliya : Person
+axiom Roger : Person
+axiom Holden : Person
+axiom Girlfriend : Person
+
+axiom SkilledChef : Person → Prop
+axiom RunsPopularKitchen : Person → Prop
+axiom SourcesLocalIngredients : Person → Prop
+axiom UsesTraditionalTechniques : Person → Prop
+axiom ValuesQuality : Person → Prop
+axiom PassionateCook : Person → Prop
+axiom Creative : Person → Prop
+axiom CaresAboutCustomers : Person → Prop
+axiom BuildLoyalCustomerBase : Person → Prop
+axiom Meticulous : Person → Prop
+axiom Successful : Person → Prop
+axiom PaysAttentionToDetails : Person → Prop
+axiom WorksHard : Person → Prop
+
+-- Premises
+axiom ax1 : SkilledChef Aliya → RunsPopularKitchen Aliya
+axiom ax2 : ∀ x : Person, (SourcesLocalIngredients x ∨ UsesTraditionalTechniques x) → ValuesQuality x
+axiom ax3 : PassionateCook Roger → ((SkilledChef Roger ∧ ¬Creative Roger) ∨ (Creative Roger ∧ ¬SkilledChef Roger))
+axiom ax4 : ValuesQuality Holden ∨ CaresAboutCustomers Holden
+axiom ax5 : ¬RunsPopularKitchen Roger
+axiom ax6 : ¬BuildLoyalCustomerBase Holden
+axiom ax7 : PassionateCook Holden
+axiom ax8 : ¬BuildLoyalCustomerBase Aliya
+axiom ax9 : ValuesQuality Girlfriend ∨ CaresAboutCustomers Girlfriend
+axiom ax10 : PassionateCook Holden → ((SkilledChef Holden ∧ ¬Creative Holden) ∨ (Creative Holden ∧ ¬SkilledChef Holden))
+axiom ax11 : ¬CaresAboutCustomers Roger
+axiom ax12 : ((Meticulous Girlfriend ∧ ¬Creative Girlfriend) ∨ (Creative Girlfriend ∧ ¬Meticulous Girlfriend)) → Successful Girlfriend
+axiom ax13 : SkilledChef Holden → RunsPopularKitchen Holden
+axiom ax14 : ∀ x : Person, (PaysAttentionToDetails x ∨ Successful x) → BuildLoyalCustomerBase x
+axiom ax15 : ¬RunsPopularKitchen Holden
+axiom ax16 : ((Meticulous Holden ∧ ¬Creative Holden) ∨ (Creative Holden ∧ ¬Meticulous Holden)) → Successful Holden
+axiom ax17 : ¬CaresAboutCustomers Holden
+axiom ax18 : WorksHard Holden ∨ PaysAttentionToDetails Holden
+
+-- Derived facts showing why the negation is unlikely to be provable
+lemma holden_not_skilled : ¬SkilledChef Holden := by
+  intro hsc
+  have : RunsPopularKitchen Holden := ax13 hsc
+  exact ax15 this
+
+lemma holden_creative : Creative Holden := by
+  have h := ax10 ax7
+  cases h with
+  | inl h1 =>
+      exact False.elim (holden_not_skilled h1.left)
+  | inr h2 =>
+      exact h2.left
+
+lemma holden_not_successful : ¬Successful Holden := by
+  intro hs
+  have hImp := ax14 Holden
+  have : BuildLoyalCustomerBase Holden := hImp (Or.inr hs)
+  exact ax6 this
+
+lemma not_not_meticulous_holden : ¬¬Meticulous Holden := by
+  intro hNotM
+  have hC : Creative Holden := holden_creative
+  have hx : ((Meticulous Holden ∧ ¬Creative Holden) ∨ (Creative Holden ∧ ¬Meticulous Holden)) :=
+    Or.inr ⟨hC, hNotM⟩
+  have hs : Successful Holden := ax16 hx
+  exact holden_not_successful hs
+
+-- Target: negation of the conclusion (attempt)
+theorem goal : ¬Meticulous Holden := by
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

@@ -1,0 +1,181 @@
+Story ID: 0
+Example ID: 167
+Premises: Kevin protects marine life or studies the ocean. Vida either explores terrestrial ecosystems or studies the ocean, but not both. Kevin either investigates ecosystems or pursues space research. Kevin conducts research. If Kevin has a backpack or enjoys hiking, then he can explore terrestrial ecosystems. Kevin is a professor. If someone educates students, then they do not necessarily inspire others, and vice versa. If Kevin has passion, then he can either inspire others or develop innovative solutions, but not both. Kevin does not investigate ecosystems. Kevin either explores terrestrial ecosystems or studies the ocean, but not both. If Kevin studies the ocean, then he can either discover new species or inspire others, but not both. If Kevin is a professor, then he either conducts research or educates students, but not both. Kevin either pursues space research or explores terrestrial ecosystems, but not both.
+Conclusion: Kevin discovers new species.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+universe u
+axiom Person : Type
+axiom Kevin : Person
+axiom Vida : Person
+
+axiom ProtectsMarineLife : Person → Prop
+axiom StudiesOcean : Person → Prop
+axiom ExploresTerrestrial : Person → Prop
+axiom InvestigatesEcosystems : Person → Prop
+axiom PursuesSpaceResearch : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom HasBackpack : Person → Prop
+axiom EnjoysHiking : Person → Prop
+axiom Professor : Person → Prop
+axiom EducatesStudents : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom HasPassion : Person → Prop
+axiom DevelopsInnovativeSolutions : Person → Prop
+axiom DiscoversNewSpecies : Person → Prop
+
+-- Premises
+axiom p1 : ProtectsMarineLife Kevin ∨ StudiesOcean Kevin
+axiom p2 : (ExploresTerrestrial Vida ∨ StudiesOcean Vida) ∧ ¬(ExploresTerrestrial Vida ∧ StudiesOcean Vida)
+axiom p3 : InvestigatesEcosystems Kevin ∨ PursuesSpaceResearch Kevin
+axiom p4 : ConductsResearch Kevin
+axiom p5 : (HasBackpack Kevin ∨ EnjoysHiking Kevin) → ExploresTerrestrial Kevin
+axiom p6 : Professor Kevin
+axiom p7a : ∀ x : Person, EducatesStudents x → ¬ InspiresOthers x
+axiom p7b : ∀ x : Person, InspiresOthers x → ¬ EducatesStudents x
+axiom p8 : HasPassion Kevin → ((InspiresOthers Kevin ∨ DevelopsInnovativeSolutions Kevin) ∧ ¬(InspiresOthers Kevin ∧ DevelopsInnovativeSolutions Kevin))
+axiom p9 : ¬ InvestigatesEcosystems Kevin
+axiom p10 : (ExploresTerrestrial Kevin ∨ StudiesOcean Kevin) ∧ ¬(ExploresTerrestrial Kevin ∧ StudiesOcean Kevin)
+axiom p11 : StudiesOcean Kevin → ((DiscoversNewSpecies Kevin ∨ InspiresOthers Kevin) ∧ ¬(DiscoversNewSpecies Kevin ∧ InspiresOthers Kevin))
+axiom p12 : Professor Kevin → ((ConductsResearch Kevin ∨ EducatesStudents Kevin) ∧ ¬(ConductsResearch Kevin ∧ EducatesStudents Kevin))
+axiom p13 : (PursuesSpaceResearch Kevin ∨ ExploresTerrestrial Kevin) ∧ ¬(PursuesSpaceResearch Kevin ∧ ExploresTerrestrial Kevin)
+
+-- Derived: Kevin studies the ocean
+theorem studies_ocean_Kevin : StudiesOcean Kevin := by
+  -- From p3 and p9, Kevin pursues space research
+  have hPS : PursuesSpaceResearch Kevin := by
+    cases p3 with
+    | inl hInv =>
+      have : False := p9 hInv
+      exact False.elim this
+    | inr hPS => exact hPS
+  -- From p13 and hPS, Kevin does not explore terrestrial ecosystems
+  have hNotExplore : ¬ ExploresTerrestrial Kevin := by
+    have hNotBoth : ¬ (PursuesSpaceResearch Kevin ∧ ExploresTerrestrial Kevin) := p13.right
+    intro hE
+    exact hNotBoth ⟨hPS, hE⟩
+  -- From p10 and ¬Explores, conclude StudiesOcean
+  have hOr2 : ExploresTerrestrial Kevin ∨ StudiesOcean Kevin := p10.left
+  cases hOr2 with
+  | inl hE => exact (False.elim (hNotExplore hE))
+  | inr hS => exact hS
+
+-- Goal: Kevin discovers new species
+theorem goal : DiscoversNewSpecies Kevin := by
+  have hSO : StudiesOcean Kevin := studies_ocean_Kevin
+  have h := p11 hSO
+  have hOr : DiscoversNewSpecies Kevin ∨ InspiresOthers Kevin := h.left
+  have hNotBoth : ¬ (DiscoversNewSpecies Kevin ∧ InspiresOthers Kevin) := h.right
+  -- Insufficient information to exclude InspiresOthers Kevin; cannot conclude DiscoversNewSpecies Kevin.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Kevin : Person
+axiom Vida : Person
+
+axiom ProtectsMarineLife : Person → Prop
+axiom StudiesOcean : Person → Prop
+axiom ExploresTerrestrial : Person → Prop
+axiom InvestigatesEcosystems : Person → Prop
+axiom PursuesSpaceResearch : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom HasBackpack : Person → Prop
+axiom EnjoysHiking : Person → Prop
+axiom Professor : Person → Prop
+axiom EducatesStudents : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom HasPassion : Person → Prop
+axiom DevelopsInnovativeSolutions : Person → Prop
+axiom DiscoversNewSpecies : Person → Prop
+
+-- Premises
+axiom premise1 : ProtectsMarineLife Kevin ∨ StudiesOcean Kevin
+axiom premise2a : ExploresTerrestrial Vida ∨ StudiesOcean Vida
+axiom premise2b : ¬(ExploresTerrestrial Vida ∧ StudiesOcean Vida)
+axiom premise3 : InvestigatesEcosystems Kevin ∨ PursuesSpaceResearch Kevin
+axiom premise4 : ConductsResearch Kevin
+axiom premise5 : (HasBackpack Kevin ∨ EnjoysHiking Kevin) → ExploresTerrestrial Kevin
+axiom premise6 : Professor Kevin
+-- "and vice versa": Educates ↔ ¬Inspires (encoded as two implications)
+axiom premise7a : ∀ x : Person, EducatesStudents x → ¬InspiresOthers x
+axiom premise7b : ∀ x : Person, ¬InspiresOthers x → EducatesStudents x
+axiom premise8 :
+  HasPassion Kevin →
+    ((InspiresOthers Kevin ∨ DevelopsInnovativeSolutions Kevin) ∧
+     ¬(InspiresOthers Kevin ∧ DevelopsInnovativeSolutions Kevin))
+axiom premise9 : ¬InvestigatesEcosystems Kevin
+axiom premise10a : ExploresTerrestrial Kevin ∨ StudiesOcean Kevin
+axiom premise10b : ¬(ExploresTerrestrial Kevin ∧ StudiesOcean Kevin)
+axiom premise11 :
+  StudiesOcean Kevin →
+    ((DiscoversNewSpecies Kevin ∨ InspiresOthers Kevin) ∧
+     ¬(DiscoversNewSpecies Kevin ∧ InspiresOthers Kevin))
+axiom premise12 :
+  Professor Kevin →
+    ((ConductsResearch Kevin ∨ EducatesStudents Kevin) ∧
+     ¬(ConductsResearch Kevin ∧ EducatesStudents Kevin))
+axiom premise13a : PursuesSpaceResearch Kevin ∨ ExploresTerrestrial Kevin
+axiom premise13b : ¬(PursuesSpaceResearch Kevin ∧ ExploresTerrestrial Kevin)
+
+theorem goal : ¬DiscoversNewSpecies Kevin := by
+  -- From (Investigates ∨ PursuesSpace) and ¬Investigates, deduce PursuesSpace
+  have hPS : PursuesSpaceResearch Kevin := Or.resolve_left premise3 premise9
+  -- From XOR (PursuesSpace, Explores) and hPS, deduce ¬Explores
+  have hNotExpl : ¬ExploresTerrestrial Kevin := by
+    intro hExpl
+    exact premise13b ⟨hPS, hExpl⟩
+  -- From (Explores ∨ Studies) and ¬Explores, deduce Studies
+  have hStudy : StudiesOcean Kevin := Or.resolve_left premise10a hNotExpl
+  -- From Studies, get (Discover ∨ Inspire) ∧ ¬(Discover ∧ Inspire)
+  have hDiscInsp_conj :
+      (DiscoversNewSpecies Kevin ∨ InspiresOthers Kevin) ∧
+      ¬(DiscoversNewSpecies Kevin ∧ InspiresOthers Kevin) :=
+    premise11 hStudy
+  have hNotBoth : ¬(DiscoversNewSpecies Kevin ∧ InspiresOthers Kevin) :=
+    And.right hDiscInsp_conj
+  -- From Professor and the XOR (Conducts ∨ Educates) ∧ ¬(Conducts ∧ Educates)
+  have hProfConj :
+      (ConductsResearch Kevin ∨ EducatesStudents Kevin) ∧
+      ¬(ConductsResearch Kevin ∧ EducatesStudents Kevin) :=
+    premise12 premise6
+  have hNotBothCE : ¬(ConductsResearch Kevin ∧ EducatesStudents Kevin) :=
+    And.right hProfConj
+  -- Since Kevin conducts research, deduce ¬Educates
+  have hNotEdu : ¬EducatesStudents Kevin := by
+    intro hEdu
+    exact hNotBothCE ⟨premise4, hEdu⟩
+  -- From (¬Inspires → Educates) and ¬Educates, derive ¬¬Inspires
+  have hNNInsp : ¬¬InspiresOthers Kevin := by
+    intro hNotInsp
+    exact hNotEdu (premise7b Kevin hNotInsp)
+  -- To prove ¬Discover, assume Discover and derive contradiction with ¬¬Inspires
+  intro hDisc
+  have hNotInsp : ¬InspiresOthers Kevin := by
+    intro hInsp
+    exact hNotBoth ⟨hDisc, hInsp⟩
+  exact hNNInsp hNotInsp
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

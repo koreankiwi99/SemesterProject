@@ -1,0 +1,264 @@
+Story ID: 0
+Example ID: 78
+Premises: If Aurelio has good intuition, then he is either self-aware or reflective about his actions, but not both. Aurelio does not reflect on his actions. Aurelio does not maintain balance. Aurelio either engages in physical activity or manages stress, but not both. Everyone who pursues wellbeing either engages in physical activity or maintains balance (or both). Aurelio has good intuition. If Aurelio practices mindfulness, then he follows an alkaline diet and stays hydrated. Aurelio practices mindfulness or manages stress. Any person who recognizes their emotions or connects with nature can manage stress. Aurelio does not take care of his emotions. Aurelio pursues wellbeing. If someone either plays sports or dances frequently (but not both), then they engage in physical activity. If Aurelio is self-aware, then he either listens to his body or takes care of his emotions, but not both. If Aurelio practices reflection, then he either is self-aware or values self-growth, but not both.
+Conclusion: Aurelio does not prioritize his health.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Domain and constants
+axiom Person : Type
+axiom Aurelio : Person
+
+-- Predicates
+axiom GoodIntuition : Person → Prop
+axiom SelfAware : Person → Prop
+axiom ReflectsActions : Person → Prop
+axiom MaintainsBalance : Person → Prop
+axiom PhysicalActivity : Person → Prop
+axiom ManagesStress : Person → Prop
+axiom PursuesWellbeing : Person → Prop
+axiom PracticesMindfulness : Person → Prop
+axiom FollowsAlkalineDiet : Person → Prop
+axiom StaysHydrated : Person → Prop
+axiom RecognizesEmotions : Person → Prop
+axiom ConnectsWithNature : Person → Prop
+axiom TakesCareOfEmotions : Person → Prop
+axiom PlaysSports : Person → Prop
+axiom DancesFrequently : Person → Prop
+axiom ListensToBody : Person → Prop
+axiom ValuesSelfGrowth : Person → Prop
+axiom PracticesReflection : Person → Prop
+axiom PrioritizesHealth : Person → Prop
+
+-- Premises as axioms
+
+-- 1. If Aurelio has good intuition, then he is either self-aware or reflective about his actions, but not both.
+axiom goodIntuition_implies_SA_xor_Reflect :
+  GoodIntuition Aurelio →
+  ((SelfAware Aurelio ∨ ReflectsActions Aurelio) ∧ ¬(SelfAware Aurelio ∧ ReflectsActions Aurelio))
+
+-- 2. Aurelio does not reflect on his actions.
+axiom not_reflects : ¬ ReflectsActions Aurelio
+
+-- 3. Aurelio does not maintain balance.
+axiom not_balance : ¬ MaintainsBalance Aurelio
+
+-- 4. Aurelio either engages in physical activity or manages stress, but not both.
+axiom pa_xor_ms :
+  (PhysicalActivity Aurelio ∨ ManagesStress Aurelio) ∧ ¬(PhysicalActivity Aurelio ∧ ManagesStress Aurelio)
+
+-- 5. Everyone who pursues wellbeing either engages in physical activity or maintains balance (or both).
+axiom pursue_implies_pa_or_balance :
+  ∀ x : Person, PursuesWellbeing x → (PhysicalActivity x ∨ MaintainsBalance x)
+
+-- 6. Aurelio has good intuition.
+axiom good_intuition : GoodIntuition Aurelio
+
+-- 7. If Aurelio practices mindfulness, then he follows an alkaline diet and stays hydrated.
+axiom mindfulness_implies_diet_hydration :
+  PracticesMindfulness Aurelio → (FollowsAlkalineDiet Aurelio ∧ StaysHydrated Aurelio)
+
+-- 8. Aurelio practices mindfulness or manages stress.
+axiom mindfulness_or_ms : PracticesMindfulness Aurelio ∨ ManagesStress Aurelio
+
+-- 9. Any person who recognizes their emotions or connects with nature can manage stress.
+axiom recOrConn_implies_ms :
+  ∀ x : Person, (RecognizesEmotions x ∨ ConnectsWithNature x) → ManagesStress x
+
+-- 10. Aurelio does not take care of his emotions.
+axiom not_care_emotions : ¬ TakesCareOfEmotions Aurelio
+
+-- 11. Aurelio pursues wellbeing.
+axiom pursues_wellbeing : PursuesWellbeing Aurelio
+
+-- 12. If someone either plays sports or dances frequently (but not both), then they engage in physical activity.
+axiom sports_or_dance_xor_implies_pa :
+  ∀ x : Person,
+    ((PlaysSports x ∨ DancesFrequently x) ∧ ¬(PlaysSports x ∧ DancesFrequently x)) → PhysicalActivity x
+
+-- 13. If Aurelio is self-aware, then he either listens to his body or takes care of his emotions, but not both.
+axiom sa_implies_listen_or_care :
+  SelfAware Aurelio →
+  ((ListensToBody Aurelio ∨ TakesCareOfEmotions Aurelio) ∧ ¬(ListensToBody Aurelio ∧ TakesCareOfEmotions Aurelio))
+
+-- 14. If Aurelio practices reflection, then he either is self-aware or values self-growth, but not both.
+axiom reflection_implies_sa_or_growth :
+  PracticesReflection Aurelio →
+  ((SelfAware Aurelio ∨ ValuesSelfGrowth Aurelio) ∧ ¬(SelfAware Aurelio ∧ ValuesSelfGrowth Aurelio))
+
+-- Conclusion to analyze: Aurelio does not prioritize his health.
+theorem conclusion : ¬ PrioritizesHealth Aurelio := by
+  -- Derive SelfAware Aurelio from good intuition and not reflecting
+  have h1 := goodIntuition_implies_SA_xor_Reflect good_intuition
+  have hSAorR : (SelfAware Aurelio ∨ ReflectsActions Aurelio) := And.left h1
+  have hSA : SelfAware Aurelio := by
+    cases hSAorR with
+    | inl hsa => exact hsa
+    | inr hreflect => exact False.elim (not_reflects hreflect)
+
+  -- From self-awareness and not taking care of emotions, get listens to body
+  have hLC := sa_implies_listen_or_care hSA
+  have hLorC : (ListensToBody Aurelio ∨ TakesCareOfEmotions Aurelio) := And.left hLC
+  have hListen : ListensToBody Aurelio := by
+    cases hLorC with
+    | inl hL => exact hL
+    | inr hC => exact False.elim (not_care_emotions hC)
+
+  -- From pursuing wellbeing and not maintaining balance, get physical activity
+  have hPAorMB := pursue_implies_pa_or_balance Aurelio pursues_wellbeing
+  have hPA : PhysicalActivity Aurelio := by
+    cases hPAorMB with
+    | inl hpa => exact hpa
+    | inr hmb => exact False.elim (not_balance hmb)
+
+  -- From XOR of PA and MS, deduce not managing stress
+  have hNotBoth : ¬(PhysicalActivity Aurelio ∧ ManagesStress Aurelio) := And.right pa_xor_ms
+  have hNotMS : ¬ ManagesStress Aurelio := by
+    intro hms
+    exact hNotBoth ⟨hPA, hms⟩
+
+  -- From mindfulness or MS and not MS, deduce mindfulness; then diet and hydration
+  have hMind : PracticesMindfulness Aurelio := by
+    cases mindfulness_or_ms with
+    | inl hm => exact hm
+    | inr hms => exact False.elim (hNotMS hms)
+  have hDietHydr := mindfulness_implies_diet_hydration hMind
+  have _hDiet : FollowsAlkalineDiet Aurelio := And.left hDietHydr
+  have _hHydr : StaysHydrated Aurelio := And.right hDietHydr
+
+  -- From (recognizes ∨ connects) → manages stress and ¬manages stress, deduce neither recognizes nor connects
+  have hNotRecOrConn : ¬ (RecognizesEmotions Aurelio ∨ ConnectsWithNature Aurelio) := by
+    intro h
+    have ms := recOrConn_implies_ms Aurelio h
+    exact hNotMS ms
+  have _hNotRec : ¬ RecognizesEmotions Aurelio := by
+    intro hr; exact hNotRecOrConn (Or.inl hr)
+  have _hNotConn : ¬ ConnectsWithNature Aurelio := by
+    intro hc; exact hNotRecOrConn (Or.inr hc)
+
+  -- No available premises link the above facts to "PrioritizesHealth".
+  -- Hence the desired negation cannot be derived from the given premises.
+  -- Proof attempt ends here.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Aurelio : Person
+
+axiom GoodIntuition : Person → Prop
+axiom SelfAware : Person → Prop
+axiom ReflectsActions : Person → Prop
+axiom MaintainBalance : Person → Prop
+axiom PhysicalActivity : Person → Prop
+axiom ManagesStress : Person → Prop
+axiom PursuesWellbeing : Person → Prop
+axiom PracticesMindfulness : Person → Prop
+axiom AlkalineDiet : Person → Prop
+axiom StaysHydrated : Person → Prop
+axiom RecognizesEmotions : Person → Prop
+axiom ConnectsNature : Person → Prop
+axiom TakesCareEmotions : Person → Prop
+axiom PlaysSports : Person → Prop
+axiom DancesFrequently : Person → Prop
+axiom PracticesReflection : Person → Prop
+axiom ValuesSelfGrowth : Person → Prop
+axiom ListensBody : Person → Prop
+axiom PrioritizesHealth : Person → Prop
+
+-- 1. If Aurelio has good intuition, then he is either self-aware or reflective about his actions, but not both.
+axiom premise1 : GoodIntuition Aurelio → ((SelfAware Aurelio ∨ ReflectsActions Aurelio) ∧ ¬(SelfAware Aurelio ∧ ReflectsActions Aurelio))
+-- 2. Aurelio does not reflect on his actions.
+axiom premise2 : ¬ReflectsActions Aurelio
+-- 3. Aurelio does not maintain balance.
+axiom premise3 : ¬MaintainBalance Aurelio
+-- 4. Aurelio either engages in physical activity or manages stress, but not both.
+axiom premise4 : (PhysicalActivity Aurelio ∨ ManagesStress Aurelio) ∧ ¬(PhysicalActivity Aurelio ∧ ManagesStress Aurelio)
+-- 5. Everyone who pursues wellbeing either engages in physical activity or maintains balance (or both).
+axiom premise5 : ∀ x : Person, PursuesWellbeing x → (PhysicalActivity x ∨ MaintainBalance x)
+-- 6. Aurelio has good intuition.
+axiom premise6 : GoodIntuition Aurelio
+-- 7. If Aurelio practices mindfulness, then he follows an alkaline diet and stays hydrated.
+axiom premise7 : PracticesMindfulness Aurelio → (AlkalineDiet Aurelio ∧ StaysHydrated Aurelio)
+-- 8. Aurelio practices mindfulness or manages stress.
+axiom premise8 : PracticesMindfulness Aurelio ∨ ManagesStress Aurelio
+-- 9. Any person who recognizes their emotions or connects with nature can manage stress.
+axiom premise9 : ∀ x : Person, (RecognizesEmotions x ∨ ConnectsNature x) → ManagesStress x
+-- 10. Aurelio does not take care of his emotions.
+axiom premise10 : ¬TakesCareEmotions Aurelio
+-- 11. Aurelio pursues wellbeing.
+axiom premise11 : PursuesWellbeing Aurelio
+-- 12. If someone either plays sports or dances frequently (but not both), then they engage in physical activity.
+axiom premise12 : ∀ x : Person, ((PlaysSports x ∨ DancesFrequently x) ∧ ¬(PlaysSports x ∧ DancesFrequently x)) → PhysicalActivity x
+-- 13. If Aurelio is self-aware, then he either listens to his body or takes care of his emotions, but not both.
+axiom premise13 : SelfAware Aurelio → ((ListensBody Aurelio ∨ TakesCareEmotions Aurelio) ∧ ¬(ListensBody Aurelio ∧ TakesCareEmotions Aurelio))
+-- 14. If Aurelio practices reflection, then he either is self-aware or values self-growth, but not both.
+axiom premise14 : PracticesReflection Aurelio → ((SelfAware Aurelio ∨ ValuesSelfGrowth Aurelio) ∧ ¬(SelfAware Aurelio ∧ ValuesSelfGrowth Aurelio))
+
+-- Negation of the conclusion: we attempt to prove Aurelio prioritizes his health.
+theorem negConclusion : PrioritizesHealth Aurelio := by
+  -- From good intuition and not reflecting on actions, deduce self-awareness.
+  have hSAorR_and_not := premise1 premise6
+  have hSAorR : SelfAware Aurelio ∨ ReflectsActions Aurelio := And.left hSAorR_and_not
+  have hSA : SelfAware Aurelio := by
+    cases hSAorR with
+    | inl h => exact h
+    | inr hR => exact False.elim (premise2 hR)
+  -- From self-awareness and not taking care of emotions, deduce listens to his body.
+  have hLBorTCE_and_not := premise13 hSA
+  have hLBorTCE : ListensBody Aurelio ∨ TakesCareEmotions Aurelio := And.left hLBorTCE_and_not
+  have hLB : ListensBody Aurelio := by
+    cases hLBorTCE with
+    | inl h => exact h
+    | inr hTCE => exact False.elim (premise10 hTCE)
+  -- From pursuing wellbeing and not maintaining balance, deduce physical activity.
+  have hPAorMB := premise5 Aurelio premise11
+  have hPA : PhysicalActivity Aurelio := by
+    cases hPAorMB with
+    | inl h => exact h
+    | inr hMB => exact False.elim (premise3 hMB)
+  -- From the XOR in premise4 and physical activity, deduce not managing stress.
+  have hNotBothPAms : ¬(PhysicalActivity Aurelio ∧ ManagesStress Aurelio) := And.right premise4
+  have hNotMS : ¬ManagesStress Aurelio := by
+    intro hms
+    exact hNotBothPAms (And.intro hPA hms)
+  -- From premise8 and not managing stress, deduce mindfulness.
+  have hM_or_MS := premise8
+  have hM : PracticesMindfulness Aurelio := by
+    cases hM_or_MS with
+    | inl hm => exact hm
+    | inr hms => exact False.elim (hNotMS hms)
+  -- From premise7, deduce alkaline diet and staying hydrated.
+  have hAD_and_SH := premise7 hM
+  have _hAD : AlkalineDiet Aurelio := And.left hAD_and_SH
+  have _hSH : StaysHydrated Aurelio := And.right hAD_and_SH
+  -- From premise9 and not managing stress, deduce not (recognizes emotions or connects nature).
+  have hNotREorCN : ¬(RecognizesEmotions Aurelio ∨ ConnectsNature Aurelio) := by
+    intro h
+    have ms := premise9 Aurelio h
+    exact hNotMS ms
+  -- At this point, there is no given link from these properties to "PrioritizesHealth".
+  -- Therefore, we cannot derive PrioritizesHealth Aurelio from the premises provided.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

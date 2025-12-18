@@ -1,0 +1,370 @@
+Story ID: 0
+Example ID: 351
+Premises: Isabela is either brave or fearful, but not both. If Isabela either meets deadlines or faces challenges (but not both), then she stays motivated. Isabela achieves success. Janiyah achieves success. If Isabela has ambition, then she either sets goals or achieves success, but not both. Isabela does not overcome obstacles. Paislee either sets goals or meets deadlines, but not both. Anyone who works hard or stays organized can meet deadlines. Isabela pursues her passions. Isabela encounters problems. Isabela does not stay motivated. If Isabela either overcomes obstacles or pursues passions (but not both), then she has ambition. If Isabela either makes plans or tracks progress (but not both), then she sets goals. If Isabela encounters problems, then she either helps others or supports her family, but not both. Anyone who lives in a disaster area will face challenges. Isabela values her community. All persevering people are brave and take risks. Isabela prioritizes her own well-being. Anyone who faces challenges and helps others is brave. If Isabela supports her family, then she either prioritizes her own well-being or values her community, but not both. Isabela either sets goals or meets deadlines, but not both.
+Conclusion: Isabela is fearful.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Person : Type
+axiom Isabela : Person
+axiom Janiyah : Person
+axiom Paislee : Person
+
+axiom Brave : Person → Prop
+axiom Fearful : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom HasAmbition : Person → Prop
+axiom SetsGoals : Person → Prop
+axiom OvercomesObstacles : Person → Prop
+axiom WorksHard : Person → Prop
+axiom StaysOrganized : Person → Prop
+axiom PursuesPassions : Person → Prop
+axiom EncountersProblems : Person → Prop
+axiom MakesPlans : Person → Prop
+axiom TracksProgress : Person → Prop
+axiom HelpsOthers : Person → Prop
+axiom SupportsFamily : Person → Prop
+axiom LivesInDisasterArea : Person → Prop
+axiom ValuesCommunity : Person → Prop
+axiom Persevering : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom PrioritizesOwnWellBeing : Person → Prop
+
+-- Premises
+axiom isabela_brave_or_fearful : Brave Isabela ∨ Fearful Isabela
+axiom isabela_not_both_brave_fearful : ¬ (Brave Isabela ∧ Fearful Isabela)
+
+axiom md_fc_xor_implies_motivated :
+  ((MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧ ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela)) → StaysMotivated Isabela
+
+axiom achieves_success_isabela : AchievesSuccess Isabela
+axiom achieves_success_janiyah : AchievesSuccess Janiyah
+
+axiom ambition_implies_sg_or_as_xor :
+  HasAmbition Isabela →
+    ((SetsGoals Isabela ∨ AchievesSuccess Isabela) ∧ ¬(SetsGoals Isabela ∧ AchievesSuccess Isabela))
+
+axiom not_overcomes_isabela : ¬ OvercomesObstacles Isabela
+
+axiom paislee_sg_or_md_xor :
+  ((SetsGoals Paislee ∨ MeetsDeadlines Paislee) ∧ ¬(SetsGoals Paislee ∧ MeetsDeadlines Paislee))
+
+axiom workhard_or_organized_meet :
+  ∀ x : Person, (WorksHard x ∨ StaysOrganized x) → MeetsDeadlines x
+
+axiom pursues_passions_isabela : PursuesPassions Isabela
+axiom encounters_problems_isabela : EncountersProblems Isabela
+axiom not_motivated_isabela : ¬ StaysMotivated Isabela
+
+axiom oo_or_pp_xor_implies_ambition :
+  ((OvercomesObstacles Isabela ∨ PursuesPassions Isabela) ∧ ¬(OvercomesObstacles Isabela ∧ PursuesPassions Isabela)) → HasAmbition Isabela
+
+axiom makesplans_or_tracks_xor_implies_setgoals :
+  ((MakesPlans Isabela ∨ TracksProgress Isabela) ∧ ¬(MakesPlans Isabela ∧ TracksProgress Isabela)) → SetsGoals Isabela
+
+axiom encounters_implies_help_or_support :
+  EncountersProblems Isabela →
+    ((HelpsOthers Isabela ∨ SupportsFamily Isabela) ∧ ¬(HelpsOthers Isabela ∧ SupportsFamily Isabela))
+
+axiom disaster_implies_faces :
+  ∀ x : Person, LivesInDisasterArea x → FacesChallenges x
+
+axiom values_community_isabela : ValuesCommunity Isabela
+
+axiom persevering_implies_brave_and_risk :
+  ∀ x : Person, Persevering x → (Brave x ∧ TakesRisks x)
+
+axiom prioritizes_wellbeing_isabela : PrioritizesOwnWellBeing Isabela
+
+axiom faces_and_helps_implies_brave :
+  ∀ x : Person, (FacesChallenges x ∧ HelpsOthers x) → Brave x
+
+axiom supports_family_implies_wellbeing_or_values_xor :
+  SupportsFamily Isabela →
+    ((PrioritizesOwnWellBeing Isabela ∨ ValuesCommunity Isabela) ∧ ¬(PrioritizesOwnWellBeing Isabela ∧ ValuesCommunity Isabela))
+
+axiom isabela_sg_or_md_xor :
+  ((SetsGoals Isabela ∨ MeetsDeadlines Isabela) ∧ ¬(SetsGoals Isabela ∧ MeetsDeadlines Isabela))
+
+-- We derive that Isabela is Brave (which contradicts the desired conclusion "Isabela is fearful")
+theorem derive_brave_isabela : Brave Isabela := by
+  -- From ¬OO and PP, build the XOR antecedent to get HasAmbition
+  have hOPxor :
+      ((OvercomesObstacles Isabela ∨ PursuesPassions Isabela) ∧
+       ¬(OvercomesObstacles Isabela ∧ PursuesPassions Isabela)) := by
+    refine And.intro (Or.inr pursues_passions_isabela) ?_
+    intro h
+    exact not_overcomes_isabela (And.left h)
+  have hAmb : HasAmbition Isabela := oo_or_pp_xor_implies_ambition hOPxor
+
+  -- From ambition, get (SG ∨ AS) ∧ ¬(SG ∧ AS) and deduce ¬SG using AS true
+  have hSG_AS := ambition_implies_sg_or_as_xor hAmb
+  have hNotSG : ¬ SetsGoals Isabela := by
+    intro hSG
+    have hNotBoth := And.right hSG_AS
+    have hBoth : SetsGoals Isabela ∧ AchievesSuccess Isabela := And.intro hSG achieves_success_isabela
+    exact hNotBoth hBoth
+
+  -- From (SG ∨ MD) and ¬SG, deduce MD
+  have hSG_MD := isabela_sg_or_md_xor
+  have hMD : MeetsDeadlines Isabela := by
+    have hOr := And.left hSG_MD
+    cases hOr with
+    | inl hsg => exact False.elim (hNotSG hsg)
+    | inr hmd => exact hmd
+
+  -- Using ¬Motivated and the implication, deduce FacesChallenges (classically)
+  have hNotXor_md_fc :
+      ¬((MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧
+        ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela)) := by
+    intro h
+    have hMot := md_fc_xor_implies_motivated h
+    exact not_motivated_isabela hMot
+  have hFC : FacesChallenges Isabela := by
+    by_contra hNotFC
+    have hOr : MeetsDeadlines Isabela ∨ FacesChallenges Isabela := Or.inl hMD
+    have hNotBoth : ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela) := by
+      intro hf
+      exact hNotFC (And.right hf)
+    have hConj :
+        (MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧
+        ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela) := And.intro hOr hNotBoth
+    exact hNotXor_md_fc hConj
+
+  -- From EncountersProblems, get (HO ∨ SF) ∧ ¬(HO ∧ SF), and separately show ¬SF, hence HO
+  have hHSconj := encounters_implies_help_or_support encounters_problems_isabela
+  have hNotXor_PV :
+      ¬((PrioritizesOwnWellBeing Isabela ∨ ValuesCommunity Isabela) ∧
+        ¬(PrioritizesOwnWellBeing Isabela ∧ ValuesCommunity Isabela)) := by
+    intro h
+    have hNotBoth := And.right h
+    have hBoth : PrioritizesOwnWellBeing Isabela ∧ ValuesCommunity Isabela :=
+      And.intro prioritizes_wellbeing_isabela values_community_isabela
+    exact hNotBoth hBoth
+  have hNotSF : ¬ SupportsFamily Isabela := by
+    intro hSF
+    have h := supports_family_implies_wellbeing_or_values_xor hSF
+    exact hNotXor_PV h
+  have hHO : HelpsOthers Isabela := by
+    have hOr := And.left hHSconj
+    cases hOr with
+    | inl hho => exact hho
+    | inr hsf => exact False.elim (hNotSF hsf)
+
+  -- FacesChallenges ∧ HelpsOthers ⇒ Brave
+  have h := faces_and_helps_implies_brave Isabela
+  exact h (And.intro hFC hHO)
+
+-- From Brave and "not both", conclude ¬Fearful
+theorem not_fearful_isabela : ¬ Fearful Isabela := by
+  intro hFear
+  have hBrave : Brave Isabela := derive_brave_isabela
+  exact isabela_not_both_brave_fearful (And.intro hBrave hFear)
+
+/-
+Conclusion requested: Fearful Isabela.
+Given the derived theorem not_fearful_isabela, the requested conclusion does not follow from the premises.
+-/
+-- Attempting to state the requested conclusion would be unprovable from the given premises.
+-- theorem goal : Fearful Isabela := by
+--   -- No derivation possible; contradicts not_fearful_isabela.
+--   exact False.elim (not_fearful_isabela ?h)
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Isabela : Person
+axiom Janiyah : Person
+axiom Paislee : Person
+
+axiom Brave : Person → Prop
+axiom Fearful : Person → Prop
+axiom MeetsDeadlines : Person → Prop
+axiom FacesChallenges : Person → Prop
+axiom StaysMotivated : Person → Prop
+axiom AchievesSuccess : Person → Prop
+axiom HasAmbition : Person → Prop
+axiom SetsGoals : Person → Prop
+axiom OvercomesObstacles : Person → Prop
+axiom WorksHard : Person → Prop
+axiom StaysOrganized : Person → Prop
+axiom PursuesPassions : Person → Prop
+axiom EncountersProblems : Person → Prop
+axiom HelpsOthers : Person → Prop
+axiom SupportsFamily : Person → Prop
+axiom LivesInDisasterArea : Person → Prop
+axiom ValuesCommunity : Person → Prop
+axiom Perseveres : Person → Prop
+axiom TakesRisks : Person → Prop
+axiom PrioritizesOwnWellBeing : Person → Prop
+axiom MakesPlans : Person → Prop
+axiom TracksProgress : Person → Prop
+
+-- Isabela is either brave or fearful, but not both.
+axiom xor_brave_fear_Isabela :
+  (Brave Isabela ∨ Fearful Isabela) ∧ ¬(Brave Isabela ∧ Fearful Isabela)
+
+-- If Isabela either meets deadlines or faces challenges (but not both), then she stays motivated.
+axiom md_fc_imp_motiv_Isabela :
+  ((MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧ ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela)) →
+  StaysMotivated Isabela
+
+-- Isabela achieves success. Janiyah achieves success.
+axiom success_Isabela : AchievesSuccess Isabela
+axiom success_Janiyah : AchievesSuccess Janiyah
+
+-- If Isabela has ambition, then she either sets goals or achieves success, but not both.
+axiom amb_imp_xor_sg_succ_Isabela :
+  HasAmbition Isabela →
+  ((SetsGoals Isabela ∨ AchievesSuccess Isabela) ∧ ¬(SetsGoals Isabela ∧ AchievesSuccess Isabela))
+
+-- Isabela does not overcome obstacles.
+axiom not_overcome_Isabela : ¬ OvercomesObstacles Isabela
+
+-- Paislee either sets goals or meets deadlines, but not both.
+axiom xor_sg_md_Paislee :
+  (SetsGoals Paislee ∨ MeetsDeadlines Paislee) ∧ ¬(SetsGoals Paislee ∧ MeetsDeadlines Paislee)
+
+-- Anyone who works hard or stays organized can meet deadlines.
+axiom workhard_or_organized_meet :
+  ∀ x : Person, (WorksHard x ∨ StaysOrganized x) → MeetsDeadlines x
+
+-- Isabela pursues her passions.
+axiom pursues_Isabela : PursuesPassions Isabela
+
+-- Isabela encounters problems.
+axiom encounters_Isabela : EncountersProblems Isabela
+
+-- Isabela does not stay motivated.
+axiom not_motivated_Isabela : ¬ StaysMotivated Isabela
+
+-- If Isabela either overcomes obstacles or pursues passions (but not both), then she has ambition.
+axiom xor_oo_pp_imp_amb_Isabela :
+  ((OvercomesObstacles Isabela ∨ PursuesPassions Isabela) ∧ ¬(OvercomesObstacles Isabela ∧ PursuesPassions Isabela)) →
+  HasAmbition Isabela
+
+-- If Isabela either makes plans or tracks progress (but not both), then she sets goals.
+axiom xor_mp_tp_imp_sg_Isabela :
+  ((MakesPlans Isabela ∨ TracksProgress Isabela) ∧ ¬(MakesPlans Isabela ∧ TracksProgress Isabela)) →
+  SetsGoals Isabela
+
+-- If Isabela encounters problems, then she either helps others or supports her family, but not both.
+axiom encounters_imp_xor_help_support_Isabela :
+  EncountersProblems Isabela →
+  ((HelpsOthers Isabela ∨ SupportsFamily Isabela) ∧ ¬(HelpsOthers Isabela ∧ SupportsFamily Isabela))
+
+-- Anyone who lives in a disaster area will face challenges.
+axiom disaster_implies_faces : ∀ x : Person, LivesInDisasterArea x → FacesChallenges x
+
+-- Isabela values her community.
+axiom values_Isabela : ValuesCommunity Isabela
+
+-- All persevering people are brave and take risks.
+axiom persevering_implies_brave_risks : ∀ x : Person, Perseveres x → (Brave x ∧ TakesRisks x)
+
+-- Isabela prioritizes her own well-being.
+axiom prioritize_Isabela : PrioritizesOwnWellBeing Isabela
+
+-- Anyone who faces challenges and helps others is brave.
+axiom faces_and_helps_implies_brave : ∀ x : Person, FacesChallenges x → HelpsOthers x → Brave x
+
+-- If Isabela supports her family, then she either prioritizes her own well-being or values her community, but not both.
+axiom supportFam_imp_xor_pw_vc_Isabela :
+  SupportsFamily Isabela →
+  ((PrioritizesOwnWellBeing Isabela ∨ ValuesCommunity Isabela) ∧ ¬(PrioritizesOwnWellBeing Isabela ∧ ValuesCommunity Isabela))
+
+-- Isabela either sets goals or meets deadlines, but not both.
+axiom xor_sg_md_Isabela :
+  (SetsGoals Isabela ∨ MeetsDeadlines Isabela) ∧ ¬(SetsGoals Isabela ∧ MeetsDeadlines Isabela)
+
+open Classical
+
+theorem neg_conclusion : ¬ Fearful Isabela := by
+  -- From ¬OO and PP, build the XOR to get ambition
+  have xor_oo_pp :
+      ((OvercomesObstacles Isabela ∨ PursuesPassions Isabela) ∧
+       ¬(OvercomesObstacles Isabela ∧ PursuesPassions Isabela)) :=
+    And.intro
+      (Or.inr pursues_Isabela)
+      (fun hBoth => not_overcome_Isabela hBoth.left)
+  have amb : HasAmbition Isabela := xor_oo_pp_imp_amb_Isabela xor_oo_pp
+
+  -- Ambition gives XOR(SetsGoals, AchievesSuccess); with success, deduce ¬SetsGoals
+  have xor_sg_succ := amb_imp_xor_sg_succ_Isabela amb
+  have not_sg : ¬ SetsGoals Isabela :=
+    fun hsg => xor_sg_succ.right ⟨hsg, success_Isabela⟩
+
+  -- From XOR(SetsGoals, MeetsDeadlines) and ¬SetsGoals, deduce MeetsDeadlines
+  have md_true : MeetsDeadlines Isabela :=
+    match xor_sg_md_Isabela.left with
+    | Or.inl sg => False.elim (not_sg sg)
+    | Or.inr md => md
+
+  -- From (XOR(MD, FC) → Motivated) and ¬Motivated, deduce ¬XOR(MD, FC)
+  have not_xor_md_fc :
+      ¬ ((MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧ ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela)) :=
+    fun hxor => not_motivated_Isabela (md_fc_imp_motiv_Isabela hxor)
+
+  -- Using md_true and ¬XOR(MD, FC), derive FacesChallenges
+  have fc_true : FacesChallenges Isabela := by
+    cases Classical.em (FacesChallenges Isabela) with
+    | inl fc => exact fc
+    | inr hNotFC =>
+        have hxor :
+          ((MeetsDeadlines Isabela ∨ FacesChallenges Isabela) ∧
+           ¬(MeetsDeadlines Isabela ∧ FacesChallenges Isabela)) :=
+          And.intro (Or.inl md_true)
+            (fun hBoth : (MeetsDeadlines Isabela ∧ FacesChallenges Isabela) => hNotFC hBoth.right)
+        exact False.elim (not_xor_md_fc hxor)
+
+  -- From SF → XOR(PW, VC) and both PW and VC, deduce ¬SF
+  have not_sf : ¬ SupportsFamily Isabela :=
+    fun hsf =>
+      let hx := supportFam_imp_xor_pw_vc_Isabela hsf
+      let both_pw_vc : PrioritizesOwnWellBeing Isabela ∧ ValuesCommunity Isabela :=
+        ⟨prioritize_Isabela, values_Isabela⟩
+      hx.right both_pw_vc
+
+  -- From encounters → XOR(Helps, Supports) and ¬SF, deduce HelpsOthers
+  have ho_true : HelpsOthers Isabela := by
+    let hx := encounters_imp_xor_help_support_Isabela encounters_Isabela
+    have h := hx.left
+    exact
+      match h with
+      | Or.inl ho => ho
+      | Or.inr sf => False.elim (not_sf sf)
+
+  -- From FacesChallenges and HelpsOthers, deduce Brave
+  have br : Brave Isabela := faces_and_helps_implies_brave Isabela fc_true ho_true
+
+  -- Use the "not both" part of brave/fearful XOR to conclude ¬Fearful
+  have not_both_br_fe : ¬ (Brave Isabela ∧ Fearful Isabela) := xor_brave_fear_Isabela.right
+  intro hFear
+  exact not_both_br_fe ⟨br, hFear⟩
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

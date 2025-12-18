@@ -1,0 +1,241 @@
+Story ID: 0
+Example ID: 476
+Premises: Either Callahan has good taste or he has bad taste, but not both. Callahan appreciates culture. Elian either lacks refinement or has good taste, but not both. Everyone either has formal education or learns from others, but not both is not necessarily true. Anyone who travels extensively or learns from others can become experienced. If Alfonso is experienced, then he either lacks refinement or is sophisticated, but not both. If Elian understands color or values texture, then he has good taste. Elian has formal education. Either Elian has good taste or he has bad taste, but not both. If Elian appreciates culture, then he travels extensively and collects rare items. If Elian understands aesthetics, then he either creates masterpieces or lacks refinement (or both). If Alfonso appreciates culture, then he travels extensively and collects rare items. Alfonso either lacks refinement or has good taste, but not both. Callahan is sophisticated. Elian is sophisticated. If Elian is experienced, then he either lacks refinement or is sophisticated, but not both. Elian appreciates culture.
+Conclusion: Elian has bad taste.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Callahan : Person
+axiom Elian : Person
+axiom Alfonso : Person
+
+axiom GoodTaste : Person → Prop
+axiom BadTaste : Person → Prop
+axiom AppreciatesCulture : Person → Prop
+axiom LacksRefinement : Person → Prop
+axiom FormalEducation : Person → Prop
+axiom LearnsFromOthers : Person → Prop
+axiom TravelsExtensively : Person → Prop
+axiom Experienced : Person → Prop
+axiom Sophisticated : Person → Prop
+axiom UnderstandsColor : Person → Prop
+axiom ValuesTexture : Person → Prop
+axiom UnderstandsAesthetics : Person → Prop
+axiom CreatesMasterpieces : Person → Prop
+axiom CollectsRareItems : Person → Prop
+
+-- Premises
+axiom callahan_taste_xor :
+  (GoodTaste Callahan ∧ ¬ BadTaste Callahan) ∨ (BadTaste Callahan ∧ ¬ GoodTaste Callahan)
+axiom callahan_culture : AppreciatesCulture Callahan
+
+axiom elian_lr_or_gt_xor :
+  (LacksRefinement Elian ∧ ¬ GoodTaste Elian) ∨ (GoodTaste Elian ∧ ¬ LacksRefinement Elian)
+
+axiom travels_or_learns_implies_experienced :
+  ∀ x : Person, (TravelsExtensively x ∨ LearnsFromOthers x) → Experienced x
+
+axiom alfonso_experienced_xor_lr_s :
+  Experienced Alfonso →
+    ((LacksRefinement Alfonso ∧ ¬ Sophisticated Alfonso) ∨ (Sophisticated Alfonso ∧ ¬ LacksRefinement Alfonso))
+
+axiom elian_color_or_texture_implies_gt :
+  (UnderstandsColor Elian ∨ ValuesTexture Elian) → GoodTaste Elian
+
+axiom elian_fe : FormalEducation Elian
+
+axiom elian_gt_or_bt_xor :
+  (GoodTaste Elian ∧ ¬ BadTaste Elian) ∨ (BadTaste Elian ∧ ¬ GoodTaste Elian)
+
+axiom elian_culture_implies_travel_collect :
+  AppreciatesCulture Elian → (TravelsExtensively Elian ∧ CollectsRareItems Elian)
+
+axiom elian_understands_aesthetics_imp :
+  UnderstandsAesthetics Elian → (CreatesMasterpieces Elian ∨ LacksRefinement Elian)
+
+axiom alfonso_culture_implies_travel_collect :
+  AppreciatesCulture Alfonso → (TravelsExtensively Alfonso ∧ CollectsRareItems Alfonso)
+
+axiom alfonso_lr_or_gt_xor :
+  (LacksRefinement Alfonso ∧ ¬ GoodTaste Alfonso) ∨ (GoodTaste Alfonso ∧ ¬ LacksRefinement Alfonso)
+
+axiom callahan_sophisticated : Sophisticated Callahan
+
+axiom elian_sophisticated : Sophisticated Elian
+
+axiom elian_experienced_xor_lr_s :
+  Experienced Elian →
+    ((LacksRefinement Elian ∧ ¬ Sophisticated Elian) ∨ (Sophisticated Elian ∧ ¬ LacksRefinement Elian))
+
+axiom elian_culture : AppreciatesCulture Elian
+
+-- Derived facts about Elian
+theorem elian_travels : TravelsExtensively Elian := by
+  have h := elian_culture_implies_travel_collect elian_culture
+  exact h.left
+
+theorem elian_experienced : Experienced Elian := by
+  apply travels_or_learns_implies_experienced
+  exact Or.inl elian_travels
+
+theorem not_elian_lacks_refinement : ¬ LacksRefinement Elian := by
+  have hx := elian_experienced_xor_lr_s elian_experienced
+  have s := elian_sophisticated
+  -- deduce that (Sophisticated ∧ ¬LacksRefinement)
+  have hpair : Sophisticated Elian ∧ ¬ LacksRefinement Elian := by
+    cases hx with
+    | inl h =>
+        -- h : LacksRefinement E ∧ ¬Sophisticated E, contradicts s
+        exact False.elim (h.right s)
+    | inr h =>
+        exact h
+  exact hpair.right
+
+theorem elian_good_taste : GoodTaste Elian := by
+  have hnotlr := not_elian_lacks_refinement
+  have hx := elian_lr_or_gt_xor
+  cases hx with
+  | inl h =>
+      -- h : LR ∧ ¬GT contradicts ¬LR
+      have : False := hnotlr h.left
+      exact False.elim this
+  | inr h =>
+      exact h.left
+
+theorem not_elian_bad_taste : ¬ BadTaste Elian := by
+  have hgt := elian_good_taste
+  have hx := elian_gt_or_bt_xor
+  cases hx with
+  | inl h =>
+      -- h : GT ∧ ¬BT
+      exact h.right
+  | inr h =>
+      -- h : BT ∧ ¬GT contradicts GT
+      exact False.elim (h.right hgt)
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+
+axiom Callahan : Person
+axiom Elian : Person
+axiom Alfonso : Person
+
+axiom GoodTaste : Person → Prop
+axiom BadTaste : Person → Prop
+axiom AppreciatesCulture : Person → Prop
+axiom LacksRefinement : Person → Prop
+axiom FormalEducation : Person → Prop
+axiom LearnsFromOthers : Person → Prop
+axiom TravelsExtensively : Person → Prop
+axiom Experienced : Person → Prop
+axiom Sophisticated : Person → Prop
+axiom UnderstandsColor : Person → Prop
+axiom ValuesTexture : Person → Prop
+axiom UnderstandsAesthetics : Person → Prop
+axiom CreatesMasterpieces : Person → Prop
+axiom CollectsRareItems : Person → Prop
+
+-- Premises
+axiom xor_Callahan_taste :
+  (GoodTaste Callahan ∧ ¬ BadTaste Callahan) ∨ (BadTaste Callahan ∧ ¬ GoodTaste Callahan)
+
+axiom appreciates_Callahan : AppreciatesCulture Callahan
+
+axiom xor_Elian_ref_or_good :
+  (LacksRefinement Elian ∧ ¬ GoodTaste Elian) ∨ (GoodTaste Elian ∧ ¬ LacksRefinement Elian)
+
+axiom travel_or_learn_exp :
+  ∀ x : Person, (TravelsExtensively x ∨ LearnsFromOthers x) → Experienced x
+
+axiom Alfonso_exp_implies_xor :
+  Experienced Alfonso →
+    ((LacksRefinement Alfonso ∧ ¬ Sophisticated Alfonso) ∨ (Sophisticated Alfonso ∧ ¬ LacksRefinement Alfonso))
+
+axiom elian_color_or_texture_implies_good :
+  (UnderstandsColor Elian ∨ ValuesTexture Elian) → GoodTaste Elian
+
+axiom fe_elian : FormalEducation Elian
+
+axiom xor_Elian_taste :
+  (GoodTaste Elian ∧ ¬ BadTaste Elian) ∨ (BadTaste Elian ∧ ¬ GoodTaste Elian)
+
+axiom elian_app_cult_imp :
+  AppreciatesCulture Elian → (TravelsExtensively Elian ∧ CollectsRareItems Elian)
+
+axiom elian_aesthetics_imp :
+  UnderstandsAesthetics Elian → (CreatesMasterpieces Elian ∨ LacksRefinement Elian)
+
+axiom alfonso_app_cult_imp :
+  AppreciatesCulture Alfonso → (TravelsExtensively Alfonso ∧ CollectsRareItems Alfonso)
+
+axiom xor_Alfonso_ref_or_good :
+  (LacksRefinement Alfonso ∧ ¬ GoodTaste Alfonso) ∨ (GoodTaste Alfonso ∧ ¬ LacksRefinement Alfonso)
+
+axiom soph_Callahan : Sophisticated Callahan
+axiom soph_Elian : Sophisticated Elian
+
+axiom elian_exp_implies_xor :
+  Experienced Elian →
+    ((LacksRefinement Elian ∧ ¬ Sophisticated Elian) ∨ (Sophisticated Elian ∧ ¬ LacksRefinement Elian))
+
+axiom appreciates_Elian : AppreciatesCulture Elian
+
+-- Goal: negate the conclusion "Elian has bad taste"
+theorem goal : ¬ BadTaste Elian := by
+  -- From Elian appreciates culture, he travels (and collects)
+  have htc : TravelsExtensively Elian ∧ CollectsRareItems Elian :=
+    elian_app_cult_imp appreciates_Elian
+  have htrav : TravelsExtensively Elian := And.left htc
+  -- Travel implies experienced (via the disjunction rule)
+  have hexp : Experienced Elian :=
+    travel_or_learn_exp Elian (Or.inl htrav)
+  -- Experienced Elian gives an exclusive-or between LacksRefinement and Sophisticated
+  have hx : (LacksRefinement Elian ∧ ¬ Sophisticated Elian) ∨ (Sophisticated Elian ∧ ¬ LacksRefinement Elian) :=
+    elian_exp_implies_xor hexp
+  -- Using Sophisticated Elian, deduce ¬ LacksRefinement Elian from the xor
+  have hnotL : ¬ LacksRefinement Elian := by
+    cases hx with
+    | inl h =>
+        -- h.right : ¬ Sophisticated Elian contradicts soph_Elian
+        exact False.elim (h.right soph_Elian)
+    | inr h =>
+        exact h.right
+  -- From (LacksRefinement ⊕ GoodTaste) and ¬LacksRefinement, deduce GoodTaste Elian
+  have hgood : GoodTaste Elian := by
+    cases xor_Elian_ref_or_good with
+    | inl h =>
+        exact False.elim (hnotL h.left)
+    | inr h =>
+        exact h.left
+  -- From (GoodTaste ⊕ BadTaste) and GoodTaste, deduce ¬BadTaste
+  cases xor_Elian_taste with
+  | inl h =>
+      -- (Good ∧ ¬Bad) case
+      exact h.right
+  | inr h =>
+      -- (Bad ∧ ¬Good) contradicts our GoodTaste
+      exact False.elim (h.right hgood)
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

@@ -1,0 +1,192 @@
+Story ID: 0
+Example ID: 22
+Premises: Micah either follows his instincts or thinks critically, but not both. Micah survives harsh conditions. Micah values independence. Micah either has formal education or experiences frontier life, but not both. If Micah survives harsh conditions, then he is either able to adapt quickly or think critically (but not both). Micah is resourceful. If Micah learns from experience or adapts quickly, then he is self-taught. Micah does not learn from experience. If Micah values independence, then he lives off the grid and is resourceful. Micah follows his instincts. If Micah lives off the grid, then he either has formal education or is self-taught, but not both.
+Conclusion: If Micah grew up in the wilderness or experienced frontier life (or both), then he developed survival skills.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+-- Propositions for Micah
+axiom FollowsInstincts : Prop
+axiom ThinksCritically : Prop
+axiom SurvivesHarshConditions : Prop
+axiom ValuesIndependence : Prop
+axiom FormalEducation : Prop
+axiom ExperiencedFrontierLife : Prop
+axiom AbleToAdaptQuickly : Prop
+axiom Resourceful : Prop
+axiom LearnsFromExperience : Prop
+axiom SelfTaught : Prop
+axiom LivesOffGrid : Prop
+axiom GrewUpInWilderness : Prop
+axiom DevelopedSurvivalSkills : Prop
+
+def Xor (p q : Prop) : Prop := (p ∨ q) ∧ ¬(p ∧ q)
+
+-- Premises
+axiom premise1 : Xor FollowsInstincts ThinksCritically
+axiom premise2 : SurvivesHarshConditions
+axiom premise3 : ValuesIndependence
+axiom premise4 : Xor FormalEducation ExperiencedFrontierLife
+axiom premise5 : SurvivesHarshConditions → Xor AbleToAdaptQuickly ThinksCritically
+axiom premise6 : Resourceful
+axiom premise7 : (LearnsFromExperience ∨ AbleToAdaptQuickly) → SelfTaught
+axiom premise8 : ¬ LearnsFromExperience
+axiom premise9 : ValuesIndependence → (LivesOffGrid ∧ Resourceful)
+axiom premise10 : FollowsInstincts
+axiom premise11 : LivesOffGrid → Xor FormalEducation SelfTaught
+
+-- Some derived lemmas
+lemma not_thinksCritically : ¬ ThinksCritically := by
+  -- From XOR(F, C) and F true, we get ¬C
+  have hxor : (FollowsInstincts ∨ ThinksCritically) ∧ ¬(FollowsInstincts ∧ ThinksCritically) := premise1
+  have hnotboth : ¬ (FollowsInstincts ∧ ThinksCritically) := hxor.right
+  intro hc
+  exact hnotboth ⟨premise10, hc⟩
+
+lemma adapt_quickly : AbleToAdaptQuickly := by
+  -- From S and S → XOR(A, C) and ¬C, deduce A
+  have hx : Xor AbleToAdaptQuickly ThinksCritically := premise5 premise2
+  have hx1 : (AbleToAdaptQuickly ∨ ThinksCritically) := hx.left
+  have hx2 : ¬ (AbleToAdaptQuickly ∧ ThinksCritically) := hx.right
+  cases hx1 with
+  | inl ha => exact ha
+  | inr hc =>
+      exact False.elim (not_thinksCritically hc)
+
+lemma self_taught : SelfTaught := by
+  have : LearnsFromExperience ∨ AbleToAdaptQuickly := Or.inr adapt_quickly
+  exact premise7 this
+
+lemma lives_off_grid : LivesOffGrid := by
+  have h := premise9 premise3
+  exact h.left
+
+lemma not_formal_education : ¬ FormalEducation := by
+  -- From lives_off_grid → xor(E, T) and T, deduce ¬E
+  have hlt : Xor FormalEducation SelfTaught := premise11 lives_off_grid
+  have hnotboth : ¬ (FormalEducation ∧ SelfTaught) := hlt.right
+  intro he
+  exact hnotboth ⟨he, self_taught⟩
+
+lemma experienced_frontier_life : ExperiencedFrontierLife := by
+  -- From xor(E, FL) and ¬E deduce FL
+  have hx : (FormalEducation ∨ ExperiencedFrontierLife) ∧ ¬(FormalEducation ∧ ExperiencedFrontierLife) := premise4
+  have hdisj := hx.left
+  cases hdisj with
+  | inl he => exact False.elim (not_formal_education he)
+  | inr hfl => exact hfl
+
+-- Conclusion to analyze (unprovable from given premises)
+theorem conclusion : (GrewUpInWilderness ∨ ExperiencedFrontierLife) → DevelopedSurvivalSkills := by
+  intro h
+  -- No available premises relate wilderness/frontier life to developed survival skills.
+  -- Hence, cannot derive DevelopedSurvivalSkills from the given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom FollowsInstincts : Prop
+axiom ThinksCritically : Prop
+axiom SurvivesHarshConditions : Prop
+axiom ValuesIndependence : Prop
+axiom FormalEducation : Prop
+axiom FrontierLife : Prop
+axiom AdaptQuickly : Prop
+axiom Resourceful : Prop
+axiom LearnsFromExperience : Prop
+axiom SelfTaught : Prop
+axiom LivesOffGrid : Prop
+axiom GrewUpWilderness : Prop
+axiom DevelopedSurvivalSkills : Prop
+
+-- Premises
+axiom xor_instincts_critical_or : FollowsInstincts ∨ ThinksCritically
+axiom xor_instincts_critical_notboth : ¬(FollowsInstincts ∧ ThinksCritically)
+
+axiom survives_harsh : SurvivesHarshConditions
+
+axiom values_independence : ValuesIndependence
+
+axiom xor_education_frontier_or : FormalEducation ∨ FrontierLife
+axiom xor_education_frontier_notboth : ¬(FormalEducation ∧ FrontierLife)
+
+axiom survives_imp_adapt_or_critical : SurvivesHarshConditions → (AdaptQuickly ∨ ThinksCritically)
+axiom survives_imp_notboth_adapt_critical : SurvivesHarshConditions → ¬(AdaptQuickly ∧ ThinksCritically)
+
+axiom resourceful_true : Resourceful
+
+axiom learns_or_adapt_imp_self_taught : (LearnsFromExperience ∨ AdaptQuickly) → SelfTaught
+
+axiom not_learns_from_experience : ¬LearnsFromExperience
+
+axiom independence_imp_offgrid_and_resourceful : ValuesIndependence → (LivesOffGrid ∧ Resourceful)
+
+axiom follows_instincts_true : FollowsInstincts
+
+axiom offgrid_imp_education_or_self : LivesOffGrid → (FormalEducation ∨ SelfTaught)
+axiom offgrid_imp_notboth_education_self : LivesOffGrid → ¬(FormalEducation ∧ SelfTaught)
+
+-- Useful derived facts
+lemma not_thinks_critically : ¬ThinksCritically := by
+  intro hc
+  exact xor_instincts_critical_notboth ⟨follows_instincts_true, hc⟩
+
+lemma lives_off_grid_true : LivesOffGrid :=
+  (independence_imp_offgrid_and_resourceful values_independence).left
+
+lemma adapt_quickly_true : AdaptQuickly := by
+  have h := survives_imp_adapt_or_critical survives_harsh
+  cases h with
+  | inl aq => exact aq
+  | inr hc => exact False.elim (not_thinks_critically hc)
+
+lemma self_taught_true : SelfTaught :=
+  learns_or_adapt_imp_self_taught (Or.inr adapt_quickly_true)
+
+lemma not_formal_education : ¬FormalEducation := by
+  intro fe
+  have hnot := offgrid_imp_notboth_education_self lives_off_grid_true
+  exact hnot ⟨fe, self_taught_true⟩
+
+lemma frontier_life_true : FrontierLife := by
+  have h := xor_education_frontier_or
+  cases h with
+  | inl fe => exact False.elim (not_formal_education fe)
+  | inr fl => exact fl
+
+-- Conclusion to analyze (we will attempt to prove its negation)
+-- Conclusion: (GrewUpWilderness ∨ FrontierLife) → DevelopedSurvivalSkills
+-- We aim to prove its negation.
+theorem neg_conclusion : ¬((GrewUpWilderness ∨ FrontierLife) → DevelopedSurvivalSkills) := by
+  intro h
+  -- From premises we can derive FrontierLife, so the antecedent holds.
+  have antecedent : (GrewUpWilderness ∨ FrontierLife) := Or.inr frontier_life_true
+  -- Hence the conclusion would yield DevelopedSurvivalSkills.
+  have dss : DevelopedSurvivalSkills := h antecedent
+  -- No premise provides ¬DevelopedSurvivalSkills, so we cannot derive a contradiction.
+  -- Proof attempt cannot be completed from given premises.
+  sorry
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: NEITHER_SUCCESS
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: C
+Prediction: Uncertain
+Correct: Yes

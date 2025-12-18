@@ -316,6 +316,33 @@ When a critical premise is removed or a direct contradiction is added, a reasoni
 - **PL**: Propositional logic (50 questions)
 - Depths 1-5 (10 questions each per type)
 
+### ProverQA (from ProverGen)
+- 1500 evaluation instances: 500 easy, 500 medium, 500 hard
+- Generated using Prover9 symbolic prover + LLM translation
+
+#### ProverQA Hard Distribution (n=500)
+
+**Answer Distribution:**
+| Answer | Count | Percentage |
+|--------|-------|------------|
+| A (True) | 143 | 28.6% |
+| B (False) | 183 | 36.6% |
+| C (Uncertain) | 174 | 34.8% |
+
+**Reasoning Steps Distribution:**
+| Steps | Count | Percentage |
+|-------|-------|------------|
+| 6 | 176 | 35.2% |
+| 7 | 116 | 23.2% |
+| 8 | 87 | 17.4% |
+| 5 | 69 | 13.8% |
+| 9 | 33 | 6.6% |
+| 4 | 16 | 3.2% |
+| 3 | 3 | 0.6% |
+
+- Average: 6.56 steps (range 3-9)
+- Paper claims "hard" = 6-9 steps; some 3-5 step problems from augmentation
+
 ### Depth-7 Extension (Pilot)
 - 25 LLM-generated questions at depth-7
 - Currently unlabeled (ground truth unknown)

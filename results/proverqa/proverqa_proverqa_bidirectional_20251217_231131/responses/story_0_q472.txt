@@ -1,0 +1,194 @@
+Story ID: 0
+Example ID: 472
+Premises: Sky does not have natural talent. If Sky is an artist, then she either tells a story or evokes emotion, but not both. Sky evokes emotion. If Sky either expresses emotion or connects with the audience (but not both), then she builds a connection. Sky does not achieve success. If someone performs with elegance and connects with the audience, then they inspire others. If Sky has passion, then she tells a story and speaks from her heart. If Sky inspires others, then she will achieve success. Sky cannot touch the hearts of others. For all humans, if they are trained in ballet or have natural talent, then they perform with elegance. Sky is an artist. Anyone who either tells a story or builds a connection can touch the hearts of others. Sky expresses emotion.
+Conclusion: Sky is not trained in ballet.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Sky : Person
+
+axiom NaturalTalent : Person → Prop
+axiom Artist : Person → Prop
+axiom TellsStory : Person → Prop
+axiom EvokesEmotion : Person → Prop
+axiom ExpressesEmotion : Person → Prop
+axiom ConnectsAudience : Person → Prop
+axiom BuildsConnection : Person → Prop
+axiom AchieveSuccess : Person → Prop
+axiom PerformsElegance : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom Passion : Person → Prop
+axiom SpeaksFromHeart : Person → Prop
+axiom TouchesHearts : Person → Prop
+axiom TrainedInBallet : Person → Prop
+
+-- Premises
+axiom a1_noTalent : ¬ NaturalTalent Sky
+axiom a2_artist_xor :
+  Artist Sky → ((TellsStory Sky ∨ EvokesEmotion Sky) ∧ ¬ (TellsStory Sky ∧ EvokesEmotion Sky))
+axiom a3_evokes : EvokesEmotion Sky
+axiom a4_exprOrConn_xor_builds :
+  ((ExpressesEmotion Sky ∨ ConnectsAudience Sky) ∧ ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky)) → BuildsConnection Sky
+axiom a5_noSuccess : ¬ AchieveSuccess Sky
+axiom a6_elegConn_inspires : ∀ x : Person, (PerformsElegance x ∧ ConnectsAudience x) → InspiresOthers x
+axiom a7_passion_story_heart : Passion Sky → (TellsStory Sky ∧ SpeaksFromHeart Sky)
+axiom a8_inspires_to_success : InspiresOthers Sky → AchieveSuccess Sky
+axiom a9_noTouch : ¬ TouchesHearts Sky
+axiom a10_train_or_talent_elegance : ∀ x : Person, (TrainedInBallet x ∨ NaturalTalent x) → PerformsElegance x
+axiom a11_artist : Artist Sky
+axiom a12_tells_or_builds_touch : ∀ x : Person, (TellsStory x ∨ BuildsConnection x) → TouchesHearts x
+axiom a13_expresses : ExpressesEmotion Sky
+
+-- Conclusion: Sky is not trained in ballet.
+theorem not_trained_Sky : ¬ TrainedInBallet Sky := by
+  intro hTrained
+  -- From "anyone who tells a story or builds a connection can touch hearts" and "Sky cannot touch hearts"
+  -- we get ¬(TellsStory Sky ∨ BuildsConnection Sky), hence ¬BuildsConnection Sky.
+  have hNoTSorBC : ¬ (TellsStory Sky ∨ BuildsConnection Sky) := by
+    intro h
+    have hHearts : TouchesHearts Sky := a12_tells_or_builds_touch Sky h
+    exact a9_noTouch hHearts
+  have hNoBuild : ¬ BuildsConnection Sky := by
+    intro hB
+    exact hNoTSorBC (Or.inr hB)
+
+  -- From training (assumed), get elegance.
+  have hPerf : PerformsElegance Sky := by
+    have hDisj : TrainedInBallet Sky ∨ NaturalTalent Sky := Or.inl hTrained
+    exact a10_train_or_talent_elegance Sky hDisj
+
+  -- (Elegance ∧ Connects) → Success (via Inspire)
+  have hImpToSuccess : (PerformsElegance Sky ∧ ConnectsAudience Sky) → AchieveSuccess Sky := by
+    intro hPC
+    have hInsp : InspiresOthers Sky := a6_elegConn_inspires Sky hPC
+    exact a8_inspires_to_success hInsp
+
+  -- Since ¬Success, we have ¬(Elegance ∧ Connects), hence from Elegance we get ¬Connects.
+  have hNotBoth : ¬ (PerformsElegance Sky ∧ ConnectsAudience Sky) := by
+    intro hPC
+    have hSucc : AchieveSuccess Sky := hImpToSuccess hPC
+    exact a5_noSuccess hSucc
+  have hNotConnect : ¬ ConnectsAudience Sky := by
+    intro hC
+    exact hNotBoth ⟨hPerf, hC⟩
+
+  -- Using ExpressesEmotion and ¬Connects, the XOR condition holds, yielding BuildsConnection,
+  -- contradicting ¬BuildsConnection.
+  have hOrEC : ExpressesEmotion Sky ∨ ConnectsAudience Sky := Or.inl a13_expresses
+  have hNotAndEC : ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky) := by
+    intro hAnd
+    exact hNotConnect hAnd.right
+  have hXorEC : (ExpressesEmotion Sky ∨ ConnectsAudience Sky) ∧ ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky) :=
+    And.intro hOrEC hNotAndEC
+  have hBuild : BuildsConnection Sky := a4_exprOrConn_xor_builds hXorEC
+  exact hNoBuild hBuild
+
+Verification Success: True
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+open Classical
+
+axiom Human : Type
+axiom Sky : Human
+
+axiom NaturalTalent : Human → Prop
+axiom Artist : Human → Prop
+axiom TellsStory : Human → Prop
+axiom EvokesEmotion : Human → Prop
+axiom ExpressesEmotion : Human → Prop
+axiom ConnectsAudience : Human → Prop
+axiom BuildsConnection : Human → Prop
+axiom AchievesSuccess : Human → Prop
+axiom PerformsElegance : Human → Prop
+axiom InspiresOthers : Human → Prop
+axiom HasPassion : Human → Prop
+axiom SpeaksFromHeart : Human → Prop
+axiom TouchHearts : Human → Prop
+axiom TrainedBallet : Human → Prop
+
+-- Premises
+axiom p1 : ¬ NaturalTalent Sky
+axiom p2 : Artist Sky → ((TellsStory Sky ∨ EvokesEmotion Sky) ∧ ¬ (TellsStory Sky ∧ EvokesEmotion Sky))
+axiom p3 : EvokesEmotion Sky
+axiom p4 : ((ExpressesEmotion Sky ∨ ConnectsAudience Sky) ∧ ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky)) → BuildsConnection Sky
+axiom p5 : ¬ AchievesSuccess Sky
+axiom p6 : ∀ x : Human, (PerformsElegance x ∧ ConnectsAudience x) → InspiresOthers x
+axiom p7 : HasPassion Sky → (TellsStory Sky ∧ SpeaksFromHeart Sky)
+axiom p8 : InspiresOthers Sky → AchievesSuccess Sky
+axiom p9 : ¬ TouchHearts Sky
+axiom p10 : ∀ x : Human, (TrainedBallet x ∨ NaturalTalent x) → PerformsElegance x
+axiom p11 : Artist Sky
+axiom p12 : ∀ x : Human, (TellsStory x ∨ BuildsConnection x) → TouchHearts x
+axiom p13 : ExpressesEmotion Sky
+
+-- We attempt to prove the negation of the conclusion (i.e., that Sky is trained in ballet).
+-- However, from the premises we can actually derive that Sky is NOT trained in ballet.
+theorem conclusion_true : ¬ TrainedBallet Sky := by
+  -- From Artist and the exclusive-or with EvokesEmotion, and EvokesEmotion holds, deduce ¬TellsStory
+  have hNotBoth : ¬ (TellsStory Sky ∧ EvokesEmotion Sky) := (p2 p11).right
+  have hNotTell : ¬ TellsStory Sky := by
+    intro hT
+    exact hNotBoth ⟨hT, p3⟩
+  -- From "anyone who tells a story or builds a connection can touch hearts" and ¬TouchHearts, deduce ¬(TellsStory ∨ BuildsConnection), hence ¬BuildsConnection
+  have hNotTorB : ¬ (TellsStory Sky ∨ BuildsConnection Sky) := by
+    intro hOr
+    have hTH : TouchHearts Sky := (p12 Sky) hOr
+    exact p9 hTH
+  have hNotBuild : ¬ BuildsConnection Sky := by
+    intro hB
+    apply hNotTorB
+    exact Or.inr hB
+  -- From the "XOR ExpressesEmotion/ConnectsAudience implies BuildsConnection" and ¬BuildsConnection, deduce ¬XOR, hence ConnectsAudience (since ExpressesEmotion holds)
+  have hNotXOR : ¬ ((ExpressesEmotion Sky ∨ ConnectsAudience Sky) ∧ ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky)) := by
+    intro hX
+    exact hNotBuild (p4 hX)
+  have hConn : ConnectsAudience Sky := by
+    by_contra hNotConn
+    have hx1 : ExpressesEmotion Sky ∨ ConnectsAudience Sky := Or.inl p13
+    have hx2 : ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky) := by
+      intro hAnd
+      exact hNotConn hAnd.right
+    have hConj : (ExpressesEmotion Sky ∨ ConnectsAudience Sky) ∧ ¬ (ExpressesEmotion Sky ∧ ConnectsAudience Sky) := And.intro hx1 hx2
+    exact hNotXOR hConj
+  -- If Sky performed with elegance, then given connection she would inspire and achieve success, contradicting ¬AchievesSuccess; hence ¬PerformsElegance
+  have hNotElegant : ¬ PerformsElegance Sky := by
+    intro hE
+    have hInsp : InspiresOthers Sky := (p6 Sky) ⟨hE, hConn⟩
+    have hAch : AchievesSuccess Sky := p8 hInsp
+    exact p5 hAch
+  -- Contraposition of "if trained or naturally talented then performs with elegance" yields ¬(trained ∨ natural talent)
+  have hNoTrainOrTalent : ¬ (TrainedBallet Sky ∨ NaturalTalent Sky) := by
+    intro hOr
+    apply hNotElegant
+    exact (p10 Sky) hOr
+  -- Therefore, in particular, ¬TrainedBallet Sky
+  intro hTr
+  apply hNoTrainOrTalent
+  exact Or.inl hTr
+
+-- The negation we were asked to prove would be:
+-- theorem negated_conclusion : TrainedBallet Sky := by
+--   -- This is not derivable from the premises (indeed, the opposite holds, as shown above).
+--   admit
+
+Verification Success: False
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: TRUE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: A
+Prediction: True
+Correct: No

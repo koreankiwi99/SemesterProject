@@ -1,0 +1,289 @@
+Story ID: 0
+Example ID: 125
+Premises: If Augustine works hard, then he is either making breakthroughs or publishing papers (but not both). If Augustine exemplifies excellence, then he will win awards. If Augustine either conducts research or collects data (but not both), then he seeks knowledge. Augustine is either a famous scientist or an unknown scientist, but not both. Augustine does not explore ideas. Augustine gains respect. If Augustine wins awards, then he either earns recognition or gains respect (but not both). If Augustine conducts research, then he is either an unknown scientist or makes a breakthrough (or both). If Augustine works alone and avoids media, then he is an unknown scientist. Augustine solves puzzles. Augustine does not inspire others. Augustine does not analyze results. If Augustine is curious, then he either seeks knowledge or solves puzzles (but not both). Augustine earns recognition. Everyone explores ideas or is curious. Anyone who makes a breakthrough or wins awards inspires others. If someone monitors experiments, then they collect data. Augustine either analyzes results or collects data, but not both.
+Conclusion: Augustine is a famous scientist.
+
+======================================================================
+PROVE TRUE ATTEMPT
+======================================================================
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Augustine : Person
+
+axiom WorksHard : Person → Prop
+axiom MakesBreakthrough : Person → Prop
+axiom PublishesPapers : Person → Prop
+axiom ExemplifiesExcellence : Person → Prop
+axiom WinsAwards : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom CollectsData : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom FamousScientist : Person → Prop
+axiom UnknownScientist : Person → Prop
+axiom ExploresIdeas : Person → Prop
+axiom GainsRespect : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom WorksAlone : Person → Prop
+axiom AvoidsMedia : Person → Prop
+axiom SolvesPuzzles : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom AnalyzesResults : Person → Prop
+axiom Curious : Person → Prop
+axiom MonitorsExperiments : Person → Prop
+
+-- Premises
+axiom ax1 :
+  WorksHard Augustine →
+  ((MakesBreakthrough Augustine ∨ PublishesPapers Augustine) ∧
+   ¬(MakesBreakthrough Augustine ∧ PublishesPapers Augustine))
+
+axiom ax2 :
+  ExemplifiesExcellence Augustine → WinsAwards Augustine
+
+axiom ax3 :
+  ((ConductsResearch Augustine ∨ CollectsData Augustine) ∧
+   ¬(ConductsResearch Augustine ∧ CollectsData Augustine)) →
+  SeeksKnowledge Augustine
+
+axiom ax4 :
+  (FamousScientist Augustine ∨ UnknownScientist Augustine) ∧
+  ¬(FamousScientist Augustine ∧ UnknownScientist Augustine)
+
+axiom ax5 : ¬ ExploresIdeas Augustine
+axiom ax6 : GainsRespect Augustine
+
+axiom ax7 :
+  WinsAwards Augustine →
+  ((EarnsRecognition Augustine ∨ GainsRespect Augustine) ∧
+   ¬(EarnsRecognition Augustine ∧ GainsRespect Augustine))
+
+axiom ax8 :
+  ConductsResearch Augustine →
+  (UnknownScientist Augustine ∨ MakesBreakthrough Augustine)
+
+axiom ax9 :
+  (WorksAlone Augustine ∧ AvoidsMedia Augustine) → UnknownScientist Augustine
+
+axiom ax10 : SolvesPuzzles Augustine
+axiom ax11 : ¬ InspiresOthers Augustine
+axiom ax12 : ¬ AnalyzesResults Augustine
+
+axiom ax13 :
+  Curious Augustine →
+  ((SeeksKnowledge Augustine ∨ SolvesPuzzles Augustine) ∧
+   ¬(SeeksKnowledge Augustine ∧ SolvesPuzzles Augustine))
+
+axiom ax14 : EarnsRecognition Augustine
+
+axiom ax15 : ∀ x : Person, ExploresIdeas x ∨ Curious x
+axiom ax16 : ∀ x : Person, (MakesBreakthrough x ∨ WinsAwards x) → InspiresOthers x
+axiom ax17 : ∀ x : Person, MonitorsExperiments x → CollectsData x
+
+axiom ax18 :
+  (AnalyzesResults Augustine ∨ CollectsData Augustine) ∧
+  ¬(AnalyzesResults Augustine ∧ CollectsData Augustine)
+
+-- Goal: Augustine is a famous scientist.
+theorem goal : FamousScientist Augustine := by
+  -- From "everyone explores ideas or is curious" and "Augustine does not explore ideas", we get Curious Augustine
+  have hEC : ExploresIdeas Augustine ∨ Curious Augustine := ax15 Augustine
+  have hCur : Curious Augustine := by
+    cases hEC with
+    | inl hExp => exact False.elim (ax5 hExp)
+    | inr hC => exact hC
+
+  -- From curiosity rule and solves puzzles, deduce ¬ SeeksKnowledge Augustine
+  have hX := ax13 hCur
+  have hSol : SolvesPuzzles Augustine := ax10
+  have hNotBoth : ¬ (SeeksKnowledge Augustine ∧ SolvesPuzzles Augustine) := And.right hX
+  have hNotSeek : ¬ SeeksKnowledge Augustine := by
+    intro hS
+    exact hNotBoth ⟨hS, hSol⟩
+
+  -- From analyze-or-collect XOR and ¬ analyze, deduce collects data
+  have hAC : AnalyzesResults Augustine ∨ CollectsData Augustine := And.left ax18
+  have hCol : CollectsData Augustine := by
+    cases hAC with
+    | inl hA => exact False.elim (ax12 hA)
+    | inr hC => exact hC
+
+  -- From "breakthrough or awards implies inspires" and ¬ inspires, deduce neither breakthrough nor awards
+  have hNotBreak : ¬ MakesBreakthrough Augustine := by
+    intro hB
+    have hInsp : InspiresOthers Augustine := ax16 Augustine (Or.inl hB)
+    exact ax11 hInsp
+  have hNotWin : ¬ WinsAwards Augustine := by
+    intro hW
+    have hInsp : InspiresOthers Augustine := ax16 Augustine (Or.inr hW)
+    exact ax11 hInsp
+
+  -- Unable to derive contradiction to eliminate UnknownScientist or to assert FamousScientist directly
+  sorry
+
+Verification Success: False
+
+======================================================================
+PROVE FALSE ATTEMPT
+======================================================================
+Lean Code:
+axiom Person : Type
+axiom Augustine : Person
+
+axiom WorksHard : Person → Prop
+axiom Breakthrough : Person → Prop
+axiom PublishesPapers : Person → Prop
+axiom ExemplifiesExcellence : Person → Prop
+axiom WinsAwards : Person → Prop
+axiom ConductsResearch : Person → Prop
+axiom CollectsData : Person → Prop
+axiom SeeksKnowledge : Person → Prop
+axiom FamousScientist : Person → Prop
+axiom UnknownScientist : Person → Prop
+axiom ExploresIdeas : Person → Prop
+axiom GainsRespect : Person → Prop
+axiom EarnsRecognition : Person → Prop
+axiom WorksAlone : Person → Prop
+axiom AvoidsMedia : Person → Prop
+axiom SolvesPuzzles : Person → Prop
+axiom InspiresOthers : Person → Prop
+axiom AnalyzesResults : Person → Prop
+axiom Curious : Person → Prop
+axiom MonitorsExperiments : Person → Prop
+
+-- Premises
+axiom premise1 :
+  WorksHard Augustine →
+  ((Breakthrough Augustine ∨ PublishesPapers Augustine) ∧
+   ¬(Breakthrough Augustine ∧ PublishesPapers Augustine))
+
+axiom premise2 :
+  ExemplifiesExcellence Augustine → WinsAwards Augustine
+
+axiom premise3 :
+  ((ConductsResearch Augustine ∨ CollectsData Augustine) ∧
+   ¬(ConductsResearch Augustine ∧ CollectsData Augustine)) →
+  SeeksKnowledge Augustine
+
+axiom premise4 :
+  (FamousScientist Augustine ∨ UnknownScientist Augustine) ∧
+  ¬(FamousScientist Augustine ∧ UnknownScientist Augustine)
+
+axiom premise5 : ¬ExploresIdeas Augustine
+axiom premise6 : GainsRespect Augustine
+
+axiom premise7 :
+  WinsAwards Augustine →
+  ((EarnsRecognition Augustine ∨ GainsRespect Augustine) ∧
+   ¬(EarnsRecognition Augustine ∧ GainsRespect Augustine))
+
+axiom premise8 :
+  ConductsResearch Augustine → (UnknownScientist Augustine ∨ Breakthrough Augustine)
+
+axiom premise9 :
+  WorksAlone Augustine ∧ AvoidsMedia Augustine → UnknownScientist Augustine
+
+axiom premise10 : SolvesPuzzles Augustine
+axiom premise11 : ¬InspiresOthers Augustine
+axiom premise12 : ¬AnalyzesResults Augustine
+
+axiom premise13 :
+  Curious Augustine →
+  ((SeeksKnowledge Augustine ∨ SolvesPuzzles Augustine) ∧
+   ¬(SeeksKnowledge Augustine ∧ SolvesPuzzles Augustine))
+
+axiom premise14 : EarnsRecognition Augustine
+axiom premise15 : ∀ x : Person, ExploresIdeas x ∨ Curious x
+axiom premise16 : ∀ x : Person, (Breakthrough x ∨ WinsAwards x) → InspiresOthers x
+axiom premise17 : ∀ x : Person, MonitorsExperiments x → CollectsData x
+
+axiom premise18 :
+  (AnalyzesResults Augustine ∨ CollectsData Augustine) ∧
+  ¬(AnalyzesResults Augustine ∧ CollectsData Augustine)
+
+-- Goal: prove the negation of the conclusion "Augustine is a famous scientist"
+theorem negate_conclusion : ¬FamousScientist Augustine := by
+  intro hFamous
+
+  -- From "not inspires" and "breakthrough or wins implies inspires", get ¬(breakthrough ∨ wins)
+  have hNotBW : ¬(Breakthrough Augustine ∨ WinsAwards Augustine) := by
+    intro h
+    have hInsp : InspiresOthers Augustine := premise16 Augustine h
+    exact premise11 hInsp
+
+  have hNotBreak : ¬Breakthrough Augustine := by
+    intro hB
+    exact hNotBW (Or.inl hB)
+
+  have hNotWins : ¬WinsAwards Augustine := by
+    intro hW
+    exact hNotBW (Or.inr hW)
+
+  -- From "everyone explores or is curious" and "not explores", get curious
+  have hExplOrCur : ExploresIdeas Augustine ∨ Curious Augustine := premise15 Augustine
+  have hCurious : Curious Augustine := by
+    cases hExplOrCur with
+    | inl hExpl => exact False.elim (premise5 hExpl)
+    | inr hCur => exact hCur
+
+  -- From curious and the XOR (seeks ⊕ solves), and given solves, get ¬seeks
+  have hSeekOrSolve_and_notBoth :
+      (SeeksKnowledge Augustine ∨ SolvesPuzzles Augustine) ∧
+      ¬(SeeksKnowledge Augustine ∧ SolvesPuzzles Augustine) :=
+    premise13 hCurious
+
+  have hNotSeek : ¬SeeksKnowledge Augustine := by
+    intro hSeeks
+    have hNoBoth := And.right hSeekOrSolve_and_notBoth
+    exact hNoBoth ⟨hSeeks, premise10⟩
+
+  -- From "not analyzes" and (analyzes ⊕ collects), deduce collects
+  have hAnOrCol : AnalyzesResults Augustine ∨ CollectsData Augustine := And.left premise18
+  have hCollects : CollectsData Augustine := by
+    cases hAnOrCol with
+    | inl hAn => exact False.elim (premise12 hAn)
+    | inr hCol => exact hCol
+
+  -- From XOR between famous and unknown, and assuming famous, get ¬unknown
+  have hNoBothFU : ¬(FamousScientist Augustine ∧ UnknownScientist Augustine) := And.right premise4
+  have hNotUnknown : ¬UnknownScientist Augustine := by
+    intro hU
+    exact hNoBothFU ⟨hFamous, hU⟩
+
+  -- From CR → (U ∨ B) together with ¬U and ¬B, deduce ¬CR
+  have hNotCR : ¬ConductsResearch Augustine := by
+    intro hCR
+    have hUorB : UnknownScientist Augustine ∨ Breakthrough Augustine := premise8 hCR
+    cases hUorB with
+    | inl hU => exact hNotUnknown hU
+    | inr hB => exact hNotBreak hB
+
+  -- Build (CR ⊕ CD) to trigger SeeksKnowledge
+  have hXorCRCD :
+      (ConductsResearch Augustine ∨ CollectsData Augustine) ∧
+      ¬(ConductsResearch Augustine ∧ CollectsData Augustine) := by
+    apply And.intro
+    · exact Or.inr hCollects
+    · intro hBoth
+      exact hNotCR (And.left hBoth)
+
+  have hSeeks : SeeksKnowledge Augustine := premise3 hXorCRCD
+
+  -- Contradiction with ¬Seeks
+  exact hNotSeek hSeeks
+
+Verification Success: True
+
+======================================================================
+AGREEMENT ANALYSIS
+======================================================================
+Agreement Pattern: FALSE_ONLY
+Formalization Error Detected: False
+Used Fallback: False
+
+======================================================================
+FINAL RESULT
+======================================================================
+Ground Truth: B
+Prediction: False
+Correct: No

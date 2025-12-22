@@ -183,7 +183,8 @@ async def run_experiment(
     max_completion_tokens: int = 0,
     depths: Optional[list] = None,
     logic_types: Optional[list] = None,
-    resume_dir: Optional[str] = None
+    resume_dir: Optional[str] = None,
+    cases_file: Optional[str] = None
 ):
     """Run SimpleLean experiment."""
     load_dotenv()
@@ -204,6 +205,16 @@ async def run_experiment(
     if max_cases:
         cases = cases[:max_cases]
         print(f"Using first {max_cases} cases")
+
+    # Filter to specific cases if cases_file provided
+    if cases_file:
+        import json
+        with open(cases_file) as f:
+            case_indices = set(json.loads(line)['case_idx'] for line in f)
+        cases = [(idx, cases[idx]) for idx in sorted(case_indices)]
+        print(f"Filtered to {len(cases)} cases from {cases_file}")
+    else:
+        cases = list(enumerate(cases))
 
     # Load and format system prompt
     template = load_prompt(SYSTEM_PROMPTS[condition])
@@ -244,7 +255,7 @@ async def run_experiment(
         return result
 
     print(f"\nRunning {len(cases)} cases...")
-    tasks = [run_and_save(idx, case) for idx, case in enumerate(cases)]
+    tasks = [run_and_save(idx, case) for idx, case in cases]
     await tqdm_asyncio.gather(*tasks, desc=f"SimpleLean {dataset}")
 
     summary = saver.finalize()
@@ -277,6 +288,7 @@ def main():
     parser.add_argument('--depths', default='d4,d5')
     parser.add_argument('--logic_types', default='fol,nm,pl')
     parser.add_argument('--resume', default=None)
+    parser.add_argument('--cases_file', default=None, help='JSONL file with case indices to run')
 
     args = parser.parse_args()
 
@@ -290,7 +302,8 @@ def main():
         max_completion_tokens=args.max_completion_tokens,
         depths=[d.strip() for d in args.depths.split(',')],
         logic_types=[lt.strip() for lt in args.logic_types.split(',')],
-        resume_dir=args.resume
+        resume_dir=args.resume,
+        cases_file=args.cases_file
     ))
 
 

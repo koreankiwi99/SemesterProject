@@ -1,0 +1,62 @@
+<lean>
+axiom obj : Type
+axiom Coco : obj
+
+axiom AtRG : obj → Prop
+axiom Female : obj → Prop
+axiom Male : obj → Prop
+axiom LostToIga : obj → Prop
+axiom LostToNadal : obj → Prop
+axiom RankedHighlyWTA : obj → Prop
+axiom MostActiveMajor : obj → Prop
+
+-- If someone is ranked highly by the WTA, then they are one of the most active players in major tennis.
+axiom A1 : ∀ x : obj, RankedHighlyWTA x → MostActiveMajor x
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom A2 : ∀ x : obj, LostToIga x → RankedHighlyWTA x
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom A3 : ∀ x : obj, AtRG x ∧ Female x → LostToIga x
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom A4 : ∀ x : obj, AtRG x → Female x ∨ Male x
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom A5 : ∀ x : obj, AtRG x ∧ Male x → LostToNadal x
+-- If Coco Gauff is ranked highly by the WTA or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+axiom A6 : (RankedHighlyWTA Coco ∨ LostToNadal Coco) → ¬ (AtRG Coco ∧ Male Coco)
+-- Coco Gauff is at Roland Garros 2022.
+axiom A7 : AtRG Coco
+
+theorem not_male_coco : ¬ Male Coco := by
+  have hdisj : RankedHighlyWTA Coco ∨ LostToNadal Coco := by
+    have hf_or_hm : Female Coco ∨ Male Coco := A4 Coco A7
+    cases hf_or_hm with
+    | inl hf =>
+      have hli : LostToIga Coco := A3 Coco ⟨A7, hf⟩
+      have hr : RankedHighlyWTA Coco := A2 Coco hli
+      exact Or.inl hr
+    | inr hm =>
+      have hln : LostToNadal Coco := A5 Coco ⟨A7, hm⟩
+      exact Or.inr hln
+  have hnot : ¬ (AtRG Coco ∧ Male Coco) := A6 hdisj
+  intro hm
+  exact hnot ⟨A7, hm⟩
+
+theorem female_coco : Female Coco := by
+  have hf_or_hm : Female Coco ∨ Male Coco := A4 Coco A7
+  have hnm : ¬ Male Coco := not_male_coco
+  cases hf_or_hm with
+  | inl hf => exact hf
+  | inr hm =>
+    have contra : False := hnm hm
+    exact False.elim contra
+
+theorem lost_to_iga_coco : LostToIga Coco :=
+  A3 Coco ⟨A7, female_coco⟩
+
+theorem ranked_coco : RankedHighlyWTA Coco :=
+  A2 Coco lost_to_iga_coco
+
+-- From the given axioms, we cannot derive LostToNadal Coco or its negation.
+-- Hence the truth of "Coco Gauff has lost to Rafael Nadal" is not determined by the premises.
+</lean>
+
+ANSWER: Uncertain

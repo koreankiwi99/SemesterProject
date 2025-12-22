@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Picuris : obj
+axiom Onate : obj
+axiom HPM : obj
+
+-- Predicates and relations
+axiom MountainRange : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- Facts from the context
+axiom A1 : MountainRange Picuris
+axiom A2 : InNewMexico Picuris ∨ InTexas Picuris
+axiom A3 : Mine HPM
+axiom A4 : LocatedIn HPM Picuris
+axiom A5 : Donated HPM
+axiom A6 : Visited Onate Picuris
+
+-- No Texas mountain ranges have donated mines located in them
+axiom R1 : ∀ x : obj, MountainRange x → InTexas x → ¬ ∃ m : obj, Mine m ∧ LocatedIn m x ∧ Donated m
+
+-- Statement: Juan de Onate visited a mountain range in New Mexico
+theorem onate_visited_nm_range : ∃ r : obj, MountainRange r ∧ InNewMexico r ∧ Visited Onate r := by
+  -- There exists a donated mine located in Picuris
+  have hExistsMine : ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+    refine Exists.intro HPM ?_
+    apply And.intro
+    · exact A3
+    · apply And.intro
+      · exact A4
+      · exact A5
+  -- Picuris is not in Texas
+  have hNotTX : ¬ InTexas Picuris := by
+    intro htx
+    have hNo : ¬ ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m := R1 Picuris A1 htx
+    exact hNo hExistsMine
+  -- Therefore, from (In NM ∨ In TX), Picuris is in New Mexico
+  have hNM : InNewMexico Picuris := by
+    cases A2 with
+    | inl hnm => exact hnm
+    | inr htx => exact False.elim (hNotTX htx)
+  -- Conclude existence of a mountain range in New Mexico visited by Onate
+  refine Exists.intro Picuris ?_
+  apply And.intro
+  · exact A1
+  · apply And.intro
+    · exact hNM
+    · exact A6
+</lean>
+
+ANSWER: True

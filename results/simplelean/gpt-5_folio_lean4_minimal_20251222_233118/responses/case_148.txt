@@ -1,0 +1,60 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- 1. Everyone who can register in the US can participate in the 2024 election.
+axiom A1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+-- 2. US citizenship implies ability to register in the US.
+axiom A2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+-- 3. Everyone is either a US citizen or a Taiwanese citizen.
+axiom A3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+-- 4. No Russian officials have Taiwanese citizenship.
+axiom A4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+-- 5. Vladimir is not Taiwanese and not a Gazprom manager.
+axiom A5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+-- 6. Ekaterina can register in the US or is a Russian official.
+axiom A6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem vladimir_US : USCitizen Vladimir := by
+  have hdisj := A3 Vladimir
+  have hNotTW := And.left A5
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hNotTW hTW)
+
+theorem vladimir_canRegister : CanRegisterUS Vladimir :=
+  A2 Vladimir vladimir_US
+
+theorem vladimir_canParticipate : CanParticipate2024 Vladimir :=
+  A1 Vladimir vladimir_canRegister
+
+theorem ekaterina_canRegister : CanRegisterUS Ekaterina := by
+  cases A6 with
+  | inl hReg => exact hReg
+  | inr hOff =>
+      have hNotTW : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina hOff
+      have hdisj := A3 Ekaterina
+      have hUS : USCitizen Ekaterina := by
+        cases hdisj with
+        | inl hUS => exact hUS
+        | inr hTW => exact False.elim (hNotTW hTW)
+      exact A2 Ekaterina hUS
+
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro ekaterina_canRegister vladimir_canParticipate
+
+-- Negation of the statement "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)"
+theorem negation_of_statement : ¬ (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) := by
+  intro h
+  exact h conj_true
+</lean>
+
+ANSWER: False

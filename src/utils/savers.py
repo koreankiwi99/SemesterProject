@@ -966,12 +966,17 @@ class BidirectionalSaver(BaseSaver):
 class ConditionsSaver(BaseSaver):
     """Saver for conditions experiment results with incremental saving."""
 
-    def __init__(self, output_dir="results/conditions_experiment", dataset="folio",
-                 conditions=None, resume_dir=None, full_dataset=False, model="gpt-5"):
+    def __init__(self, output_dir="results/simplelean", dataset="folio",
+                 conditions=None, resume_dir=None, full_dataset=False, model="gpt-5",
+                 max_iterations=3, max_completion_tokens=4096, concurrency=5):
         super().__init__(output_dir, dataset)
         self.dataset = dataset
         self.conditions = conditions or []
         self.model = model
+        self.full_dataset = full_dataset
+        self.max_iterations = max_iterations
+        self.max_completion_tokens = max_completion_tokens
+        self.concurrency = concurrency
 
         if resume_dir:
             self.base_dir = resume_dir
@@ -984,7 +989,8 @@ class ConditionsSaver(BaseSaver):
             self.base_dir = f"{output_dir}/{model_name}_{dataset}{suffix}{cond_suffix}_{self.timestamp}"
             os.makedirs(self.base_dir, exist_ok=True)
 
-        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.config_file = f"{self.base_dir}/config.json"
+        self.jsonl_file = f"{self.base_dir}/results.jsonl"
         self.progress_file = f"{self.base_dir}/progress.txt"
         self.summary_file = f"{self.base_dir}/summary.json"
         self.responses_dir = f"{self.base_dir}/responses"
@@ -1002,25 +1008,41 @@ class ConditionsSaver(BaseSaver):
 
     def _init_files(self):
         """Initialize output files."""
-        with open(self.all_results_file, 'w') as f:
-            json.dump(self.results, f, indent=2)
+        # Save config
+        config = {
+            "model": self.model,
+            "dataset": self.dataset,
+            "conditions": self.conditions,
+            "max_iterations": self.max_iterations,
+            "max_completion_tokens": self.max_completion_tokens,
+            "concurrency": self.concurrency,
+            "full_dataset": self.full_dataset,
+            "started_at": self.timestamp
+        }
+        with open(self.config_file, 'w') as f:
+            json.dump(config, f, indent=2)
 
+        # Initialize progress file
         with open(self.progress_file, 'w') as f:
             f.write(f"Conditions Experiment - {self.dataset.upper()} - Started at {self.timestamp}\n")
+            f.write(f"Model: {self.model}\n")
             f.write(f"Conditions: {', '.join(self.conditions)}\n")
+            f.write(f"Max iterations: {self.max_iterations}, Max tokens: {self.max_completion_tokens}\n")
             f.write("=" * 70 + "\n\n")
 
     def _load_existing(self):
-        """Load existing results for resume support."""
-        if os.path.exists(self.all_results_file):
-            with open(self.all_results_file, 'r') as f:
-                self.results = json.load(f)
-
-            for cond, results_list in self.results.items():
-                for r in results_list:
-                    case_idx = r.get('case_idx')
-                    if case_idx is not None:
-                        self.completed.add((case_idx, cond))
+        """Load existing results for resume support from JSONL."""
+        if os.path.exists(self.jsonl_file):
+            with open(self.jsonl_file, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        result = json.loads(line)
+                        case_idx = result.get('case_idx')
+                        cond = result.get('condition')
+                        if case_idx is not None and cond:
+                            self.completed.add((case_idx, cond))
+                            if cond in self.results:
+                                self.results[cond].append(result)
 
             print(f"Loaded {len(self.completed)} existing results for resume")
 
@@ -1040,33 +1062,26 @@ class ConditionsSaver(BaseSaver):
             self.results[condition].append(result)
             self.completed.add((case_idx, condition))
 
-            # Save full results
-            with open(self.all_results_file, 'w') as f:
-                json.dump(self.results, f, indent=2)
+            # Append to JSONL (crash-safe incremental saving)
+            with open(self.jsonl_file, 'a') as f:
+                f.write(json.dumps(result) + '\n')
 
-            # Save individual response
+            # Save individual response (txt only)
             self._save_individual_response(result, case_idx, condition)
 
             # Update progress
             total_saved = sum(len(v) for v in self.results.values())
+            lean_status = "PASS" if result.get('lean_verification', {}).get('success') else "FAIL"
             with open(self.progress_file, 'a') as f:
                 f.write(f"[{datetime.now().strftime('%H:%M:%S')}] "
                        f"Case {case_idx}, {condition}: "
                        f"{result.get('ground_truth')} → {result.get('prediction')} "
                        f"{'✓' if result.get('correct') else '✗'} "
+                       f"Lean={lean_status} "
                        f"(total: {total_saved})\n")
 
     def _save_individual_response(self, result, case_idx, condition):
-        """Save individual response file with full traces."""
-        # Save JSON with full data
-        json_file = f"{self.responses_dir}/case_{case_idx}_{condition}.json"
-        try:
-            with open(json_file, 'w') as f:
-                json.dump(result, f, indent=2)
-        except Exception as e:
-            print(f"Warning: Could not save JSON response: {e}")
-
-        # Save human-readable TXT
+        """Save individual response file with full traces (txt only)."""
         txt_file = f"{self.responses_dir}/case_{case_idx}_{condition}.txt"
         try:
             with open(txt_file, 'w') as f:
@@ -1175,7 +1190,7 @@ class ConditionsSaver(BaseSaver):
         print(f"\n{'='*70}")
         print("Results saved:")
         print(f"{'='*70}")
-        print(f"All results:    {self.all_results_file}")
+        print(f"Results:        {self.jsonl_file}")
         print(f"Summary:        {self.summary_file}")
         print(f"Progress log:   {self.progress_file}")
         print(f"Responses:      {self.responses_dir}/")

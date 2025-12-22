@@ -365,12 +365,14 @@ async def run_experiment(
 
     # Initialize saver with incremental saving
     saver = ConditionsSaver(
-        output_dir="results/conditions_experiment",
         dataset=dataset,
         conditions=active_conditions,
         resume_dir=resume_dir,
         full_dataset=full_dataset,
-        model=model
+        model=model,
+        max_iterations=max_iterations,
+        max_completion_tokens=max_completion_tokens,
+        concurrency=concurrency
     )
     output_dir = Path(saver.base_dir)
 

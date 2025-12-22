@@ -1,0 +1,41 @@
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom A3 : ∀ x : obj, Organic x → ChemicalCompound x
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+axiom A6 : (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) ∨ (¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture)
+
+theorem mixture_not_alkane_and_contains_carbon : ¬ (Alkane Mixture ∧ ContainsCarbon Mixture) := by
+  have hnotboth : ¬ (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) := by
+    intro h
+    have hc : ChemicalCompound Mixture := And.left h
+    have ho : OnlyOneElement Mixture := And.right h
+    have hno : ¬ OnlyOneElement Mixture := A5 Mixture hc
+    exact hno ho
+  have hneither : ¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture :=
+    Or.elim A6
+      (fun h => False.elim (hnotboth h))
+      (fun h => h)
+  have hNotChem : ¬ ChemicalCompound Mixture := And.left hneither
+  have hnotAlkane : ¬ Alkane Mixture := by
+    intro halk
+    have hhydro : Hydrocarbon Mixture := A2 Mixture halk
+    have horg : Organic Mixture := A1 Mixture hhydro
+    have hchem : ChemicalCompound Mixture := A3 Mixture horg
+    exact hNotChem hchem
+  intro h
+  exact hnotAlkane (And.left h)
+</lean>
+
+ANSWER: False

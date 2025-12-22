@@ -1,0 +1,159 @@
+<lean>
+axiom Person : Type
+
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipateUS2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Axioms from context
+axiom R1 : ∀ x : Person, CanRegisterUS x → CanParticipateUS2024 x
+axiom R2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom R3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom R4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizenship x
+axiom T_Vladimir : ¬ TaiwaneseCitizenship Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom T_Ekaterina : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Derivations
+lemma vlad_UScit : USCitizenship Vladimir := by
+  have h := R3 Vladimir
+  have hntw : ¬ TaiwaneseCitizenship Vladimir := T_Vladimir.left
+  cases h with
+  | inl hUS => exact hUS
+  | inr hTW => exact False.elim (hntw hTW)
+
+lemma vlad_participates : CanParticipateUS2024 Vladimir := by
+  have vreg : CanRegisterUS Vladimir := R2 Vladimir vlad_UScit
+  exact R1 Vladimir vreg
+
+lemma ekaterina_can_register : CanRegisterUS Ekaterina := by
+  cases T_Ekaterina with
+  | inl hreg => exact hreg
+  | inr hoff =>
+      have hntw : ¬ TaiwaneseCitizenship Ekaterina := R4 Ekaterina hoff
+      have hc : USCitizenship Ekaterina ∨ TaiwaneseCitizenship Ekaterina := R3 Ekaterina
+      have hus : USCitizenship Ekaterina := by
+        cases hc with
+        | inl hUS => exact hUS
+        | inr hTW => exact False.elim (hntw hTW)
+      exact R2 Ekaterina hus
+
+theorem reg_and_part : CanRegisterUS Ekaterina ∧ CanParticipateUS2024 Vladimir :=
+  And.intro ekaterina_can_register vlad_participates
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipateUS2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Axioms from context
+axiom R1 : ∀ x : Person, CanRegisterUS x → CanParticipateUS2024 x
+axiom R2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom R3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom R4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizenship x
+axiom T_Vladimir : ¬ TaiwaneseCitizenship Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom T_Ekaterina : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+lemma vlad_UScit : USCitizenship Vladimir := by
+  have h := R3 Vladimir
+  have hntw : ¬ TaiwaneseCitizenship Vladimir := And.left T_Vladimir
+  cases h with
+  | inl hUS => exact hUS
+  | inr hTW =>
+      exact False.elim (hntw hTW)
+
+lemma vlad_participates : CanParticipateUS2024 Vladimir := by
+  have vreg : CanRegisterUS Vladimir := R2 Vladimir vlad_UScit
+  exact R1 Vladimir vreg
+
+lemma ekaterina_can_register : CanRegisterUS Ekaterina := by
+  cases T_Ekaterina with
+  | inl hreg => exact hreg
+  | inr hoff =>
+      have hntw : ¬ TaiwaneseCitizenship Ekaterina := R4 Ekaterina hoff
+      have hc := R3 Ekaterina
+      cases hc with
+      | inl hUS => exact R2 Ekaterina hUS
+      | inr hTW => exact False.elim (hntw hTW)
+
+-- We derive that both conjuncts actually hold, so the statement "not (A and B)" is false.
+theorem reg_and_part : CanRegisterUS Ekaterina ∧ CanParticipateUS2024 Vladimir := by
+  apply And.intro
+  · exact ekaterina_can_register
+  · exact vlad_participates
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom Person : Type
+
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipateUS2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Axioms from context
+axiom R1 : ∀ x : Person, CanRegisterUS x → CanParticipateUS2024 x
+axiom R2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom R3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom R4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizenship x
+axiom T_Vladimir : ¬ TaiwaneseCitizenship Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom T_Ekaterina : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+lemma vladimir_not_taiwanese : ¬ TaiwaneseCitizenship Vladimir := And.left T_Vladimir
+
+lemma vlad_UScit : USCitizenship Vladimir := by
+  have h := R3 Vladimir
+  exact Or.elim h (fun hUS => hUS) (fun hTW => False.elim (vladimir_not_taiwanese hTW))
+
+lemma vlad_participates : CanParticipateUS2024 Vladimir := by
+  have vreg : CanRegisterUS Vladimir := R2 Vladimir vlad_UScit
+  exact R1 Vladimir vreg
+
+lemma ekaterina_can_register : CanRegisterUS Ekaterina := by
+  have h := T_Ekaterina
+  exact Or.elim h
+    (fun hreg => hreg)
+    (fun hoff =>
+      have hntw : ¬ TaiwaneseCitizenship Ekaterina := R4 Ekaterina hoff
+      have hc := R3 Ekaterina
+      have hus : USCitizenship Ekaterina :=
+        Or.elim hc (fun hUS => hUS) (fun hTW => False.elim (hntw hTW))
+      show CanRegisterUS Ekaterina from R2 Ekaterina hus
+    )
+
+theorem reg_and_part : CanRegisterUS Ekaterina ∧ CanParticipateUS2024 Vladimir :=
+  And.intro ekaterina_can_register vlad_participates
+</lean>
+
+ANSWER: False

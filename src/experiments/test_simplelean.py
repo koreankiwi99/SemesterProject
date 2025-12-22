@@ -3,9 +3,9 @@
 Unified SimpleLean experiment for FOLIO and MultiLogiEval datasets.
 
 Usage:
-    # FOLIO
+    # FOLIO with baseline prompt
     PYTHONPATH=src:$PYTHONPATH python src/experiments/test_simplelean.py \
-        --dataset folio --model deepseek-r1 --condition implicit
+        --dataset folio --model gpt-5 --condition baseline
 
     # MultiLogiEval
     PYTHONPATH=src:$PYTHONPATH python src/experiments/test_simplelean.py \
@@ -35,11 +35,12 @@ from utils.datasets import load_folio, load_multilogieval
 
 # Prompt paths
 SYSTEM_PROMPTS = {
-    "implicit": "prompts/simplelean-conditions/system_implicit.txt",
-    "explicit": "prompts/simplelean-conditions/system_explicit.txt",
-    "lean4_specified": "prompts/simplelean-conditions/system_lean4_specified.txt",
-    "lean4_balanced": "prompts/simplelean-conditions/system_lean4_balanced.txt",
-    "lean4_minimal": "prompts/simplelean-conditions/system_lean4_minimal.txt",
+    "system": "prompts/simplelean-conditions/system.txt",
+    "baseline": "prompts/simplelean-conditions/baseline.txt",
+    # Pilot prompts
+    "lean4_specified": "prompts/simplelean-conditions/pilot/system_lean4_specified.txt",
+    "lean4_balanced": "prompts/simplelean-conditions/pilot/system_lean4_balanced.txt",
+    "lean4_minimal": "prompts/simplelean-conditions/pilot/system_lean4_minimal.txt",
 }
 
 FEEDBACK_PROMPTS = {
@@ -282,7 +283,7 @@ def main():
     parser = argparse.ArgumentParser(description='SimpleLean experiment')
     parser.add_argument('--dataset', required=True, choices=['folio', 'multilogieval'])
     parser.add_argument('--model', default='deepseek-r1')
-    parser.add_argument('--condition', default='implicit', choices=['implicit', 'explicit', 'lean4_specified', 'lean4_balanced', 'lean4_minimal'])
+    parser.add_argument('--condition', default='baseline', choices=['system', 'baseline', 'lean4_specified', 'lean4_balanced', 'lean4_minimal'])
     parser.add_argument('--concurrency', type=int, default=5)
     parser.add_argument('--max_cases', type=int, default=None)
     parser.add_argument('--max_iterations', type=int, default=3)

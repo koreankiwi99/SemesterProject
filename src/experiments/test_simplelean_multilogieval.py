@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Test SimpleLean on MultiLogiEval dataset (depth 4 and 5 only).
-Uses Yes/No/Unknown answer format.
+Test SimpleLean on MultiLogiEval dataset.
+Uses Yes/No/Unknown answer format with Lean verification.
+
+Tracks both LLM answers and Lean verification independently.
 
 Usage:
     PYTHONPATH=src:$PYTHONPATH python src/experiments/test_simplelean_multilogieval.py \
-        --model deepseek-r1 --concurrency 5
+        --model deepseek-r1 --concurrency 5 --depths d4,d5
 """
 
 import os
@@ -13,7 +15,6 @@ import sys
 import json
 import asyncio
 import argparse
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -24,8 +25,34 @@ from lean_interact import Command
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from utils.lean_utils import extract_lean_code, create_lean_server
-from utils.answer_parsing import normalize_answer
 from utils.api_client import create_client
+from utils.savers import MultiLogiEvalSaver
+
+# System prompts (shared with FOLIO)
+SYSTEM_PROMPTS = {
+    "implicit": "prompts/simplelean-conditions/system_implicit.txt",
+    "explicit": "prompts/simplelean-conditions/system_explicit.txt",
+}
+
+# Shared feedback prompts
+FEEDBACK_PROMPTS = {
+    "lean_error": "prompts/simplelean-shared/lean_error_feedback.txt",
+    "no_lean_code": "prompts/simplelean-shared/no_lean_code_feedback.txt",
+}
+
+# Answer format for MultiLogiEval
+ANSWER_FORMAT = "Yes/No/Unknown"
+ANSWER_TRUE = "Yes"
+ANSWER_FALSE = "No"
+
+
+def format_prompt(template: str) -> str:
+    """Format prompt template with MultiLogiEval answer format."""
+    return template.format(
+        answer_format="Yes/No/Unknown",
+        answer_true="Yes",
+        answer_false="No"
+    )
 
 
 def load_multilogieval(depths: list = ["d4", "d5"], logic_types: list = ["fol", "nm", "pl"]) -> list:
@@ -76,7 +103,10 @@ def load_prompt(path: str) -> str:
 
 
 def parse_multilogieval_answer(response: str) -> tuple:
-    """Parse Yes/No/Unknown answer from response."""
+    """Parse Yes/No/Unknown answer from response.
+
+    Returns: (answer, parse_status)
+    """
     import re
 
     if not response:
@@ -99,7 +129,7 @@ def parse_multilogieval_answer(response: str) -> tuple:
     return None, "PARSE_FAILED"
 
 
-async def verify_with_lean_async(lean_code, lean_server):
+async def verify_with_lean_async(lean_code: str, lean_server) -> dict:
     """Async version of Lean verification."""
     try:
         response = await lean_server.async_run(Command(cmd=lean_code))
@@ -111,9 +141,10 @@ async def verify_with_lean_async(lean_code, lean_server):
             'success': len(errors) == 0,
             'errors': [msg.data for msg in errors],
             'warnings': [msg.data for msg in warnings],
+            'all_messages': [{'severity': msg.severity, 'data': msg.data} for msg in messages]
         }
     except Exception as e:
-        return {'success': False, 'errors': [str(e)], 'warnings': []}
+        return {'success': False, 'errors': [str(e)], 'warnings': [], 'all_messages': []}
 
 
 async def run_single_case(
@@ -126,7 +157,17 @@ async def run_single_case(
     max_iterations: int = 3,
     max_completion_tokens: int = 4096
 ) -> dict:
-    """Run a single MultiLogiEval case."""
+    """Run a single MultiLogiEval case.
+
+    Iteration Logic:
+    1. LLM generates Lean code + answer
+    2. Lean verifies code
+    3. If Lean PASSES → stop, record result
+    4. If Lean FAILS → send error feedback, continue to next iteration
+    5. After max_iterations, record final state
+
+    LLM answer is tracked INDEPENDENTLY of Lean verification to observe gaming.
+    """
     async with semaphore:
         context = case.get('context', '')
         question = case.get('question', '')
@@ -153,10 +194,13 @@ async def run_single_case(
                     max_completion_tokens=max_completion_tokens
                 )
                 llm_response = response.choices[0].message.content or ""
+
+                # Capture reasoning traces (for models like DeepSeek-R1)
                 reasoning_content = getattr(response.choices[0].message, 'reasoning_content', None)
 
                 conversation_history.append({"role": "assistant", "content": llm_response})
 
+                # Parse LLM's answer (independent of Lean)
                 prediction, parse_status = parse_multilogieval_answer(llm_response)
                 lean_code = extract_lean_code(llm_response)
 
@@ -170,41 +214,39 @@ async def run_single_case(
                     'lean_verification': None
                 }
 
+                # Always update final prediction from LLM (independent of Lean)
+                final_prediction = prediction
+                final_parse_status = parse_status
+                final_lean_code = lean_code
+
                 if lean_code:
                     lean_verification = await verify_with_lean_async(lean_code, lean_server)
                     iteration_data['lean_verification'] = lean_verification
+                    final_verification = lean_verification
 
                     if lean_verification['success']:
-                        final_prediction = prediction
-                        final_parse_status = parse_status
-                        final_lean_code = lean_code
-                        final_verification = lean_verification
+                        # Lean passed - stop iterating
                         iterations.append(iteration_data)
                         break
                     else:
+                        # Lean failed - provide feedback for next iteration
                         if iteration < max_iterations - 1:
                             error_messages = '\n'.join(lean_verification['errors'])
-                            feedback = (
-                                f"The Lean code has errors:\n{error_messages}\n\n"
-                                f"Please provide corrected Lean code in <lean></lean> tags.\n"
-                                f"Then provide: ANSWER: Yes/No/Unknown"
+                            feedback_template = load_prompt(FEEDBACK_PROMPTS["lean_error"])
+                            feedback = feedback_template.format(
+                                lean_code=lean_code,
+                                error_messages=error_messages,
+                                answer_format=ANSWER_FORMAT
                             )
                             conversation_history.append({"role": "user", "content": feedback})
                 else:
+                    # No Lean code found
                     if iteration < max_iterations - 1:
-                        feedback = (
-                            f"Please provide Lean code in <lean></lean> tags.\n"
-                            f"Then provide: ANSWER: Yes/No/Unknown"
-                        )
+                        feedback_template = load_prompt(FEEDBACK_PROMPTS["no_lean_code"])
+                        feedback = feedback_template.format(answer_format=ANSWER_FORMAT)
                         conversation_history.append({"role": "user", "content": feedback})
 
                 iterations.append(iteration_data)
-
-                if iteration == max_iterations - 1:
-                    final_prediction = prediction
-                    final_parse_status = parse_status
-                    final_lean_code = lean_code
-                    final_verification = iteration_data.get('lean_verification')
 
             # Normalize for comparison (yes/no/unknown)
             pred_norm = final_prediction.lower() if final_prediction else None
@@ -225,17 +267,20 @@ async def run_single_case(
                 "logic_type": case.get('logic_type'),
                 "depth": case.get('depth'),
                 "rule": case.get('rule'),
+                "context": context,
+                "question": question,
             }
 
         except Exception as e:
             return {
-                "prediction": None,
+                "prediction": final_prediction,
                 "parse_status": "ERROR",
                 "ground_truth": ground_truth,
                 "correct": False,
                 "model": model,
                 "error": str(e),
                 "iterations": iterations,
+                "num_iterations": len(iterations),
                 "case_id": case.get('id'),
                 "logic_type": case.get('logic_type'),
                 "depth": case.get('depth'),
@@ -249,7 +294,9 @@ async def run_experiment(
     max_iterations: int = 3,
     max_completion_tokens: int = 4096,
     depths: list = ["d4", "d5"],
-    logic_types: list = ["fol", "nm", "pl"]
+    logic_types: list = ["fol", "nm", "pl"],
+    prompt_type: str = "implicit",
+    resume_dir: Optional[str] = None
 ):
     """Run MultiLogiEval experiment."""
     load_dotenv()
@@ -259,16 +306,17 @@ async def run_experiment(
     print(f"Loading MultiLogiEval data (depths: {depths}, logic: {logic_types})...")
     cases = load_multilogieval(depths=depths, logic_types=logic_types)
     print(f"Found {len(cases)} cases")
-    print(f"Model: {model}, Max iterations: {max_iterations}, Max tokens: {max_completion_tokens}")
+    print(f"Model: {model}, Prompt: {prompt_type}, Max iterations: {max_iterations}, Max tokens: {max_completion_tokens}")
 
     if max_cases:
         cases = cases[:max_cases]
         print(f"Using first {max_cases} cases")
 
-    # Load prompt
-    prompt_path = "prompts/simplelean-multilogieval/condition1_baseline_system.txt"
-    system_prompt = load_prompt(prompt_path)
-    print(f"Loaded prompt from {prompt_path}")
+    # Load prompt with answer format substitution
+    prompt_path = SYSTEM_PROMPTS[prompt_type]
+    template = load_prompt(prompt_path)
+    system_prompt = format_prompt(template)
+    print(f"Loaded {prompt_type} prompt from {prompt_path}")
 
     # Create Lean server
     print("Creating Lean server...")
@@ -276,17 +324,22 @@ async def run_experiment(
 
     semaphore = asyncio.Semaphore(concurrency)
 
-    # Setup output directory
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    model_name = model.replace("/", "-").replace(":", "-")
-    output_dir = Path(f"results/simplelean_multilogieval/{model_name}_{timestamp}")
-    output_dir.mkdir(parents=True, exist_ok=True)
-    responses_dir = output_dir / "responses"
-    responses_dir.mkdir(exist_ok=True)
+    # Initialize saver
+    saver = MultiLogiEvalSaver(
+        output_dir="results/simplelean_multilogieval",
+        model=model,
+        depths=depths,
+        resume_dir=resume_dir
+    )
+    print(f"Output directory: {saver.base_dir}")
 
     print(f"\nRunning {len(cases)} cases...")
 
     async def run_and_save(idx, case):
+        # Skip if already completed (resume support)
+        if saver.is_completed(idx):
+            return None
+
         result = await run_single_case(
             client, case, system_prompt, lean_server, semaphore,
             model=model, max_iterations=max_iterations,
@@ -294,91 +347,46 @@ async def run_experiment(
         )
         result['case_idx'] = idx
 
-        # Save individual response
-        response_file = responses_dir / f"case_{idx}_{case.get('logic_type')}_{case.get('depth')}.txt"
-        with open(response_file, 'w') as f:
-            f.write(f"Logic: {case.get('logic_type')}\n")
-            f.write(f"Depth: {case.get('depth')}\n")
-            f.write(f"Rule: {case.get('rule')}\n")
-            f.write(f"Ground Truth: {result['ground_truth']}\n")
-            f.write(f"Prediction: {result['prediction']}\n")
-            f.write(f"Correct: {result['correct']}\n")
-            f.write(f"Lean Pass: {result.get('lean_verification', {}).get('success', False)}\n")
-            f.write("\n" + "="*50 + "\n\n")
-            for it in result.get('iterations', []):
-                f.write(f"--- Iteration {it['iteration']} ---\n")
-                f.write(it.get('llm_response', '')[:2000])
-                f.write("\n\n")
-
+        # Save incrementally
+        await saver.save_result(result, idx, case)
         return result
 
     tasks = [run_and_save(idx, case) for idx, case in enumerate(cases)]
     results = await tqdm_asyncio.gather(*tasks, desc="Running MultiLogiEval")
 
-    # Save all results
-    with open(output_dir / "all_results.json", 'w') as f:
-        json.dump(results, f, indent=2)
+    # Filter None results (from resumed/skipped cases)
+    results = [r for r in results if r is not None]
 
-    # Calculate summary
-    total = len(results)
-    correct = sum(1 for r in results if r.get('correct'))
-    lean_pass = sum(1 for r in results if r.get('lean_verification', {}).get('success'))
-
-    # By depth
-    by_depth = {}
-    for r in results:
-        d = r.get('depth', 'unknown')
-        if d not in by_depth:
-            by_depth[d] = {'total': 0, 'correct': 0, 'lean_pass': 0}
-        by_depth[d]['total'] += 1
-        if r.get('correct'):
-            by_depth[d]['correct'] += 1
-        if r.get('lean_verification', {}).get('success'):
-            by_depth[d]['lean_pass'] += 1
-
-    # By logic type
-    by_logic = {}
-    for r in results:
-        lt = r.get('logic_type', 'unknown')
-        if lt not in by_logic:
-            by_logic[lt] = {'total': 0, 'correct': 0, 'lean_pass': 0}
-        by_logic[lt]['total'] += 1
-        if r.get('correct'):
-            by_logic[lt]['correct'] += 1
-        if r.get('lean_verification', {}).get('success'):
-            by_logic[lt]['lean_pass'] += 1
+    # Finalize and generate summary
+    summary = saver.finalize()
 
     # Print summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("RESULTS SUMMARY")
-    print("="*60)
-    print(f"\nOverall: {correct}/{total} ({100*correct/total:.1f}%)")
-    print(f"Lean Pass: {lean_pass}/{total} ({100*lean_pass/total:.1f}%)")
+    print("=" * 60)
+    print(f"\nOverall: {summary['correct']}/{summary['total']} ({100*summary['accuracy']:.1f}%)")
+    print(f"Lean Pass: {summary['lean_pass']}/{summary['total']} ({100*summary['lean_pass_rate']:.1f}%)")
 
     print("\nBy Depth:")
-    for d in sorted(by_depth.keys()):
-        s = by_depth[d]
-        print(f"  {d}: {s['correct']}/{s['total']} ({100*s['correct']/s['total']:.1f}%) | Lean: {100*s['lean_pass']/s['total']:.1f}%")
+    for d in sorted(summary['by_depth'].keys()):
+        s = summary['by_depth'][d]
+        acc = 100*s['correct']/s['total'] if s['total'] > 0 else 0
+        lp = 100*s['lean_pass']/s['total'] if s['total'] > 0 else 0
+        print(f"  {d}: {s['correct']}/{s['total']} ({acc:.1f}%) | Lean: {lp:.1f}%")
 
     print("\nBy Logic Type:")
-    for lt in sorted(by_logic.keys()):
-        s = by_logic[lt]
-        print(f"  {lt}: {s['correct']}/{s['total']} ({100*s['correct']/s['total']:.1f}%) | Lean: {100*s['lean_pass']/s['total']:.1f}%")
+    for lt in sorted(summary['by_logic'].keys()):
+        s = summary['by_logic'][lt]
+        acc = 100*s['correct']/s['total'] if s['total'] > 0 else 0
+        lp = 100*s['lean_pass']/s['total'] if s['total'] > 0 else 0
+        print(f"  {lt}: {s['correct']}/{s['total']} ({acc:.1f}%) | Lean: {lp:.1f}%")
 
-    # Save summary
-    summary = {
-        'total': total,
-        'correct': correct,
-        'accuracy': correct/total,
-        'lean_pass': lean_pass,
-        'lean_pass_rate': lean_pass/total,
-        'by_depth': by_depth,
-        'by_logic': by_logic
-    }
-    with open(output_dir / "summary.json", 'w') as f:
-        json.dump(summary, f, indent=2)
+    print("\nGaming Analysis:")
+    ga = summary['gaming_analysis']
+    print(f"  Lean Pass but Wrong Answer: {ga['lean_pass_but_wrong']}")
+    print(f"  Answer Flips Across Iterations: {ga['answer_flips_across_iterations']}")
 
-    print(f"\nResults saved to: {output_dir}")
+    print(f"\nResults saved to: {saver.base_dir}")
     return summary
 
 
@@ -398,6 +406,10 @@ def main():
                         help='Comma-separated depths (default: d4,d5)')
     parser.add_argument('--logic_types', type=str, default='fol,nm,pl',
                         help='Comma-separated logic types (default: fol,nm,pl)')
+    parser.add_argument('--prompt_type', type=str, choices=['implicit', 'explicit'], default='implicit',
+                        help='Prompt type: implicit (default) or explicit (Lean-based answer required)')
+    parser.add_argument('--resume', type=str, default=None,
+                        help='Resume from existing output directory')
 
     args = parser.parse_args()
 
@@ -411,7 +423,9 @@ def main():
         max_iterations=args.max_iterations,
         max_completion_tokens=args.max_completion_tokens,
         depths=depths,
-        logic_types=logic_types
+        logic_types=logic_types,
+        prompt_type=args.prompt_type,
+        resume_dir=args.resume
     ))
 
 

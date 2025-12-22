@@ -963,6 +963,477 @@ class BidirectionalSaver(BaseSaver):
                     f.write(f"  {pattern}: {data['correct']}/{data['total']} ({acc:.2%})\n")
 
 
+class ConditionsSaver(BaseSaver):
+    """Saver for conditions experiment results with incremental saving."""
+
+    def __init__(self, output_dir="results/conditions_experiment", dataset="folio",
+                 conditions=None, resume_dir=None, full_dataset=False, model="gpt-5"):
+        super().__init__(output_dir, dataset)
+        self.dataset = dataset
+        self.conditions = conditions or []
+        self.model = model
+
+        if resume_dir:
+            self.base_dir = resume_dir
+            print(f"Resuming in existing directory: {self.base_dir}")
+        else:
+            # Sanitize model name for directory (replace / with -)
+            model_name = model.replace("/", "-").replace(":", "-")
+            suffix = "_full" if full_dataset else ""
+            cond_suffix = "_" + "_".join(self.conditions) if self.conditions else ""
+            self.base_dir = f"{output_dir}/{model_name}_{dataset}{suffix}{cond_suffix}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
+
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.progress_file = f"{self.base_dir}/progress.txt"
+        self.summary_file = f"{self.base_dir}/summary.json"
+        self.responses_dir = f"{self.base_dir}/responses"
+
+        os.makedirs(self.responses_dir, exist_ok=True)
+
+        # Results organized by condition
+        self.results = {cond: [] for cond in self.conditions}
+        self.completed = set()  # (case_idx, condition) tuples
+
+        if not resume_dir:
+            self._init_files()
+        else:
+            self._load_existing()
+
+    def _init_files(self):
+        """Initialize output files."""
+        with open(self.all_results_file, 'w') as f:
+            json.dump(self.results, f, indent=2)
+
+        with open(self.progress_file, 'w') as f:
+            f.write(f"Conditions Experiment - {self.dataset.upper()} - Started at {self.timestamp}\n")
+            f.write(f"Conditions: {', '.join(self.conditions)}\n")
+            f.write("=" * 70 + "\n\n")
+
+    def _load_existing(self):
+        """Load existing results for resume support."""
+        if os.path.exists(self.all_results_file):
+            with open(self.all_results_file, 'r') as f:
+                self.results = json.load(f)
+
+            for cond, results_list in self.results.items():
+                for r in results_list:
+                    case_idx = r.get('case_idx')
+                    if case_idx is not None:
+                        self.completed.add((case_idx, cond))
+
+            print(f"Loaded {len(self.completed)} existing results for resume")
+
+            # Append resume marker
+            with open(self.progress_file, 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
+
+    def is_completed(self, case_idx, condition):
+        """Check if a case/condition pair has been completed."""
+        return (case_idx, condition) in self.completed
+
+    async def save_result(self, result, case_idx, condition):
+        """Save a single result incrementally (async-safe)."""
+        async with self._save_lock:
+            self.results[condition].append(result)
+            self.completed.add((case_idx, condition))
+
+            # Save full results
+            with open(self.all_results_file, 'w') as f:
+                json.dump(self.results, f, indent=2)
+
+            # Save individual response
+            self._save_individual_response(result, case_idx, condition)
+
+            # Update progress
+            total_saved = sum(len(v) for v in self.results.values())
+            with open(self.progress_file, 'a') as f:
+                f.write(f"[{datetime.now().strftime('%H:%M:%S')}] "
+                       f"Case {case_idx}, {condition}: "
+                       f"{result.get('ground_truth')} → {result.get('prediction')} "
+                       f"{'✓' if result.get('correct') else '✗'} "
+                       f"(total: {total_saved})\n")
+
+    def _save_individual_response(self, result, case_idx, condition):
+        """Save individual response file with full traces."""
+        # Save JSON with full data
+        json_file = f"{self.responses_dir}/case_{case_idx}_{condition}.json"
+        try:
+            with open(json_file, 'w') as f:
+                json.dump(result, f, indent=2)
+        except Exception as e:
+            print(f"Warning: Could not save JSON response: {e}")
+
+        # Save human-readable TXT
+        txt_file = f"{self.responses_dir}/case_{case_idx}_{condition}.txt"
+        try:
+            with open(txt_file, 'w') as f:
+                f.write("=" * 70 + "\n")
+                f.write(f"CASE {case_idx} - CONDITION: {condition.upper()}\n")
+                f.write("=" * 70 + "\n\n")
+
+                f.write(f"Story ID: {result.get('story_id', 'N/A')}\n")
+                f.write(f"Example ID: {result.get('example_id', 'N/A')}\n")
+                f.write(f"Ground Truth: {result.get('ground_truth')}\n")
+                f.write(f"Final Prediction: {result.get('prediction')}\n")
+                f.write(f"Correct: {'Yes' if result.get('correct') else 'No'}\n")
+                f.write(f"Parse Status: {result.get('parse_status')}\n")
+                f.write(f"Num Iterations: {result.get('num_iterations', 0)}\n")
+                f.write(f"Total Retries: {result.get('total_retries', 0)}\n")
+
+                lean_ver = result.get('lean_verification') or {}
+                f.write(f"Lean Pass: {lean_ver.get('success', False)}\n")
+                if lean_ver.get('errors'):
+                    f.write(f"Lean Errors: {lean_ver.get('errors')}\n")
+
+                f.write("\n" + "=" * 70 + "\n")
+                f.write("ITERATIONS\n")
+                f.write("=" * 70 + "\n")
+
+                for iter_data in result.get('iterations', []):
+                    f.write(f"\n{'─' * 50}\n")
+                    f.write(f"ITERATION {iter_data.get('iteration', '?')}\n")
+                    f.write(f"{'─' * 50}\n")
+                    f.write(f"Prediction: {iter_data.get('prediction')}\n")
+                    f.write(f"Parse Status: {iter_data.get('parse_status')}\n")
+
+                    lean_v = iter_data.get('lean_verification') or {}
+                    f.write(f"Lean Pass: {lean_v.get('success', 'N/A')}\n")
+                    if lean_v.get('errors'):
+                        f.write("Lean Errors:\n")
+                        for err in lean_v.get('errors', [])[:5]:
+                            f.write(f"  - {err[:300]}\n")
+
+                    # Reasoning content (for models like DeepSeek-R1)
+                    if iter_data.get('reasoning_content'):
+                        f.write(f"\n--- REASONING TRACE ---\n")
+                        f.write(iter_data.get('reasoning_content') + "\n")
+
+                    f.write(f"\n--- LLM RESPONSE ---\n")
+                    f.write(iter_data.get('llm_response', '') + "\n")
+
+                    if iter_data.get('lean_code'):
+                        f.write(f"\n--- LEAN CODE ---\n")
+                        f.write(iter_data.get('lean_code') + "\n")
+
+        except Exception as e:
+            print(f"Warning: Could not save TXT response: {e}")
+
+    def finalize(self):
+        """Generate final summary."""
+        summary = {}
+
+        for condition in self.conditions:
+            cond_results = self.results.get(condition, [])
+            n_correct = sum(1 for r in cond_results if r.get('correct', False))
+            n_lean_pass = sum(1 for r in cond_results
+                            if r.get('lean_verification') and r['lean_verification'].get('success', False))
+            n_total = len(cond_results)
+            total_retries = sum(r.get('total_retries', 0) for r in cond_results)
+
+            # Count predictions and parse statuses
+            predictions = {}
+            parse_statuses = {}
+            for r in cond_results:
+                pred = r.get('prediction') or 'None'
+                predictions[pred] = predictions.get(pred, 0) + 1
+                status = r.get('parse_status') or 'None'
+                parse_statuses[status] = parse_statuses.get(status, 0) + 1
+
+            summary[condition] = {
+                'accuracy': n_correct / n_total if n_total > 0 else 0,
+                'lean_pass_rate': n_lean_pass / n_total if n_total > 0 else 0,
+                'n_correct': n_correct,
+                'n_lean_pass': n_lean_pass,
+                'n_total': n_total,
+                'total_retries': total_retries,
+                'predictions': predictions,
+                'parse_statuses': parse_statuses
+            }
+
+        # Save summary
+        with open(self.summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+
+        # Update progress file
+        with open(self.progress_file, 'a') as f:
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("FINAL RESULTS\n")
+            f.write("=" * 70 + "\n\n")
+
+            f.write(f"{'Condition':<15} {'Accuracy':<12} {'Lean Pass':<12} {'Retries'}\n")
+            f.write("-" * 50 + "\n")
+            for cond in self.conditions:
+                s = summary[cond]
+                f.write(f"{cond.upper():<15} {s['accuracy']*100:>5.1f}%      "
+                       f"{s['lean_pass_rate']*100:>5.1f}%      {s['total_retries']}\n")
+
+            f.write(f"\nCompleted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+        print(f"\n{'='*70}")
+        print("Results saved:")
+        print(f"{'='*70}")
+        print(f"All results:    {self.all_results_file}")
+        print(f"Summary:        {self.summary_file}")
+        print(f"Progress log:   {self.progress_file}")
+        print(f"Responses:      {self.responses_dir}/")
+        print(f"{'='*70}")
+
+        return summary
+
+    def get_results(self):
+        return self.results
+
+
+class MultiLogiEvalSaver(BaseSaver):
+    """Saver for MultiLogiEval experiments with incremental JSONL saving."""
+
+    def __init__(self, output_dir: str, model: str, depths: list, resume_dir=None):
+        super().__init__(output_dir, "multilogieval")
+        self.model = model
+        self.depths = depths
+
+        if resume_dir and os.path.exists(resume_dir):
+            self.base_dir = resume_dir
+            self._load_existing()
+        else:
+            model_name = model.replace("/", "-").replace(":", "-")
+            self.base_dir = f"{output_dir}/{model_name}_{self.timestamp}"
+            os.makedirs(self.base_dir, exist_ok=True)
+            self._init_files()
+
+        self.responses_dir = f"{self.base_dir}/responses"
+        os.makedirs(self.responses_dir, exist_ok=True)
+
+        # Files
+        self.jsonl_file = f"{self.base_dir}/results.jsonl"
+        self.progress_file = f"{self.base_dir}/progress.txt"
+        self.all_results_file = f"{self.base_dir}/all_results.json"
+        self.summary_file = f"{self.base_dir}/summary.json"
+
+    def _init_files(self):
+        """Initialize output files."""
+        with open(f"{self.base_dir}/progress.txt", 'w') as f:
+            f.write(f"MultiLogiEval Experiment - Started at {self.timestamp}\n")
+            f.write(f"Model: {self.model}\n")
+            f.write(f"Depths: {self.depths}\n")
+            f.write("=" * 70 + "\n\n")
+
+    def _load_existing(self):
+        """Load existing results for resume support."""
+        jsonl_path = f"{self.base_dir}/results.jsonl"
+        if os.path.exists(jsonl_path):
+            with open(jsonl_path, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        result = json.loads(line)
+                        case_idx = result.get('case_idx')
+                        if case_idx is not None:
+                            self.completed.add(case_idx)
+            print(f"Loaded {len(self.completed)} existing results for resume")
+
+            with open(f"{self.base_dir}/progress.txt", 'a') as f:
+                f.write(f"\n{'='*70}\n")
+                f.write(f"RESUMED at {self.timestamp}\n")
+                f.write(f"{'='*70}\n\n")
+
+    def is_completed(self, case_idx: int) -> bool:
+        """Check if a case has been completed."""
+        return case_idx in self.completed
+
+    async def save_result(self, result: dict, case_idx: int, case: dict):
+        """Save a single result incrementally (async-safe)."""
+        async with self._save_lock:
+            self.completed.add(case_idx)
+
+            # Append to JSONL (crash-safe incremental saving)
+            with open(self.jsonl_file, 'a') as f:
+                f.write(json.dumps(result) + '\n')
+
+            # Save detailed individual response
+            self._save_individual_response(result, case_idx, case)
+
+            # Update progress
+            lean_status = "PASS" if result.get('lean_verification', {}).get('success') else "FAIL"
+            with open(self.progress_file, 'a') as f:
+                f.write(f"[{datetime.now().strftime('%H:%M:%S')}] "
+                       f"Case {case_idx} ({case.get('logic_type')}/{case.get('depth')}): "
+                       f"GT={result.get('ground_truth')} → Pred={result.get('prediction')} "
+                       f"{'✓' if result.get('correct') else '✗'} "
+                       f"Lean={lean_status} "
+                       f"(iters={result.get('num_iterations')})\n")
+
+    def _save_individual_response(self, result: dict, case_idx: int, case: dict):
+        """Save detailed individual response file with full traces."""
+        filename = f"case_{case_idx}_{case.get('logic_type')}_{case.get('depth')}"
+
+        # Save full JSON with all details
+        json_filepath = f"{self.responses_dir}/{filename}.json"
+        with open(json_filepath, 'w') as f:
+            json.dump(result, f, indent=2)
+
+        # Also save human-readable txt
+        txt_filepath = f"{self.responses_dir}/{filename}.txt"
+        with open(txt_filepath, 'w') as f:
+            f.write("=" * 70 + "\n")
+            f.write(f"CASE {case_idx}\n")
+            f.write("=" * 70 + "\n\n")
+
+            f.write(f"Logic Type: {case.get('logic_type')}\n")
+            f.write(f"Depth: {case.get('depth')}\n")
+            f.write(f"Rule: {case.get('rule')}\n")
+            f.write(f"Ground Truth: {result.get('ground_truth')}\n")
+            f.write(f"Final Prediction: {result.get('prediction')}\n")
+            f.write(f"Correct: {result.get('correct')}\n")
+            f.write(f"Parse Status: {result.get('parse_status')}\n")
+            f.write(f"Num Iterations: {result.get('num_iterations')}\n")
+
+            lean_ver = result.get('lean_verification') or {}
+            f.write(f"Lean Pass: {lean_ver.get('success', False)}\n")
+            if lean_ver.get('errors'):
+                f.write(f"Lean Errors: {lean_ver.get('errors')}\n")
+
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("CONTEXT\n")
+            f.write("=" * 70 + "\n")
+            f.write(case.get('context', '') + "\n")
+
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("QUESTION\n")
+            f.write("=" * 70 + "\n")
+            f.write(case.get('question', '') + "\n")
+
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("ITERATIONS\n")
+            f.write("=" * 70 + "\n")
+
+            for it in result.get('iterations', []):
+                f.write(f"\n{'─' * 50}\n")
+                f.write(f"ITERATION {it.get('iteration')}\n")
+                f.write(f"{'─' * 50}\n")
+                f.write(f"Prediction: {it.get('prediction')}\n")
+                f.write(f"Parse Status: {it.get('parse_status')}\n")
+
+                lean_v = it.get('lean_verification') or {}
+                f.write(f"Lean Pass: {lean_v.get('success', 'N/A')}\n")
+                if lean_v.get('errors'):
+                    f.write("Lean Errors:\n")
+                    for err in lean_v.get('errors', [])[:5]:
+                        f.write(f"  - {err[:300]}\n")
+
+                # Reasoning content (for models like DeepSeek-R1)
+                if it.get('reasoning_content'):
+                    f.write(f"\n--- REASONING TRACE ---\n")
+                    f.write(it.get('reasoning_content') + "\n")
+
+                f.write(f"\n--- LLM RESPONSE ---\n")
+                f.write(it.get('llm_response', '') + "\n")
+
+                if it.get('lean_code'):
+                    f.write(f"\n--- LEAN CODE ---\n")
+                    f.write(it.get('lean_code') + "\n")
+
+    def finalize(self) -> dict:
+        """Generate final summary from JSONL."""
+        results = []
+        if os.path.exists(self.jsonl_file):
+            with open(self.jsonl_file, 'r') as f:
+                for line in f:
+                    if line.strip():
+                        results.append(json.loads(line))
+
+        # Save all_results.json
+        with open(self.all_results_file, 'w') as f:
+            json.dump(results, f, indent=2)
+
+        # Calculate stats
+        total = len(results)
+        correct = sum(1 for r in results if r.get('correct'))
+        lean_pass = sum(1 for r in results if r.get('lean_verification', {}).get('success'))
+
+        # By depth
+        by_depth = {}
+        for r in results:
+            d = r.get('depth', 'unknown')
+            if d not in by_depth:
+                by_depth[d] = {'total': 0, 'correct': 0, 'lean_pass': 0}
+            by_depth[d]['total'] += 1
+            if r.get('correct'):
+                by_depth[d]['correct'] += 1
+            if r.get('lean_verification', {}).get('success'):
+                by_depth[d]['lean_pass'] += 1
+
+        # By logic type
+        by_logic = {}
+        for r in results:
+            lt = r.get('logic_type', 'unknown')
+            if lt not in by_logic:
+                by_logic[lt] = {'total': 0, 'correct': 0, 'lean_pass': 0}
+            by_logic[lt]['total'] += 1
+            if r.get('correct'):
+                by_logic[lt]['correct'] += 1
+            if r.get('lean_verification', {}).get('success'):
+                by_logic[lt]['lean_pass'] += 1
+
+        summary = {
+            'model': self.model,
+            'depths': self.depths,
+            'total': total,
+            'correct': correct,
+            'accuracy': correct / total if total > 0 else 0,
+            'lean_pass': lean_pass,
+            'lean_pass_rate': lean_pass / total if total > 0 else 0,
+            'by_depth': by_depth,
+            'by_logic': by_logic
+        }
+
+        # Save summary
+        with open(self.summary_file, 'w') as f:
+            json.dump(summary, f, indent=2)
+
+        # Save human-readable summary
+        with open(f"{self.base_dir}/summary.txt", 'w') as f:
+            f.write("=" * 60 + "\n")
+            f.write("MULTILOGIEVAL RESULTS SUMMARY\n")
+            f.write("=" * 60 + "\n\n")
+
+            f.write(f"Model: {self.model}\n")
+            f.write(f"Depths: {self.depths}\n\n")
+
+            if total > 0:
+                f.write(f"Overall: {correct}/{total} ({100*correct/total:.1f}%)\n")
+                f.write(f"Lean Pass: {lean_pass}/{total} ({100*lean_pass/total:.1f}%)\n\n")
+
+                f.write("By Depth:\n")
+                for d in sorted(by_depth.keys()):
+                    s = by_depth[d]
+                    acc = 100*s['correct']/s['total'] if s['total'] > 0 else 0
+                    lp = 100*s['lean_pass']/s['total'] if s['total'] > 0 else 0
+                    f.write(f"  {d}: {s['correct']}/{s['total']} ({acc:.1f}%) | Lean: {lp:.1f}%\n")
+
+                f.write("\nBy Logic Type:\n")
+                for lt in sorted(by_logic.keys()):
+                    s = by_logic[lt]
+                    acc = 100*s['correct']/s['total'] if s['total'] > 0 else 0
+                    lp = 100*s['lean_pass']/s['total'] if s['total'] > 0 else 0
+                    f.write(f"  {lt}: {s['correct']}/{s['total']} ({acc:.1f}%) | Lean: {lp:.1f}%\n")
+
+            f.write(f"\nCompleted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+
+        print(f"\n{'='*60}")
+        print("Results saved:")
+        print(f"{'='*60}")
+        print(f"JSONL:       {self.jsonl_file}")
+        print(f"All results: {self.all_results_file}")
+        print(f"Summary:     {self.summary_file}")
+        print(f"Responses:   {self.responses_dir}/")
+        print(f"{'='*60}")
+
+        return summary
+
+
 class MemorizationSaver(BaseSaver):
     """Saver for memorization test results."""
 

@@ -207,11 +207,15 @@ async def run_single_case(
                 llm_response = ""
                 retries = 0
                 while retries < max_retries:
-                    response = await client.chat.completions.create(
-                        model=model,
-                        messages=conversation_history,
-                        max_completion_tokens=max_completion_tokens
-                    )
+                    # Build API params - only include max_completion_tokens if set
+                    api_params = {
+                        "model": model,
+                        "messages": conversation_history,
+                    }
+                    if max_completion_tokens and max_completion_tokens > 0:
+                        api_params["max_completion_tokens"] = max_completion_tokens
+
+                    response = await client.chat.completions.create(**api_params)
                     llm_response = response.choices[0].message.content or ""
                     # Capture reasoning traces for reasoning models (e.g., deepseek-r1)
                     reasoning_content = getattr(response.choices[0].message, 'reasoning_content', None)
@@ -462,8 +466,8 @@ def main():
                         help='Maximum iterations for Lean verification (default: 3)')
     parser.add_argument('--max_retries', type=int, default=3,
                         help='Maximum retries for empty API responses (default: 3)')
-    parser.add_argument('--max_completion_tokens', type=int, choices=[4096, 16384], default=4096,
-                        help='Max completion tokens (default: 4096)')
+    parser.add_argument('--max_completion_tokens', type=int, default=0,
+                        help='Max completion tokens (default: 0 = unlimited)')
     parser.add_argument('--conditions', type=str, default=None,
                         help='Comma-separated list of conditions to run (default: all)')
     parser.add_argument('--full', action='store_true',

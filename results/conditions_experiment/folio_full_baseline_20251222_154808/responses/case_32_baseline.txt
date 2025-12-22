@@ -1,0 +1,101 @@
+Case: 32, Condition: baseline
+Story ID: 340
+Example ID: 895
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Mixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom Famous : Person → Prop
+axiom WellPaid : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+axiom Djokovic : Person
+
+-- Premises tied to "at the mixer"
+axiom everyone_mixer_gsc_or_ona :
+  ∀ x, Mixer x → (GrandSlamChampion x ∨ OscarNominatedActor x)...
+
+Lean Code:
+axiom Person : Type
+axiom Mixer : Person → Prop
+axiom GrandSlamChampion : Person → Prop
+axiom OscarNominatedActor : Person → Prop
+axiom ProfessionalTennisPlayer : Person → Prop
+axiom Celebrity : Person → Prop
+axiom Athlete : Person → Prop
+axiom Famous : Person → Prop
+axiom WellPaid : Person → Prop
+axiom LivesInTaxHaven : Person → Prop
+axiom Djokovic : Person
+
+-- Premises tied to "at the mixer"
+axiom everyone_mixer_gsc_or_ona :
+  ∀ x, Mixer x → (GrandSlamChampion x ∨ OscarNominatedActor x)
+axiom gsc_implies_pro :
+  ∀ x, Mixer x → GrandSlamChampion x → ProfessionalTennisPlayer x
+axiom ona_implies_celebrity :
+  ∀ x, Mixer x → OscarNominatedActor x → Celebrity x
+axiom pro_implies_athlete :
+  ∀ x, Mixer x → ProfessionalTennisPlayer x → Athlete x
+axiom celebrity_implies_wellpaid :
+  ∀ x, Mixer x → Celebrity x → WellPaid x
+axiom athlete_implies_famous :
+  ∀ x, Mixer x → Athlete x → Famous x
+axiom wellpaid_implies_taxhaven :
+  ∀ x, Mixer x → WellPaid x → LivesInTaxHaven x
+
+-- Djokovic-specific facts
+axiom djokovic_at_mixer : Mixer Djokovic
+axiom djokovic_famous_athlete_implies_wellpaid :
+  (Famous Djokovic ∧ Athlete Djokovic) → WellPaid Djokovic
+
+-- From the premises, Djokovic lives in a tax haven
+theorem djokovic_lives_in_tax_haven : LivesInTaxHaven Djokovic := by
+  -- First, show Djokovic is well-paid
+  have dj_wellpaid : WellPaid Djokovic := by
+    have h := everyone_mixer_gsc_or_ona Djokovic djokovic_at_mixer
+    cases h with
+    | inl dj_gsc =>
+        have dj_pro : ProfessionalTennisPlayer Djokovic :=
+          gsc_implies_pro Djokovic djokovic_at_mixer dj_gsc
+        have dj_ath : Athlete Djokovic :=
+          pro_implies_athlete Djokovic djokovic_at_mixer dj_pro
+        have dj_fam : Famous Djokovic :=
+          athlete_implies_famous Djokovic djokovic_at_mixer dj_ath
+        exact djokovic_famous_athlete_implies_wellpaid ⟨dj_fam, dj_ath⟩
+    | inr dj_ona =>
+        have dj_cel : Celebrity Djokovic :=
+          ona_implies_celebrity Djokovic djokovic_at_mixer dj_ona
+        exact celebrity_implies_wellpaid Djokovic djokovic_at_mixer dj_cel
+  -- Then, well-paid at the mixer implies living in a tax haven
+  exact wellpaid_implies_taxhaven Djokovic djokovic_at_mixer dj_wellpaid
+
+-- The queried statement: "Djokovic does not live in a tax haven."
+def queried_statement : Prop := ¬ LivesInTaxHaven Djokovic
+
+-- We can refute the queried statement.
+theorem neg_queried_statement : ¬ queried_statement := by
+  intro hnot
+  exact hnot djokovic_lives_in_tax_haven
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,139 @@
+Case: 108, Condition: baseline
+Story ID: 361
+Example ID: 959
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+
+-- Predicates
+axiom Spills : Person → Prop
+axiom Tidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpot : Person → Prop
+axiom FamilyPrioritizesOrderSpot : Person → Prop
+axiom CFGO : Person → Prop  -- "clumsy foodie who goes out frequently to find new food restaurants to try"
+
+-- Premises
+axiom spill_imp_not_tidy : ∀ x : Person, Spills x → ¬ Tidy x
+axiom cfgo_imp_spills : ∀ x : Person, CFGO x → Spills x
+axiom cleanly_imp_tidy : ∀ x : Person, Cleanly x...
+
+Lean Code:
+axiom Person : Type
+
+-- Predicates
+axiom Spills : Person → Prop
+axiom Tidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpot : Person → Prop
+axiom FamilyPrioritizesOrderSpot : Person → Prop
+axiom CFGO : Person → Prop  -- "clumsy foodie who goes out frequently to find new food restaurants to try"
+
+-- Premises
+axiom spill_imp_not_tidy : ∀ x : Person, Spills x → ¬ Tidy x
+axiom cfgo_imp_spills : ∀ x : Person, CFGO x → Spills x
+axiom cleanly_imp_tidy : ∀ x : Person, Cleanly x → Tidy x
+axiom values_imp_cleanly : ∀ x : Person, ValuesOrderSpot x → Cleanly x
+axiom family_imp_values : ∀ x : Person, FamilyPrioritizesOrderSpot x → ValuesOrderSpot x
+
+-- Peter and his given disjunction
+axiom Peter : Person
+axiom peter_info : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- From the first disjunct (Spills ∧ Cleanly), we derive a contradiction (Tidy ∧ ¬Tidy),
+-- hence by explosion we can derive the desired disjunction for Peter.
+lemma from_left_disj_to_goal :
+  (Spills Peter ∧ Cleanly Peter) → (CFGO Peter ∨ FamilyPrioritizesOrderSpot Peter) := by
+  intro h
+  have hs : Spills Peter := h.left
+  have hc : Cleanly Peter := h.right
+  have ht : Tidy Peter := cleanly_imp_tidy Peter hc
+  have hnt : ¬ Tidy Peter := spill_imp_not_tidy Peter hs
+  have contra : False := hnt ht
+  exact False.elim contra
+
+-- Note: From the second disjunct (¬Spills ∧ ¬Cleanly), none of the premises allow us to derive
+-- CFGO Peter or FamilyPrioritizesOrderSpot Peter. Hence the overall goal
+-- (CFGO Peter ∨ FamilyPrioritizesOrderSpot Peter) is not derivable from the given information.
+
+Lean: Failed
+
+--- Iteration 2 ---
+LLM Response:
+<lean>
+axiom Person : Type
+
+-- Predicates
+axiom Spills : Person → Prop
+axiom Tidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpot : Person → Prop
+axiom FamilyPrioritizesOrderSpot : Person → Prop
+axiom CFGO : Person → Prop  -- "clumsy foodie who goes out frequently to find new food restaurants to try"
+
+-- Premises
+axiom spill_imp_not_tidy : ∀ x : Person, Spills x → ¬ Tidy x
+axiom cfgo_imp_spills : ∀ x : Person, CFGO x → Spills x
+axiom cleanly_imp_tidy : ∀ x : Person, Cleanly x...
+
+Lean Code:
+axiom Person : Type
+
+-- Predicates
+axiom Spills : Person → Prop
+axiom Tidy : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpot : Person → Prop
+axiom FamilyPrioritizesOrderSpot : Person → Prop
+axiom CFGO : Person → Prop  -- "clumsy foodie who goes out frequently to find new food restaurants to try"
+
+-- Premises
+axiom spill_imp_not_tidy : ∀ x : Person, Spills x → ¬ Tidy x
+axiom cfgo_imp_spills : ∀ x : Person, CFGO x → Spills x
+axiom cleanly_imp_tidy : ∀ x : Person, Cleanly x → Tidy x
+axiom values_imp_cleanly : ∀ x : Person, ValuesOrderSpot x → Cleanly x
+axiom family_imp_values : ∀ x : Person, FamilyPrioritizesOrderSpot x → ValuesOrderSpot x
+
+-- Peter and his given disjunction
+axiom Peter : Person
+axiom peter_info : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- From (Spills ∧ Cleanly) we derive a contradiction.
+theorem left_disj_contra : (Spills Peter ∧ Cleanly Peter) → False := by
+  intro h
+  have ht : Tidy Peter := cleanly_imp_tidy Peter h.right
+  have hnt : ¬ Tidy Peter := spill_imp_not_tidy Peter h.left
+  exact hnt ht
+
+-- Hence from the given disjunction we can derive the right disjunct.
+theorem peter_not_spills_and_not_cleanly : (¬ Spills Peter ∧ ¬ Cleanly Peter) := by
+  cases peter_info with
+  | inl hsc =>
+      exact False.elim (left_disj_contra hsc)
+  | inr hnc =>
+      exact hnc
+
+-- As a consequence, Peter is not CFGO (since CFGO → Spills).
+theorem peter_not_CFGO : ¬ CFGO Peter := by
+  have hns : ¬ Spills Peter := (peter_not_spills_and_not_cleanly).left
+  intro hcfgo
+  have hs : Spills Peter := cfgo_imp_spills Peter hcfgo
+  exact hns hs
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: No
+Iterations: 2
+Retries: 0

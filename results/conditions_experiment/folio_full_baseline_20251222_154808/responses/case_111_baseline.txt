@@ -1,0 +1,82 @@
+Case: 111, Condition: baseline
+Story ID: 124
+Example ID: 370
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom MountainRange : Type
+axiom Mine : Type
+
+axiom Juan : Person
+axiom Picuris : MountainRange
+axiom Harding : Mine
+
+axiom Visited : Person → MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom InTexas : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+-- Premises from the textual context
+axiom picuris_in_nm_or_tx : InNewMexico Picuris ∨ InTexas Picuris
+axiom juan_visited_picuris : Visited Juan Picuris
+axi...
+
+Lean Code:
+axiom Person : Type
+axiom MountainRange : Type
+axiom Mine : Type
+
+axiom Juan : Person
+axiom Picuris : MountainRange
+axiom Harding : Mine
+
+axiom Visited : Person → MountainRange → Prop
+axiom InNewMexico : MountainRange → Prop
+axiom InTexas : MountainRange → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+
+-- Premises from the textual context
+axiom picuris_in_nm_or_tx : InNewMexico Picuris ∨ InTexas Picuris
+axiom juan_visited_picuris : Visited Juan Picuris
+axiom harding_located_picuris : LocatedIn Harding Picuris
+axiom harding_donated : Donated Harding
+axiom no_tx_mr_with_donated_mine :
+  ∀ r : MountainRange, InTexas r → ¬ (∃ m : Mine, LocatedIn m r ∧ Donated m)
+
+-- Goal: Juan de Onate visited a mountain range in New Mexico.
+theorem goal : ∃ r : MountainRange, InNewMexico r ∧ Visited Juan r := by
+  -- The Picuris Mountains have a donated mine located in them
+  have exMinePicuris : ∃ m : Mine, LocatedIn m Picuris ∧ Donated m := by
+    exact Exists.intro Harding (And.intro harding_located_picuris harding_donated)
+  -- Therefore Picuris cannot be in Texas
+  have notInTexasPicuris : ¬ InTexas Picuris := by
+    intro hTex
+    have hcontra := no_tx_mr_with_donated_mine Picuris hTex
+    exact hcontra exMinePicuris
+  -- From (In NM ∨ In TX) and ¬ In TX, deduce In NM
+  have inNM_P : InNewMexico Picuris := by
+    cases picuris_in_nm_or_tx with
+    | inl nm => exact nm
+    | inr tx => exact False.elim (notInTexasPicuris tx)
+  -- Hence Juan visited a mountain range in New Mexico (namely, Picuris)
+  exact Exists.intro Picuris (And.intro inNM_P juan_visited_picuris)
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

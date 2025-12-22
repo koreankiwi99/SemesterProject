@@ -1,0 +1,105 @@
+Case: 102, Condition: baseline
+Story ID: 379
+Example ID: 1012
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+-- Entities and predicates
+axiom Person : Type
+axiom Luke : Person
+
+axiom MultipleBirth : Person → Prop
+axiom SiblingsBornTogether : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+axiom ComplainsOftenAboutAnnoyingSiblings : Person → Prop
+axiom Baby : Person → Prop
+
+-- Premises
+-- 1. If people are born in a multiple birth, they spend a lot of time with their siblings.
+axiom ax1 : ∀ x : Person, MultipleBirth...
+
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom Luke : Person
+
+axiom MultipleBirth : Person → Prop
+axiom SiblingsBornTogether : Person → Prop
+axiom SpendTimeWithSiblings : Person → Prop
+axiom LiveAtHome : Person → Prop
+axiom LiveWithStrangers : Person → Prop
+axiom ComplainsOftenAboutAnnoyingSiblings : Person → Prop
+axiom Baby : Person → Prop
+
+-- Premises
+-- 1. If people are born in a multiple birth, they spend a lot of time with their siblings.
+axiom ax1 : ∀ x : Person, MultipleBirth x → SpendTimeWithSiblings x
+-- 2. If people have siblings who were born together, then they were born in a multiple birth.
+axiom ax2 : ∀ x : Person, SiblingsBornTogether x → MultipleBirth x
+-- 3. If people complain often about annoying siblings, then they have siblings who were born together.
+axiom ax3 : ∀ x : Person, ComplainsOftenAboutAnnoyingSiblings x → SiblingsBornTogether x
+-- 4. If people live at home, then they do not live with strangers.
+axiom ax4 : ∀ x : Person, LiveAtHome x → ¬ LiveWithStrangers x
+-- 5. If people spend a lot of time with their siblings, then they often live at home.
+axiom ax5 : ∀ x : Person, SpendTimeWithSiblings x → LiveAtHome x
+-- 6. Luke either is a baby born in a multiple birth and lives with strangers,
+--    or is not a baby born in a multiple birth and does not live with strangers.
+axiom ax6 :
+  (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨
+  (¬ (Baby Luke ∧ MultipleBirth Luke) ∧ ¬ LiveWithStrangers Luke)
+
+-- Useful derived facts
+
+-- From MultipleBirth, derive not living with strangers (via ax1, ax5, ax4)
+theorem multipleBirth_implies_not_strangers :
+  ∀ x : Person, MultipleBirth x → ¬ LiveWithStrangers x := by
+  intro x hmb
+  have hSpend : SpendTimeWithSiblings x := ax1 x hmb
+  have hHome : LiveAtHome x := ax5 x hSpend
+  exact ax4 x hHome
+
+-- The first disjunct in ax6 is impossible (contradiction with derived fact)
+theorem first_branch_impossible :
+  ¬ (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) := by
+  intro h
+  rcases h with ⟨_, hMB, hStr⟩
+  have hNotStr : ¬ LiveWithStrangers Luke := multipleBirth_implies_not_strangers Luke hMB
+  exact hNotStr hStr
+
+-- Therefore, Luke does not live with strangers
+theorem luke_not_live_with_strangers : ¬ LiveWithStrangers Luke := by
+  have h := ax6
+  rcases h with h1 | h2
+  · exact False.elim (first_branch_impossible h1)
+  · exact h2.right
+
+-- Complaining implies not living with strangers (via ax3, ax2, derived)
+theorem complains_implies_not_strangers :
+  ∀ x : Person, ComplainsOftenAboutAnnoyingSiblings x → ¬ LiveWithStrangers x := by
+  intro x hC
+  have hSibBorn : SiblingsBornTogether x := ax3 x hC
+  have hMB : MultipleBirth x := ax2 x hSibBorn
+  exact multipleBirth_implies_not_strangers x hMB
+
+-- Attempt to prove the target statement: ComplainsOftenAboutAnnoyingSiblings Luke.
+-- This is not derivable from the given axioms; we can only derive ¬ LiveWithStrangers Luke.
+-- Hence, we do not assert a theorem stating ComplainsOftenAboutAnnoyingSiblings Luke.
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: No
+Iterations: 1
+Retries: 0

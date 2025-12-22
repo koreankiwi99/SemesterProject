@@ -1,0 +1,215 @@
+Case: 114, Condition: baseline
+Story ID: 183
+Example ID: 527
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+universe u
+constant Person : Type u
+constants Michael Peter Windy : Person
+constant Man : Person → Prop
+constant InMichaelClass : Person → Prop
+constant Taller : Person → Person → Prop
+constant CanBlock : Person → Person → Prop
+constant JumpsWhenShooting : Person → Prop
+constant GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Michael
+axiom michael_taller_than_class : ∀ {y}, I...
+
+Lean Code:
+universe u
+constant Person : Type u
+constants Michael Peter Windy : Person
+constant Man : Person → Prop
+constant InMichaelClass : Person → Prop
+constant Taller : Person → Person → Prop
+constant CanBlock : Person → Person → Prop
+constant JumpsWhenShooting : Person → Prop
+constant GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Michael
+axiom michael_taller_than_class : ∀ {y}, InMichaelClass y → y ≠ Michael → Taller Michael y
+axiom taller_trans : ∀ {x y z}, Taller x y → Taller y z → Taller x z
+axiom peter_man : Man Peter
+axiom peter_taller_michael : Taller Peter Michael
+axiom michael_blocks_if_not_jump : ∀ {p}, ¬ JumpsWhenShooting p → CanBlock Michael p
+axiom michael_cannot_block_windy : ¬ CanBlock Michael Windy
+axiom jumpers_are_great : ∀ {p}, JumpsWhenShooting p → GreatShooter p
+
+-- Target statement: "Peter is shorter than a man in Michael's class"
+-- Interpreted as: there exists a man in Michael's class who is taller than Peter.
+def Statement : Prop := ∃ m, Man m ∧ InMichaelClass m ∧ Taller m Peter
+
+-- We can derive that Peter is taller than any other member of Michael's class (except Michael),
+-- using the transitivity of "taller than" and that Michael is taller than everyone else in his class.
+lemma peter_taller_than_class_except_michael {y : Person} (hyc : InMichaelClass y) (hne : y ≠ Michael) : Taller Peter y := by
+  have hMy : Taller Michael y := michael_taller_than_class hyc hne
+  exact taller_trans peter_taller_michael hMy
+
+-- From the blocking and jumping premises, we can derive that Windy jumps and is a great shooter.
+open Classical
+lemma windy_jumps : JumpsWhenShooting Windy := by
+  by_contra hnojump
+  have hblock : CanBlock Michael Windy := michael_blocks_if_not_jump hnojump
+  exact michael_cannot_block_windy hblock
+
+lemma windy_great : GreatShooter Windy := by
+  exact jumpers_are_great windy_jumps
+
+-- With only the given premises, we cannot derive Statement nor its negation.
+-- In particular, transitivity alone does not rule out potential cycles of "taller than",
+-- so we cannot conclude that nobody in Michael's class is taller than Peter without
+-- an additional asymmetry/irreflexivity axiom for "taller than".
+
+Lean: Failed
+
+--- Iteration 2 ---
+LLM Response:
+<lean>
+universe u
+constant Person : Type u
+constant Michael : Person
+constant Peter : Person
+constant Windy : Person
+
+constant Man : Person → Prop
+constant InMichaelClass : Person → Prop
+constant Taller : Person → Person → Prop
+constant CanBlock : Person → Person → Prop
+constant JumpsWhenShooting : Person → Prop
+constant GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y : Person}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Micha...
+
+Lean Code:
+universe u
+constant Person : Type u
+constant Michael : Person
+constant Peter : Person
+constant Windy : Person
+
+constant Man : Person → Prop
+constant InMichaelClass : Person → Prop
+constant Taller : Person → Person → Prop
+constant CanBlock : Person → Person → Prop
+constant JumpsWhenShooting : Person → Prop
+constant GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y : Person}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Michael
+axiom michael_taller_than_class : ∀ {y : Person}, InMichaelClass y → y ≠ Michael → Taller Michael y
+axiom taller_trans : ∀ {x y z : Person}, Taller x y → Taller y z → Taller x z
+axiom peter_man : Man Peter
+axiom peter_taller_michael : Taller Peter Michael
+axiom michael_blocks_if_not_jump : ∀ {p : Person}, ¬ JumpsWhenShooting p → CanBlock Michael p
+axiom michael_cannot_block_windy : ¬ CanBlock Michael Windy
+axiom jumpers_are_great : ∀ {p : Person}, JumpsWhenShooting p → GreatShooter p
+
+-- Target statement: "Peter is shorter than a man in Michael's class"
+-- Interpreted as: there exists a man in Michael's class who is taller than Peter.
+def Statement : Prop := ∃ m : Person, Man m ∧ InMichaelClass m ∧ Taller m Peter
+
+-- From transitivity and Michael being taller than everyone else in his class (except himself),
+-- Peter is taller than any such class member.
+lemma peter_taller_than_class_except_michael {y : Person} (hyc : InMichaelClass y) (hne : y ≠ Michael) : Taller Peter y := by
+  have hMy : Taller Michael y := michael_taller_than_class hyc hne
+  exact taller_trans peter_taller_michael hMy
+
+-- From the blocking premises, Windy must jump; then Windy is a great shooter.
+lemma windy_jumps : JumpsWhenShooting Windy := by
+  classical
+  by_contra hnojump
+  exact michael_cannot_block_windy (michael_blocks_if_not_jump hnojump)
+
+lemma windy_great : GreatShooter Windy := by
+  exact jumpers_are_great windy_jumps
+
+Lean: Failed
+
+--- Iteration 3 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+axiom Man : Person → Prop
+axiom InMichaelClass : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom JumpsWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y : Person}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Michael
+axiom michael_taller_than_class : ∀ {y :...
+
+Lean Code:
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+axiom Man : Person → Prop
+axiom InMichaelClass : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom JumpsWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- Premises from the text
+axiom premise_block_if_taller : ∀ {x y : Person}, Man x → Man y → Taller x y → CanBlock x y
+axiom michael_man : Man Michael
+axiom michael_taller_than_class : ∀ {y : Person}, InMichaelClass y → y ≠ Michael → Taller Michael y
+axiom taller_trans : ∀ {x y z : Person}, Taller x y → Taller y z → Taller x z
+axiom peter_man : Man Peter
+axiom peter_taller_michael : Taller Peter Michael
+axiom michael_blocks_if_not_jump : ∀ {p : Person}, ¬ JumpsWhenShooting p → CanBlock Michael p
+axiom michael_cannot_block_windy : ¬ CanBlock Michael Windy
+axiom jumpers_are_great : ∀ {p : Person}, JumpsWhenShooting p → GreatShooter p
+
+-- Target statement: "Peter is shorter than a man in Michael's class"
+-- Interpreted as: there exists a man in Michael's class who is taller than Peter.
+def Statement : Prop := ∃ m : Person, Man m ∧ InMichaelClass m ∧ Taller m Peter
+
+-- From transitivity and Michael being taller than everyone else in his class (except himself),
+-- Peter is taller than any such class member.
+lemma peter_taller_than_class_except_michael {y : Person} (hyc : InMichaelClass y) (hne : y ≠ Michael) : Taller Peter y := by
+  have hMy : Taller Michael y := michael_taller_than_class hyc hne
+  exact taller_trans peter_taller_michael hMy
+
+-- From the blocking premises, Windy must jump; then Windy is a great shooter.
+lemma windy_jumps : JumpsWhenShooting Windy := by
+  classical
+  by_contra hnojump
+  exact michael_cannot_block_windy (michael_blocks_if_not_jump hnojump)
+
+lemma windy_great : GreatShooter Windy := by
+  exact jumpers_are_great windy_jumps
+
+Lean: Failed
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: No
+Iterations: 3
+Retries: 0

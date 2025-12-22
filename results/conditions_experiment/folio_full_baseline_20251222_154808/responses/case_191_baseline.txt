@@ -1,0 +1,80 @@
+Case: 191, Condition: baseline
+Story ID: 456
+Example ID: 1317
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Yuri : Person
+
+axiom ProfessionalBasketballPlayer : Person → Prop
+axiom American : Person → Prop
+axiom CanJumpShot : Person → Prop
+axiom LeapStraight : Person → Prop
+axiom ActivateLegMuscles : Person → Prop
+
+-- Premises
+axiom some_pro_not_american : ∃ x : Person, ProfessionalBasketballPlayer x ∧ ¬ American x
+axiom all_pro_can_jump : ∀ x : Person, ProfessionalBasketballPlayer x → CanJumpShot x
+axiom jump_implies_leap : ∀ x : Person, CanJumpShot x → LeapStraight x
+...
+
+Lean Code:
+axiom Person : Type
+axiom Yuri : Person
+
+axiom ProfessionalBasketballPlayer : Person → Prop
+axiom American : Person → Prop
+axiom CanJumpShot : Person → Prop
+axiom LeapStraight : Person → Prop
+axiom ActivateLegMuscles : Person → Prop
+
+-- Premises
+axiom some_pro_not_american : ∃ x : Person, ProfessionalBasketballPlayer x ∧ ¬ American x
+axiom all_pro_can_jump : ∀ x : Person, ProfessionalBasketballPlayer x → CanJumpShot x
+axiom jump_implies_leap : ∀ x : Person, CanJumpShot x → LeapStraight x
+axiom leap_implies_activate : ∀ x : Person, LeapStraight x → ActivateLegMuscles x
+axiom yuri_not_activate : ¬ ActivateLegMuscles Yuri
+
+-- The statement to evaluate:
+def Statement : Prop :=
+  (¬ (American Yuri ∧ ProfessionalBasketballPlayer Yuri)) → ProfessionalBasketballPlayer Yuri
+
+-- We prove the negation of the statement (hence the statement is false).
+theorem neg_Statement : ¬ Statement := by
+  -- From the chain of implications, pros activate their leg muscles
+  have chain : ∀ x : Person, ProfessionalBasketballPlayer x → ActivateLegMuscles x := by
+    intro x hx
+    have h1 : CanJumpShot x := all_pro_can_jump x hx
+    have h2 : LeapStraight x := jump_implies_leap x h1
+    exact leap_implies_activate x h2
+  -- Hence Yuri is not a professional basketball player
+  have notPro : ¬ ProfessionalBasketballPlayer Yuri := by
+    intro hy
+    have : ActivateLegMuscles Yuri := chain Yuri hy
+    exact yuri_not_activate this
+  -- Hence the antecedent of the statement holds
+  have notAnd : ¬ (American Yuri ∧ ProfessionalBasketballPlayer Yuri) := by
+    intro h
+    exact notPro h.right
+  -- Assuming the statement leads to a contradiction
+  intro hImp
+  have : ProfessionalBasketballPlayer Yuri := hImp notAnd
+  exact notPro this
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

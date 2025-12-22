@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+axiom Marvin : obj
+
+axiom Alien : obj → Prop
+axiom Extraterrestrial : obj → Prop
+axiom Human : obj → Prop
+axiom FromEarth : obj → Prop
+axiom FromMars : obj → Prop
+axiom HighlyIntelligent : obj → Prop
+
+-- All aliens are extraterrestrials.
+axiom A1 : ∀ x : obj, Alien x → Extraterrestrial x
+-- If someone is from Mars, then they are an alien.
+axiom A2 : ∀ x : obj, FromMars x → Alien x
+-- No extraterrestrials are human.
+axiom A3 : ∀ x : obj, Extraterrestrial x → ¬ Human x
+-- All highly intelligent beings from Earth are humans.
+axiom A4 : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
+-- Marvin is a highly intelligent being.
+axiom A5 : HighlyIntelligent Marvin
+-- Marvin is either from Earth and from Mars, or from neither.
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+-- If Marvin is not from Earth, then Marvin is an extraterrestrial.
+axiom A7 : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+-- From the constraints, being from Mars forces being from Earth (by the disjunction A6).
+theorem not_fromMars : ¬ FromMars Marvin := by
+  intro hFM
+  -- From A6 and hFM, deduce FromEarth Marvin
+  have hFE : FromEarth Marvin := by
+    cases A6 with
+    | inl h => exact h.left
+    | inr h =>
+      have : False := h.right hFM
+      exact False.elim this
+  -- Hence Marvin is Human (HI ∧ FE → Human)
+  have hHuman : Human Marvin := by
+    apply A4 Marvin
+    exact And.intro A5 hFE
+  -- But FromMars → Alien → Extraterrestrial → ¬Human
+  have hAlien : Alien Marvin := A2 Marvin hFM
+  have hET : Extraterrestrial Marvin := A1 Marvin hAlien
+  have hNotHuman : ¬ Human Marvin := A3 Marvin hET
+  -- Contradiction
+  exact hNotHuman hHuman
+
+-- Prove the negation of the target statement: ¬((¬ FromMars Marvin) → Human Marvin)
+theorem negate_target : ¬ ((¬ FromMars Marvin) → Human Marvin) := by
+  intro hImp
+  have hNFM : ¬ FromMars Marvin := not_fromMars
+  have hHuman : Human Marvin := hImp hNFM
+  -- From ¬FromMars, deduce ¬FromEarth using A6
+  have hNFE : ¬ FromEarth Marvin := by
+    intro hFE
+    cases A6 with
+    | inl h => exact hNFM h.right
+    | inr h => exact h.left hFE
+  -- Then Extraterrestrial and hence ¬Human
+  have hET : Extraterrestrial Marvin := A7 hNFE
+  have hNotHuman : ¬ Human Marvin := A3 Marvin hET
+  exact hNotHuman hHuman
+</lean>
+
+ANSWER: False

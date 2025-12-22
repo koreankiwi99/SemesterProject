@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+
+axiom Bonnie : obj
+
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesFurther : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, InClub x ∧ PerformOften x → AttendEngaged x
+axiom A2 : ∀ x : obj, InClub x → PerformOften x ∨ Inactive x
+axiom A3 : ∀ x : obj, InClub x ∧ Chaperone x → ¬ Student x
+axiom A4 : ∀ x : obj, InClub x ∧ Inactive x → Chaperone x
+axiom A5 : ∀ x : obj, InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishesFurther x → Student x
+
+-- Bonnie-specific information
+axiom Bonnie_inClub : InClub Bonnie
+axiom Bonnie_clause : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ ¬(AttendEngaged Bonnie ∧ ¬ Student Bonnie)
+
+open Classical
+
+theorem bonnie_conclusion :
+  (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurther Bonnie ∧ Chaperone Bonnie)
+    ∨ ¬((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurther Bonnie))
+  → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro _
+  have hPI : PerformOften Bonnie ∨ Inactive Bonnie := A2 Bonnie Bonnie_inClub
+  cases hPI with
+  | inl hPerf =>
+      have hAttend : AttendEngaged Bonnie := A1 Bonnie ⟨Bonnie_inClub, hPerf⟩
+      have hA : (AttendEngaged Bonnie ∧ Student Bonnie) ∨ ¬(AttendEngaged Bonnie ∧ ¬ Student Bonnie) := Bonnie_clause
+      cases hA with
+      | inl hAS =>
+          exact Or.inl hAS.right
+      | inr hnot =>
+          by_cases hS : Student Bonnie
+          · exact Or.inl hS
+          · have contra : False := hnot ⟨hAttend, hS⟩
+            exact False.elim contra
+  | inr hInac =>
+      exact Or.inr hInac
+</lean>
+
+ANSWER: True

@@ -1,0 +1,56 @@
+<lean>
+axiom obj : Type
+axiom Coco : obj
+
+axiom RG : obj → Prop
+axiom Female : obj → Prop
+axiom Male : obj → Prop
+axiom LostToIga : obj → Prop
+axiom LostToNadal : obj → Prop
+axiom RankedWTA : obj → Prop
+axiom MostActiveMajor : obj → Prop
+
+-- If someone is ranked highly by the WTA, then they are one of the most active players in major tennis.
+axiom A1 : ∀ x : obj, RankedWTA x → MostActiveMajor x
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom A2 : ∀ x : obj, LostToIga x → RankedWTA x
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom A3 : ∀ x : obj, (Female x ∧ RG x) → LostToIga x
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom A4 : ∀ x : obj, RG x → (Female x ∨ Male x)
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom A5 : ∀ x : obj, (Male x ∧ RG x) → LostToNadal x
+-- If Coco Gauff is ranked highly by the WTA or lost to Rafael Nadal, then Coco is not a male tennis player at Roland Garros 2022.
+axiom A6 : (RankedWTA Coco ∨ LostToNadal Coco) → ¬ (RG Coco ∧ Male Coco)
+-- Coco Gauff is at Roland Garros 2022.
+axiom A7 : RG Coco
+
+-- We prove Coco both lost to Iga Świątek at Roland Garros 2022 and is one of the most active players in major tennis.
+theorem coco_both : LostToIga Coco ∧ MostActiveMajor Coco := by
+  -- First, show Coco is not male.
+  have h_not_male : ¬ Male Coco := by
+    intro hM
+    have hRG : RG Coco := A7
+    have hRN : RG Coco ∧ Male Coco := And.intro hRG hM
+    have hMRG : Male Coco ∧ RG Coco := And.intro hM hRG
+    have hLostN : LostToNadal Coco := A5 Coco hMRG
+    have hdisj : RankedWTA Coco ∨ LostToNadal Coco := Or.inr hLostN
+    have hnot : ¬ (RG Coco ∧ Male Coco) := A6 hdisj
+    exact hnot hRN
+  -- From RG and not male plus the disjunction Female ∨ Male, deduce Female.
+  have h_f_or_m : Female Coco ∨ Male Coco := A4 Coco A7
+  have hFemale : Female Coco := by
+    cases h_f_or_m with
+    | inl hf => exact hf
+    | inr hm => exact False.elim (h_not_male hm)
+  -- Therefore, Coco lost to Iga at RG 2022.
+  have hLostIga : LostToIga Coco := by
+    have h : Female Coco ∧ RG Coco := And.intro hFemale A7
+    exact A3 Coco h
+  -- Hence Coco is ranked highly by the WTA, and thus one of the most active players in major tennis.
+  have hRank : RankedWTA Coco := A2 Coco hLostIga
+  have hActive : MostActiveMajor Coco := A1 Coco hRank
+  exact And.intro hLostIga hActive
+</lean>
+
+ANSWER: False

@@ -1,0 +1,44 @@
+<lean>
+axiom Person : Type
+axiom Vladimir : Person
+axiom Ekaterina : Person
+
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom RfOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Everyone who can register to vote in the US can participate in the 2024 election
+axiom A1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+-- US citizenship implies ability to register to vote in the US
+axiom A2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+-- Every person has either US or Taiwanese citizenship
+axiom A3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+-- No Russian Federation officials hold Taiwanese citizenship
+axiom A4 : ∀ x : Person, RfOfficial x → ¬ TaiwaneseCitizen x
+-- Vladimir neither holds Taiwanese citizenship nor is a manager at Gazprom
+axiom A5a : ¬ TaiwaneseCitizen Vladimir
+axiom A5b : ¬ ManagerGazprom Vladimir
+-- Ekaterina can register in the US or is a Russian Federation official
+axiom A6 : CanRegisterUS Ekaterina ∨ RfOfficial Ekaterina
+
+theorem Ekaterina_participates_or_manager :
+  CanParticipate2024 Ekaterina ∨ ManagerGazprom Ekaterina := by
+  cases A6 with
+  | inl hreg =>
+    exact Or.inl (A1 Ekaterina hreg)
+  | inr hOff =>
+    have hnotTW : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina hOff
+    have hdisj : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := A3 Ekaterina
+    have hUS : USCitizen Ekaterina := by
+      cases hdisj with
+      | inl hus => exact hus
+      | inr htw => exact False.elim (hnotTW htw)
+    have hreg2 : CanRegisterUS Ekaterina := A2 Ekaterina hUS
+    have hpart : CanParticipate2024 Ekaterina := A1 Ekaterina hreg2
+    exact Or.inl hpart
+</lean>
+
+ANSWER: True

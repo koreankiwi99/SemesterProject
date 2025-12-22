@@ -1,0 +1,60 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TWCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Everyone who can register to vote in the US can participate in the 2024 election.
+axiom A1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+-- If someone has US citizenship, then they can register to vote in the US.
+axiom A2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+-- A person either has US citizenship or Taiwanese citizenship.
+axiom A3 : ∀ x : Person, USCitizen x ∨ TWCitizen x
+-- No Russian Federation officials hold Taiwanese citizenship.
+axiom A4 : ∀ x : Person, RFOfficial x → ¬ TWCitizen x
+-- Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom.
+axiom A5a : ¬ TWCitizen Vladimir
+axiom A5b : ¬ ManagerGazprom Vladimir
+-- Ekaterina can register to vote in the US, or she is a Russian federation official.
+axiom A6 : CanRegisterUS Ekaterina ∨ RFOfficial Ekaterina
+
+theorem USC_of_not_TW (x : Person) : ¬ TWCitizen x → USCitizen x := by
+  intro hnot
+  have hdisj : USCitizen x ∨ TWCitizen x := A3 x
+  cases hdisj with
+  | inl hus => exact hus
+  | inr htw =>
+      apply False.elim
+      apply hnot
+      exact htw
+
+theorem vladimir_participates : CanParticipate2024 Vladimir := by
+  have hus : USCitizen Vladimir := USC_of_not_TW Vladimir A5a
+  have hreg : CanRegisterUS Vladimir := A2 Vladimir hus
+  exact A1 Vladimir hreg
+
+theorem ekaterina_can_register : CanRegisterUS Ekaterina := by
+  have h : CanRegisterUS Ekaterina ∨ RFOfficial Ekaterina := A6
+  cases h with
+  | inl hreg => exact hreg
+  | inr hoff =>
+      have hnotTW : ¬ TWCitizen Ekaterina := A4 Ekaterina hoff
+      have hus : USCitizen Ekaterina := USC_of_not_TW Ekaterina hnotTW
+      exact A2 Ekaterina hus
+
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+  And.intro ekaterina_can_register vladimir_participates
+
+-- The statement "¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)" is false.
+theorem statement_leads_to_false : (¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)) → False := by
+  intro h
+  exact h conj_true
+</lean>
+
+ANSWER: False

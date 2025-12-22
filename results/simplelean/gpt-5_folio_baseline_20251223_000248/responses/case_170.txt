@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+axiom ColorectalCancer : obj
+
+-- If something is a deadly disease, then it comes with a low survival rate.
+axiom A1 : ∀ x : obj, Deadly x → LowSurvival x
+-- Severe cancers are deadly diseases.
+axiom A2 : ∀ x : obj, SevereCancer x → Deadly x
+-- Bile duct cancer is a severe form cancer.
+axiom A3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+-- All Cholangiocarcinoma is bile duct cancer.
+axiom A4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+-- Mild flu comes with a low survival rate.
+axiom A5 : ∀ x : obj, MildFlu x → LowSurvival x
+-- Colorectal cancer is not both a bile duct cancer and with a low survival rate.
+axiom A6 : ¬ (BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer)
+
+-- If colorectal cancer is a kind of bile duct cancer or a form of Cholangiocarcinoma,
+-- then colorectal cancer is a kind of bile duct cancer and a kind of mild flu.
+theorem colorectal_statement :
+  (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) →
+  (BileDuctCancer ColorectalCancer ∧ MildFlu ColorectalCancer) := by
+  intro h
+  -- From the disjunction, derive BileDuctCancer ColorectalCancer
+  have hB : BileDuctCancer ColorectalCancer :=
+    Or.elim h (fun hb => hb) (fun hc => A4 ColorectalCancer hc)
+  -- Then derive LowSurvival ColorectalCancer
+  have hSev : SevereCancer ColorectalCancer := A3 ColorectalCancer hB
+  have hDead : Deadly ColorectalCancer := A2 ColorectalCancer hSev
+  have hLow : LowSurvival ColorectalCancer := A1 ColorectalCancer hDead
+  -- This contradicts A6
+  have contra : False := A6 ⟨hB, hLow⟩
+  -- Hence the conclusion follows by ex falso
+  exact False.elim contra
+</lean>
+
+ANSWER: True

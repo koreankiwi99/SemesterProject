@@ -101,6 +101,16 @@ async def run_single_case(
                 llm_response = response.choices[0].message.content or ""
                 reasoning_content = getattr(response.choices[0].message, 'reasoning_content', None)
 
+                # Extract token usage
+                usage = getattr(response, 'usage', None)
+                token_usage = None
+                if usage:
+                    token_usage = {
+                        'prompt_tokens': getattr(usage, 'prompt_tokens', 0),
+                        'completion_tokens': getattr(usage, 'completion_tokens', 0),
+                        'total_tokens': getattr(usage, 'total_tokens', 0),
+                    }
+
                 conversation_history.append({"role": "assistant", "content": llm_response})
 
                 prediction, parse_status = parse_answer(llm_response, answer_format)
@@ -113,7 +123,8 @@ async def run_single_case(
                     'prediction': prediction,
                     'parse_status': parse_status,
                     'lean_code': lean_code,
-                    'lean_verification': None
+                    'lean_verification': None,
+                    'token_usage': token_usage
                 }
 
                 final_prediction = prediction
@@ -147,6 +158,13 @@ async def run_single_case(
             pred_norm = final_prediction.lower() if final_prediction else None
             gt_norm = ground_truth.lower() if ground_truth else None
 
+            # Aggregate token usage across iterations
+            total_tokens = {
+                'prompt_tokens': sum(it.get('token_usage', {}).get('prompt_tokens', 0) or 0 for it in iterations),
+                'completion_tokens': sum(it.get('token_usage', {}).get('completion_tokens', 0) or 0 for it in iterations),
+                'total_tokens': sum(it.get('token_usage', {}).get('total_tokens', 0) or 0 for it in iterations),
+            }
+
             result = {
                 "prediction": final_prediction,
                 "parse_status": final_parse_status,
@@ -157,6 +175,7 @@ async def run_single_case(
                 "num_iterations": len(iterations),
                 "lean_code": final_lean_code,
                 "lean_verification": final_verification,
+                "total_tokens": total_tokens,
             }
             add_result_metadata(result, case, dataset)
             return result

@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+
+axiom InClub : obj → Prop
+axiom PerformsOften : obj → Prop
+axiom EngagedEvents : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungTeen : obj → Prop
+axiom WishesFAE : obj → Prop
+
+axiom A1 : ∀ x : obj, InClub x ∧ PerformsOften x → EngagedEvents x
+axiom A2 : ∀ x : obj, InClub x → (PerformsOften x ∨ Inactive x)
+axiom A3 : ∀ x : obj, InClub x ∧ Chaperone x → ¬ Student x
+axiom A4 : ∀ x : obj, InClub x ∧ Inactive x → Chaperone x
+axiom A5 : ∀ x : obj, InClub x ∧ YoungTeen x ∧ WishesFAE x → Student x
+
+axiom Bonnie : obj
+axiom A6 : InClub Bonnie
+axiom A7 : (EngagedEvents Bonnie ∧ Student Bonnie) ∨ (¬ EngagedEvents Bonnie ∧ ¬ Student Bonnie)
+
+def Premise : Prop := Chaperone Bonnie ∨ (¬ Chaperone Bonnie → PerformsOften Bonnie)
+def Conclusion : Prop := YoungTeen Bonnie ∧ WishesFAE Bonnie ∧ Inactive Bonnie
+
+theorem claim_neg : ¬ (Premise → Conclusion) := by
+  intro h
+  -- From club membership, Bonnie either performs often or is inactive.
+  have hPO_or_inact : PerformsOften Bonnie ∨ Inactive Bonnie := A2 Bonnie A6
+  -- Therefore, she either chaperones or performs often.
+  have hC_or_PO : Chaperone Bonnie ∨ PerformsOften Bonnie := by
+    cases hPO_or_inact with
+    | inl hPO =>
+      exact Or.inr hPO
+    | inr hInact =>
+      have hC : Chaperone Bonnie := A4 Bonnie (And.intro A6 hInact)
+      exact Or.inl hC
+  -- Build the premise
+  have hprem : Premise := by
+    cases hC_or_PO with
+    | inl hC =>
+      exact Or.inl hC
+    | inr hPO =>
+      exact Or.inr (fun _ => hPO)
+  -- Apply the claimed implication to get the conclusion
+  have hconcl : Conclusion := h hprem
+  -- Extract components
+  have hY : YoungTeen Bonnie := hconcl.left
+  have hW : WishesFAE Bonnie := (hconcl.right).left
+  have hI : Inactive Bonnie := (hconcl.right).right
+  -- From YoungTeen and WishesFAE in the club, Bonnie is a Student
+  have hStu : Student Bonnie := A5 Bonnie (And.intro A6 (And.intro hY hW))
+  -- From Inactive in the club, Bonnie chaperones, hence not a Student
+  have hChap : Chaperone Bonnie := A4 Bonnie (And.intro A6 hI)
+  have hNotStu : ¬ Student Bonnie := A3 Bonnie (And.intro A6 hChap)
+  exact hNotStu hStu
+</lean>
+
+ANSWER: False

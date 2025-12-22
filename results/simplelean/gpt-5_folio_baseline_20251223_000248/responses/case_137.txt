@@ -1,0 +1,41 @@
+<lean>
+axiom Alg : Type
+axiom Model : Type
+
+axiom ML : Alg → Prop
+axiom Supervised : Alg → Prop
+axiom Unsupervised : Alg → Prop
+axiom Reinforcement : Alg → Prop
+axiom RequiresLabel : Alg → Prop
+axiom Used : Alg → Model → Prop
+
+axiom SOTA : Model
+
+-- Categorization: every ML algorithm is supervised or unsupervised or reinforcement
+axiom Categ : ∀ a : Alg, ML a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
+-- Unsupervised algorithms do not require labeled data
+axiom Unsup_no_labels : ∀ a : Alg, Unsupervised a → ¬ RequiresLabel a
+-- The SOTA model is trained with ML algorithms (there exists at least one)
+axiom SOTA_has_ML : ∃ a : Alg, ML a ∧ Used a SOTA
+-- Reinforcement learning is not used to train the SOTA model
+axiom no_RL_on_SOTA : ∀ a : Alg, Used a SOTA → ¬ Reinforcement a
+-- The ML algorithm used to train the text summarization model requires labeled data
+axiom used_requires_labels : ∀ a : Alg, Used a SOTA → RequiresLabel a
+
+-- Claim: Supervised learning is used to train the SOTA text summarization model
+theorem supervised_used_on_SOTA : ∃ a : Alg, Used a SOTA ∧ Supervised a := by
+  rcases SOTA_has_ML with ⟨a, hML, hUsed⟩
+  have hReq : RequiresLabel a := used_requires_labels a hUsed
+  have hNotUnsup : ¬ Unsupervised a := fun hU => (Unsup_no_labels a hU) hReq
+  have hNotRL : ¬ Reinforcement a := no_RL_on_SOTA a hUsed
+  have hSup : Supervised a := by
+    cases Categ a hML with
+    | inl hS => exact hS
+    | inr h =>
+      cases h with
+      | inl hU => exact False.elim (hNotUnsup hU)
+      | inr hR => exact False.elim (hNotRL hR)
+  exact ⟨a, And.intro hUsed hSup⟩
+</lean>
+
+ANSWER: True

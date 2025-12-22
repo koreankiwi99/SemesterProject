@@ -1,0 +1,157 @@
+Case: 154, Condition: baseline
+Story ID: 363
+Example ID: 966
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+universe u
+
+constant Entity : Type
+
+constant Hydrocarbon : Entity → Prop
+constant Alkane : Entity → Prop
+constant Organic : Entity → Prop
+constant Chemical : Entity → Prop
+constant ContainsCarbon : Entity → Prop
+constant ContainsOnlyOneElement : Entity → Prop
+
+constant mixture : Entity
+
+axiom all_hydrocarbon_organic : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkane_hydrocarbon : ∀ x, Alkane x → Hydrocarbon x
+axiom all_organic_chemical : ∀ x, Organic x → Chemical x
+axiom all_organic_contai...
+
+Lean Code:
+universe u
+
+constant Entity : Type
+
+constant Hydrocarbon : Entity → Prop
+constant Alkane : Entity → Prop
+constant Organic : Entity → Prop
+constant Chemical : Entity → Prop
+constant ContainsCarbon : Entity → Prop
+constant ContainsOnlyOneElement : Entity → Prop
+
+constant mixture : Entity
+
+axiom all_hydrocarbon_organic : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkane_hydrocarbon : ∀ x, Alkane x → Hydrocarbon x
+axiom all_organic_chemical : ∀ x, Organic x → Chemical x
+axiom all_organic_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_only_one : ∀ x, Chemical x → ¬ ContainsOnlyOneElement x
+axiom mixture_either_both_or_neither :
+  (Chemical mixture ∧ ContainsOnlyOneElement mixture) ∨
+  (¬ Chemical mixture ∧ ¬ ContainsOnlyOneElement mixture)
+
+theorem query :
+  (ContainsOnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ Chemical mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  -- First show ¬ Chemical mixture
+  have hNotChem : ¬ Chemical mixture := by
+    intro hChem
+    -- From the mixture condition, deduce ContainsOnlyOneElement mixture
+    have hOne : ContainsOnlyOneElement mixture := by
+      cases mixture_either_both_or_neither with
+      | inl hboth =>
+          exact hboth.right
+      | inr hneither =>
+          have : False := hneither.left hChem
+          exact False.elim this
+    -- But no chemical compound contains only one element
+    have hNotOne : ¬ ContainsOnlyOneElement mixture := no_chemical_only_one mixture hChem
+    exact hNotOne hOne
+  -- Then show ¬ Alkane mixture
+  have hNotAlk : ¬ Alkane mixture := by
+    intro hAlk
+    have hHydro : Hydrocarbon mixture := all_alkane_hydrocarbon mixture hAlk
+    have hOrg : Organic mixture := all_hydrocarbon_organic mixture hHydro
+    have hChem : Chemical mixture := all_organic_chemical mixture hOrg
+    exact hNotChem hChem
+  exact And.intro hNotChem hNotAlk
+
+Lean: Failed
+
+--- Iteration 2 ---
+LLM Response:
+<lean>
+axiom Entity : Type
+
+axiom Hydrocarbon : Entity → Prop
+axiom Alkane : Entity → Prop
+axiom Organic : Entity → Prop
+axiom Chemical : Entity → Prop
+axiom ContainsCarbon : Entity → Prop
+axiom ContainsOnlyOneElement : Entity → Prop
+
+axiom mixture : Entity
+
+axiom all_hydrocarbon_organic : ∀ x : Entity, Hydrocarbon x → Organic x
+axiom all_alkane_hydrocarbon : ∀ x : Entity, Alkane x → Hydrocarbon x
+axiom all_organic_chemical : ∀ x : Entity, Organic x → Chemical x
+axiom all_organic_contain_carbon ...
+
+Lean Code:
+axiom Entity : Type
+
+axiom Hydrocarbon : Entity → Prop
+axiom Alkane : Entity → Prop
+axiom Organic : Entity → Prop
+axiom Chemical : Entity → Prop
+axiom ContainsCarbon : Entity → Prop
+axiom ContainsOnlyOneElement : Entity → Prop
+
+axiom mixture : Entity
+
+axiom all_hydrocarbon_organic : ∀ x : Entity, Hydrocarbon x → Organic x
+axiom all_alkane_hydrocarbon : ∀ x : Entity, Alkane x → Hydrocarbon x
+axiom all_organic_chemical : ∀ x : Entity, Organic x → Chemical x
+axiom all_organic_contain_carbon : ∀ x : Entity, Organic x → ContainsCarbon x
+axiom no_chemical_only_one : ∀ x : Entity, Chemical x → ¬ ContainsOnlyOneElement x
+axiom mixture_either_both_or_neither :
+  (Chemical mixture ∧ ContainsOnlyOneElement mixture) ∨
+  (¬ Chemical mixture ∧ ¬ ContainsOnlyOneElement mixture)
+
+theorem not_chemical_mixture : ¬ Chemical mixture := by
+  intro hChem
+  have hOne : ContainsOnlyOneElement mixture := by
+    cases mixture_either_both_or_neither with
+    | inl hboth =>
+        exact hboth.right
+    | inr hneither =>
+        have : False := hneither.left hChem
+        exact False.elim this
+  have hNotOne : ¬ ContainsOnlyOneElement mixture := no_chemical_only_one mixture hChem
+  exact hNotOne hOne
+
+theorem query :
+  (ContainsOnlyOneElement mixture ∨ ContainsCarbon mixture) →
+  (¬ Chemical mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  have hNotChem : ¬ Chemical mixture := not_chemical_mixture
+  have hNotAlk : ¬ Alkane mixture := by
+    intro hAlk
+    have hHydro : Hydrocarbon mixture := all_alkane_hydrocarbon mixture hAlk
+    have hOrg : Organic mixture := all_hydrocarbon_organic mixture hHydro
+    have hChem : Chemical mixture := all_organic_chemical mixture hOrg
+    exact hNotChem hChem
+  exact And.intro hNotChem hNotAlk
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 2
+Retries: 0

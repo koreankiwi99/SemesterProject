@@ -1,0 +1,72 @@
+Case: 83, Condition: baseline
+Story ID: 306
+Example ID: 754
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Restaurant : Type
+axiom HPS : Restaurant
+axiom Listed : Restaurant → Prop
+axiom ManyNeg : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom Takeout : Restaurant → Prop
+axiom Popular : Restaurant → Prop
+
+-- 1. If listed in Yelp’s recommendations, then not many negative reviews.
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNeg r
+-- 2. All restaurants with rating > 4 are listed.
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+-- 3. Some restaurants that do no...
+
+Lean Code:
+axiom Restaurant : Type
+axiom HPS : Restaurant
+axiom Listed : Restaurant → Prop
+axiom ManyNeg : Restaurant → Prop
+axiom RatingGT4 : Restaurant → Prop
+axiom Takeout : Restaurant → Prop
+axiom Popular : Restaurant → Prop
+
+-- 1. If listed in Yelp’s recommendations, then not many negative reviews.
+axiom premise1 : ∀ r : Restaurant, Listed r → ¬ ManyNeg r
+-- 2. All restaurants with rating > 4 are listed.
+axiom premise2 : ∀ r : Restaurant, RatingGT4 r → Listed r
+-- 3. Some restaurants that do not provide take-out receive many negative reviews.
+axiom premise3 : ∃ r : Restaurant, ¬ Takeout r ∧ ManyNeg r
+-- 4. All restaurants popular among local residents have ratings > 4.
+axiom premise4 : ∀ r : Restaurant, Popular r → RatingGT4 r
+-- 5. HPS has rating > 4, or it is popular among local residents.
+axiom premise5 : RatingGT4 HPS ∨ Popular HPS
+
+theorem target :
+  (Takeout HPS ∧ ManyNeg HPS) → (RatingGT4 HPS ∧ ¬ Takeout HPS) := by
+  -- Derive RatingGT4 HPS from premise5 and premise4
+  have hR : RatingGT4 HPS := by
+    cases premise5 with
+    | inl h => exact h
+    | inr hpop => exact premise4 HPS hpop
+  -- Therefore HPS is listed, hence does not have many negative reviews
+  have hNotNeg : ¬ ManyNeg HPS := by
+    have hListed : Listed HPS := premise2 HPS hR
+    exact premise1 HPS hListed
+  intro h
+  have hmn : ManyNeg HPS := h.right
+  have hFalse : False := hNotNeg hmn
+  exact False.elim hFalse
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: True
+Parse Status: SUCCESS
+Correct: No
+Iterations: 1
+Retries: 0

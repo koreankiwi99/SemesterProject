@@ -1,0 +1,94 @@
+Case: 20, Condition: baseline
+Story ID: 471
+Example ID: 1365
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Cute : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom all_spotted_rabbits_cute :
+  ∀ x, (Rabbit x ∧ SpottedNearCampus x) → Cute x
+axiom some_spotted_turtle :
+  ∃ x, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_are_rabbits_or_squirrels :
+  ∀ x, SpottedNearCampus x → (...
+
+Lean Code:
+axiom Animal : Type
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Cute : Animal → Prop
+axiom SpottedNearCampus : Animal → Prop
+axiom Rockie : Animal
+
+-- Premises
+axiom all_spotted_rabbits_cute :
+  ∀ x, (Rabbit x ∧ SpottedNearCampus x) → Cute x
+axiom some_spotted_turtle :
+  ∃ x, Turtle x ∧ SpottedNearCampus x
+axiom only_spotted_are_rabbits_or_squirrels :
+  ∀ x, SpottedNearCampus x → (Rabbit x ∨ Squirrel x)
+axiom skittish_not_calm :
+  ∀ x, Skittish x → ¬ Calm x
+axiom spotted_squirrels_skittish :
+  ∀ x, (Squirrel x ∧ SpottedNearCampus x) → Skittish x
+axiom rockie_spotted_and_calm :
+  SpottedNearCampus Rockie ∧ Calm Rockie
+
+-- Target statement
+def Statement : Prop :=
+  (Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)
+
+-- We prove the negation of the target statement.
+theorem not_Statement : ¬ Statement := by
+  intro h
+  have hSpot : SpottedNearCampus Rockie := rockie_spotted_and_calm.left
+  have hCalm : Calm Rockie := rockie_spotted_and_calm.right
+  have notSk : ¬ Skittish Rockie := by
+    intro hSk
+    have hNotCalm : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+    exact hNotCalm hCalm
+  have hDisj : Rabbit Rockie ∨ Squirrel Rockie :=
+    only_spotted_are_rabbits_or_squirrels Rockie hSpot
+  have hRabbit : Rabbit Rockie :=
+    Or.elim hDisj
+      (fun hr => hr)
+      (fun hs =>
+        have hSk : Skittish Rockie :=
+          spotted_squirrels_skittish Rockie ⟨hs, hSpot⟩
+        False.elim (notSk hSk)
+      )
+  have hCute : Cute Rockie :=
+    all_spotted_rabbits_cute Rockie ⟨hRabbit, hSpot⟩
+  have hConsequent : Skittish Rockie ∧ Turtle Rockie :=
+    h ⟨hCute, hCalm⟩
+  exact notSk hConsequent.left
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

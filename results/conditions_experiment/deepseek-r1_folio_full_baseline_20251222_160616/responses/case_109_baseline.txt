@@ -1,0 +1,88 @@
+Case: 109, Condition: baseline
+Story ID: 361
+Example ID: 960
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+The reasoning text is translated into Lean 4, and the theorem is proven successfully. The analysis shows that the statement about Peter must be true based on the given premises.
+
+<lean>
+axiom Person : Type
+axiom Peter : Person
+
+axiom SpillsFood : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom ClumsyFoodie : Person → Prop
+axiom GoesOutFrequently : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrder : Person → Prop
+axiom FamilyPrioritizes : Person → Prop
+
+-- If people spill a lot ...
+
+Lean Code:
+axiom Person : Type
+axiom Peter : Person
+
+axiom SpillsFood : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom ClumsyFoodie : Person → Prop
+axiom GoesOutFrequently : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrder : Person → Prop
+axiom FamilyPrioritizes : Person → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom spill_not_tidy : ∀ (p : Person), SpillsFood p → ¬ NotablyTidy p
+-- All clumsy foodies who go out frequently spill food.
+axiom clumsy_foodie_spills : ∀ (p : Person), (ClumsyFoodie p ∧ GoesOutFrequently p) → SpillsFood p
+-- If people are cleanly, then they are notably tidy.
+axiom cleanly_tidy : ∀ (p : Person), Cleanly p → NotablyTidy p
+-- If people value order and spotlessness, then they are cleanly.
+axiom values_cleanly : ∀ (p : Person), ValuesOrder p → Cleanly p
+-- If family prioritizes order, then they value order.
+axiom family_values : ∀ (p : Person), FamilyPrioritizes p → ValuesOrder p
+-- Peter spills food and is cleanly, or doesn't spill food and isn't cleanly.
+axiom peter_case : (SpillsFood Peter ∧ Cleanly Peter) ∨ (¬ SpillsFood Peter ∧ ¬ Cleanly Peter)
+
+theorem goal :
+    ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ FamilyPrioritizes Peter) ∨
+    (¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ ¬ FamilyPrioritizes Peter) := by
+  cases peter_case
+  case inl h => -- Case: SpillsFood Peter ∧ Cleanly Peter
+    have spill := h.left
+    have clean := h.right
+    have not_tidy := spill_not_tidy Peter spill
+    have tidy := cleanly_tidy Peter clean
+    contradiction
+  case inr h => -- Case: ¬SpillsFood Peter ∧ ¬Cleanly Peter
+    have no_spill := h.left
+    have not_clean := h.right
+    -- Prove ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter)
+    have not_clumsy_goes : ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+      intro h1
+      have spill := clumsy_foodie_spills Peter h1
+      contradiction
+    -- Prove ¬FamilyPrioritizes Peter
+    have not_family : ¬FamilyPrioritizes Peter := by
+      intro h1
+      have values := family_values Peter h1
+      have clean := values_cleanly Peter values
+      contradiction
+    exact Or.inr ⟨not_clumsy_goes, not_family⟩
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,83 @@
+Case: 153, Condition: baseline
+Story ID: 363
+Example ID: 965
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Entity : Type
+axiom Mixture : Entity
+
+axiom Hydrocarbon : Entity → Prop
+axiom Organic : Entity → Prop
+axiom Alkane : Entity → Prop
+axiom Chemical : Entity → Prop
+axiom ContainsCarbon : Entity → Prop
+axiom OnlyOneElement : Entity → Prop
+
+axiom all_hydro_are_org : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkanes_are_hydro : ∀ x, Alkane x → Hydrocarbon x
+axiom all_org_are_chemical : ∀ x, Organic x → Chemical x
+axiom all_org_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_ch...
+
+Lean Code:
+axiom Entity : Type
+axiom Mixture : Entity
+
+axiom Hydrocarbon : Entity → Prop
+axiom Organic : Entity → Prop
+axiom Alkane : Entity → Prop
+axiom Chemical : Entity → Prop
+axiom ContainsCarbon : Entity → Prop
+axiom OnlyOneElement : Entity → Prop
+
+axiom all_hydro_are_org : ∀ x, Hydrocarbon x → Organic x
+axiom all_alkanes_are_hydro : ∀ x, Alkane x → Hydrocarbon x
+axiom all_org_are_chemical : ∀ x, Organic x → Chemical x
+axiom all_org_contain_carbon : ∀ x, Organic x → ContainsCarbon x
+axiom no_chemical_is_single_element : ∀ x, Chemical x → ¬ OnlyOneElement x
+axiom mixture_either_both_or_neither :
+  (Chemical Mixture ∧ OnlyOneElement Mixture) ∨ (¬Chemical Mixture ∧ ¬OnlyOneElement Mixture)
+
+theorem not_chemical_mixture : ¬ Chemical Mixture := by
+  have hnot_left : ¬ (Chemical Mixture ∧ OnlyOneElement Mixture) := by
+    intro h
+    have hc : Chemical Mixture := h.left
+    have hone : OnlyOneElement Mixture := h.right
+    have hno : ¬ OnlyOneElement Mixture := no_chemical_is_single_element Mixture hc
+    exact hno hone
+  have hneither : (¬Chemical Mixture ∧ ¬OnlyOneElement Mixture) := by
+    cases mixture_either_both_or_neither with
+    | inl hboth =>
+        exact False.elim (hnot_left hboth)
+    | inr hneither =>
+        exact hneither
+  exact hneither.left
+
+theorem not_alkane_mixture : ¬ Alkane Mixture := by
+  intro hAlk
+  have hHydro : Hydrocarbon Mixture := all_alkanes_are_hydro Mixture hAlk
+  have hOrg : Organic Mixture := all_hydro_are_org Mixture hHydro
+  have hChem : Chemical Mixture := all_org_are_chemical Mixture hOrg
+  exact not_chemical_mixture hChem
+
+theorem target_neg : ¬ (Alkane Mixture ∧ ContainsCarbon Mixture) := by
+  intro h
+  exact not_alkane_mixture h.left
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,136 @@
+Case: 98, Condition: baseline
+Story ID: 472
+Example ID: 1366
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+The given information allows us to deduce several properties about Harry:
+- Harry is a bee (given).
+- All bees do not reproduce by male-and-female mating, so Harry does not reproduce this way.
+- Animals that reproduce without male-and-female mating cannot have backbones (contrapositive of "all animals with backbones reproduce by male-and-female mating").
+- Without a backbone, Harry cannot be a vertebrate (contrapositive of "all vertebrates have backbones").
+- Therefore, Harry must be an inverteb...
+
+Lean Code:
+axiom Animal : Type
+axiom invertebrate : Animal → Prop
+axiom vertebrate : Animal → Prop
+axiom has_backbone : Animal → Prop
+axiom reproduces_by_mfm : Animal → Prop
+axiom Bee : Animal → Prop
+axiom QueenBee : Animal → Prop
+axiom harry : Animal
+
+-- Premises
+axiom premise1 : ∀ a : Animal, invertebrate a ∨ vertebrate a
+axiom premise2 : ∀ a : Animal, has_backbone a → reproduces_by_mfm a
+axiom premise3 : ∀ a : Animal, vertebrate a → has_backbone a
+axiom premise4 : ∀ a : Animal, Bee a → ¬ reproduces_by_mfm a
+axiom premise5 : ∀ a : Animal, QueenBee a → Bee a
+axiom premise6 : Bee harry
+
+-- Harry does not reproduce by male-and-female mating
+theorem harry_not_mfm : ¬ reproduces_by_mfm harry := by
+  exact premise4 harry premise6
+
+-- Harry does not have a backbone
+theorem harry_no_backbone : ¬ has_backbone harry := by
+  intro h
+  have : reproduces_by_mfm harry := premise2 harry h
+  contradiction
+
+-- Harry is not a vertebrate
+theorem harry_not_vertebrate : ¬ vertebrate harry := by
+  intro h
+  have : has_backbone harry := premise3 harry h
+  contradiction
+
+-- Harry is an invertebrate
+theorem harry_invertebrate : invertebrate harry := by
+  have : invertebrate harry ∨ vertebrate harry := premise1 harry
+  cases this with
+  | inl h => exact h
+  | inr h => contradiction
+
+-- Cannot prove Harry is a queen bee
+theorem goal : QueenBee harry := by
+  sorry  -- No premise forces Harry to be a queen bee
+
+-- Cannot prove Harry is not a queen bee
+theorem neg_goal : ¬ QueenBee harry := by
+  sorry  -- No premise excludes Harry from being a queen bee
+
+Lean: Failed
+
+--- Iteration 2 ---
+LLM Response:
+The errors occurred because `contradiction` requires both a hypothesis and its negation to be present in the local context. The corrected proofs explicitly derive contradictions by applying relevant theorems. Regarding the main question about Harry being a queen bee:
+
+- We know Harry is a bee (premise6)
+- We know all queen bees are bees (premise5)
+- But there are no premises stating that all bees are queen bees or any properties forcing Harry to be a queen bee
+- There are also no premises exclud...
+
+Lean Code:
+axiom Animal : Type
+axiom invertebrate : Animal → Prop
+axiom vertebrate : Animal → Prop
+axiom has_backbone : Animal → Prop
+axiom reproduces_by_mfm : Animal → Prop
+axiom Bee : Animal → Prop
+axiom QueenBee : Animal → Prop
+axiom harry : Animal
+
+-- Premises
+axiom premise1 : ∀ a : Animal, invertebrate a ∨ vertebrate a
+axiom premise2 : ∀ a : Animal, has_backbone a → reproduces_by_mfm a
+axiom premise3 : ∀ a : Animal, vertebrate a → has_backbone a
+axiom premise4 : ∀ a : Animal, Bee a → ¬ reproduces_by_mfm a
+axiom premise5 : ∀ a : Animal, QueenBee a → Bee a
+axiom premise6 : Bee harry
+
+-- Harry does not reproduce by male-and-female mating
+theorem harry_not_mfm : ¬ reproduces_by_mfm harry :=
+  premise4 harry premise6
+
+-- Harry does not have a backbone
+theorem harry_no_backbone : ¬ has_backbone harry := by
+  intro h
+  apply harry_not_mfm
+  exact premise2 harry h
+
+-- Harry is not a vertebrate
+theorem harry_not_vertebrate : ¬ vertebrate harry := by
+  intro h
+  apply harry_no_backbone
+  exact premise3 harry h
+
+-- Harry is an invertebrate
+theorem harry_invertebrate : invertebrate harry := by
+  cases premise1 harry with
+  | inl h => exact h
+  | inr h => exact absurd h harry_not_vertebrate
+
+-- Cannot prove Harry is a queen bee
+theorem goal : QueenBee harry := by
+  sorry
+
+-- Cannot prove Harry is not a queen bee
+theorem neg_goal : ¬ QueenBee harry := by
+  sorry
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 2
+Retries: 0

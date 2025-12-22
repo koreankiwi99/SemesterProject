@@ -1,0 +1,94 @@
+Case: 148, Condition: baseline
+Story ID: 483
+Example ID: 1414
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerAtGazprom : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom premise2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom premise3 : ∀ x : Person, USCitizen x ∨ Taiwanese...
+
+Lean Code:
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerAtGazprom : Person → Prop
+
+-- Premises
+axiom premise1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom premise2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom premise3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom premise4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+axiom premise5a : ¬ TaiwaneseCitizen Vladimir
+axiom premise5b : ¬ ManagerAtGazprom Vladimir
+axiom premise6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Derive Ekaterina can register
+theorem Ekaterina_can_register : CanRegisterUS Ekaterina := by
+  have h := premise6
+  exact Or.elim h
+    (fun hreg => hreg)
+    (fun hoff =>
+      have hnotTW : ¬ TaiwaneseCitizen Ekaterina := premise4 Ekaterina hoff
+      have disj : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := premise3 Ekaterina
+      have uscit : USCitizen Ekaterina := Or.elim disj
+        (fun hu => hu)
+        (fun htw => False.elim (hnotTW htw))
+      show CanRegisterUS Ekaterina from premise2 Ekaterina uscit
+    )
+
+-- Derive Vladimir can participate
+theorem Vladimir_can_participate : CanParticipate2024 Vladimir := by
+  have disj : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := premise3 Vladimir
+  have uscit : USCitizen Vladimir := Or.elim disj
+    (fun hu => hu)
+    (fun htw => False.elim (premise5a htw))
+  have reg : CanRegisterUS Vladimir := premise2 Vladimir uscit
+  exact premise1 Vladimir reg
+
+-- The statement to evaluate:
+-- "It is not true that Ekaterina can register and Vladimir can participate"
+def Statement : Prop := ¬ (CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir)
+
+-- We show the negation of the statement by proving the conjunction holds.
+theorem conj_true : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir := by
+  exact And.intro Ekaterina_can_register Vladimir_can_participate
+
+theorem statement_is_false : Statement → False := by
+  intro h
+  exact h conj_true
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,100 @@
+Case: 3, Condition: baseline
+Story ID: 426
+Example ID: 1208
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+-- Entities and predicates
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom SchedulesWithCustomers : Person → Prop
+axiom AppearsInCompanyToday : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountries : Person → Prop
+
+-- Premises from the text
+-- 1) All employees who schedule a meeting with their customers will go to the company building tod...
+
+Lean Code:
+-- Entities and predicates
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom SchedulesWithCustomers : Person → Prop
+axiom AppearsInCompanyToday : Person → Prop
+axiom LunchInBuilding : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountries : Person → Prop
+
+-- Premises from the text
+-- 1) All employees who schedule a meeting with their customers will go to the company building today.
+axiom premise1 : ∀ x : Person, Employee x ∧ SchedulesWithCustomers x → AppearsInCompanyToday x
+
+-- 2) Everyone who has lunch in the company building schedules meetings with their customers.
+axiom premise2 : ∀ x : Person, LunchInBuilding x → SchedulesWithCustomers x
+
+-- 3) Employees have lunch either in the company building or at home.
+axiom premise3 : ∀ x : Person, Employee x → LunchInBuilding x ∨ LunchAtHome x
+
+-- 4) If an employee has lunch at home, they are working remotely from home.
+axiom premise4 : ∀ x : Person, Employee x ∧ LunchAtHome x → RemoteFromHome x
+
+-- 5) All employees who are in other countries work remotely from home.
+axiom premise5 : ∀ x : Person, Employee x ∧ InOtherCountries x → RemoteFromHome x
+
+-- 6) No managers work remotely from home.
+axiom premise6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+
+-- 7) James will appear in the company today iff he is a manager.
+axiom premise7 : AppearsInCompanyToday James ↔ Manager James
+
+-- Some derived consequences
+
+-- If James is an employee and has lunch in the company building, then (by 2 and 1) he appears,
+-- hence (by 7) he is a manager.
+theorem lunch_in_building_employee_implies_manager :
+  Employee James → LunchInBuilding James → Manager James := by
+  intro hE hL
+  have hSched : SchedulesWithCustomers James := premise2 James hL
+  have hApp : AppearsInCompanyToday James := premise1 James ⟨hE, hSched⟩
+  exact (premise7.mp hApp)
+
+-- If James is both an employee and a manager, then James must have lunch in the company building.
+-- Proof: as an employee he lunches in building or at home (3). If at home, then remote (4),
+-- contradicting managers are not remote (6). Hence lunch in building.
+theorem manager_employee_implies_lunch_in_building :
+  Employee James → Manager James → LunchInBuilding James := by
+  intro hE hM
+  have hDisj : LunchInBuilding James ∨ LunchAtHome James := premise3 James hE
+  have hNotHome : ¬ LunchAtHome James := by
+    intro hHome
+    have hRemote : RemoteFromHome James := premise4 James ⟨hE, hHome⟩
+    exact (premise6 James hM) hRemote
+  cases hDisj with
+  | inl hIn  => exact hIn
+  | inr hHome => exact False.elim (hNotHome hHome)
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

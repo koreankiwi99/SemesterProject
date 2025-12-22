@@ -1,0 +1,113 @@
+Case: 129, Condition: baseline
+Story ID: 330
+Example ID: 848
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom MakePlans : Person → Prop
+axiom Engaged : Person → Prop
+axiom InviteOthers : Person → Prop
+axiom WellAttended : Person → Prop
+axiom LargerFamily : Person → Prop
+axiom InviteFriends : Person → Prop
+
+-- 1. All people who make wedding plans are engaged.
+axiom ax1 : ∀ x : Person, MakePlans x → Engaged x
+-- 2. All people who invite others to come to their ceremony make wedding plans.
+axiom ax2 : ∀ x : Person, InviteOthers x → MakePlans x
+-- 3. Any...
+
+Lean Code:
+axiom Person : Type
+axiom John : Person
+
+axiom MakePlans : Person → Prop
+axiom Engaged : Person → Prop
+axiom InviteOthers : Person → Prop
+axiom WellAttended : Person → Prop
+axiom LargerFamily : Person → Prop
+axiom InviteFriends : Person → Prop
+
+-- 1. All people who make wedding plans are engaged.
+axiom ax1 : ∀ x : Person, MakePlans x → Engaged x
+-- 2. All people who invite others to come to their ceremony make wedding plans.
+axiom ax2 : ∀ x : Person, InviteOthers x → MakePlans x
+-- 3. Anyone who has a well-attended wedding invites others to come to their ceremony.
+axiom ax3 : ∀ x : Person, WellAttended x → InviteOthers x
+-- 4. Some people that have well-attended weddings have larger families.
+axiom ax4 : ∃ x : Person, WellAttended x ∧ LargerFamily x
+-- 5. If John is engaged, then John does not invite friends to their ceremony and does not make wedding plans.
+axiom ax5 : Engaged John → (¬ InviteFriends John ∧ ¬ MakePlans John)
+-- 6. If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony.
+axiom ax6 : LargerFamily John → (WellAttended John ∨ InviteFriends John)
+
+-- Derived: Well-attended implies making plans.
+theorem wellAttended_implies_makePlans (x : Person) :
+  WellAttended x → MakePlans x :=
+by
+  intro hWA
+  have hIO : InviteOthers x := ax3 x hWA
+  exact ax2 x hIO
+
+-- Derived: Well-attended implies engaged.
+theorem wellAttended_implies_engaged (x : Person) :
+  WellAttended x → Engaged x :=
+by
+  intro hWA
+  exact ax1 x (wellAttended_implies_makePlans x hWA)
+
+-- If John has a larger family, then John does not have a well-attended wedding.
+theorem John_not_wellAttended_of_LF :
+  LargerFamily John → ¬ WellAttended John :=
+by
+  intro hLF hWA
+  have hMP : MakePlans John := wellAttended_implies_makePlans John hWA
+  have hEng : Engaged John := ax1 John hMP
+  have hNot : ¬ MakePlans John := (ax5 hEng).right
+  exact hNot hMP
+
+-- If John has a larger family, then John invites friends.
+theorem John_invitesFriends_of_LF :
+  LargerFamily John → InviteFriends John :=
+by
+  intro hLF
+  have h := ax6 hLF
+  cases h with
+  | inl hWA =>
+      have : False := (John_not_wellAttended_of_LF hLF) hWA
+      exact this.elim
+  | inr hIF => exact hIF
+
+-- If John is engaged, then John does not have a larger family.
+theorem John_engaged_implies_not_LF :
+  Engaged John → ¬ LargerFamily John :=
+by
+  intro hEng hLF
+  have hIF : InviteFriends John := John_invitesFriends_of_LF hLF
+  have hNotIF : ¬ InviteFriends John := (ax5 hEng).left
+  exact hNotIF hIF
+
+-- Target claim (not derivable from given premises)
+theorem John_is_engaged : Engaged John := by
+  -- Not provable from the given premises.
+  sorry
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: Uncertain
+Prediction: Unknown
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,119 @@
+Case: 197, Condition: baseline
+Story ID: 459
+Example ID: 1326
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+open Classical
+
+axiom Entity : Type
+axiom Person : Type
+
+axiom Jane : Person
+axiom KiKi : Entity
+
+axiom Animal : Entity → Prop
+axiom Barks : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Jumps : Entity → Prop
+axiom HasLegs : Entity → Prop
+axiom Terricolous : Entity → Prop
+
+axiom Likes : Person → Entity → Prop
+
+-- Jane does not like any animals that bark.
+axiom premise1 : ∀ x : Entity, Animal x ∧ Barks x → ¬ Likes Jane x
+-- All dogs are animals that bark.
+axiom premise2 : ∀ x : Entity, Dog...
+
+Lean Code:
+open Classical
+
+axiom Entity : Type
+axiom Person : Type
+
+axiom Jane : Person
+axiom KiKi : Entity
+
+axiom Animal : Entity → Prop
+axiom Barks : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Jumps : Entity → Prop
+axiom HasLegs : Entity → Prop
+axiom Terricolous : Entity → Prop
+
+axiom Likes : Person → Entity → Prop
+
+-- Jane does not like any animals that bark.
+axiom premise1 : ∀ x : Entity, Animal x ∧ Barks x → ¬ Likes Jane x
+-- All dogs are animals that bark.
+axiom premise2 : ∀ x : Entity, Dog x → Animal x ∧ Barks x
+-- Jane likes all animals that jump.
+axiom premise3 : ∀ x : Entity, Animal x ∧ Jumps x → Likes Jane x
+-- If an animal has legs, then it jumps.
+axiom premise4 : ∀ x : Entity, Animal x ∧ HasLegs x → Jumps x
+-- If an animal is terricolous, then it has legs.
+axiom premise5 : ∀ x : Entity, Animal x ∧ Terricolous x → HasLegs x
+-- KiKi is an animal.
+axiom premise6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom premise7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → Terricolous KiKi ∨ HasLegs KiKi
+
+theorem goal : ¬ Barks KiKi ∧ ¬ Dog KiKi := by
+  have Ak : Animal KiKi := premise6
+  -- Show ¬(¬Jumps KiKi ∧ ¬HasLegs KiKi)
+  have hnot : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+    intro h
+    have hdisj := premise7 h
+    cases hdisj with
+    | inl ht =>
+      have hlegs : HasLegs KiKi := premise5 KiKi ⟨Ak, ht⟩
+      exact h.right hlegs
+    | inr hl =>
+      exact h.right hl
+  -- Derive Jumps KiKi using classical reasoning
+  have hJ : Jumps KiKi := by
+    by_cases h : Jumps KiKi
+    · exact h
+    ·
+      have hnnL : ¬¬ HasLegs KiKi := by
+        intro hL
+        exact hnot ⟨h, hL⟩
+      -- From ¬¬HasLegs KiKi, get HasLegs KiKi classically
+      have hL : HasLegs KiKi := by
+        by_cases hL' : HasLegs KiKi
+        · exact hL'
+        ·
+          exfalso
+          exact hnnL hL'
+      exact premise4 KiKi ⟨Ak, hL⟩
+  -- Now show ¬Barks KiKi via the Likes/Doesn't-like conflict
+  have hNotBark : ¬ Barks KiKi := by
+    intro hb
+    have hNotLike : ¬ Likes Jane KiKi := by
+      exact premise1 KiKi ⟨Ak, hb⟩
+    have hLike : Likes Jane KiKi := premise3 KiKi ⟨Ak, hJ⟩
+    exact hNotLike hLike
+  -- From Dog -> Barks, conclude ¬Dog KiKi
+  have hNotDog : ¬ Dog KiKi := by
+    intro hd
+    have hbark : Barks KiKi := (premise2 KiKi hd).right
+    exact hNotBark hbark
+  exact And.intro hNotBark hNotDog
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: True
+Prediction: True
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

@@ -1,0 +1,126 @@
+Case: 57, Condition: baseline
+Story ID: 2
+Example ID: 4
+
+==================================================
+Iterations:
+==================================================
+
+--- Iteration 1 ---
+LLM Response:
+<lean>
+-- Types for cities and states
+axiom City : Type
+axiom State : Type
+
+-- Predicates
+axiom InState : City → State → Prop
+
+-- Named cities
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+-- Named state
+axiom Montana : State
+
+-- Facts from the problem
+axiom Billings_in_Montana : InState Billings Montana
+axiom Butte_i...
+
+Lean Code:
+-- Types for cities and states
+axiom City : Type
+axiom State : Type
+
+-- Predicates
+axiom InState : City → State → Prop
+
+-- Named cities
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+-- Named state
+axiom Montana : State
+
+-- Facts from the problem
+axiom Billings_in_Montana : InState Billings Montana
+axiom Butte_in_Montana : InState Butte Montana
+axiom Helena_in_Montana : InState Helena Montana
+axiom Missoula_in_Montana : InState Missoula Montana
+axiom WSS_same_state_as_Butte : ∃ s : State, InState WhiteSulphurSprings s ∧ InState Butte s
+axiom StPierre_not_in_Montana : ¬ InState StPierre Montana
+
+-- Uniqueness of a city's state except for the four exceptions
+axiom unique_state_except :
+  ∀ (c : City) (s1 s2 : State),
+    InState c s1 → InState c s2 →
+      (c = Bristol ∨ c = Texarkana ∨ c = Texhoma ∨ c = UnionCity ∨ s1 = s2)
+
+-- Distinctness: Butte is not one of the exceptions
+axiom Butte_ne_Bristol : Butte ≠ Bristol
+axiom Butte_ne_Texarkana : Butte ≠ Texarkana
+axiom Butte_ne_Texhoma : Butte ≠ Texhoma
+axiom Butte_ne_UnionCity : Butte ≠ UnionCity
+
+-- Same-state predicate for cities
+def SameState (c1 c2 : City) : Prop := ∃ s : State, InState c1 s ∧ InState c2 s
+
+-- The queried statement is "SameState Butte StPierre".
+-- We prove its negation from the given premises.
+theorem not_same_state_Butte_StPierre : ¬ SameState Butte StPierre := by
+  intro h
+  -- h : ∃ s, InState Butte s ∧ InState StPierre s
+  rcases h with ⟨s, hButte_s, hStPierre_s⟩
+  have hButte_M : InState Butte Montana := Butte_in_Montana
+  have huniq := unique_state_except Butte s Montana hButte_s hButte_M
+  -- Deduce s = Montana using that Butte is not one of the exceptions
+  have s_eq_Montana : s = Montana := by
+    cases huniq with
+    | inl hBristol =>
+        exact False.elim (Butte_ne_Bristol hBristol)
+    | inr h1 =>
+      cases h1 with
+      | inl hTexarkana =>
+          exact False.elim (Butte_ne_Texarkana hTexarkana)
+      | inr h2 =>
+        cases h2 with
+        | inl hTexhoma =>
+            exact False.elim (Butte_ne_Texhoma hTexhoma)
+        | inr h3 =>
+          cases h3 with
+          | inl hUnionCity =>
+              exact False.elim (Butte_ne_UnionCity hUnionCity)
+          | inr hEq =>
+              exact hEq
+  -- Rewrite and contradict StPierre_not_in_Montana
+  have hStPierre_M : InState StPierre Montana := by
+    simpa [s_eq_Montana] using hStPierre_s
+  exact StPierre_not_in_Montana hStPierre_M
+
+Lean: Success
+
+==================================================
+Final Result:
+==================================================
+Ground Truth: False
+Prediction: False
+Parse Status: SUCCESS
+Correct: Yes
+Iterations: 1
+Retries: 0

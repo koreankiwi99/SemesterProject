@@ -1,0 +1,178 @@
+<lean>
+universe u
+
+constant Person : Type u
+constant Spill : Person → Prop
+constant Tidy : Person → Prop
+constant Clean : Person → Prop
+constant ValueOrder : Person → Prop
+constant FamilyPrior : Person → Prop
+constant ClumsyFoodieGoesOut : Person → Prop
+constant Peter : Person
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x, Spill x → ¬ Tidy x
+axiom ax2 : ∀ x, ClumsyFoodieGoesOut x → Spill x
+axiom ax3 : ∀ x, Clean x → Tidy x
+axiom ax4 : ∀ x, ValueOrder x → Clean x
+axiom ax5 : ∀ x, FamilyPrior x → ValueOrder x
+axiom ax6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- The queried statement is "ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter".
+-- We prove its negation.
+theorem peter_not_CF_or_family :
+  ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter) := by
+  -- Nobody can be both Spill and Clean
+  have not_spill_and_clean : ∀ x, ¬ (Spill x ∧ Clean x) := by
+    intro x
+    intro h
+    have hs : Spill x := h.left
+    have hc : Clean x := h.right
+    have ht : Tidy x := ax3 x hc
+    have nht : ¬ Tidy x := ax1 x hs
+    exact nht ht
+  -- Deduce ¬Spill Peter ∧ ¬Clean Peter from ax6
+  have hns_nc : (¬ Spill Peter ∧ ¬ Clean Peter) := by
+    have hno := not_spill_and_clean Peter
+    cases ax6 with
+    | inl hsc => exact False.elim (hno hsc)
+    | inr h => exact h
+  have hns : ¬ Spill Peter := hns_nc.left
+  have hnc : ¬ Clean Peter := hns_nc.right
+  -- From ¬Spill and CF→Spill, get ¬CF; from ¬Clean and Family→Value→Clean, get ¬Family
+  have not_CF : ¬ ClumsyFoodieGoesOut Peter := by
+    intro hcf
+    apply hns
+    exact ax2 Peter hcf
+  have not_Fam : ¬ FamilyPrior Peter := by
+    intro hfam
+    apply hnc
+    have hv : ValueOrder Peter := ax5 Peter hfam
+    exact ax4 Peter hv
+  -- Hence the disjunction is false
+  intro h
+  cases h with
+  | inl hcf => exact not_CF hcf
+  | inr hfam => exact not_Fam hfam
+</lean>
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+universe u
+
+axiom Person : Type u
+axiom Spill : Person → Prop
+axiom Tidy : Person → Prop
+axiom Clean : Person → Prop
+axiom ValueOrder : Person → Prop
+axiom FamilyPrior : Person → Prop
+axiom ClumsyFoodieGoesOut : Person → Prop
+axiom Peter : Person
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x : Person, Spill x → ¬ Tidy x
+axiom ax2 : ∀ x : Person, ClumsyFoodieGoesOut x → Spill x
+axiom ax3 : ∀ x : Person, Clean x → Tidy x
+axiom ax4 : ∀ x : Person, ValueOrder x → Clean x
+axiom ax5 : ∀ x : Person, FamilyPrior x → ValueOrder x
+axiom ax6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- Prove the negation of the queried statement:
+-- ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter)
+theorem peter_not_CF_or_family :
+  ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter) := by
+  -- Nobody can be both Spill and Clean
+  have not_spill_and_clean : ∀ x : Person, ¬ (Spill x ∧ Clean x) := by
+    intro x
+    intro h
+    have ht : Tidy x := ax3 x h.right
+    have nht : ¬ Tidy x := ax1 x h.left
+    exact nht ht
+  -- From ax6 and the above, deduce ¬Spill Peter ∧ ¬Clean Peter
+  have hns_nc : (¬ Spill Peter ∧ ¬ Clean Peter) := by
+    cases ax6 with
+    | inl hsc =>
+        exact False.elim ((not_spill_and_clean Peter) hsc)
+    | inr hnc =>
+        exact hnc
+  have hns : ¬ Spill Peter := hns_nc.left
+  have hnc : ¬ Clean Peter := hns_nc.right
+  -- From ¬Spill and CF→Spill, get ¬CF
+  have not_CF : ¬ ClumsyFoodieGoesOut Peter := by
+    intro hcf
+    exact hns (ax2 Peter hcf)
+  -- From ¬Clean and Family→Value→Clean, get ¬Family
+  have not_Fam : ¬ FamilyPrior Peter := by
+    intro hfam
+    apply hnc
+    have hv : ValueOrder Peter := ax5 Peter hfam
+    exact ax4 Peter hv
+  -- Hence the disjunction is false
+  intro h
+  apply Or.elim h
+  · intro hcf; exact not_CF hcf
+  · intro hfam; exact not_Fam hfam
+</lean>
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+constant Person : Type
+constant Spill : Person → Prop
+constant Tidy : Person → Prop
+constant Clean : Person → Prop
+constant ValueOrder : Person → Prop
+constant FamilyPrior : Person → Prop
+constant ClumsyFoodieGoesOut : Person → Prop
+constant Peter : Person
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x : Person, Spill x → ¬ Tidy x
+axiom ax2 : ∀ x : Person, ClumsyFoodieGoesOut x → Spill x
+axiom ax3 : ∀ x : Person, Clean x → Tidy x
+axiom ax4 : ∀ x : Person, ValueOrder x → Clean x
+axiom ax5 : ∀ x : Person, FamilyPrior x → ValueOrder x
+axiom ax6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- Prove the negation of the queried statement:
+-- ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter)
+theorem peter_not_CF_or_family :
+  ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrior Peter) := by
+  -- Nobody can be both Spill and Clean
+  have not_spill_and_clean : ∀ x : Person, ¬ (Spill x ∧ Clean x) := by
+    intro x
+    intro h
+    have ht : Tidy x := ax3 x h.right
+    have nht : ¬ Tidy x := ax1 x h.left
+    exact nht ht
+  -- From ax6 and the above, deduce ¬Spill Peter ∧ ¬Clean Peter
+  have hns_nc : (¬ Spill Peter ∧ ¬ Clean Peter) :=
+    match ax6 with
+    | Or.inl hsc => False.elim ((not_spill_and_clean Peter) hsc)
+    | Or.inr hnc => hnc
+  have hns : ¬ Spill Peter := hns_nc.left
+  have hnc : ¬ Clean Peter := hns_nc.right
+  -- From ¬Spill and CF→Spill, get ¬CF
+  have not_CF : ¬ ClumsyFoodieGoesOut Peter := by
+    intro hcf
+    exact hns (ax2 Peter hcf)
+  -- From ¬Clean and Family→Value→Clean, get ¬Family
+  have not_Fam : ¬ FamilyPrior Peter := by
+    intro hfam
+    apply hnc
+    have hv : ValueOrder Peter := ax5 Peter hfam
+    exact ax4 Peter hv
+  -- Hence the disjunction is false
+  intro h
+  cases h with
+  | inl hcf => exact not_CF hcf
+  | inr hfam => exact not_Fam hfam
+</lean>
+ANSWER: False

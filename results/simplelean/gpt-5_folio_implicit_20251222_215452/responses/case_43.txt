@@ -1,0 +1,216 @@
+<lean>
+/- We formalize the problem in Lean 4. -/
+
+universe u
+
+constant Person : Type u
+constant CocoGauff : Person
+constant IgaSwiatek : Person
+constant RafaelNadal : Person
+
+-- Predicates
+constant AtRG : Person → Prop                     -- is at Roland Garros 2022
+constant Female : Person → Prop                   -- is female
+constant Male : Person → Prop                     -- is male
+constant LostToIga : Person → Prop                -- lost to Iga Świątek
+constant LostToNadal : Person → Prop              -- lost to Rafael Nadal
+constant RankedHighWTA : Person → Prop            -- ranked highly by the WTA
+constant MostActiveMajor : Person → Prop          -- one of the most active players in major tennis
+
+-- Premises from the text
+axiom Prem1 : ∀ x, RankedHighWTA x → MostActiveMajor x
+axiom Prem2 : ∀ x, (LostToIga x ∧ AtRG x) → RankedHighWTA x
+axiom Prem3 : ∀ x, (Female x ∧ AtRG x) → LostToIga x
+axiom Prem4 : ∀ x, AtRG x → (Female x ∨ Male x)
+axiom Prem5 : ∀ x, (Male x ∧ AtRG x) → LostToNadal x
+axiom Prem6 : (RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff) → ¬ (Male CocoGauff ∧ AtRG CocoGauff)
+axiom Prem7 : AtRG CocoGauff
+
+-- Some derivable consequences
+
+-- Either Coco is ranked highly or Coco lost to Nadal (case split on sex at RG).
+lemma coco_ranked_or_lostNadal : RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF =>
+      have hLostIga : LostToIga CocoGauff := Prem3 CocoGauff ⟨hF, Prem7⟩
+      exact Or.inl (Prem2 CocoGauff ⟨hLostIga, Prem7⟩)
+  | inr hM =>
+      exact Or.inr (Prem5 CocoGauff ⟨hM, Prem7⟩)
+
+-- Hence Coco is not male at RG, and in particular not male.
+lemma coco_not_male_at_RG : ¬ (Male CocoGauff ∧ AtRG CocoGauff) :=
+  Prem6 coco_ranked_or_lostNadal
+
+lemma coco_not_male : ¬ Male CocoGauff := by
+  intro hM
+  exact coco_not_male_at_RG ⟨hM, Prem7⟩
+
+-- From AtRG and not male, and the dichotomy Female ∨ Male at RG, we get Female.
+lemma coco_female : Female CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF => exact hF
+  | inr hM => exact False.elim (coco_not_male hM)
+
+-- Therefore Coco lost to Iga and is ranked highly.
+lemma coco_lost_to_iga : LostToIga CocoGauff :=
+  Prem3 CocoGauff ⟨coco_female, Prem7⟩
+
+lemma coco_ranked_high : RankedHighWTA CocoGauff :=
+  Prem2 CocoGauff ⟨coco_lost_to_iga, Prem7⟩
+
+/-
+We cannot derive LostToNadal CocoGauff from the given premises.
+Indeed, Prem5 only gives that all males at RG lost to Nadal.
+We proved Coco is not male; no premise states that non-males (or everyone) also lost to Nadal.
+Thus the target statement is not provable from the premises, nor is its negation derivable.
+-/
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+/- We formalize the problem in Lean 4. -/
+
+constant Person : Type
+constant CocoGauff : Person
+constant IgaSwiatek : Person
+constant RafaelNadal : Person
+
+-- Predicates
+constant AtRG : Person → Prop                     -- is at Roland Garros 2022
+constant Female : Person → Prop                   -- is female
+constant Male : Person → Prop                     -- is male
+constant LostToIga : Person → Prop                -- lost to Iga Świątek
+constant LostToNadal : Person → Prop              -- lost to Rafael Nadal
+constant RankedHighWTA : Person → Prop            -- ranked highly by the WTA
+constant MostActiveMajor : Person → Prop          -- one of the most active players in major tennis
+
+-- Premises from the text
+axiom Prem1 : ∀ x : Person, RankedHighWTA x → MostActiveMajor x
+axiom Prem2 : ∀ x : Person, (LostToIga x ∧ AtRG x) → RankedHighWTA x
+axiom Prem3 : ∀ x : Person, (Female x ∧ AtRG x) → LostToIga x
+axiom Prem4 : ∀ x : Person, AtRG x → (Female x ∨ Male x)
+axiom Prem5 : ∀ x : Person, (Male x ∧ AtRG x) → LostToNadal x
+axiom Prem6 : (RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff) → ¬ (Male CocoGauff ∧ AtRG CocoGauff)
+axiom Prem7 : AtRG CocoGauff
+
+-- Some derivable consequences
+
+-- Either Coco is ranked highly or Coco lost to Nadal (case split on sex at RG).
+lemma coco_ranked_or_lostNadal : RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF =>
+      have hLostIga : LostToIga CocoGauff := Prem3 CocoGauff ⟨hF, Prem7⟩
+      exact Or.inl (Prem2 CocoGauff ⟨hLostIga, Prem7⟩)
+  | inr hM =>
+      exact Or.inr (Prem5 CocoGauff ⟨hM, Prem7⟩)
+
+-- Hence Coco is not male at RG, and in particular not male.
+lemma coco_not_male_at_RG : ¬ (Male CocoGauff ∧ AtRG CocoGauff) :=
+  Prem6 coco_ranked_or_lostNadal
+
+lemma coco_not_male : ¬ Male CocoGauff := by
+  intro hM
+  exact coco_not_male_at_RG ⟨hM, Prem7⟩
+
+-- From AtRG and not male, and the dichotomy Female ∨ Male at RG, we get Female.
+lemma coco_female : Female CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF => exact hF
+  | inr hM => exact False.elim (coco_not_male hM)
+
+-- Therefore Coco lost to Iga and is ranked highly.
+lemma coco_lost_to_iga : LostToIga CocoGauff :=
+  Prem3 CocoGauff ⟨coco_female, Prem7⟩
+
+lemma coco_ranked_high : RankedHighWTA CocoGauff :=
+  Prem2 CocoGauff ⟨coco_lost_to_iga, Prem7⟩
+
+/-
+We cannot derive LostToNadal CocoGauff from the given premises.
+Indeed, Prem5 only gives that all males at RG lost to Nadal,
+and we have proved Coco is not male.
+Thus the target statement is not provable from the premises, nor is its negation derivable.
+-/
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+/- We formalize the problem in Lean 4. -/
+
+axiom Person : Type
+axiom CocoGauff : Person
+axiom IgaSwiatek : Person
+axiom RafaelNadal : Person
+
+-- Predicates
+axiom AtRG : Person → Prop                     -- is at Roland Garros 2022
+axiom Female : Person → Prop                   -- is female
+axiom Male : Person → Prop                     -- is male
+axiom LostToIga : Person → Prop                -- lost to Iga Świątek
+axiom LostToNadal : Person → Prop              -- lost to Rafael Nadal
+axiom RankedHighWTA : Person → Prop            -- ranked highly by the WTA
+axiom MostActiveMajor : Person → Prop          -- one of the most active players in major tennis
+
+-- Premises from the text
+axiom Prem1 : ∀ x : Person, RankedHighWTA x → MostActiveMajor x
+axiom Prem2 : ∀ x : Person, (LostToIga x ∧ AtRG x) → RankedHighWTA x
+axiom Prem3 : ∀ x : Person, (Female x ∧ AtRG x) → LostToIga x
+axiom Prem4 : ∀ x : Person, AtRG x → (Female x ∨ Male x)
+axiom Prem5 : ∀ x : Person, (Male x ∧ AtRG x) → LostToNadal x
+axiom Prem6 : (RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff) → ¬ (Male CocoGauff ∧ AtRG CocoGauff)
+axiom Prem7 : AtRG CocoGauff
+
+-- Either Coco is ranked highly or Coco lost to Nadal (case split on sex at RG).
+lemma coco_ranked_or_lostNadal : RankedHighWTA CocoGauff ∨ LostToNadal CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF =>
+      have hLostIga : LostToIga CocoGauff := Prem3 CocoGauff ⟨hF, Prem7⟩
+      exact Or.inl (Prem2 CocoGauff ⟨hLostIga, Prem7⟩)
+  | inr hM =>
+      exact Or.inr (Prem5 CocoGauff ⟨hM, Prem7⟩)
+
+-- Hence Coco is not male at RG, and in particular not male.
+lemma coco_not_male_at_RG : ¬ (Male CocoGauff ∧ AtRG CocoGauff) :=
+  Prem6 coco_ranked_or_lostNadal
+
+lemma coco_not_male : ¬ Male CocoGauff := by
+  intro hM
+  exact coco_not_male_at_RG ⟨hM, Prem7⟩
+
+-- From AtRG and not male, and the dichotomy Female ∨ Male at RG, we get Female.
+lemma coco_female : Female CocoGauff := by
+  have hdisj : Female CocoGauff ∨ Male CocoGauff := Prem4 CocoGauff Prem7
+  cases hdisj with
+  | inl hF => exact hF
+  | inr hM =>
+      have : False := coco_not_male hM
+      exact this.elim
+
+-- Therefore Coco lost to Iga and is ranked highly.
+lemma coco_lost_to_iga : LostToIga CocoGauff :=
+  Prem3 CocoGauff ⟨coco_female, Prem7⟩
+
+lemma coco_ranked_high : RankedHighWTA CocoGauff :=
+  Prem2 CocoGauff ⟨coco_lost_to_iga, Prem7⟩
+
+/-
+We cannot derive LostToNadal CocoGauff from the given premises.
+Indeed, Prem5 only gives that all males at RG lost to Nadal,
+and we have proved Coco is not male.
+Thus the target statement is not provable from the premises, nor is its negation derivable.
+-/
+</lean>
+ANSWER: Unknown

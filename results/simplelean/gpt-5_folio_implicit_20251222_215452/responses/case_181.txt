@@ -1,0 +1,275 @@
+<lean>
+-- Setting up the abstract context
+universe u
+
+section
+
+variable (Person : Type u)
+variable (Nice Mean Grumpy AnimalLover PetOwner : Person → Prop)
+variable (Tom : Person)
+
+-- Premises
+variable (h1 : ∀ x, Nice x → ¬ Mean x)                            -- No one nice to animals is also mean to animals.
+variable (h2 : ∃ x, Grumpy x ∧ Mean x)                            -- Some grumpy people are mean to animals.
+variable (h3 : ∀ x, AnimalLover x → Nice x)                       -- All animal lovers are nice to animals.
+variable (h4 : ∀ x, PetOwner x → AnimalLover x)                   -- All pet owners love animals.
+variable (h5 : PetOwner Tom)                                      -- Tom is a pet owner.
+
+-- A derived consequence: Tom is not mean to animals.
+theorem tom_not_mean : ¬ Mean Tom := by
+  have hAL : AnimalLover Tom := h4 Tom h5
+  have hNice : Nice Tom := h3 Tom hAL
+  exact h1 Tom hNice
+
+end
+
+-- A concrete countermodel showing the conclusion "Tom is grumpy" does not follow from the premises.
+namespace CounterModel
+
+inductive Person : Type
+| Tom
+| Alice
+deriving DecidableEq
+
+open Person
+
+def Nice : Person → Prop
+| Tom => True
+| Alice => False
+
+def Mean : Person → Prop
+| Tom => False
+| Alice => True
+
+def Grumpy : Person → Prop
+| Tom => False
+| Alice => True
+
+def AnimalLover : Person → Prop
+| Tom => True
+| Alice => False
+
+def PetOwner : Person → Prop
+| Tom => True
+| Alice => False
+
+-- Verify the premises in this model.
+theorem ax1 : ∀ x, Nice x → ¬ Mean x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    intro h
+    simpa [Mean] using h
+  | Alice =>
+    have : False := by simpa [Nice] using hx
+    exact False.elim this
+
+theorem ax2 : ∃ x, Grumpy x ∧ Mean x := by
+  refine ⟨Alice, ?_⟩
+  simp [Grumpy, Mean]
+
+theorem ax3 : ∀ x, AnimalLover x → Nice x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax4 : ∀ x, PetOwner x → AnimalLover x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax5 : PetOwner Tom := by
+  exact True.intro
+
+-- In this model, Tom is not grumpy.
+theorem tom_not_grumpy : ¬ Grumpy Tom := by
+  intro h
+  simpa [Grumpy] using h
+
+end CounterModel
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+-- Abstract formalization of the problem
+universe u
+
+section
+variable {Person : Type u}
+variable {Nice Mean Grumpy AnimalLover PetOwner : Person → Prop}
+variable {Tom : Person}
+
+-- Premises (as parameters)
+-- h1: No one nice to animals is also mean to animals.
+-- h2: Some grumpy people are mean to animals.
+-- h3: All animal lovers are nice to animals.
+-- h4: All pet owners love animals.
+-- h5: Tom is a pet owner.
+
+-- A derived consequence: Tom is not mean to animals.
+theorem tom_not_mean
+  (h1 : ∀ x, Nice x → ¬ Mean x)
+  (h2 : ∃ x, Grumpy x ∧ Mean x)
+  (h3 : ∀ x, AnimalLover x → Nice x)
+  (h4 : ∀ x, PetOwner x → AnimalLover x)
+  (h5 : PetOwner Tom) :
+  ¬ Mean Tom := by
+  have hAL : AnimalLover Tom := h4 Tom h5
+  have hNice : Nice Tom := h3 Tom hAL
+  exact h1 Tom hNice
+end
+
+-- A concrete countermodel showing the conclusion "Tom is grumpy" does not follow from the premises.
+namespace CounterModel
+
+inductive Person : Type
+| Tom
+| Alice
+deriving DecidableEq
+
+open Person
+
+def Nice : Person → Prop
+| Tom => True
+| Alice => False
+
+def Mean : Person → Prop
+| Tom => False
+| Alice => True
+
+def Grumpy : Person → Prop
+| Tom => False
+| Alice => True
+
+def AnimalLover : Person → Prop
+| Tom => True
+| Alice => False
+
+def PetOwner : Person → Prop
+| Tom => True
+| Alice => False
+
+-- Verify the premises in this model.
+theorem ax1 : ∀ x, Nice x → ¬ Mean x := by
+  intro x hx hmean
+  cases x with
+  | Tom =>
+    -- Mean Tom = False
+    simpa [Mean] using hmean
+  | Alice =>
+    -- Nice Alice = False, contradiction from hx
+    simpa [Nice] using hx
+
+theorem ax2 : ∃ x, Grumpy x ∧ Mean x := by
+  refine ⟨Alice, ?_⟩
+  have hG : Grumpy Alice := by simpa [Grumpy]
+  have hM : Mean Alice := by simpa [Mean]
+  exact And.intro hG hM
+
+theorem ax3 : ∀ x, AnimalLover x → Nice x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax4 : ∀ x, PetOwner x → AnimalLover x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax5 : PetOwner Tom := by
+  exact True.intro
+
+-- In this model, Tom is not grumpy.
+theorem tom_not_grumpy : ¬ Grumpy Tom := by
+  intro h
+  simpa [Grumpy] using h
+
+end CounterModel
+
+-- Another model showing that the negation "Tom is not grumpy" is also not derivable.
+-- Here the premises hold and Tom IS grumpy.
+namespace ModelTomGrumpy
+
+inductive Person : Type
+| Tom
+| Alice
+deriving DecidableEq
+
+open Person
+
+def Nice : Person → Prop
+| Tom => True
+| Alice => False
+
+def Mean : Person → Prop
+| Tom => False
+| Alice => True
+
+def Grumpy : Person → Prop
+| Tom => True
+| Alice => True
+
+def AnimalLover : Person → Prop
+| Tom => True
+| Alice => False
+
+def PetOwner : Person → Prop
+| Tom => True
+| Alice => False
+
+theorem ax1 : ∀ x, Nice x → ¬ Mean x := by
+  intro x hx hmean
+  cases x with
+  | Tom =>
+    simpa [Mean] using hmean
+  | Alice =>
+    simpa [Nice] using hx
+
+theorem ax2 : ∃ x, Grumpy x ∧ Mean x := by
+  refine ⟨Alice, ?_⟩
+  have hG : Grumpy Alice := by simpa [Grumpy]
+  have hM : Mean Alice := by simpa [Mean]
+  exact And.intro hG hM
+
+theorem ax3 : ∀ x, AnimalLover x → Nice x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax4 : ∀ x, PetOwner x → AnimalLover x := by
+  intro x hx
+  cases x with
+  | Tom =>
+    exact True.intro
+  | Alice =>
+    cases hx
+
+theorem ax5 : PetOwner Tom := by
+  exact True.intro
+
+-- In this model, Tom is grumpy.
+theorem tom_grumpy : Grumpy Tom := by
+  simpa [Grumpy]
+
+end ModelTomGrumpy
+</lean>
+ANSWER: Unknown

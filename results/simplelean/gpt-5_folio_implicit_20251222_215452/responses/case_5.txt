@@ -1,0 +1,256 @@
+<lean>
+universe u
+
+-- Domain of discourse
+constant Person : Type u
+
+-- Predicates
+constant Employee : Person → Prop
+constant Manager : Person → Prop
+constant InOtherCountries : Person → Prop
+constant RemoteFromHome : Person → Prop
+constant LunchCompany : Person → Prop
+constant LunchHome : Person → Prop
+constant SchedulesMeetingsWithCustomers : Person → Prop
+constant GoToCompanyBuildingToday : Person → Prop
+constant AppearsInCompanyToday : Person → Prop
+
+-- A specific individual
+constant James : Person
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x : Person, Employee x ∧ SchedulesMeetingsWithCustomers x → GoToCompanyBuildingToday x
+axiom ax2 : ∀ x : Person, LunchCompany x → SchedulesMeetingsWithCustomers x
+axiom ax3 : ∀ x : Person, Employee x → (LunchCompany x ∨ LunchHome x)
+axiom ax4 : ∀ x : Person, Employee x ∧ LunchHome x → RemoteFromHome x
+axiom ax5 : ∀ x : Person, Employee x ∧ InOtherCountries x → RemoteFromHome x
+axiom ax6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+axiom ax7 : AppearsInCompanyToday James ↔ Manager James
+
+-- The statement to assess:
+-- "If James is either a manager or in other countries, then James does not either has lunch at home or work remotely from home.
+--  If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries."
+def Statement : Prop :=
+  ((Manager James ∨ InOtherCountries James) → ¬ (LunchHome James ∨ RemoteFromHome James)) ∧
+  ((LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James))
+
+-- Some derived lemmas illustrating what follows from the axioms:
+
+-- If James is a manager and an employee, then he neither has lunch at home nor works remotely.
+theorem manager_employee_implies_not_home_nor_remote
+  (hm : Manager James) (he : Employee James) :
+  ¬ (LunchHome James ∨ RemoteFromHome James) :=
+by
+  intro h
+  have hnotR : ¬ RemoteFromHome James := ax6 James hm
+  cases h with
+  | inl hLH =>
+      -- From employee and lunch at home, he must be remote, contradiction.
+      have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+      exact hnotR hR
+  | inr hR =>
+      exact hnotR hR
+
+-- If James is an employee and in other countries, then the main Statement is false.
+-- Reason: then RemoteFromHome James holds by ax5, so the second implication in Statement would force ¬InOtherCountries James, contradicting the assumption.
+theorem employee_and_othercountries_refute_Statement
+  (he : Employee James) (hoc : InOtherCountries James) :
+  ¬ Statement :=
+by
+  intro hS
+  have hR : RemoteFromHome James := ax5 James ⟨he, hoc⟩
+  -- Extract the second implication from the statement
+  have h2 : (LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James) := And.right hS
+  have hconseq : (¬ Manager James ∧ ¬ InOtherCountries James) := h2 (Or.inr hR)
+  exact (And.right hconseq) hoc
+
+-- If James is an employee, then having lunch at home or working remotely implies he is not a manager.
+theorem employee_implies_home_or_remote_not_manager
+  (he : Employee James) :
+  (LunchHome James ∨ RemoteFromHome James) → ¬ Manager James :=
+by
+  intro h
+  cases h with
+  | inl hLH =>
+      -- Lunch at home ⇒ remote, and managers are never remote
+      have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+      intro hm
+      exact (ax6 James hm) hR
+  | inr hR =>
+      intro hm
+      exact (ax6 James hm) hR
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+set_option autoImplicit false
+
+universe u
+
+-- Domain of discourse
+constant (Person : Type u)
+
+-- Predicates
+constant (Employee : Person → Prop)
+constant (Manager : Person → Prop)
+constant (InOtherCountries : Person → Prop)
+constant (RemoteFromHome : Person → Prop)
+constant (LunchCompany : Person → Prop)
+constant (LunchHome : Person → Prop)
+constant (SchedulesMeetingsWithCustomers : Person → Prop)
+constant (GoToCompanyBuildingToday : Person → Prop)
+constant (AppearsInCompanyToday : Person → Prop)
+
+-- A specific individual
+constant (James : Person)
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x : Person, Employee x ∧ SchedulesMeetingsWithCustomers x → GoToCompanyBuildingToday x
+axiom ax2 : ∀ x : Person, LunchCompany x → SchedulesMeetingsWithCustomers x
+axiom ax3 : ∀ x : Person, Employee x → (LunchCompany x ∨ LunchHome x)
+axiom ax4 : ∀ x : Person, Employee x ∧ LunchHome x → RemoteFromHome x
+axiom ax5 : ∀ x : Person, Employee x ∧ InOtherCountries x → RemoteFromHome x
+axiom ax6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+axiom ax7 : AppearsInCompanyToday James ↔ Manager James
+
+-- The statement to assess
+def Statement : Prop :=
+  ((Manager James ∨ InOtherCountries James) → ¬ (LunchHome James ∨ RemoteFromHome James)) ∧
+  ((LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James))
+
+-- Some derived lemmas:
+
+-- If James is a manager and an employee, then he neither has lunch at home nor works remotely.
+theorem manager_employee_implies_not_home_nor_remote
+  (hm : Manager James) (he : Employee James) :
+  ¬ (LunchHome James ∨ RemoteFromHome James) :=
+by
+  intro h
+  have hnotR : ¬ RemoteFromHome James := ax6 James hm
+  apply Or.elim h
+  · intro hLH
+    have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+    exact hnotR hR
+  · intro hR
+    exact hnotR hR
+
+-- If James is an employee and in other countries, then Statement is false.
+-- Reason: then RemoteFromHome James holds by ax5, so the second implication in Statement would force ¬InOtherCountries James, contradicting the assumption.
+theorem employee_and_othercountries_refute_Statement
+  (he : Employee James) (hoc : InOtherCountries James) :
+  ¬ Statement :=
+by
+  intro hS
+  have hR : RemoteFromHome James := ax5 James ⟨he, hoc⟩
+  have h2 : (LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James) := And.right hS
+  have hconseq : (¬ Manager James ∧ ¬ InOtherCountries James) := h2 (Or.inr hR)
+  exact (And.right hconseq) hoc
+
+-- If James is an employee, then having lunch at home or working remotely implies he is not a manager.
+theorem employee_implies_home_or_remote_not_manager
+  (he : Employee James) :
+  (LunchHome James ∨ RemoteFromHome James) → ¬ Manager James :=
+by
+  intro h
+  apply Or.elim h
+  · intro hLH
+    have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+    intro hm
+    exact (ax6 James hm) hR
+  · intro hR
+    intro hm
+    exact (ax6 James hm) hR
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+set_option autoImplicit false
+
+universe u
+
+-- Domain of discourse
+constant Person : Type u
+
+-- Predicates
+constant Employee : Person → Prop
+constant Manager : Person → Prop
+constant InOtherCountries : Person → Prop
+constant RemoteFromHome : Person → Prop
+constant LunchCompany : Person → Prop
+constant LunchHome : Person → Prop
+constant SchedulesMeetingsWithCustomers : Person → Prop
+constant GoToCompanyBuildingToday : Person → Prop
+constant AppearsInCompanyToday : Person → Prop
+
+-- A specific individual
+constant James : Person
+
+-- Axioms from the textual context
+axiom ax1 : ∀ x : Person, Employee x ∧ SchedulesMeetingsWithCustomers x → GoToCompanyBuildingToday x
+axiom ax2 : ∀ x : Person, LunchCompany x → SchedulesMeetingsWithCustomers x
+axiom ax3 : ∀ x : Person, Employee x → (LunchCompany x ∨ LunchHome x)
+axiom ax4 : ∀ x : Person, Employee x ∧ LunchHome x → RemoteFromHome x
+axiom ax5 : ∀ x : Person, Employee x ∧ InOtherCountries x → RemoteFromHome x
+axiom ax6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+axiom ax7 : AppearsInCompanyToday James ↔ Manager James
+
+-- The statement to assess:
+-- "If James is either a manager or in other countries, then James does not either has lunch at home or work remotely from home.
+--  If James either has lunch at home or works remotely from home, then he is neither a manager nor does he work in other countries."
+def Statement : Prop :=
+  ((Manager James ∨ InOtherCountries James) → ¬ (LunchHome James ∨ RemoteFromHome James)) ∧
+  ((LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James))
+
+-- Some derived lemmas illustrating consequences of the axioms:
+
+-- If James is a manager and an employee, then he neither has lunch at home nor works remotely.
+theorem manager_employee_implies_not_home_nor_remote
+  (hm : Manager James) (he : Employee James) :
+  ¬ (LunchHome James ∨ RemoteFromHome James) :=
+by
+  intro h
+  have hnotR : ¬ RemoteFromHome James := ax6 James hm
+  apply Or.elim h
+  · intro hLH
+    have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+    exact hnotR hR
+  · intro hR
+    exact hnotR hR
+
+-- If James is an employee and in other countries, then the main Statement is false.
+-- Reason: then RemoteFromHome James holds by ax5, so the second implication in Statement would force ¬InOtherCountries James, contradicting the assumption.
+theorem employee_and_othercountries_refute_Statement
+  (he : Employee James) (hoc : InOtherCountries James) :
+  ¬ Statement :=
+by
+  intro hS
+  have hR : RemoteFromHome James := ax5 James ⟨he, hoc⟩
+  -- Extract the second implication from the statement
+  have h2 : (LunchHome James ∨ RemoteFromHome James) → (¬ Manager James ∧ ¬ InOtherCountries James) := And.right hS
+  have hconseq : (¬ Manager James ∧ ¬ InOtherCountries James) := h2 (Or.inr hR)
+  exact (And.right hconseq) hoc
+
+-- If James is an employee, then having lunch at home or working remotely implies he is not a manager.
+theorem employee_implies_home_or_remote_not_manager
+  (he : Employee James) :
+  (LunchHome James ∨ RemoteFromHome James) → ¬ Manager James :=
+by
+  intro h
+  apply Or.elim h
+  · intro hLH
+    have hR : RemoteFromHome James := ax4 James ⟨he, hLH⟩
+    intro hm
+    exact (ax6 James hm) hR
+  · intro hR
+    intro hm
+    exact (ax6 James hm) hR
+</lean>
+ANSWER: Unknown

@@ -1,0 +1,156 @@
+<lean>
+universe u
+
+constant U : Type u
+
+constant PeterPet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant CanFly : U → Prop
+constant CanBreathe : U → Prop
+constant HasWings : U → Prop
+
+constant Rock : U
+
+axiom pets_mammals_are_animals : ∀ x, PeterPet x ∧ Mammal x → Animal x
+axiom monkeys_mammals : ∀ x, Monkey x → Mammal x
+axiom pets_monkeys_or_birds : ∀ x, PeterPet x → (Monkey x ∨ Bird x)
+axiom peters_birds_can_fly : ∀ x, PeterPet x ∧ Bird x → CanFly x
+axiom pets_animals_can_breathe : ∀ x, PeterPet x ∧ Animal x → CanBreathe x
+axiom pet_can_fly_has_wings : ∀ x, PeterPet x ∧ CanFly x → HasWings x
+axiom rock_is_pet : PeterPet Rock
+axiom disj : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+theorem Rock_has_wings : HasWings Rock := by
+  have hpet : PeterPet Rock := rock_is_pet
+  have hmb : Monkey Rock ∨ Bird Rock := pets_monkeys_or_birds Rock hpet
+  cases hmb with
+  | inl hMonkey =>
+      have hMammal : Mammal Rock := monkeys_mammals Rock hMonkey
+      have hAnimal : Animal Rock := pets_mammals_are_animals Rock ⟨hpet, hMammal⟩
+      have hBreathe : CanBreathe Rock := pets_animals_can_breathe Rock ⟨hpet, hAnimal⟩
+      have : HasWings Rock := by
+        cases disj with
+        | inl hFly =>
+            exact pet_can_fly_has_wings Rock ⟨hpet, hFly⟩
+        | inr h =>
+            cases h with
+            | inl hBird =>
+                have hFly2 : CanFly Rock := peters_birds_can_fly Rock ⟨hpet, hBird⟩
+                exact pet_can_fly_has_wings Rock ⟨hpet, hFly2⟩
+            | inr hNotBreathe =>
+                exact False.elim (hNotBreathe hBreathe)
+      exact this
+  | inr hBird =>
+      have hFly : CanFly Rock := peters_birds_can_fly Rock ⟨hpet, hBird⟩
+      exact pet_can_fly_has_wings Rock ⟨hpet, hFly⟩
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+universe u
+
+constant U : Type u
+
+constant PeterPet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant CanFly : U → Prop
+constant CanBreathe : U → Prop
+constant HasWings : U → Prop
+
+constant Rock : U
+
+axiom pets_mammals_are_animals : ∀ x : U, PeterPet x ∧ Mammal x → Animal x
+axiom monkeys_mammals : ∀ x : U, Monkey x → Mammal x
+axiom pets_monkeys_or_birds : ∀ x : U, PeterPet x → (Monkey x ∨ Bird x)
+axiom peters_birds_can_fly : ∀ x : U, PeterPet x ∧ Bird x → CanFly x
+axiom pets_animals_can_breathe : ∀ x : U, PeterPet x ∧ Animal x → CanBreathe x
+axiom pet_can_fly_has_wings : ∀ x : U, PeterPet x ∧ CanFly x → HasWings x
+axiom rock_is_pet : PeterPet Rock
+axiom disj : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+theorem Rock_has_wings : HasWings Rock := by
+  have hpet : PeterPet Rock := rock_is_pet
+  -- First, show Rock can fly
+  have hFly : CanFly Rock := by
+    have hmb : Monkey Rock ∨ Bird Rock := pets_monkeys_or_birds Rock hpet
+    cases hmb with
+    | inl hMonkey =>
+        cases disj with
+        | inl hFly => exact hFly
+        | inr h =>
+            cases h with
+            | inl hBird =>
+                exact peters_birds_can_fly Rock ⟨hpet, hBird⟩
+            | inr hNotBreathe =>
+                have hMammal : Mammal Rock := monkeys_mammals Rock hMonkey
+                have hAnimal : Animal Rock := pets_mammals_are_animals Rock ⟨hpet, hMammal⟩
+                have hBreathe : CanBreathe Rock := pets_animals_can_breathe Rock ⟨hpet, hAnimal⟩
+                exact False.elim (hNotBreathe hBreathe)
+    | inr hBird =>
+        exact peters_birds_can_fly Rock ⟨hpet, hBird⟩
+  -- From can fly and being Peter's pet, Rock has wings
+  exact pet_can_fly_has_wings Rock ⟨hpet, hFly⟩
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+universe u
+
+constant U : Type u
+
+constant PeterPet : U → Prop
+constant Mammal : U → Prop
+constant Animal : U → Prop
+constant Monkey : U → Prop
+constant Bird : U → Prop
+constant CanFly : U → Prop
+constant CanBreathe : U → Prop
+constant HasWings : U → Prop
+
+constant Rock : U
+
+axiom pets_mammals_are_animals (x : U) : And (PeterPet x) (Mammal x) → Animal x
+axiom monkeys_mammals (x : U) : Monkey x → Mammal x
+axiom pets_monkeys_or_birds (x : U) : PeterPet x → Or (Monkey x) (Bird x)
+axiom peters_birds_can_fly (x : U) : And (PeterPet x) (Bird x) → CanFly x
+axiom pets_animals_can_breathe (x : U) : And (PeterPet x) (Animal x) → CanBreathe x
+axiom pet_can_fly_has_wings (x : U) : And (PeterPet x) (CanFly x) → HasWings x
+axiom rock_is_pet : PeterPet Rock
+axiom disj : Or (CanFly Rock) (Or (Bird Rock) (Not (CanBreathe Rock)))
+
+theorem Rock_has_wings : HasWings Rock := by
+  have hpet : PeterPet Rock := rock_is_pet
+  have hFly : CanFly Rock := by
+    have hmb : Or (Monkey Rock) (Bird Rock) := pets_monkeys_or_birds Rock hpet
+    cases hmb with
+    | inl hMonkey =>
+      cases disj with
+      | inl hF => exact hF
+      | inr h =>
+        cases h with
+        | inl hBird =>
+          exact peters_birds_can_fly Rock (And.intro hpet hBird)
+        | inr hNotBreathe =>
+          have hMammal : Mammal Rock := monkeys_mammals Rock hMonkey
+          have hAnimal : Animal Rock := pets_mammals_are_animals Rock (And.intro hpet hMammal)
+          have hBreathe : CanBreathe Rock := pets_animals_can_breathe Rock (And.intro hpet hAnimal)
+          exact False.elim (hNotBreathe hBreathe)
+    | inr hBird =>
+      exact peters_birds_can_fly Rock (And.intro hpet hBird)
+  exact pet_can_fly_has_wings Rock (And.intro hpet hFly)
+</lean>
+ANSWER: True

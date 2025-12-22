@@ -1,0 +1,132 @@
+<lean>
+universe u
+
+section
+
+variable (U : Type u)
+variable (BakedSweet Spicy Cupcake MalaHotpot FromBBM DTC : U → Prop)
+
+variable
+  (h1 : ∀ x, BakedSweet x → ¬ Spicy x)             -- No baked sweets are spicy
+  (h2 : ∀ x, Cupcake x → BakedSweet x)              -- All cupcakes are baked sweets
+  (h3 : ∀ x, MalaHotpot x → Spicy x)                -- All mala hotpots are spicy
+  (h4 : ∀ x, FromBBM x → Cupcake x)                 -- All products from BBM are cupcakes
+  (h5 : ∀ x, DTC x → (Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x)) -- DTC are spicy or mala hotpots or not baked sweets
+
+theorem DTC_neither_BBM_nor_BS : ∀ x, DTC x → (¬ FromBBM x ∧ ¬ BakedSweet x) := by
+  intro x hx
+  have not_from_of_not_bs : ¬ BakedSweet x → ¬ FromBBM x := by
+    intro nb
+    intro fbm
+    have cb : Cupcake x := h4 x fbm
+    have bs : BakedSweet x := h2 x cb
+    exact nb bs
+  have disj := h5 x hx
+  cases disj with
+  | inl s =>
+      have not_bs : ¬ BakedSweet x := by
+        intro bs
+        have ns : ¬ Spicy x := h1 x bs
+        exact ns s
+      exact And.intro (not_from_of_not_bs not_bs) not_bs
+  | inr rest =>
+      cases rest with
+      | inl mh =>
+          have s : Spicy x := h3 x mh
+          have not_bs : ¬ BakedSweet x := by
+            intro bs
+            have ns : ¬ Spicy x := h1 x bs
+            exact ns s
+          exact And.intro (not_from_of_not_bs not_bs) not_bs
+      | inr nb =>
+          exact And.intro (not_from_of_not_bs nb) nb
+
+end
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+universe u
+
+section
+
+variable (U : Type u)
+variable (BakedSweet : U → Prop)
+variable (Spicy : U → Prop)
+variable (Cupcake : U → Prop)
+variable (MalaHotpot : U → Prop)
+variable (FromBBM : U → Prop)
+variable (DTC : U → Prop)
+
+variable
+  (h1 : ∀ x, BakedSweet x → ¬ Spicy x)             -- No baked sweets are spicy
+  (h2 : ∀ x, Cupcake x → BakedSweet x)              -- All cupcakes are baked sweets
+  (h3 : ∀ x, MalaHotpot x → Spicy x)                -- All mala hotpots are spicy
+  (h4 : ∀ x, FromBBM x → Cupcake x)                 -- All products from BBM are cupcakes
+  (h5 : ∀ x, DTC x → (Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x)) -- DTC are spicy or mala hotpots or not baked sweets
+
+theorem DTC_neither_BBM_nor_BS :
+  ∀ x, DTC x → (¬ FromBBM x ∧ ¬ BakedSweet x) := by
+  intro x hx
+  have not_from_of_not_bs : ¬ BakedSweet x → ¬ FromBBM x := by
+    intro nb fbm
+    exact nb (h2 x (h4 x fbm))
+  have not_bs : ¬ BakedSweet x := by
+    have disj := h5 x hx
+    match disj with
+    | Or.inl s =>
+        exact fun bs => (h1 x bs) s
+    | Or.inr rest =>
+        match rest with
+        | Or.inl mh =>
+            have s := h3 x mh
+            exact fun bs => (h1 x bs) s
+        | Or.inr nb =>
+            exact nb
+  exact And.intro (not_from_of_not_bs not_bs) not_bs
+
+end
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+universe u
+
+theorem DTC_neither_BBM_nor_BS
+  {U : Type u}
+  (BakedSweet Spicy Cupcake MalaHotpot FromBBM DTC : U → Prop)
+  (h1 : ∀ x, BakedSweet x → ¬ Spicy x)                               -- No baked sweets are spicy
+  (h2 : ∀ x, Cupcake x → BakedSweet x)                                -- All cupcakes are baked sweets
+  (h3 : ∀ x, MalaHotpot x → Spicy x)                                  -- All mala hotpots are spicy
+  (h4 : ∀ x, FromBBM x → Cupcake x)                                   -- All products from BBM are cupcakes
+  (h5 : ∀ x, DTC x → (Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x))       -- DTC are spicy or mala hotpots or not baked sweets
+  : ∀ x, DTC x → (¬ FromBBM x ∧ ¬ BakedSweet x) := by
+  intro x hx
+  -- From ¬BakedSweet x, deduce ¬FromBBM x (since FromBBM → Cupcake → BakedSweet)
+  have not_from_of_not_bs : ¬ BakedSweet x → ¬ FromBBM x := by
+    intro nb fbm
+    exact nb (h2 x (h4 x fbm))
+  -- Show ¬BakedSweet x from the disjunction in h5 and h1,h3
+  have not_bs : ¬ BakedSweet x := by
+    have disj := h5 x hx
+    cases disj with
+    | inl s =>
+        exact fun bs => (h1 x bs) s
+    | inr rest =>
+        cases rest with
+        | inl mh =>
+            have s := h3 x mh
+            exact fun bs => (h1 x bs) s
+        | inr nb =>
+            exact nb
+  exact And.intro (not_from_of_not_bs not_bs) not_bs
+</lean>
+ANSWER: True

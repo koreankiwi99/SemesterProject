@@ -1,0 +1,182 @@
+<lean>
+namespace NL
+
+-- We model the scenario with a type of entities U, predicates on U, a constant Rock, and the axioms as fields.
+structure Model where
+  U : Type
+  Pet Animal Mammal Monkey Bird Fly Wings Breathe : U → Prop
+  Rock : U
+  ax1 : ∀ x, Pet x ∧ Mammal x → Animal x                      -- All Peter's pets that are mammals are animals.
+  ax2 : ∀ x, Monkey x → Mammal x                               -- All monkeys are mammals.
+  ax3 : ∀ x, Pet x → Monkey x ∨ Bird x                         -- Peter's pets are either monkeys or birds.
+  ax4 : ∀ x, Pet x ∧ Bird x → Fly x                            -- Peter's birds can fly.
+  ax5 : ∀ x, Animal x ∧ Pet x → Breathe x                      -- All animals that are Peter's pets can breathe.
+  ax6 : ∀ x, Pet x ∧ Fly x → Wings x                           -- If Peter's pet can fly, then it has wings.
+  ax7 : Pet Rock                                               -- Rock is Peter's pet.
+  ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock                  -- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+
+-- Model A: satisfies all axioms and Rock is NOT a monkey.
+def m1 : Model where
+  U := Unit
+  Pet := fun _ => True
+  Animal := fun _ => False
+  Mammal := fun _ => False
+  Monkey := fun _ => False
+  Bird := fun _ => True
+  Fly := fun _ => True
+  Wings := fun _ => True
+  Breathe := fun _ => False
+  Rock := ()
+  ax1 := by
+    intro x h
+    -- h.right : Mammal x, which is False; Animal x is also False, so we can return h.right
+    exact And.right h
+  ax2 := by
+    intro x hMon
+    -- Monkey x is False, Mammal x is False; a proof of Monkey x gives False, from which anything follows
+    exact hMon
+  ax3 := by
+    intro x _; exact Or.inr True.intro
+  ax4 := by
+    intro x _; exact True.intro
+  ax5 := by
+    intro x h; exact And.left h
+  ax6 := by
+    intro x _; exact True.intro
+  ax7 := True.intro
+  ax8 := Or.inl True.intro
+
+theorem m1_not_monkey : ¬ m1.Monkey m1.Rock := by
+  intro h; exact h   -- m1.Monkey m1.Rock is False by definition
+
+-- Model B: satisfies all axioms and Rock IS a monkey.
+def m2 : Model where
+  U := Unit
+  Pet := fun _ => True
+  Animal := fun _ => True
+  Mammal := fun _ => True
+  Monkey := fun _ => True
+  Bird := fun _ => False
+  Fly := fun _ => True
+  Wings := fun _ => True
+  Breathe := fun _ => True
+  Rock := ()
+  ax1 := by
+    intro x _; exact True.intro
+  ax2 := by
+    intro x _; exact True.intro
+  ax3 := by
+    intro x _; exact Or.inl True.intro
+  ax4 := by
+    intro x h
+    exact False.elim (And.right h)    -- Bird x is False, so the premise is impossible
+  ax5 := by
+    intro x _; exact True.intro
+  ax6 := by
+    intro x _; exact True.intro
+  ax7 := True.intro
+  ax8 := Or.inl True.intro
+
+theorem m2_monkey : m2.Monkey m2.Rock := by
+  exact True.intro
+
+end NL
+</lean>
+ANSWER: Unknown
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+namespace NL
+
+-- Corrected structure: declare each predicate field separately to avoid unintended dependencies.
+structure Model where
+  U : Type
+  Pet : U → Prop
+  Animal : U → Prop
+  Mammal : U → Prop
+  Monkey : U → Prop
+  Bird : U → Prop
+  Fly : U → Prop
+  Wings : U → Prop
+  Breathe : U → Prop
+  Rock : U
+  ax1 : ∀ x, Pet x ∧ Mammal x → Animal x                      -- All Peter's pets that are mammals are animals.
+  ax2 : ∀ x, Monkey x → Mammal x                               -- All monkeys are mammals.
+  ax3 : ∀ x, Pet x → Monkey x ∨ Bird x                         -- Peter's pets are either monkeys or birds.
+  ax4 : ∀ x, Pet x ∧ Bird x → Fly x                            -- Peter's birds can fly.
+  ax5 : ∀ x, Animal x ∧ Pet x → Breathe x                      -- All animals that are Peter's pets can breathe.
+  ax6 : ∀ x, Pet x ∧ Fly x → Wings x                           -- If Peter's pet can fly, then it has wings.
+  ax7 : Pet Rock                                               -- Rock is Peter's pet.
+  ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock                  -- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+
+-- Model A: satisfies all axioms and Rock is NOT a monkey.
+def m1 : Model where
+  U := Unit
+  Pet := fun _ => True
+  Animal := fun _ => False
+  Mammal := fun _ => False
+  Monkey := fun _ => False
+  Bird := fun _ => True
+  Fly := fun _ => True
+  Wings := fun _ => True
+  Breathe := fun _ => False
+  Rock := ()
+  ax1 := by
+    intro x h
+    -- Animal x is False; obtain False from Mammal x (also False)
+    exact And.right h
+  ax2 := by
+    intro x hMon
+    -- From Monkey x (False) derive Mammal x (False)
+    exact hMon
+  ax3 := by
+    intro x _; exact Or.inr True.intro
+  ax4 := by
+    intro x _; exact True.intro
+  ax5 := by
+    intro x h; exact And.left h
+  ax6 := by
+    intro x _; exact True.intro
+  ax7 := True.intro
+  ax8 := Or.inl True.intro
+
+theorem m1_not_monkey : ¬ m1.Monkey m1.Rock := by
+  intro h; exact h   -- m1.Monkey m1.Rock is definitionally False
+
+-- Model B: satisfies all axioms and Rock IS a monkey.
+def m2 : Model where
+  U := Unit
+  Pet := fun _ => True
+  Animal := fun _ => True
+  Mammal := fun _ => True
+  Monkey := fun _ => True
+  Bird := fun _ => False
+  Fly := fun _ => True
+  Wings := fun _ => True
+  Breathe := fun _ => True
+  Rock := ()
+  ax1 := by
+    intro x _; exact True.intro
+  ax2 := by
+    intro x _; exact True.intro
+  ax3 := by
+    intro x _; exact Or.inl True.intro
+  ax4 := by
+    intro x h
+    exact False.elim (And.right h)    -- Bird x is False, so premise is impossible
+  ax5 := by
+    intro x _; exact True.intro
+  ax6 := by
+    intro x _; exact True.intro
+  ax7 := True.intro
+  ax8 := Or.inl True.intro
+
+theorem m2_monkey : m2.Monkey m2.Rock := by
+  exact True.intro
+
+end NL
+</lean>
+ANSWER: Unknown

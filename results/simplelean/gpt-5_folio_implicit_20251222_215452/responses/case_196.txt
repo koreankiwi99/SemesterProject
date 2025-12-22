@@ -1,0 +1,203 @@
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant Jane : Entity
+constant KiKi : Entity
+
+constant Animal : Entity → Prop
+constant Dog : Entity → Prop
+constant Barks : Entity → Prop
+constant Jumps : Entity → Prop
+constant HasLegs : Entity → Prop
+constant Terricolous : Entity → Prop
+constant Likes : Entity → Entity → Prop
+
+-- Axioms from the text
+axiom h1 : ∀ x : Entity, (Animal x ∧ Barks x) → ¬Likes Jane x
+axiom h2 : ∀ x : Entity, Dog x → (Animal x ∧ Barks x)
+axiom h3 : ∀ x : Entity, (Animal x ∧ Jumps x) → Likes Jane x
+axiom h4 : ∀ x : Entity, (Animal x ∧ HasLegs x) → Jumps x
+axiom h5 : ∀ x : Entity, (Animal x ∧ Terricolous x) → HasLegs x
+axiom h6 : Animal KiKi
+axiom h7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical
+
+theorem KiKi_is_not_a_barking_dog : ¬ (Dog KiKi ∧ Barks KiKi) := by
+  -- First, show ¬ (¬Jumps KiKi ∧ ¬HasLegs KiKi)
+  have hNotBoth : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+    intro h
+    have hOr := h7 h
+    cases hOr with
+    | inl hT =>
+        have hL : HasLegs KiKi := h5 KiKi ⟨h6, hT⟩
+        exact h.right hL
+    | inr hL =>
+        exact h.right hL
+  -- From this, derive Jumps KiKi (classically)
+  have hJL : Jumps KiKi ∨ HasLegs KiKi := by
+    by_contra hcontra
+    apply hNotBoth
+    constructor
+    · intro hj
+      apply hcontra
+      exact Or.inl hj
+    · intro hl
+      apply hcontra
+      exact Or.inr hl
+  have hJump : Jumps KiKi := by
+    cases hJL with
+    | inl hj => exact hj
+    | inr hl =>
+        exact h4 KiKi ⟨h6, hl⟩
+  -- Jane likes KiKi because KiKi is an animal that jumps
+  have hLike : Likes Jane KiKi := h3 KiKi ⟨h6, hJump⟩
+  -- Therefore, KiKi cannot be an animal that barks
+  have hNotAnimalAndBarks : ¬ (Animal KiKi ∧ Barks KiKi) := by
+    intro hAB
+    have hNotLike : ¬ Likes Jane KiKi := (h1 KiKi) hAB
+    exact hNotLike hLike
+  -- Hence, KiKi does not bark
+  have hNotBark : ¬ Barks KiKi := by
+    intro hb
+    exact hNotAnimalAndBarks ⟨h6, hb⟩
+  -- Finally, KiKi is not a barking dog
+  intro hDogBark
+  exact hNotBark hDogBark.right
+</lean>
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+constant Entity : Type
+
+constant Jane : Entity
+constant KiKi : Entity
+
+constant Animal : Entity → Prop
+constant Dog : Entity → Prop
+constant Barks : Entity → Prop
+constant Jumps : Entity → Prop
+constant HasLegs : Entity → Prop
+constant Terricolous : Entity → Prop
+constant Likes : Entity → Entity → Prop
+
+-- Axioms from the text
+axiom h1 : ∀ x : Entity, (Animal x ∧ Barks x) → ¬ Likes Jane x
+axiom h2 : ∀ x : Entity, Dog x → (Animal x ∧ Barks x)
+axiom h3 : ∀ x : Entity, (Animal x ∧ Jumps x) → Likes Jane x
+axiom h4 : ∀ x : Entity, (Animal x ∧ HasLegs x) → Jumps x
+axiom h5 : ∀ x : Entity, (Animal x ∧ Terricolous x) → HasLegs x
+axiom h6 : Animal KiKi
+axiom h7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+theorem KiKi_is_not_a_barking_dog : ¬ (Dog KiKi ∧ Barks KiKi) := by
+  -- First, show ¬ (¬Jumps KiKi ∧ ¬HasLegs KiKi)
+  have hNotBoth : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+    intro h
+    have hOr := h7 h
+    cases hOr with
+    | inl hT =>
+        have hL : HasLegs KiKi := h5 KiKi ⟨h6, hT⟩
+        exact h.right hL
+    | inr hL =>
+        exact h.right hL
+  -- Derive Jumps KiKi by case analysis
+  have hJump : Jumps KiKi := by
+    by_cases hL : HasLegs KiKi
+    · exact h4 KiKi ⟨h6, hL⟩
+    · have hLneg : ¬ HasLegs KiKi := hL
+      by_cases hJ : Jumps KiKi
+      · exact hJ
+      · have hFalse : False := hNotBoth ⟨hJ, hLneg⟩
+        exact False.elim hFalse
+  -- Jane likes KiKi because KiKi is an animal that jumps
+  have hLike : Likes Jane KiKi := h3 KiKi ⟨h6, hJump⟩
+  -- Therefore, KiKi cannot be an animal that barks
+  have hNotAnimalAndBarks : ¬ (Animal KiKi ∧ Barks KiKi) := by
+    intro hAB
+    have hNotLike : ¬ Likes Jane KiKi := (h1 KiKi) hAB
+    exact hNotLike hLike
+  -- Hence, KiKi does not bark
+  have hNotBark : ¬ Barks KiKi := by
+    intro hb
+    exact hNotAnimalAndBarks ⟨h6, hb⟩
+  -- Finally, KiKi is not a barking dog
+  intro hDogBark
+  exact hNotBark hDogBark.right
+</lean>
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+set_option autoImplicit false
+
+universe u
+
+constant Entity : Type u
+
+constant Jane : Entity
+constant KiKi : Entity
+
+constant Animal : Entity → Prop
+constant Dog : Entity → Prop
+constant Barks : Entity → Prop
+constant Jumps : Entity → Prop
+constant HasLegs : Entity → Prop
+constant Terricolous : Entity → Prop
+constant Likes : Entity → Entity → Prop
+
+-- Axioms from the text
+axiom h1 : ∀ x : Entity, (Animal x ∧ Barks x) → ¬ Likes Jane x
+axiom h2 : ∀ x : Entity, Dog x → (Animal x ∧ Barks x)
+axiom h3 : ∀ x : Entity, (Animal x ∧ Jumps x) → Likes Jane x
+axiom h4 : ∀ x : Entity, (Animal x ∧ HasLegs x) → Jumps x
+axiom h5 : ∀ x : Entity, (Animal x ∧ Terricolous x) → HasLegs x
+axiom h6 : Animal KiKi
+axiom h7 : (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical
+
+theorem KiKi_is_not_a_barking_dog : ¬ (Dog KiKi ∧ Barks KiKi) := by
+  -- Show ¬ (¬Jumps KiKi ∧ ¬HasLegs KiKi)
+  have hNotBoth : ¬ (¬ Jumps KiKi ∧ ¬ HasLegs KiKi) := by
+    intro h
+    have hOr : Terricolous KiKi ∨ HasLegs KiKi := h7 h
+    cases hOr with
+    | inl hT =>
+      have hL : HasLegs KiKi := h5 KiKi ⟨h6, hT⟩
+      exact h.right hL
+    | inr hL =>
+      exact h.right hL
+  -- Derive Jumps KiKi
+  have hJump : Jumps KiKi := by
+    by_cases hL : HasLegs KiKi
+    · exact h4 KiKi ⟨h6, hL⟩
+    · by_cases hJ : Jumps KiKi
+      · exact hJ
+      · have : False := hNotBoth ⟨hJ, hL⟩
+        exact False.elim this
+  -- Jane likes KiKi because it's an animal that jumps
+  have hLike : Likes Jane KiKi := h3 KiKi ⟨h6, hJump⟩
+  -- Hence KiKi cannot be an animal that barks
+  have hNotAnimalAndBarks : ¬ (Animal KiKi ∧ Barks KiKi) := by
+    intro hAB
+    have : ¬ Likes Jane KiKi := h1 KiKi hAB
+    exact this hLike
+  -- Therefore, KiKi does not bark
+  have hNotBark : ¬ Barks KiKi := by
+    intro hb
+    exact hNotAnimalAndBarks ⟨h6, hb⟩
+  -- Conclude KiKi is not a barking dog
+  intro hDogBark
+  exact hNotBark hDogBark.right
+</lean>
+ANSWER: False

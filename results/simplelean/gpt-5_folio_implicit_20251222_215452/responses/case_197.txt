@@ -1,0 +1,188 @@
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant Bark : Entity → Prop
+constant Animal : Entity → Prop
+constant Dog : Entity → Prop
+constant Legs : Entity → Prop
+constant Jump : Entity → Prop
+constant Terricolous : Entity → Prop
+constant LikesJane : Entity → Prop
+
+constant KiKi : Entity
+
+open Classical
+
+theorem kiki_not_bark_and_not_dog
+  (h1 : ∀ x, Animal x ∧ Bark x → ¬ LikesJane x)
+  (h2 : ∀ x, Dog x → Animal x ∧ Bark x)
+  (h3 : ∀ x, Animal x ∧ Jump x → LikesJane x)
+  (h4 : ∀ x, Animal x ∧ Legs x → Jump x)
+  (h5 : ∀ x, Animal x ∧ Terricolous x → Legs x)
+  (h6 : Animal KiKi)
+  (h7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi))
+  : (¬ Bark KiKi ∧ ¬ Dog KiKi) := by
+  -- First, show KiKi jumps
+  have k_jump : Jump KiKi := by
+    by_contra hnj
+    have hnot_and : ¬ (Animal KiKi ∧ Legs KiKi) := by
+      intro hAL
+      have : Jump KiKi := h4 KiKi hAL
+      exact hnj this
+    have hnl : ¬ Legs KiKi := by
+      intro hL
+      apply hnot_and
+      exact And.intro h6 hL
+    have hdisj : Terricolous KiKi ∨ Legs KiKi := h7 ⟨hnj, hnl⟩
+    have hL : Legs KiKi := by
+      cases hdisj with
+      | inl hterr =>
+          exact h5 KiKi ⟨h6, hterr⟩
+      | inr hlegs =>
+          exact hlegs
+    exact hnl hL
+  -- Jane likes KiKi since he is an animal that jumps
+  have like_k : LikesJane KiKi := h3 KiKi ⟨h6, k_jump⟩
+  -- Therefore KiKi does not bark
+  have not_bark : ¬ Bark KiKi := by
+    intro hB
+    have not_like : ¬ LikesJane KiKi := h1 KiKi ⟨h6, hB⟩
+    exact not_like like_k
+  -- And KiKi is not a dog
+  have not_dog : ¬ Dog KiKi := by
+    intro hD
+    have hAB : Animal KiKi ∧ Bark KiKi := h2 KiKi hD
+    exact not_bark hAB.right
+  exact And.intro not_bark not_dog
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+universe u
+
+axiom Entity : Type u
+
+axiom Bark : Entity → Prop
+axiom Animal : Entity → Prop
+axiom Dog : Entity → Prop
+axiom Legs : Entity → Prop
+axiom Jump : Entity → Prop
+axiom Terricolous : Entity → Prop
+axiom LikesJane : Entity → Prop
+
+axiom KiKi : Entity
+
+theorem kiki_not_bark_and_not_dog
+  (h1 : ∀ x, Animal x ∧ Bark x → ¬ LikesJane x)
+  (h2 : ∀ x, Dog x → Animal x ∧ Bark x)
+  (h3 : ∀ x, Animal x ∧ Jump x → LikesJane x)
+  (h4 : ∀ x, Animal x ∧ Legs x → Jump x)
+  (h5 : ∀ x, Animal x ∧ Terricolous x → Legs x)
+  (h6 : Animal KiKi)
+  (h7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi))
+  : (¬ Bark KiKi ∧ ¬ Dog KiKi) := by
+  -- First, show KiKi jumps
+  have k_jump : Jump KiKi := by
+    classical
+    by_cases hJ : Jump KiKi
+    · exact hJ
+    ·
+      -- From ¬Jump, show ¬Legs (since Animal ∧ Legs → Jump)
+      have hnotL : ¬ Legs KiKi := by
+        intro hL
+        have : Jump KiKi := h4 KiKi ⟨h6, hL⟩
+        exact hJ this
+      -- Use the given disjunction to derive Legs, contradicting ¬Legs
+      have hdisj : Terricolous KiKi ∨ Legs KiKi := h7 ⟨hJ, hnotL⟩
+      have hL : Legs KiKi := by
+        cases hdisj with
+        | inl hterr =>
+            exact h5 KiKi ⟨h6, hterr⟩
+        | inr hlegs =>
+            exact hlegs
+      exact (hnotL hL).elim
+  -- Jane likes KiKi since he is an animal that jumps
+  have like_k : LikesJane KiKi := h3 KiKi ⟨h6, k_jump⟩
+  -- Therefore KiKi does not bark
+  have not_bark : ¬ Bark KiKi := by
+    intro hB
+    have not_like : ¬ LikesJane KiKi := h1 KiKi ⟨h6, hB⟩
+    exact not_like like_k
+  -- And KiKi is not a dog
+  have not_dog : ¬ Dog KiKi := by
+    intro hD
+    have hAB : Animal KiKi ∧ Bark KiKi := h2 KiKi hD
+    exact not_bark hAB.right
+  exact And.intro not_bark not_dog
+</lean>
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+universe u
+
+constant Entity : Type u
+
+constant Bark : Entity → Prop
+constant Animal : Entity → Prop
+constant Dog : Entity → Prop
+constant Legs : Entity → Prop
+constant Jump : Entity → Prop
+constant Terricolous : Entity → Prop
+constant LikesJane : Entity → Prop
+
+constant KiKi : Entity
+
+theorem kiki_not_bark_and_not_dog
+  (h1 : ∀ x : Entity, Animal x ∧ Bark x → ¬ LikesJane x)
+  (h2 : ∀ x : Entity, Dog x → Animal x ∧ Bark x)
+  (h3 : ∀ x : Entity, Animal x ∧ Jump x → LikesJane x)
+  (h4 : ∀ x : Entity, Animal x ∧ Legs x → Jump x)
+  (h5 : ∀ x : Entity, Animal x ∧ Terricolous x → Legs x)
+  (h6 : Animal KiKi)
+  (h7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi))
+  : (¬ Bark KiKi ∧ ¬ Dog KiKi) := by
+  classical
+  -- First, show KiKi jumps
+  have k_jump : Jump KiKi := by
+    by_cases hJ : Jump KiKi
+    · exact hJ
+    ·
+      -- From ¬Jump, show ¬Legs (since Animal ∧ Legs → Jump)
+      have hnotL : ¬ Legs KiKi := by
+        intro hL
+        have : Jump KiKi := h4 KiKi ⟨h6, hL⟩
+        exact hJ this
+      -- Use the given disjunction to derive Legs, contradicting ¬Legs
+      have hdisj : Terricolous KiKi ∨ Legs KiKi := h7 ⟨hJ, hnotL⟩
+      have hL : Legs KiKi := by
+        cases hdisj with
+        | inl hterr =>
+            exact h5 KiKi ⟨h6, hterr⟩
+        | inr hlegs =>
+            exact hlegs
+      exact (hnotL hL).elim
+  -- Jane likes KiKi since he is an animal that jumps
+  have like_k : LikesJane KiKi := h3 KiKi ⟨h6, k_jump⟩
+  -- Therefore KiKi does not bark
+  have not_bark : ¬ Bark KiKi := by
+    intro hB
+    have not_like : ¬ LikesJane KiKi := h1 KiKi ⟨h6, hB⟩
+    exact not_like like_k
+  -- And KiKi is not a dog
+  have not_dog : ¬ Dog KiKi := by
+    intro hD
+    have hAB : Animal KiKi ∧ Bark KiKi := h2 KiKi hD
+    exact not_bark hAB.right
+  exact And.intro not_bark not_dog
+</lean>
+ANSWER: True

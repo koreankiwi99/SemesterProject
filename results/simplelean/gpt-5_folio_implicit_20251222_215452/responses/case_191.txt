@@ -1,0 +1,98 @@
+<lean>
+namespace Reasoning
+
+-- Domain and predicates
+variable (U : Type)
+variable (Professional : U → Prop)
+variable (American : U → Prop)
+variable (CanJumpShot : U → Prop)
+variable (LeapsStraight : U → Prop)
+variable (ActivatesLegs : U → Prop)
+variable (Yuri : U)
+
+-- Given premises
+variable (h1 : ∃ x, Professional x ∧ ¬ American x)
+variable (h2 : ∀ x, Professional x → CanJumpShot x)
+variable (h3 : ∀ x, CanJumpShot x → LeapsStraight x)
+variable (h4 : ∀ x, LeapsStraight x → ActivatesLegs x)
+variable (h5 : ¬ ActivatesLegs Yuri)
+
+-- Target statement: "If Yuri is not an American professional basketball player, then Yuri is a professional basketball player."
+def target : Prop := (¬ (American Yuri ∧ Professional Yuri)) → Professional Yuri
+
+-- We show the target statement is false under the premises.
+theorem target_is_false :
+  ¬ target U Professional American CanJumpShot LeapsStraight ActivatesLegs Yuri := by
+  -- From h5 and the implications, derive that Yuri is not a professional basketball player.
+  have nLeap : ¬ LeapsStraight Yuri := by
+    intro hLy
+    exact h5 (h4 Yuri hLy)
+  have nJump : ¬ CanJumpShot Yuri := by
+    intro hJ
+    exact nLeap (h3 Yuri hJ)
+  have nPro : ¬ Professional Yuri := by
+    intro hP
+    exact nJump (h2 Yuri hP)
+  -- Now negate the target: assuming it holds leads to a contradiction.
+  intro ht
+  have ante : ¬ (American Yuri ∧ Professional Yuri) := by
+    intro hAnd
+    exact nPro hAnd.right
+  have proY : Professional Yuri := ht ante
+  exact nPro proY
+
+end Reasoning
+</lean>
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+namespace Reasoning
+
+-- Target statement parameterized explicitly
+def target (U : Type) (Professional American : U → Prop) (Yuri : U) : Prop :=
+  (¬ (American Yuri ∧ Professional Yuri)) → Professional Yuri
+
+/-
+Premises:
+- h1: ∃ x, Professional x ∧ ¬ American x        (unused in the proof)
+- h2: ∀ x, Professional x → CanJumpShot x
+- h3: ∀ x, CanJumpShot x → LeapsStraight x
+- h4: ∀ x, LeapsStraight x → ActivatesLegs x
+- h5: ¬ ActivatesLegs Yuri
+Conclusion: The target statement is false.
+-/
+theorem target_is_false
+  (U : Type)
+  (Professional American CanJumpShot LeapsStraight ActivatesLegs : U → Prop)
+  (Yuri : U)
+  (h1 : ∃ x, Professional x ∧ ¬ American x)
+  (h2 : ∀ x, Professional x → CanJumpShot x)
+  (h3 : ∀ x, CanJumpShot x → LeapsStraight x)
+  (h4 : ∀ x, LeapsStraight x → ActivatesLegs x)
+  (h5 : ¬ ActivatesLegs Yuri)
+  : ¬ target U Professional American Yuri := by
+  -- From h5 and the implications, derive that Yuri is not a professional basketball player.
+  have nLeap : ¬ LeapsStraight Yuri := by
+    intro hLy
+    exact h5 (h4 Yuri hLy)
+  have nJump : ¬ CanJumpShot Yuri := by
+    intro hJ
+    exact nLeap (h3 Yuri hJ)
+  have nPro : ¬ Professional Yuri := by
+    intro hP
+    exact nJump (h2 Yuri hP)
+  -- Now show the negation of the target
+  intro ht
+  have ante : ¬ (American Yuri ∧ Professional Yuri) := by
+    intro hAnd
+    exact nPro hAnd.right
+  have proY : Professional Yuri := ht ante
+  exact nPro proY
+
+end Reasoning
+</lean>
+ANSWER: False

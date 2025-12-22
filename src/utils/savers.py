@@ -183,7 +183,8 @@ class SimpleLeanSaver(BaseSaver):
 
             # Update progress with auto-detected info
             case_info = self._get_case_info(result)
-            lean_status = "PASS" if result.get('lean_verification', {}).get('success') else "FAIL"
+            lean_verification = result.get('lean_verification') or {}
+            lean_status = "PASS" if lean_verification.get('success') else "FAIL"
             num_iters = result.get('num_iterations', 1)
             with open(self.progress_file, 'a') as f:
                 f.write(f"[{datetime.now().strftime('%H:%M:%S')}] "

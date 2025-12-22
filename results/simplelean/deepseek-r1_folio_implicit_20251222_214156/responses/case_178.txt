@@ -1,0 +1,56 @@
+The premises state that all horses have hooves and no humans have hooves. The question asks whether it follows that some humans are horses. 
+
+In Lean, we define a universe type `U` with predicates for `horse`, `human`, and `has_hooves`. The premises are formalized as:
+1. `∀ x, horse x → has_hooves x` (all horses have hooves)
+2. `∀ x, human x → ¬ has_hooves x` (no humans have hooves)
+
+The statement "some humans are horses" is formalized as `∃ x, human x ∧ horse x`. We prove that this is false by deriving a contradiction. For any entity that is both human and horse, it must have hooves (from premise 1) but cannot have hooves (from premise 2), leading to an impossibility.
+
+<lean>
+variable (U : Type)
+variable (horse human : U → Prop)
+variable (has_hooves : U → Prop)
+
+-- Premises
+premise A1 : ∀ x, horse x → has_hooves x
+premise A2 : ∀ x, human x → ¬ has_hooves x
+
+-- Prove it is false that some humans are horses
+theorem no_human_horse : ¬ ∃ x, human x ∧ horse x := by
+  intro h  -- Assume there exists some human horse
+  obtain ⟨w, hw⟩ := h  -- Unpack the witness `w` that is human and horse
+  have h_hooves : has_hooves w := A1 w hw.right  -- `w` has hooves because it is a horse
+  have no_hooves : ¬ has_hooves w := A2 w hw.left  -- `w` cannot have hooves because it is human
+  contradiction  -- Contradiction: h_hooves and no_hooves
+</lean>
+
+The Lean proof confirms that the existence of a human horse leads to a contradiction. Therefore, the statement is false.
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect declaration of premises and the use of `obtain` without proper context. In Lean 4, premises must be passed as parameters to the theorem, and `rcases` is used for existential elimination instead of `obtain`. The corrected code formalizes the logic properly:
+
+<lean>
+theorem no_human_horse (U : Type) (horse human has_hooves : U → Prop)
+  (A1 : ∀ x, horse x → has_hooves x)
+  (A2 : ∀ x, human x → ¬ has_hooves x) :
+  ¬ ∃ x, human x ∧ horse x := by
+  intro h
+  rcases h with ⟨w, hw⟩
+  have h_hooves : has_hooves w := A1 w hw.right
+  have no_hooves : ¬ has_hooves w := A2 w hw.left
+  exact no_hooves h_hooves
+</lean>
+
+The proof shows that assuming "some humans are horses" leads to a contradiction: 
+1. Any horse must have hooves (premise 1)
+2. No human can have hooves (premise 2)
+3. Therefore, no entity can be both human and horse
+
+The Lean proof verifies that "some humans are horses" is false under the given premises.
+
+ANSWER: False

@@ -285,7 +285,7 @@ class UnifiedAsyncClient:
         }
 
         # Add optional parameters
-        for key in ['temperature', 'max_tokens', 'top_p', 'reasoning_effort']:
+        for key in ['temperature', 'max_completion_tokens', 'top_p', 'reasoning_effort']:
             if key in kwargs and kwargs[key] is not None:
                 data[key] = kwargs[key]
 

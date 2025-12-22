@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+-- Predicates
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom CF : obj → Prop  -- clumsy foodie who goes out frequently to find new food restaurants to try
+axiom Clean : obj → Prop
+axiom Value : obj → Prop
+axiom Fam : obj → Prop  -- family prioritizes order and spotlessness
+
+-- Axioms from the context
+axiom R1 : ∀ x : obj, Spill x → ¬ Tidy x
+axiom R2 : ∀ x : obj, CF x → Spill x
+axiom R3 : ∀ x : obj, Clean x → Tidy x
+axiom R4 : ∀ x : obj, Value x → Clean x
+axiom R5 : ∀ x : obj, Fam x → Value x
+
+-- Peter's given disjunction
+axiom Peter_disj : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+theorem peter_statement :
+  (CF Peter ∧ Fam Peter) ∨ (¬ CF Peter ∧ ¬ Fam Peter) := by
+  -- Show that Spill Peter ∧ Clean Peter leads to a contradiction
+  have notA : ¬ (Spill Peter ∧ Clean Peter) := by
+    intro h
+    have hs : Spill Peter := h.left
+    have hc : Clean Peter := h.right
+    have ht : Tidy Peter := R3 Peter hc
+    have hnt : ¬ Tidy Peter := R1 Peter hs
+    exact hnt ht
+  -- From the given disjunction and the impossibility of the first case, obtain ¬Spill Peter ∧ ¬Clean Peter
+  have hb : ¬ Spill Peter ∧ ¬ Clean Peter := by
+    cases Peter_disj with
+    | inl hA => exact False.elim (notA hA)
+    | inr hB => exact hB
+  have ns : ¬ Spill Peter := hb.left
+  have nc : ¬ Clean Peter := hb.right
+  -- Derive ¬ CF Peter using CF → Spill
+  have ncf : ¬ CF Peter := by
+    intro hcf
+    have hs : Spill Peter := R2 Peter hcf
+    exact ns hs
+  -- Derive ¬ Fam Peter using Fam → Value → Clean
+  have nfam : ¬ Fam Peter := by
+    intro hfam
+    have hv : Value Peter := R5 Peter hfam
+    have hc : Clean Peter := R4 Peter hv
+    exact nc hc
+  exact Or.inr (And.intro ncf nfam)
+</lean>
+
+ANSWER: True

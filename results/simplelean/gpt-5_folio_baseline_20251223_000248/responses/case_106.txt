@@ -1,0 +1,42 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Tom : obj
+axiom ETS : obj
+
+-- Predicates
+axiom TakesGRE : obj → Prop
+axiom ProvesHardship : obj → Prop
+axiom SingleParentFamily : obj → Prop
+axiom FewResources : obj → Prop
+axiom FinancialAidProvidedBy : obj → obj → Prop  -- provider → recipient
+
+-- Rules from the context
+-- ETS provides financial aid to GRE applicants who prove economic hardship
+axiom R_provide : ∀ x : obj, (TakesGRE x ∧ ProvesHardship x) → FinancialAidProvidedBy ETS x
+-- Those living in single-parent families or having few resources can prove economic hardship
+axiom R_hardship : ∀ x : obj, (SingleParentFamily x ∨ FewResources x) → ProvesHardship x
+
+-- Facts about Tom
+axiom F_single_parent : SingleParentFamily Tom
+axiom F_few_resources : FewResources Tom
+axiom F_takes_GRE : TakesGRE Tom
+
+-- From the rules and facts, Tom gets financial aid from ETS
+theorem tom_has_aid : FinancialAidProvidedBy ETS Tom := by
+  have hHard : ProvesHardship Tom := R_hardship Tom (Or.inl F_single_parent)
+  exact R_provide Tom ⟨F_takes_GRE, hHard⟩
+
+-- The statement to assess:
+-- "No one taking the GRE test has financial aid provided to them by something."
+-- Formalization: ∀ x, TakesGRE x → ¬ ∃ y, FinancialAidProvidedBy y x
+-- We show this is false by giving counterexample Tom with provider ETS.
+theorem no_one_taking_has_aid_false :
+  ¬ (∀ x : obj, TakesGRE x → ¬ ∃ y : obj, FinancialAidProvidedBy y x) := by
+  intro h
+  have hx : ¬ ∃ y : obj, FinancialAidProvidedBy y Tom := h Tom F_takes_GRE
+  exact hx (Exists.intro ETS tom_has_aid)
+</lean>
+
+ANSWER: False

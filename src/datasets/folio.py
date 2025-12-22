@@ -37,7 +37,7 @@ def group_folio_by_story(folio_data):
     grouped = defaultdict(list)
     for example in folio_data:
         story_id = example.get('story_id')
-        if story_id:
+        if story_id is not None:
             grouped[story_id].append(example)
     return dict(grouped)
 

@@ -1,79 +1,58 @@
 #!/usr/bin/env python3
 """
-Analyze verified-but-wrong cases using OpenAI API for error classification.
-Works for both FOLIO and Multi-LogiEval datasets.
+Analyze verified-but-wrong cases using LLM for error classification.
+
+Usage:
+    PYTHONPATH=src:$PYTHONPATH python src/analysis/analyze_errors.py \
+        --results <path_to_results.json> \
+        --prompt <prompt_file> \
+        [--output <output_file>] \
+        [--condition <condition_name>]
+
+Examples:
+    PYTHONPATH=src:$PYTHONPATH python src/analysis/analyze_errors.py \
+        --results results/conditions_experiment/folio_full_baseline_20251222_140906/all_results.json \
+        --prompt prompts/error-classification/v1.txt \
+        --condition baseline
 """
 
 import json
-import pandas as pd
+import re
 import os
 import sys
 import time
+import argparse
+import pandas as pd
+from dotenv import load_dotenv
 from openai import OpenAI
 
-ANALYSIS_PROMPT = """Analyze this Lean 4 formal verification error.
 
-**Premises**: {premises}
+def load_prompt_template(prompt_path: str) -> str:
+    """Load prompt template from file."""
+    with open(prompt_path, 'r') as f:
+        return f.read().strip()
 
-**Conclusion**: {conclusion}
 
-**Ground Truth**: {ground_truth}
-**Model Prediction**: {prediction} (WRONG - verified by Lean but produces wrong answer)
+def analyze_case(case: dict, client: OpenAI, prompt_template: str, model: str = 'gpt-4o') -> dict:
+    """Analyze a single case using LLM."""
 
-**Lean Code**:
-```lean
-{lean_code}
-```
+    # Extract fields - try both folio and multilogieval formats
+    premises = case.get('premises') or case.get('context', 'N/A')
+    conclusion = case.get('conclusion') or case.get('question', 'N/A')
+    lean_code = case.get('lean_code', 'N/A')
 
-Classify the root cause into ONE category:
-1. AXIOMATIZES_CONCLUSION - Directly axiomatizes the conclusion or its negation
-2. AXIOMATIZES_CONTRADICTION - Axiomatizes statements that contradict premises
-3. AXIOMATIZES_UNMENTIONED - Axiomatizes facts about entities NOT mentioned in premises
-4. INCORRECT_FORMALIZATION - Formalizes premises incorrectly in Lean
-5. REASONING_FAILURE - Has correct axioms but fails to derive the conclusion
-6. OTHER - Other error types
-
-Return ONLY a JSON object:
-{{
-  "problematic_lines": "line numbers or N/A",
-  "root_cause_category": "ERROR_TYPE",
-  "error_description": "brief explanation (1-2 sentences)",
-  "specific_axiom": "the problematic axiom code or N/A"
-}}
-"""
-
-def analyze_case(case, client, dataset_type='folio'):
-    """Analyze a single case using OpenAI API."""
-
-    # Extract fields based on dataset type
-    is_twostage = 'twostage' in dataset_type
-
-    if 'folio' in dataset_type:
-        premises = case.get('premises', 'N/A')
-        conclusion = case.get('conclusion', 'N/A')
-        example_id = case.get('example_id', 'N/A')
-    else:  # multilogieval
-        premises = case.get('context', 'N/A')
-        conclusion = case.get('question', 'N/A')
-        example_id = f"{case.get('logic_type', '')}_{case.get('depth_dir', '')}"
-
-    # Get lean code
-    if is_twostage and 'all_cycles' in case and case['all_cycles']:
-        lean_code = case['all_cycles'][-1].get('lean_code', 'N/A')
-    else:
-        lean_code = case.get('lean_code', 'N/A')
-
-    prompt = ANALYSIS_PROMPT.format(
-        premises=premises,
+    # Format prompt
+    prompt = prompt_template.format(
+        premises=premises[:3000],
         conclusion=conclusion,
         ground_truth=case.get('ground_truth'),
         prediction=case.get('prediction'),
-        lean_code=lean_code
+        lean_code=lean_code[:4000]
     )
 
     try:
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model=model,
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
             max_tokens=1024
@@ -82,152 +61,159 @@ def analyze_case(case, client, dataset_type='folio'):
         response_text = response.choices[0].message.content
 
         # Extract JSON
-        import re
         json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
         if json_match:
-            result = json.loads(json_match.group())
-            return result
+            return json.loads(json_match.group())
 
         return {
-            "problematic_lines": "N/A",
             "root_cause_category": "OTHER",
             "error_description": response_text[:200],
-            "specific_axiom": "N/A"
         }
 
     except Exception as e:
-        print(f"Error analyzing case {example_id}: {e}")
         return {
-            "problematic_lines": "N/A",
-            "root_cause_category": "OTHER",
+            "root_cause_category": "ERROR",
             "error_description": str(e)[:200],
-            "specific_axiom": "N/A"
         }
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: python analyze_errors.py <folio|folio_twostage|folio_improved|folio_twostage_improved|multilogieval|multilogieval_twostage|multilogieval_d5|multilogieval_d5_twostage>")
-        sys.exit(1)
 
-    dataset = sys.argv[1].lower()
-
-    if dataset == 'folio':
-        results_path = 'results/folio/lean/all_results.json'
-        output_path = 'results/folio/lean/error_root_cause_analysis.csv'
-    elif dataset == 'folio_twostage':
-        results_path = 'results/folio/two_stage/all_results.json'
-        output_path = 'results/folio/two_stage/error_root_cause_analysis.csv'
-    elif dataset == 'folio_improved':
-        results_path = 'results/folio/lean/lean_improved_20251122_205931/all_results.json'
-        output_path = 'results/folio/lean/lean_improved_20251122_205931/error_root_cause_analysis.csv'
-    elif dataset == 'folio_twostage_improved':
-        results_path = 'results/folio/two_stage/two_stage_lean_improved_20251122_211058/all_results.json'
-        output_path = 'results/folio/two_stage/two_stage_lean_improved_20251122_211058/error_root_cause_analysis.csv'
-    elif dataset == 'multilogieval':
-        results_path = 'results/multilogieval/all_depths/lean/all_results.json'
-        output_path = 'results/multilogieval/all_depths/lean/error_root_cause_analysis.csv'
-    elif dataset == 'multilogieval_twostage':
-        results_path = 'results/multilogieval/all_depths/two_stage/all_results.json'
-        output_path = 'results/multilogieval/all_depths/two_stage/error_root_cause_analysis.csv'
-    elif dataset == 'multilogieval_d5':
-        results_path = 'results/multilogieval/d5_only/lean/all_results.json'
-        output_path = 'results/multilogieval/d5_only/lean/error_root_cause_analysis.csv'
-    elif dataset == 'multilogieval_d5_twostage':
-        results_path = 'results/multilogieval/d5_only/two_stage/all_results.json'
-        output_path = 'results/multilogieval/d5_only/two_stage/error_root_cause_analysis.csv'
-    else:
-        print(f"Unknown dataset: {dataset}")
-        sys.exit(1)
-
-    # Initialize OpenAI client
-    api_key = os.environ.get('OPENAI_API_KEY')
-    if not api_key:
-        print("Error: OPENAI_API_KEY environment variable not set")
-        sys.exit(1)
-
-    client = OpenAI(api_key=api_key)
-
-    # Load results
-    print(f"Loading results from {results_path}...")
-    with open(results_path, 'r') as f:
-        results = json.load(f)
-
-    # Get verified-but-wrong cases
-    verified_wrong = []
-    is_twostage = 'twostage' in dataset
+def get_false_negatives(results: list) -> list:
+    """Extract false negative cases from results."""
+    false_negatives = []
 
     for r in results:
         if r is None:
             continue
 
-        if is_twostage:
-            # For two-stage, check the final cycle's lean_success
-            if 'all_cycles' in r and r['all_cycles']:
-                final_cycle = r['all_cycles'][-1]
-                if final_cycle.get('lean_success', False) and not r.get('correct', True):
-                    verified_wrong.append(r)
-        else:
-            # For simple lean
-            lean_ver = r.get('lean_verification')
-            if lean_ver is not None and lean_ver.get('success', False) and not r.get('correct', True):
-                verified_wrong.append(r)
+        lean_ver = r.get('lean_verification') or {}
+        if lean_ver.get('success', False) and not r.get('correct', True):
+            false_negatives.append(r)
 
-    print(f"Found {len(verified_wrong)} verified-but-wrong cases")
+    return false_negatives
 
-    if len(verified_wrong) == 0:
+
+def load_folio_data(folio_path: str = 'data/folio/original/folio-validation.json') -> dict:
+    """Load FOLIO data and create lookup by example_id."""
+    with open(folio_path, 'r') as f:
+        data = json.load(f)
+    return {item['example_id']: item for item in data}
+
+
+def main():
+    parser = argparse.ArgumentParser(description='Analyze Lean false negatives')
+    parser.add_argument('--results', required=True, help='Path to results JSON file')
+    parser.add_argument('--prompt', required=True, help='Path to prompt template file')
+    parser.add_argument('--output', help='Output CSV path (auto-generated if not specified)')
+    parser.add_argument('--model', default='gpt-4o', help='Model to use for analysis')
+    parser.add_argument('--condition', default=None, help='Condition name if results has nested structure')
+    parser.add_argument('--folio_data', default='data/folio/original/folio-validation.json',
+                        help='Path to FOLIO data for premises/conclusion lookup')
+
+    args = parser.parse_args()
+
+    # Load environment
+    load_dotenv()
+    api_key = os.environ.get('OPENAI_API_KEY')
+    if not api_key:
+        print("Error: OPENAI_API_KEY not set")
+        sys.exit(1)
+
+    client = OpenAI(api_key=api_key)
+
+    # Load prompt template
+    print(f"Loading prompt from: {args.prompt}")
+    prompt_template = load_prompt_template(args.prompt)
+
+    # Load results
+    print(f"Loading results from: {args.results}")
+    with open(args.results, 'r') as f:
+        data = json.load(f)
+
+    # Handle nested structure (conditions experiment) vs flat list
+    if args.condition:
+        results = data.get(args.condition, [])
+        print(f"Using condition: {args.condition}")
+    elif isinstance(data, dict) and 'baseline' in data:
+        # Auto-detect conditions format
+        results = data.get('baseline', [])
+        print(f"Auto-detected conditions format, using 'baseline'")
+    else:
+        results = data
+
+    print(f"Loaded {len(results)} results")
+
+    # Load FOLIO data for premises/conclusion lookup
+    print(f"Loading FOLIO data from: {args.folio_data}")
+    folio_lookup = load_folio_data(args.folio_data)
+    print(f"Loaded {len(folio_lookup)} FOLIO entries")
+
+    # Get false negatives
+    false_negatives = get_false_negatives(results)
+    print(f"Found {len(false_negatives)} false negatives")
+
+    # Enrich with FOLIO data
+    for fn in false_negatives:
+        example_id = fn.get('example_id')
+        if example_id in folio_lookup:
+            folio_entry = folio_lookup[example_id]
+            fn['premises'] = folio_entry.get('premises', '')
+            fn['conclusion'] = folio_entry.get('conclusion', '')
+
+    if not false_negatives:
         print("No cases to analyze!")
         return
 
+    # Auto-generate output path
+    if args.output:
+        output_path = args.output
+    else:
+        prompt_name = os.path.basename(args.prompt).replace('.txt', '')
+        results_name = os.path.basename(os.path.dirname(args.results))
+        output_path = f'results/error_analysis/{results_name}_{prompt_name}.csv'
+
     # Analyze each case
     analyses = []
-    for i, case in enumerate(verified_wrong):
-        print(f"Analyzing case {i+1}/{len(verified_wrong)}...", end=' ')
+    for i, case in enumerate(false_negatives):
+        print(f"Analyzing {i+1}/{len(false_negatives)}...", end=' ')
 
-        analysis = analyze_case(case, client, dataset)
+        analysis = analyze_case(case, client, prompt_template, args.model)
 
-        if 'folio' in dataset:
-            row = {
-                'Example_ID': case.get('example_id'),
-                'Ground_Truth': case.get('ground_truth'),
-                'Prediction': case.get('prediction'),
-                'Pattern': f"{case.get('ground_truth')} → {case.get('prediction')}",
-                'Premises': case.get('premises', 'N/A'),
-                'Conclusion': case.get('conclusion', 'N/A'),
-                'Problematic_Lines': analysis['problematic_lines'],
-                'Root_Cause_Category': analysis['root_cause_category'],
-                'Error_Description': analysis['error_description'],
-                'Specific_Axiom': analysis['specific_axiom']
-            }
-        else:  # multilogieval
-            row = {
-                'Logic_Type': case.get('logic_type'),
-                'Depth': case.get('depth_dir'),
-                'Ground_Truth': case.get('ground_truth'),
-                'Prediction': case.get('prediction'),
-                'Pattern': f"{case.get('ground_truth')} → {case.get('prediction')}",
-                'Context': case.get('context', 'N/A')[:200],
-                'Question': case.get('question', 'N/A')[:100],
-                'Problematic_Lines': analysis['problematic_lines'],
-                'Root_Cause_Category': analysis['root_cause_category'],
-                'Error_Description': analysis['error_description'],
-                'Specific_Axiom': analysis['specific_axiom']
-            }
+        row = {
+            'case_idx': case.get('case_idx'),
+            'example_id': case.get('example_id'),
+            'story_id': case.get('story_id'),
+            'ground_truth': case.get('ground_truth'),
+            'prediction': case.get('prediction'),
+            'pattern': f"{case.get('prediction')} → {case.get('ground_truth')}",
+            'num_iterations': case.get('num_iterations'),
+            'premises': (case.get('premises') or case.get('context', ''))[:300],
+            'conclusion': case.get('conclusion') or case.get('question', ''),
+            'root_cause_category': analysis.get('root_cause_category', 'OTHER'),
+            'error_description': analysis.get('error_description', ''),
+            'problematic_axiom': analysis.get('problematic_axiom') or analysis.get('specific_axiom', 'N/A'),
+        }
 
         analyses.append(row)
-        print(f"✓ {analysis['root_cause_category']}")
+        print(f"✓ {row['root_cause_category']}")
 
-        time.sleep(1)  # Rate limiting
+        time.sleep(0.5)  # Rate limiting
 
-    # Save to CSV
+    # Save results
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df = pd.DataFrame(analyses)
     df.to_csv(output_path, index=False)
 
-    print(f"\n{'='*70}")
-    print(f"Saved {len(df)} analyses to {output_path}")
-    print(f"{'='*70}")
-    print(f"\nError Type Distribution:")
-    print(df['Root_Cause_Category'].value_counts())
-    print(f"{'='*70}")
+    # Print summary
+    print(f"\n{'='*60}")
+    print(f"RESULTS SUMMARY")
+    print(f"{'='*60}")
+    print(f"Total analyzed: {len(df)}")
+    print(f"\nRoot Cause Distribution:")
+    print(df['root_cause_category'].value_counts())
+    print(f"\nBy Pattern:")
+    print(df.groupby('pattern')['root_cause_category'].value_counts())
+    print(f"\nSaved to: {output_path}")
+
 
 if __name__ == '__main__':
     main()

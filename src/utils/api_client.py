@@ -334,6 +334,9 @@ class ChatCompletionMessage:
         self._data = data
         self.role = data.get("role", "assistant")
         self.content = data.get("content", "")
+        # DeepSeek R1 reasoning content (thinking traces)
+        # OpenRouter uses "reasoning", DeepSeek direct uses "reasoning_content"
+        self.reasoning_content = data.get("reasoning_content") or data.get("reasoning", "")
 
     def __repr__(self):
         return f"ChatCompletionMessage(role={self.role}, content={self.content[:50]}...)"

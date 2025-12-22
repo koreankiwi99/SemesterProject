@@ -97,26 +97,43 @@ def parse_two_stage_answers(response):
     return result
 
 
-def parse_folio_answer(response):
+def parse_folio_answer(response, return_status=False):
     """Extract True/False/Unknown answer from FOLIO model response.
 
     Args:
         response: The model's text response
+        return_status: If True, return (answer, status) tuple
 
     Returns:
-        str: Extracted answer ('True', 'False', or 'Unknown')
+        str or tuple: Extracted answer, or (answer, status) if return_status=True
+        Status can be: "SUCCESS", "FALLBACK_PARSE", "EMPTY_RESPONSE", "UNPARSEABLE"
     """
+    # Type 1: Empty response (API failure)
+    if not response or not response.strip():
+        if return_status:
+            return None, "EMPTY_RESPONSE"
+        return None
+
     # Look for ANSWER: format first
     answer_match = re.search(r'ANSWER:\s*(True|False|Unknown)', response, re.IGNORECASE)
     if answer_match:
-        return normalize_answer(answer_match.group(1), answer_format="true_false")
+        answer = normalize_answer(answer_match.group(1), answer_format="true_false")
+        if return_status:
+            return answer, "SUCCESS"
+        return answer
 
     # Fallback: look for last occurrence of True/False/Unknown
     all_answers = re.findall(r'\b(True|False|Unknown)\b', response, re.IGNORECASE)
     if all_answers:
-        return normalize_answer(all_answers[-1], answer_format="true_false")
+        answer = normalize_answer(all_answers[-1], answer_format="true_false")
+        if return_status:
+            return answer, "FALLBACK_PARSE"
+        return answer
 
-    return 'Unknown'
+    # Type 3: Unparseable (model gave response but no valid answer)
+    if return_status:
+        return None, "UNPARSEABLE"
+    return None
 
 
 def parse_proverqa_answer(response):

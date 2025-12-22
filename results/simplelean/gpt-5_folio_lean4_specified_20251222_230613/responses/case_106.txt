@@ -1,0 +1,35 @@
+<lean>
+axiom Person : Type
+axiom Provider : Type
+
+axiom Tom : Person
+axiom ETS : Provider
+
+axiom TakingGRE : Person → Prop
+axiom ProvesHardship : Person → Prop
+axiom SingleParentFamily : Person → Prop
+axiom FewResources : Person → Prop
+axiom FinancialAidProvidedBy : Provider → Person → Prop
+
+-- ETS provides financial aid to GRE applicants who prove economic hardship
+axiom aid_rule : ∀ x : Person, TakingGRE x ∧ ProvesHardship x → FinancialAidProvidedBy ETS x
+-- Those in single-parent families or with few resources can prove economic hardship
+axiom hardship_rule : ∀ x : Person, (SingleParentFamily x ∨ FewResources x) → ProvesHardship x
+-- Tom's facts
+axiom Tom_single_parent : SingleParentFamily Tom
+axiom Tom_few_resources : FewResources Tom
+axiom Tom_taking_gre : TakingGRE Tom
+
+-- The claim in question is: ∀ x, TakingGRE x → ¬ ∃ p, FinancialAidProvidedBy p x
+-- We prove its negation holds.
+theorem not_no_financial_aid_for_takers :
+  ¬ (∀ x : Person, TakingGRE x → ¬ ∃ p : Provider, FinancialAidProvidedBy p x) :=
+by
+  intro h
+  have hardshipTom : ProvesHardship Tom := hardship_rule Tom (Or.inl Tom_single_parent)
+  have faTom : FinancialAidProvidedBy ETS Tom := aid_rule Tom ⟨Tom_taking_gre, hardshipTom⟩
+  have ex : ∃ p : Provider, FinancialAidProvidedBy p Tom := ⟨ETS, faTom⟩
+  exact (h Tom Tom_taking_gre) ex
+</lean>
+
+ANSWER: False

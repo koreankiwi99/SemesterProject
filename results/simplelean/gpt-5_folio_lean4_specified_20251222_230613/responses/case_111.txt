@@ -1,0 +1,44 @@
+<lean>
+axiom obj : Type
+axiom Picuris : obj
+axiom Juan : obj
+axiom Harding : obj
+
+axiom MountainRange : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- Facts from the context
+axiom Picuris_is_mountain_range : MountainRange Picuris
+axiom Picuris_in_NM_or_TX : InNewMexico Picuris ∨ InTexas Picuris
+axiom Juan_visited_Picuris : Visited Juan Picuris
+axiom Harding_is_mine : Mine Harding
+axiom Harding_located_in_Picuris : LocatedIn Harding Picuris
+axiom Harding_donated : Donated Harding
+axiom No_TX_range_with_donated_mine :
+  ¬∃ r : obj, MountainRange r ∧ InTexas r ∧ ∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m
+
+-- Conclusion: Juan de Onate visited a mountain range in New Mexico.
+theorem onate_visited_nm_range : ∃ r : obj, MountainRange r ∧ InNewMexico r ∧ Visited Juan r := by
+  -- First, show Picuris is not in Texas, otherwise we'd have a forbidden donated mine in a TX range
+  have hNotTX : ¬InTexas Picuris := by
+    intro htx
+    have hExistMine : ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+      exact Exists.intro Harding (And.intro Harding_is_mine (And.intro Harding_located_in_Picuris Harding_donated))
+    have hExistR : ∃ r : obj, MountainRange r ∧ InTexas r ∧ ∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m := by
+      exact Exists.intro Picuris (And.intro Picuris_is_mountain_range (And.intro htx hExistMine))
+    exact No_TX_range_with_donated_mine hExistR
+  -- From "in NM or TX" and "not in TX", conclude "in NM"
+  have hNM : InNewMexico Picuris := by
+    cases Picuris_in_NM_or_TX with
+    | inl hnm => exact hnm
+    | inr htx => exact False.elim (hNotTX htx)
+  -- Conclude the existence witness is Picuris
+  exact Exists.intro Picuris (And.intro Picuris_is_mountain_range (And.intro hNM Juan_visited_Picuris))
+</lean>
+
+ANSWER: True

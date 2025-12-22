@@ -14,26 +14,28 @@ def normalize_answer(answer, answer_format="yes_no"):
         str: Normalized answer
     """
     if not answer:
-        return 'Unknown'
+        return 'Uncertain'
 
     low = answer.lower().strip()
 
     if answer_format == "yes_no":
-        # Multi-LogiEval uses Yes/No format
+        # Multi-LogiEval uses Yes/No/Uncertain format
         if low in ['yes', 'y', 'true', 't', '1']:
             return 'Yes'
         elif low in ['no', 'n', 'false', 'f', '0']:
             return 'No'
+        elif low in ['unknown', 'uncertain', 'u']:
+            return 'Uncertain'
     elif answer_format == "true_false":
-        # FOLIO uses True/False/Unknown format
+        # FOLIO uses True/False/Uncertain format
         if low in ['true', 't', 'yes', 'y']:
             return 'True'
         elif low in ['false', 'f', 'no', 'n']:
             return 'False'
         elif low in ['unknown', 'uncertain', 'u']:
-            return 'Unknown'
+            return 'Uncertain'
 
-    return 'Unknown'
+    return 'Uncertain'
 
 
 def parse_answer(response, answer_format="true_false"):
@@ -52,11 +54,11 @@ def parse_answer(response, answer_format="true_false"):
 
     # Set patterns based on format
     if answer_format == "true_false":
-        pattern = r'ANSWER:\s*(True|False|Unknown)'
-        fallback_pattern = r'\b(True|False|Unknown)\b'
+        pattern = r'ANSWER:\s*(True|False|Unknown|Uncertain)'
+        fallback_pattern = r'\b(True|False|Unknown|Uncertain)\b'
     else:  # yes_no
-        pattern = r'ANSWER:\s*(Yes|No|Unknown)'
-        fallback_pattern = r'\b(Yes|No|Unknown)\b'
+        pattern = r'ANSWER:\s*(Yes|No|Unknown|Uncertain)'
+        fallback_pattern = r'\b(Yes|No|Unknown|Uncertain)\b'
 
     # Look for ANSWER: format first
     answer_match = re.search(pattern, response, re.IGNORECASE)

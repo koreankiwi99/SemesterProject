@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+
+axiom mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+
+axiom H_to_O : ∀ x : obj, Hydrocarbon x → Organic x
+axiom A_to_H : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom O_to_Chem : ∀ x : obj, Organic x → Chemical x
+axiom O_to_Carbon : ∀ x : obj, Organic x → ContainsCarbon x
+axiom Chem_no_one : ∀ x : obj, Chemical x → ¬OnlyOneElement x
+axiom mixture_xnor : (Chemical mixture ∧ OnlyOneElement mixture) ∨ (¬Chemical mixture ∧ ¬OnlyOneElement mixture)
+
+theorem not_chem_and_not_one : ¬Chemical mixture ∧ ¬OnlyOneElement mixture :=
+by
+  cases mixture_xnor with
+  | inl h =>
+      have contra : False := by
+        have hno : ¬OnlyOneElement mixture := Chem_no_one mixture h.left
+        exact hno h.right
+      exact And.intro (fun _ => False.elim contra) (fun _ => False.elim contra)
+  | inr h =>
+      exact h
+
+theorem not_alkane_mixture : ¬Alkane mixture :=
+by
+  intro hA
+  have hChem : Chemical mixture :=
+    O_to_Chem mixture (H_to_O mixture (A_to_H mixture hA))
+  have hNotChem : ¬Chemical mixture := not_chem_and_not_one.left
+  exact hNotChem hChem
+
+theorem not_mixture_alkane_and_contains_carbon : ¬(Alkane mixture ∧ ContainsCarbon mixture) :=
+by
+  intro h
+  exact not_alkane_mixture h.left
+</lean>
+
+ANSWER: False

@@ -5,13 +5,13 @@
 DATASET_CONFIG = {
     "folio": {
         "answer_format": "true_false",
-        "answer_format_str": "True/False/Unknown",
+        "answer_format_str": "True/False/Uncertain",
         "answer_true": "True",
         "answer_false": "False",
     },
     "multilogieval": {
         "answer_format": "yes_no",
-        "answer_format_str": "Yes/No/Unknown",
+        "answer_format_str": "Yes/No/Uncertain",
         "answer_true": "Yes",
         "answer_false": "No",
     }

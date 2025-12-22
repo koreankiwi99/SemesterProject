@@ -1,0 +1,129 @@
+Logic: fol
+Depth: d5
+Rule: HS_MT_DS_MP_MP
+Ground Truth: yes
+Prediction: Yes
+Correct: True
+Lean Pass: False
+
+==================================================
+
+--- Iteration 1 ---
+<lean>
+universe u
+
+constant Person : Type u
+
+-- Predicates
+constant StrengthTraining : Person → Prop
+constant Cardio : Person → Prop
+constant Run5k : Person → Prop
+constant LungCapacityIncreased : Person → Prop
+constant EnduranceBetter : Person → Prop
+
+-- Individual
+constant James : Person
+
+-- Premises
+constant strength_to_run5k : ∀ x : Person, StrengthTraining x → Run5k x
+constant strength_or_cardio : ∀ x : Person, StrengthTraining x ∨ Cardio x
+constant cardio_to_lung : ∀ x : Person, Cardio x → LungCapacityIncreased x
+constant lung_to_endurance : ∀ x : Person, LungCapacityIncreased x → EnduranceBetter x
+
+-- Conclusion
+theorem James_has_increased_lung_capacity
+  (hNotRun : ¬ Run5k James) : LungCapacityIncreased James :=
+by
+  -- From StrengthTraining → Run5k and ¬Run5k, deduce ¬StrengthTraining
+  have hNotST : ¬ StrengthTraining James :=
+    fun hST => hNotRun (strength_to_run5k James hST)
+  -- From StrengthTraining ∨ Cardio and ¬StrengthTraining, deduce Cardio
+  have hCardio : Cardio James :=
+    match strength_or_cardio James with
+    | Or.inl hST => False.elim (hNotST hST)
+    | Or.inr hC  => hC
+  -- From Cardio → LungCapacityIncreased, deduce LungCapacityIncreased
+  exact cardio_to_lung James hCardio
+</lean>
+ANSWER: Yes
+
+--- Iteration 2 ---
+<lean>
+constant Person : Type
+
+-- Predicates
+constant StrengthTraining : Person → Prop
+constant Cardio : Person → Prop
+constant Run5k : Person → Prop
+constant LungCapacityIncreased : Person → Prop
+constant EnduranceBetter : Person → Prop
+
+-- Individual
+constant James : Person
+
+-- Premises (axioms)
+axiom strength_to_run5k : ∀ x : Person, StrengthTraining x → Run5k x
+axiom strength_or_cardio : ∀ x : Person, StrengthTraining x ∨ Cardio x
+axiom cardio_to_lung : ∀ x : Person, Cardio x → LungCapacityIncreased x
+axiom lung_to_endurance : ∀ x : Person, LungCapacityIncreased x → EnduranceBetter x
+
+-- Conclusion
+theorem James_has_increased_lung_capacity
+  (hNotRun : ¬ Run5k James) : LungCapacityIncreased James :=
+by
+  -- From StrengthTraining → Run5k and ¬Run5k, deduce ¬StrengthTraining
+  have hNotST : ¬ StrengthTraining James :=
+    fun hST => hNotRun (strength_to_run5k James hST)
+  -- From StrengthTraining ∨ Cardio and ¬StrengthTraining, deduce Cardio
+  have hCardio : Cardio James :=
+    Or.elim (strength_or_cardio James)
+      (fun hST => False.elim (hNotST hST))
+      (fun hC => hC)
+  -- From Cardio → LungCapacityIncreased, deduce LungCapacityIncreased
+  exact cardio_to_lung James hCardio
+</lean>
+ANSWER: Yes
+
+--- Iteration 3 ---
+<lean>
+namespace Reasoning
+
+universe u
+
+constant Person : Type u
+
+-- Predicates
+constant StrengthTraining : Person → Prop
+constant Cardio : Person → Prop
+constant Run5k : Person → Prop
+constant LungCapacityIncreased : Person → Prop
+constant EnduranceBetter : Person → Prop
+
+-- Individual
+constant James : Person
+
+-- Premises (axioms)
+axiom strength_to_run5k : ∀ x : Person, StrengthTraining x → Run5k x
+axiom strength_or_cardio : ∀ x : Person, StrengthTraining x ∨ Cardio x
+axiom cardio_to_lung : ∀ x : Person, Cardio x → LungCapacityIncreased x
+axiom lung_to_endurance : ∀ x : Person, LungCapacityIncreased x → EnduranceBetter x
+
+-- Conclusion
+theorem James_has_increased_lung_capacity
+  (hNotRun : ¬ Run5k James) : LungCapacityIncreased James :=
+by
+  -- From StrengthTraining → Run5k and ¬Run5k, deduce ¬StrengthTraining
+  have hNotST : ¬ StrengthTraining James :=
+    fun hST => hNotRun (strength_to_run5k James hST)
+  -- From StrengthTraining ∨ Cardio and ¬StrengthTraining, deduce Cardio
+  have hCardio : Cardio James :=
+    (strength_or_cardio James).elim
+      (fun hST => False.elim (hNotST hST))
+      (fun hC => hC)
+  -- From Cardio → LungCapacityIncreased, deduce LungCapacityIncreased
+  exact cardio_to_lung James hCardio
+
+end Reasoning
+</lean>
+ANSWER: Yes
+

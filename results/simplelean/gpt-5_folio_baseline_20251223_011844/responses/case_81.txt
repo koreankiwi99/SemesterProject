@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom DriedThaiChilies : obj
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom FromBBM : obj → Prop
+
+-- Given axioms
+axiom A1 : ∀ x : obj, BakedSweet x → ¬ Spicy x
+axiom A2 : ∀ x : obj, Cupcake x → BakedSweet x
+axiom A3 : ∀ x : obj, MalaHotpot x → Spicy x
+axiom A4 : ∀ x : obj, FromBBM x → Cupcake x
+axiom A5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
+
+-- Composition: products from BBM are baked sweets
+theorem fromBBM_implies_baked : ∀ x : obj, FromBBM x → BakedSweet x :=
+fun x h => A2 x (A4 x h)
+
+-- Derive that Dried Thai chilies are not baked sweets
+theorem dtc_not_baked : ¬ BakedSweet DriedThaiChilies :=
+Or.elim A5
+  (fun hs =>
+    by
+      intro hb
+      exact (A1 DriedThaiChilies hb) hs)
+  (fun h2 =>
+    Or.elim h2
+      (fun hm =>
+        by
+          intro hb
+          have hs : Spicy DriedThaiChilies := A3 DriedThaiChilies hm
+          exact (A1 DriedThaiChilies hb) hs)
+      (fun hnb => hnb))
+
+-- Therefore, Dried Thai chilies are not from BBM
+theorem dtc_not_fromBBM : ¬ FromBBM DriedThaiChilies :=
+fun hfbm => dtc_not_baked (fromBBM_implies_baked DriedThaiChilies hfbm)
+
+-- Final claim: neither from BBM nor baked sweets
+theorem dtc_neither_bbm_nor_baked : ¬ FromBBM DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies :=
+And.intro dtc_not_fromBBM dtc_not_baked
+</lean>
+
+ANSWER: True

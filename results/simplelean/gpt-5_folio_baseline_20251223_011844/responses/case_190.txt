@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom Yuri : obj
+
+axiom Pro : obj → Prop            -- professional basketball player
+axiom American : obj → Prop       -- American national
+axiom CanJump : obj → Prop        -- can do jump shots
+axiom Leaps : obj → Prop          -- leaps straight into the air
+axiom Activates : obj → Prop      -- activates leg muscles
+
+-- Some professional basketball players are not American nationals.
+axiom some_nonAmerican_pro : ∃ x : obj, Pro x ∧ ¬ American x
+
+-- All professional basketball players can do jump shots.
+axiom pro_canjump : ∀ x : obj, Pro x → CanJump x
+
+-- If someone can jump shots, they leap straight into the air.
+axiom canjump_leaps : ∀ x : obj, CanJump x → Leaps x
+
+-- If someone leaps straight into the air, they activate their leg muscles.
+axiom leaps_activates : ∀ x : obj, Leaps x → Activates x
+
+-- Yuri does not activate his leg muscles.
+axiom yuri_not_activates : ¬ Activates Yuri
+
+-- We prove the negation of the queried implication:
+-- ¬ (¬Leaps Yuri → American Yuri ∧ Pro Yuri)
+theorem yuri_implication_false : ¬ (¬ Leaps Yuri → American Yuri ∧ Pro Yuri) := by
+  -- First, derive ¬Leaps Yuri from ¬Activates Yuri and (Leaps → Activates)
+  have hnotleaps : ¬ Leaps Yuri := by
+    intro hLe
+    have hAct : Activates Yuri := (leaps_activates Yuri) hLe
+    exact yuri_not_activates hAct
+  -- Next, derive ¬Pro Yuri from the chain Pro → CanJump → Leaps → Activates
+  have hnotpro : ¬ Pro Yuri := by
+    intro hPro
+    have hCan : CanJump Yuri := (pro_canjump Yuri) hPro
+    have hLe : Leaps Yuri := (canjump_leaps Yuri) hCan
+    have hAct : Activates Yuri := (leaps_activates Yuri) hLe
+    exact yuri_not_activates hAct
+  -- Therefore, ¬(American Yuri ∧ Pro Yuri)
+  have hnotConseq : ¬ (American Yuri ∧ Pro Yuri) := by
+    intro h
+    exact hnotpro h.right
+  -- Conclude ¬(¬Leaps Yuri → American Yuri ∧ Pro Yuri)
+  intro hImp
+  have hQ : American Yuri ∧ Pro Yuri := hImp hnotleaps
+  exact hnotConseq hQ
+</lean>
+
+ANSWER: False

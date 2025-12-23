@@ -1,0 +1,40 @@
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom A3 : ∀ x : obj, Organic x → Chemical x
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+axiom A5 : ∀ x : obj, Chemical x → ¬ OneElement x
+axiom A6 : (Chemical Mixture ∧ OneElement Mixture) ∨ (¬ Chemical Mixture ∧ ¬ OneElement Mixture)
+
+theorem mixture_implication :
+  (OneElement Mixture ∨ ContainsCarbon Mixture) → (¬ Chemical Mixture ∧ ¬ Alkane Mixture) := by
+  intro _
+  have hNoChemAndNoOne : ¬ Chemical Mixture ∧ ¬ OneElement Mixture := by
+    cases A6 with
+    | inl hboth =>
+        have hNoOne : ¬ OneElement Mixture := A5 Mixture hboth.left
+        have : False := hNoOne hboth.right
+        exact False.elim this
+    | inr hnone =>
+        exact hnone
+  have hNoChem : ¬ Chemical Mixture := hNoChemAndNoOne.left
+  have hNoAlk : ¬ Alkane Mixture := by
+    intro hAlk
+    have hHydro : Hydrocarbon Mixture := A2 Mixture hAlk
+    have hOrg : Organic Mixture := A1 Mixture hHydro
+    have hChem : Chemical Mixture := A3 Mixture hOrg
+    exact hNoChem hChem
+  exact And.intro hNoChem hNoAlk
+</lean>
+
+ANSWER: True

@@ -1,0 +1,200 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop          -- spills a lot of food on clothing
+axiom Tidy : obj → Prop            -- notably tidy
+axiom Cleanly : obj → Prop         -- cleanly
+axiom ValuesOrder : obj → Prop     -- values order and spotlessness
+axiom FamPrioritizesOrder : obj → Prop  -- family prioritizes order and spotlessness
+axiom ClumsyFoodie : obj → Prop    -- clumsy foodie
+axiom GoesOutFrequently : obj → Prop -- goes out frequently to find new food restaurants
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+-- All clumsy foodies who go out frequently ... spill a lot of food on their clothing.
+axiom A2 : ∀ x : obj, (ClumsyFoodie x ∧ GoesOutFrequently x) → Spills x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamPrioritizesOrder x → ValuesOrder x
+
+-- Peter is either (spills and cleanly) or (doesn't spill and not cleanly).
+axiom Peter_split : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- From the first disjunct we can derive a contradiction (tidy and not tidy).
+lemma not_spills_and_cleanly : ¬ (Spills Peter ∧ Cleanly Peter) := by
+  intro h
+  have s : Spills Peter := And.left h
+  have c : Cleanly Peter := And.right h
+  have t : Tidy Peter := A3 Peter c
+  have nt : ¬ Tidy Peter := A1 Peter s
+  exact nt t
+
+-- Hence the second disjunct holds, though it does not help prove the query statement.
+lemma peter_case2 : ¬ Spills Peter ∧ ¬ Cleanly Peter := by
+  cases Peter_split with
+  | inl h => exact False.elim (not_spills_and_cleanly h)
+  | inr h => exact h
+
+-- Goal (not provable from given axioms):
+-- (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∨ FamPrioritizesOrder Peter
+-- We cannot derive either disjunct:
+--   * From peter_case2 we get ¬Spills Peter, which via A2 only yields ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter), not the left disjunct.
+--   * There is no information allowing us to conclude FamPrioritizesOrder Peter.
+-- Nor can we derive the negation of the goal from the given axioms.
+</lean>
+
+ANSWER: Uncertain
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop          -- spills a lot of food on clothing
+axiom Tidy : obj → Prop            -- notably tidy
+axiom Cleanly : obj → Prop         -- cleanly
+axiom ValuesOrder : obj → Prop     -- values order and spotlessness
+axiom FamPrioritizesOrder : obj → Prop  -- family prioritizes order and spotlessness
+axiom ClumsyFoodie : obj → Prop    -- clumsy foodie
+axiom GoesOutFrequently : obj → Prop -- goes out frequently to find new food restaurants
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+-- All clumsy foodies who go out frequently ... spill a lot of food on their clothing.
+axiom A2 : ∀ x : obj, (ClumsyFoodie x ∧ GoesOutFrequently x) → Spills x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamPrioritizesOrder x → ValuesOrder x
+
+-- Peter is either (spills and cleanly) or (doesn't spill and not cleanly).
+axiom Peter_split : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- From the first disjunct we can derive a contradiction (tidy and not tidy).
+lemma not_spills_and_cleanly : ¬ (Spills Peter ∧ Cleanly Peter) := by
+  intro h
+  have s : Spills Peter := And.left h
+  have c : Cleanly Peter := And.right h
+  have t : Tidy Peter := A3 Peter c
+  have nt : ¬ Tidy Peter := A1 Peter s
+  exact nt t
+
+-- Hence the second disjunct holds.
+lemma peter_case2 : ¬ Spills Peter ∧ ¬ Cleanly Peter :=
+  Or.resolve_left Peter_split not_spills_and_cleanly
+
+-- Left disjunct implies spills; but Peter does not spill, so left disjunct is false.
+lemma not_left_disjunct : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+  intro hcf
+  have sp : Spills Peter := A2 Peter hcf
+  have ns : ¬ Spills Peter := And.left peter_case2
+  exact ns sp
+
+-- If family prioritizes order, then cleanly; but Peter is not cleanly, so right disjunct is false.
+lemma not_right_disjunct : ¬ FamPrioritizesOrder Peter := by
+  intro hfam
+  have vo : ValuesOrder Peter := A5 Peter hfam
+  have cl : Cleanly Peter := A4 Peter vo
+  have ncl : ¬ Cleanly Peter := And.right peter_case2
+  exact ncl cl
+
+-- Therefore the disjunction in question is false.
+theorem target_false :
+  ¬ ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∨ FamPrioritizesOrder Peter) := by
+  intro h
+  apply Or.elim h
+  · intro hl
+    exact not_left_disjunct hl
+  · intro hr
+    exact not_right_disjunct hr
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop          -- spills a lot of food on clothing
+axiom Tidy : obj → Prop            -- notably tidy
+axiom Cleanly : obj → Prop         -- cleanly
+axiom ValuesOrder : obj → Prop     -- values order and spotlessness
+axiom FamPrioritizesOrder : obj → Prop  -- family prioritizes order and spotlessness
+axiom ClumsyFoodie : obj → Prop    -- clumsy foodie
+axiom GoesOutFrequently : obj → Prop -- goes out frequently to find new food restaurants
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+-- All clumsy foodies who go out frequently ... spill a lot of food on their clothing.
+axiom A2 : ∀ x : obj, (ClumsyFoodie x ∧ GoesOutFrequently x) → Spills x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamPrioritizesOrder x → ValuesOrder x
+
+-- Peter is either (spills and cleanly) or (doesn't spill and not cleanly).
+axiom Peter_split : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- From the first disjunct we can derive a contradiction (tidy and not tidy).
+theorem not_spills_and_cleanly : ¬ (Spills Peter ∧ Cleanly Peter) := by
+  intro h
+  have s : Spills Peter := And.left h
+  have c : Cleanly Peter := And.right h
+  have t : Tidy Peter := A3 Peter c
+  have nt : ¬ Tidy Peter := A1 Peter s
+  exact nt t
+
+-- Helper: resolve-left for disjunctions.
+theorem my_resolve_left {α β : Prop} (h : α ∨ β) (hna : ¬ α) : β := by
+  apply Or.elim h
+  · intro ha
+    exact False.elim (hna ha)
+  · intro hb
+    exact hb
+
+-- Hence the second disjunct holds.
+theorem peter_case2 : ¬ Spills Peter ∧ ¬ Cleanly Peter :=
+  my_resolve_left Peter_split not_spills_and_cleanly
+
+-- Left disjunct implies spills; but Peter does not spill, so left disjunct is false.
+theorem not_left_disjunct : ¬ (ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+  intro hcf
+  have sp : Spills Peter := A2 Peter hcf
+  have ns : ¬ Spills Peter := And.left peter_case2
+  exact ns sp
+
+-- If family prioritizes order, then cleanly; but Peter is not cleanly, so right disjunct is false.
+theorem not_right_disjunct : ¬ FamPrioritizesOrder Peter := by
+  intro hfam
+  have vo : ValuesOrder Peter := A5 Peter hfam
+  have cl : Cleanly Peter := A4 Peter vo
+  have ncl : ¬ Cleanly Peter := And.right peter_case2
+  exact ncl cl
+
+-- Therefore the queried disjunction is false.
+theorem target_false :
+  ¬ ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∨ FamPrioritizesOrder Peter) := by
+  intro h
+  apply Or.elim h
+  · intro hl
+    exact not_left_disjunct hl
+  · intro hr
+    exact not_right_disjunct hr
+</lean>
+
+ANSWER: False

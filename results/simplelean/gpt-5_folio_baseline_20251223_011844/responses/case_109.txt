@@ -1,0 +1,68 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop
+axiom CF : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValueOrder : obj → Prop
+axiom FamilyOrder : obj → Prop
+
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom A2 : ∀ x : obj, CF x → Spills x
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+axiom A4 : ∀ x : obj, ValueOrder x → Cleanly x
+axiom A5 : ∀ x : obj, FamilyOrder x → ValueOrder x
+axiom A6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+theorem peter_statement :
+  (CF Peter ∧ FamilyOrder Peter) ∨ (¬ CF Peter ∧ ¬ FamilyOrder Peter) := by
+  -- From the given exclusive-like disjunction, derive Spills ↔ Cleanly for Peter
+  have hS_imp_C : Spills Peter → Cleanly Peter := by
+    intro hS
+    cases A6 with
+    | inl h =>
+      exact h.right
+    | inr h =>
+      have : False := h.left hS
+      exact False.elim this
+  have hC_imp_S : Cleanly Peter → Spills Peter := by
+    intro hC
+    cases A6 with
+    | inl h =>
+      exact h.left
+    | inr h =>
+      have : False := h.right hC
+      exact False.elim this
+  -- Show ¬ Cleanly Peter
+  have h_notC : ¬ Cleanly Peter := by
+    intro hC
+    have hS : Spills Peter := hC_imp_S hC
+    have hnotT : ¬ Tidy Peter := A1 Peter hS
+    have hT : Tidy Peter := A3 Peter hC
+    exact hnotT hT
+  -- Hence ¬ Spills Peter
+  have h_notS : ¬ Spills Peter := by
+    intro hS
+    have hC : Cleanly Peter := hS_imp_C hS
+    exact h_notC hC
+  -- Hence ¬ CF Peter (since CF → Spills)
+  have h_notCF : ¬ CF Peter := by
+    intro hCF
+    have hS : Spills Peter := A2 Peter hCF
+    exact h_notS hS
+  -- FamilyOrder → Cleanly, so ¬ Cleanly → ¬ FamilyOrder
+  have hFam_imp_Clean : FamilyOrder Peter → Cleanly Peter := by
+    intro hF
+    have hVO : ValueOrder Peter := A5 Peter hF
+    exact A4 Peter hVO
+  have h_notF : ¬ FamilyOrder Peter := by
+    intro hF
+    have hC : Cleanly Peter := hFam_imp_Clean hF
+    exact h_notC hC
+  -- Conclude the right disjunct
+  exact Or.inr ⟨h_notCF, h_notF⟩
+</lean>
+
+ANSWER: True

@@ -101,15 +101,22 @@ async def run_single_case(
                 llm_response = response.choices[0].message.content or ""
                 reasoning_content = getattr(response.choices[0].message, 'reasoning_content', None)
 
-                # Extract token usage
-                usage = getattr(response, 'usage', None)
+                # Extract token usage (handle both object and dict formats)
                 token_usage = None
-                if usage:
-                    token_usage = {
-                        'prompt_tokens': getattr(usage, 'prompt_tokens', 0),
-                        'completion_tokens': getattr(usage, 'completion_tokens', 0),
-                        'total_tokens': getattr(usage, 'total_tokens', 0),
-                    }
+                if response.usage:
+                    usage = response.usage
+                    if isinstance(usage, dict):
+                        token_usage = {
+                            'prompt_tokens': usage.get('prompt_tokens', 0) or 0,
+                            'completion_tokens': usage.get('completion_tokens', 0) or 0,
+                            'total_tokens': usage.get('total_tokens', 0) or 0,
+                        }
+                    else:
+                        token_usage = {
+                            'prompt_tokens': getattr(usage, 'prompt_tokens', 0) or 0,
+                            'completion_tokens': getattr(usage, 'completion_tokens', 0) or 0,
+                            'total_tokens': getattr(usage, 'total_tokens', 0) or 0,
+                        }
 
                 conversation_history.append({"role": "assistant", "content": llm_response})
 

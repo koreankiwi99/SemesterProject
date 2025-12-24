@@ -84,7 +84,7 @@ Sampled FOL dataset (100 cases: d3-d5, balanced Yes/No):
 | d5 | 17/20 (85.0%) | - | 17/20 (85.0%) | 100% | 3 | 0 |
 | **Total** | **45/60 (75.0%)** | **24/40 (60.0%)** | **69/100 (69.0%)** | **100%** | **31** | **1** |
 
-**Gaming case**: Case 67 (pred=Yes, gt=No, d4)
+**Gaming case**: Case 67 (pred=Yes, gt=No, d4) - **Model correct (dataset issue)**
 
 ### Original Dataset Distribution
 

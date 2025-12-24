@@ -1,0 +1,76 @@
+Analyze this Lean 4 formalization for faithfulness.
+
+**Premises**: {premises}
+**Conclusion**: {conclusion}
+**Ground Truth**: {ground_truth}
+**Model Prediction**: {prediction}
+
+**Lean Code**:
+```lean
+{lean_code}
+```
+
+---
+
+## PHASE 1: DATASET CHECK
+
+**Q1: Do the PREMISES THEMSELVES contain a logical contradiction?**
+(This is a dataset issue, not model error)
+→ YES: **DATASET_BUG** [STOP]
+
+---
+
+## PHASE 2: FORMALIZATION CHECK
+
+**Q2: Do any axioms state facts NOT mentioned in the premises?**
+Model invented information not present in the problem.
+→ YES: **AXIOM_FABRICATION** [STOP]
+
+**Q3: Is any premise missing from the axioms entirely?**
+A premise exists in text but has no corresponding axiom.
+→ YES: **MISSING_PREMISE** [STOP]
+
+**Q4: Is any premise incorrectly translated?**
+Axiom exists but has wrong:
+- Implication direction ("A does B" as `A→B` vs `B→A`)
+- Argument order
+- Quantifier (∀ vs ∃)
+→ YES: **FORMALIZATION_ERROR** [STOP]
+
+**Q5: Does the theorem statement NOT match the conclusion?**
+→ YES: **GOAL_MISMATCH** [STOP]
+
+---
+
+## PHASE 3: PROOF CHECK
+
+**Q6: Is the conclusion (or negation) directly stated as an axiom?**
+Goal is assumed, not derived.
+→ YES: **AXIOM_CONCLUSION** [STOP]
+
+**Q7: Does proof derive False or use explosion (False.elim, absurd, exfalso)?**
+→ YES: Check WHY contradiction exists:
+   - From faithful axioms (antecedent impossible): **VACUOUS_TRUTH** [STOP]
+   - Model introduced conflicting axioms: **AXIOM_CONTRADICTION** [STOP]
+
+---
+
+## PHASE 4: FINAL
+
+**Q8: All above checks passed?**
+→ Prediction correct: **FAITHFUL**
+→ Prediction wrong: **REASONING_ERROR**
+
+---
+
+Return JSON:
+{{
+  "phase_reached": "PHASE_2",
+  "stopped_at": "Q2",
+  "category": "AXIOM_FABRICATION",
+  "is_faithful": false,
+  "is_gaming": true,
+  "is_dataset_issue": false,
+  "explanation": "Axiom A5_stock claims KO is a stock, but premises only say 'mature stock'",
+  "problematic_element": "A5_stock"
+}}

@@ -1,0 +1,46 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Picuris : obj
+axiom Juan : obj
+axiom HardingMine : obj
+
+-- Predicates
+axiom MountainRange : obj → Prop
+axiom InNM : obj → Prop
+axiom InTX : obj → Prop
+axiom Visited : obj → obj → Prop
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+-- Facts from the context
+axiom Picuris_is_range : MountainRange Picuris
+axiom Picuris_in_NM_or_TX : InNM Picuris ∨ InTX Picuris
+axiom Juan_visited_Picuris : Visited Juan Picuris
+axiom Harding_is_mine : Mine HardingMine
+axiom Harding_located_in_Picuris : LocatedIn HardingMine Picuris
+axiom Harding_donated : Donated HardingMine
+axiom no_TX_range_has_donated_mine :
+  ∀ x : obj, MountainRange x ∧ InTX x → ¬ ∃ m : obj, Mine m ∧ LocatedIn m x ∧ Donated m
+
+-- Goal: Juan visited a mountain range in New Mexico
+theorem juan_visited_nm_range : ∃ r : obj, MountainRange r ∧ InNM r ∧ Visited Juan r := by
+  -- First, show Picuris is not in Texas using the donated mine contradiction
+  have not_in_TX : ¬ InTX Picuris := by
+    intro hTX
+    have h_no := no_TX_range_has_donated_mine Picuris ⟨Picuris_is_range, hTX⟩
+    have h_ex : ∃ m, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+      exact ⟨HardingMine, ⟨Harding_is_mine, ⟨Harding_located_in_Picuris, Harding_donated⟩⟩⟩
+    exact h_no h_ex
+  -- From (InNM Picuris ∨ InTX Picuris) and ¬ InTX Picuris, deduce InNM Picuris
+  have in_NM : InNM Picuris := by
+    cases Picuris_in_NM_or_TX with
+    | inl hnm => exact hnm
+    | inr htx => exact False.elim (not_in_TX htx)
+  -- Conclude the existential claim with Picuris as witness
+  exact ⟨Picuris, ⟨Picuris_is_range, ⟨in_NM, Juan_visited_Picuris⟩⟩⟩
+</lean>
+
+ANSWER: True

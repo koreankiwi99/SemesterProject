@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom CocoGauff : obj
+
+axiom RankedHighlyWTA : obj → Prop
+axiom MostActive : obj → Prop
+axiom LostToIgaRG2022 : obj → Prop
+axiom LostToRafaNadalRG2022 : obj → Prop
+axiom FemaleRG2022 : obj → Prop
+axiom MaleRG2022 : obj → Prop
+axiom PlayerRG2022 : obj → Prop
+
+-- If someone is ranked highly by the WTA, then they are one of the most active players in major tennis.
+axiom A1 : ∀ x : obj, RankedHighlyWTA x → MostActive x
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom A2 : ∀ x : obj, LostToIgaRG2022 x → RankedHighlyWTA x
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom A3 : ∀ x : obj, FemaleRG2022 x → LostToIgaRG2022 x
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom A4 : ∀ x : obj, PlayerRG2022 x → (FemaleRG2022 x ∨ MaleRG2022 x)
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom A5 : ∀ x : obj, MaleRG2022 x → LostToRafaNadalRG2022 x
+-- If Coco Gauff is ranked highly by the WTA or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at Roland Garros 2022.
+axiom A6 : (RankedHighlyWTA CocoGauff ∨ LostToRafaNadalRG2022 CocoGauff) → ¬MaleRG2022 CocoGauff
+-- Coco Gauff is at Roland Garros 2022.
+axiom A7 : PlayerRG2022 CocoGauff
+
+-- Prove the negation of the statement: i.e., show Coco Gauff lost to Iga and is most active.
+theorem coco_lost_and_active : LostToIgaRG2022 CocoGauff ∧ MostActive CocoGauff := by
+  -- First, show Coco is not male at RG 2022.
+  have h_not_male : ¬MaleRG2022 CocoGauff := by
+    intro hmale
+    have h_lost_rafa : LostToRafaNadalRG2022 CocoGauff := A5 CocoGauff hmale
+    have h_or : RankedHighlyWTA CocoGauff ∨ LostToRafaNadalRG2022 CocoGauff := Or.inr h_lost_rafa
+    have h_nm : ¬MaleRG2022 CocoGauff := A6 h_or
+    exact h_nm hmale
+  -- From being a player at RG 2022, Coco is either female or male; with ¬male, deduce female.
+  have h_fem_or_male : FemaleRG2022 CocoGauff ∨ MaleRG2022 CocoGauff := A4 CocoGauff A7
+  have h_female : FemaleRG2022 CocoGauff := by
+    apply Or.elim h_fem_or_male
+    · intro hf; exact hf
+    · intro hm; exact False.elim (h_not_male hm)
+  -- Female at RG 2022 implies lost to Iga.
+  have h_lost_iga : LostToIgaRG2022 CocoGauff := A3 CocoGauff h_female
+  -- Lost to Iga implies ranked highly; ranked highly implies most active.
+  have h_ranked : RankedHighlyWTA CocoGauff := A2 CocoGauff h_lost_iga
+  have h_active : MostActive CocoGauff := A1 CocoGauff h_ranked
+  exact And.intro h_lost_iga h_active
+</lean>
+
+ANSWER: False

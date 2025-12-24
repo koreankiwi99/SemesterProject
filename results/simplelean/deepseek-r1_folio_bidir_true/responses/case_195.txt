@@ -1,0 +1,136 @@
+The premises do not allow us to conclusively prove that KiKi is terricolous. While we can derive that KiKi must jump (due to a contradiction arising from assuming otherwise), there is no connection between jumping and being terricolous. The Jane-related premises (about barking and liking animals) are unused and irrelevant to KiKi's terricolous status. Thus, the conclusion does not follow.
+
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+axiom Animal : obj → Prop
+axiom Bark : obj → Prop
+axiom Jump : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom JaneLikes : obj → Prop
+axiom Dog : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, Animal x → Bark x → ¬ JaneLikes x
+axiom P2 : ∀ x, Dog x → Animal x ∧ Bark x
+axiom P3 : ∀ x, Animal x → Jump x → JaneLikes x
+axiom P4 : ∀ x, Animal x → HasLegs x → Jump x
+axiom P5 : ∀ x, Animal x → Terricolous x → HasLegs x
+axiom P6 : Animal KiKi
+axiom P7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Prove KiKi jumps (by contradiction)
+theorem KiKi_jumps : Jump KiKi := by
+  by_contra h
+  have no_legs : ¬ HasLegs KiKi := by
+    intro legs
+    exact h (P4 KiKi P6 legs)
+  have disj := P7 ⟨h, no_legs⟩
+  cases disj with
+  | inl terr => exact no_legs (P5 KiKi P6 terr)
+  | inr legs => exact no_legs legs
+
+-- Cannot prove Terricolous KiKi
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `by_contra` tactic requires classical logic, which wasn't explicitly enabled. Additionally, the proof for `KiKi_jumps` wasn't essential for evaluating the main statement about KiKi being terricolous. After analysis:
+
+1. The premises allow us to prove that KiKi jumps (via contradiction using P4, P6, P5, and P7)
+2. However, there's no premise linking jumping to being terricolous
+3. P5 only gives a one-way implication (terricolous → has legs → jumps)
+4. The Jane-related premises are disconnected from KiKi's terricolous status
+
+Thus, while KiKi must jump, we cannot prove KiKi is terricolous.
+
+Corrected Lean code:
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+axiom Animal : obj → Prop
+axiom Bark : obj → Prop
+axiom Jump : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom JaneLikes : obj → Prop
+axiom Dog : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, Animal x → Bark x → ¬ JaneLikes x
+axiom P2 : ∀ x, Dog x → Animal x ∧ Bark x
+axiom P3 : ∀ x, Animal x → Jump x → JaneLikes x
+axiom P4 : ∀ x, Animal x → HasLegs x → Jump x
+axiom P5 : ∀ x, Animal x → Terricolous x → HasLegs x
+axiom P6 : Animal KiKi
+axiom P7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+-- Prove KiKi jumps (classical logic required)
+open Classical
+theorem KiKi_jumps : Jump KiKi := by
+  by_contra h
+  have no_legs : ¬ HasLegs KiKi := fun legs => h (P4 KiKi P6 legs)
+  have disj := P7 ⟨h, no_legs⟩
+  cases disj with
+  | inl terr => exact no_legs (P5 KiKi P6 terr)
+  | inr legs => exact no_legs legs
+
+-- But no premise connects Jump to Terricolous
+example : Terricolous KiKi := by 
+  sorry  -- No way to prove from axioms
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `by_contra` tactic requires classical logic, but the proof wasn't properly structured to use it. The corrected proof uses the law of excluded middle explicitly via `Classical.em`. While we can prove that KiKi jumps (using P4, P5, P6, and P7), there's no premise linking jumping to being terricolous. P5 only gives terricolous → has legs → jumps, not the reverse. The Jane-related premises are irrelevant to KiKi's terricolous status.
+
+Corrected Lean code:
+<lean>
+axiom obj : Type
+axiom KiKi : obj
+axiom Animal : obj → Prop
+axiom Bark : obj → Prop
+axiom Jump : obj → Prop
+axiom HasLegs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom JaneLikes : obj → Prop
+axiom Dog : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, Animal x → Bark x → ¬ JaneLikes x
+axiom P2 : ∀ x, Dog x → Animal x ∧ Bark x
+axiom P3 : ∀ x, Animal x → Jump x → JaneLikes x
+axiom P4 : ∀ x, Animal x → HasLegs x → Jump x
+axiom P5 : ∀ x, Animal x → Terricolous x → HasLegs x
+axiom P6 : Animal KiKi
+axiom P7 : (¬ Jump KiKi ∧ ¬ HasLegs KiKi) → (Terricolous KiKi ∨ HasLegs KiKi)
+
+open Classical  -- For law of excluded middle
+
+theorem KiKi_jumps : Jump KiKi := by
+  cases em (Jump KiKi) with  -- Explicit use of excluded middle
+  | inl h => exact h
+  | inr not_jump =>
+    have no_legs : ¬ HasLegs KiKi := fun legs => not_jump (P4 KiKi P6 legs)
+    have disj := P7 ⟨not_jump, no_legs⟩
+    cases disj with
+    | inl terr => 
+      have legs : HasLegs KiKi := P5 KiKi P6 terr
+      exact no_legs legs
+    | inr legs => exact no_legs legs
+
+-- No connection between Jump and Terricolous
+example : Terricolous KiKi := by 
+  sorry  -- Cannot be proven
+</lean>
+
+ANSWER: Failure

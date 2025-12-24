@@ -1,0 +1,59 @@
+The goal is to prove that the statement "If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish" is false. However, after formalizing the premises in Lean and attempting to derive a contradiction, it becomes clear that the statement holds true under the given axioms.
+
+From the premises:
+- Rockie is spotted and calm.
+- Spotted animals are either rabbits or squirrels.
+- Calm animals cannot be skittish.
+- If Rockie were a squirrel, it would be skittish (contradicting calmness), so Rockie must be a rabbit.
+- As a spotted rabbit, Rockie is cute.
+- Thus, the conclusion "Rockie is cute or skittish" holds.
+- The premise "Rockie is not both a turtle and a squirrel" is true because Rockie is not a squirrel.
+
+Therefore, the implication is true, and its negation cannot be proven. The Lean code below formalizes this reasoning but does not derive a contradiction (False), leading to the conclusion of Failure.
+
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Spotted : obj → Prop
+axiom Cute : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+
+axiom A1 : ∀ x, (Rabbit x ∧ Spotted x) → Cute x
+axiom A2 : ∃ x, Turtle x ∧ Spotted x
+axiom A3 : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom A4 : ∀ x, Skittish x → ¬ Calm x
+axiom A5 : ∀ x, Squirrel x → Spotted x → Skittish x
+axiom T1 : Spotted Rockie ∧ Calm Rockie
+
+-- Attempt to prove the negation of the statement: ¬(¬(Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie))
+-- This is equivalent to: (¬(Turtle Rockie ∧ Squirrel Rockie)) ∧ ¬(Cute Rockie ∨ Skittish Rockie)
+
+-- Derive necessary facts about Rockie:
+theorem not_squirrel : ¬ Squirrel Rockie := by
+  intro h
+  have ⟨spotted, calm⟩ := T1
+  have skittish : Skittish Rockie := A5 Rockie h spotted
+  exact A4 Rockie skittish calm
+
+theorem is_rabbit : Rabbit Rockie := by
+  have ⟨spotted, _⟩ := T1
+  cases A3 Rockie spotted with
+  | inl rabbit => exact rabbit
+  | inr squirrel => exact (not_squirrel squirrel).elim
+
+theorem is_cute : Cute Rockie := by
+  have ⟨spotted, _⟩ := T1
+  exact A1 Rockie ⟨is_rabbit, spotted⟩
+
+-- Now, ¬(Cute Rockie ∨ Skittish Rockie) requires ¬Cute Rockie and ¬Skittish Rockie
+-- But we have is_cute, so ¬(Cute Rockie ∨ Skittish Rockie) is false
+-- Therefore, the conjunction (¬(Turtle Rockie ∧ Squirrel Rockie)) ∧ ¬(Cute Rockie ∨ Skittish Rockie) cannot hold
+-- Hence, we cannot prove the negation of the original statement
+</lean>
+
+ANSWER: Failure

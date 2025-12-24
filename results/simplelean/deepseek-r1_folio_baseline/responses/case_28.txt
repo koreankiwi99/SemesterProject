@@ -1,0 +1,52 @@
+The reasoning involves deriving that Marvin is neither human nor from Mars based on the given axioms. The key steps are:
+
+1. **Contradiction in dual origin**: If Marvin were from both Earth and Mars (first disjunct of axiom 6), this would lead to a contradiction:
+   - From Mars → Alien (axiom 2)
+   - Alien → Extraterrestrial (axiom 1)
+   - Extraterrestrial → ¬Human (axiom 3)
+   - But from Earth + highly intelligent → Human (axioms 4-5), contradicting ¬Human
+
+2. **Exclusive disjunction**: Since the first disjunct is impossible, the second disjunct (¬FromEarth ∧ ¬FromMars) must hold
+
+3. **Non-earth origin implications**:
+   - ¬FromEarth → Extraterrestrial (axiom 7)
+   - Extraterrestrial → ¬Human (axiom 3)
+
+4. **Conclusion**: Thus Marvin is ¬Human (from step 3) and ¬FromMars (from step 2), satisfying the query
+
+<lean>
+axiom Entity : Type
+axiom Marvin : Entity
+axiom Alien : Entity → Prop
+axiom Extraterrestrial : Entity → Prop
+axiom FromMars : Entity → Prop
+axiom Human : Entity → Prop
+axiom HighlyIntelligent : Entity → Prop
+axiom FromEarth : Entity → Prop
+
+axiom all_aliens_extraterrestrial : ∀ x, Alien x → Extraterrestrial x
+axiom from_mars_alien : ∀ x, FromMars x → Alien x
+axiom no_extraterrestrial_human : ∀ x, Extraterrestrial x → ¬ Human x
+axiom intelligent_earth_human : ∀ x, HighlyIntelligent x → FromEarth x → Human x
+axiom marvin_intelligent : HighlyIntelligent Marvin
+axiom marvin_origin : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬ FromEarth Marvin ∧ ¬ FromMars Marvin)
+axiom not_earth_extraterrestrial : ¬ FromEarth Marvin → Extraterrestrial Marvin
+
+theorem result : ¬ Human Marvin ∧ ¬ FromMars Marvin := by
+  have no_earth_mars : ¬ (FromEarth Marvin ∧ FromMars Marvin) := by
+    intro ⟨h_earth, h_mars⟩
+    have h_alien := from_mars_alien Marvin h_mars
+    have h_et := all_aliens_extraterrestrial Marvin h_alien
+    have h_not_human := no_extraterrestrial_human Marvin h_et
+    have h_human := intelligent_earth_human Marvin marvin_intelligent h_earth
+    exact h_not_human h_human
+  cases marvin_origin with
+  | inl both => exact absurd both no_earth_mars
+  | inr neither =>
+    have ⟨not_earth, not_mars⟩ := neither
+    have h_et := not_earth_extraterrestrial not_earth
+    have h_not_human := no_extraterrestrial_human Marvin h_et
+    exact ⟨h_not_human, not_mars⟩
+</lean>
+
+ANSWER: True

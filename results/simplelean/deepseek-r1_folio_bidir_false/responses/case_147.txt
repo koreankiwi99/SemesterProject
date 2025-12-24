@@ -1,0 +1,49 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+axiom GazpromManager : Person → Prop
+
+axiom Premise1 : ∀ x, CanRegister x → CanParticipate x
+axiom Premise2 : ∀ x, USCitizen x → CanRegister x
+axiom Premise3 : ∀ x, USCitizen x ∨ TaiwCitizen x
+axiom Premise4 : ∀ x, RFOfficial x → ¬ TaiwCitizen x
+axiom Premise5 : ¬ TaiwCitizen Vladimir ∧ ¬ GazpromManager Vladimir
+axiom Premise6 : CanRegister Ekaterina ∨ RFOfficial Ekaterina
+
+-- Prove Ekaterina can register (needed for participation)
+theorem EkaterinaReg : CanRegister Ekaterina := by
+  cases Premise6 with
+  | inl reg => exact reg
+  | inr rf =>
+      have no_taiw : ¬ TaiwCitizen Ekaterina := Premise4 Ekaterina rf
+      have cit : USCitizen Ekaterina ∨ TaiwCitizen Ekaterina := Premise3 Ekaterina
+      cases cit with
+      | inl us => exact Premise2 Ekaterina us
+      | inr taiw => contradiction
+
+-- Therefore Ekaterina can participate
+theorem EkaterinaPart : CanParticipate Ekaterina := Premise1 Ekaterina EkaterinaReg
+
+-- Attempt to prove negation of conclusion: ¬(CanParticipate Ekaterina ∨ GazpromManager Vladimir)
+theorem prove_negation : ¬ (CanParticipate Ekaterina ∨ GazpromManager Vladimir) :=
+  fun h =>
+    match h with
+    | Or.inl part => 
+        -- We already have EkaterinaPart, so no contradiction from participation
+        have : CanParticipate Ekaterina := EkaterinaPart
+        sorry  -- Cannot derive contradiction here
+    | Or.inr mgr =>
+        have no_mgr : ¬ GazpromManager Vladimir := Premise5.right
+        no_mgr mgr
+
+-- Since we cannot complete the proof (stuck at Or.inl branch), we conclude failure
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,50 @@
+The reasoning problem is translated into Lean as follows:
+
+<lean>
+axiom U : Type
+axiom Ekaterina : U
+axiom Vladimir : U
+axiom Register : U → Prop
+axiom Participate : U → Prop
+axiom USCitizen : U → Prop
+axiom TaiwaneseCitizen : U → Prop
+axiom RusOfficial : U → Prop
+axiom ManagerGazprom : U → Prop
+
+axiom A1 : ∀ x : U, Register x → Participate x
+axiom A2 : ∀ x : U, USCitizen x → Register x
+axiom A3 : ∀ x : U, USCitizen x ∨ TaiwaneseCitizen x
+axiom A4 : ∀ x : U, RusOfficial x → ¬ TaiwaneseCitizen x
+axiom A5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom A6 : Register Ekaterina ∨ RusOfficial Ekaterina
+
+theorem target : Participate Ekaterina ∨ ManagerGazprom Vladimir := by
+  -- Since Vladimir is not a manager at Gazprom (from A5), we focus on proving Participate Ekaterina
+  have vlad_not_manager := A5.right
+  -- Consider the two cases for Ekaterina from A6
+  cases A6 with
+  | inl reg_ek =>
+      -- If Ekaterina can register, then she can participate by A1
+      exact Or.inl (A1 Ekaterina reg_ek)
+  | inr rus_ek =>
+      -- If Ekaterina is a Russian official, then she cannot hold Taiwanese citizenship (A4)
+      have no_taiwan : ¬ TaiwaneseCitizen Ekaterina := A4 Ekaterina rus_ek
+      -- Every person has US or Taiwanese citizenship (A3)
+      have citizenship := A3 Ekaterina
+      cases citizenship with
+      | inl us_ek =>
+          -- If Ekaterina has US citizenship, she can register (A2) and thus participate
+          exact Or.inl (A1 Ekaterina (A2 Ekaterina us_ek))
+      | inr tai_ek =>
+          -- Contradiction: she has Taiwanese citizenship but cannot hold it
+          contradiction
+</lean>
+
+The Lean proof shows that the statement "Ekaterina can participate in the 2024 United States presidential election or Vladimir is a manager at Gazprom" is true. Specifically:
+- Vladimir is not a manager at Gazprom (from axiom A5).
+- Ekaterina either can register to vote (first case) or is a Russian official (second case):
+  - If she can register, she can participate (axiom A1).
+  - If she is a Russian official, she cannot hold Taiwanese citizenship (axiom A4). Since she must hold either US or Taiwanese citizenship (axiom A3), she must hold US citizenship. Thus, she can register (axiom A2) and participate (axiom A1).
+In both cases, Ekaterina can participate, making the disjunction true.
+
+ANSWER: True

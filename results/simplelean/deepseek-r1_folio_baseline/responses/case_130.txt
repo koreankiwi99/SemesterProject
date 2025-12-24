@@ -1,0 +1,69 @@
+The context provides several statements about people and wedding planning, with a focus on John. The key predicates are:
+- `Engaged`: being engaged
+- `WeddingPlans`: making wedding plans
+- `InviteOthers`: inviting others to the ceremony
+- `WellAttended`: having a well-attended wedding
+- `LargerFamily`: having a larger family
+- `InviteFriends`: inviting friends to the ceremony
+
+The axioms establish relationships:
+1. Wedding plans imply engagement.
+2. Inviting others implies wedding plans.
+3. A well-attended wedding implies inviting others.
+4. Some people with well-attended weddings have larger families.
+5. If John is engaged, he doesn't invite friends or make wedding plans.
+6. If John has a larger family, he has a well-attended wedding or invites friends.
+
+The question asks whether John neither has a larger family nor invites others to his wedding.
+
+Analysis:
+- From axioms 2 and 1, if John invites others, he makes wedding plans and is engaged.
+- If John is engaged (from above), axiom 5 implies he doesn't make wedding plans, contradicting the initial assumption. Thus, John cannot invite others (`¬InviteOthers John` is provable).
+- Axiom 3 means a well-attended wedding requires inviting others. Since John doesn't invite others, he cannot have a well-attended wedding (`¬WellAttended John`).
+- Axiom 6 simplifies for John: if he has a larger family, he must invite friends (since a well-attended wedding is impossible).
+- However, there is no information about John inviting friends or having a larger family. Axiom 4 confirms such people exist, but not specifically John.
+
+Thus, while `¬InviteOthers John` is proven, `¬LargerFamily John` cannot be proven or disproven. The full statement `¬LargerFamily John ∧ ¬InviteOthers John` is therefore uncertain.
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom Engaged : obj → Prop
+axiom WeddingPlans : obj → Prop
+axiom InviteOthers : obj → Prop
+axiom WellAttended : obj → Prop
+axiom LargerFamily : obj → Prop
+axiom InviteFriends : obj → Prop
+
+axiom A1 : ∀ x, WeddingPlans x → Engaged x
+axiom A2 : ∀ x, InviteOthers x → WeddingPlans x
+axiom A3 : ∀ x, WellAttended x → InviteOthers x
+axiom A4 : ∃ x, WellAttended x ∧ LargerFamily x
+axiom A5 : Engaged John → ¬InviteFriends John ∧ ¬WeddingPlans John
+axiom A6 : LargerFamily John → WellAttended John ∨ InviteFriends John
+
+-- Prove ¬InviteOthers John
+theorem no_invite_others : ¬InviteOthers John := by
+  intro hInvite
+  have hPlans := A2 John hInvite
+  have hEngaged := A1 John hPlans
+  have hNoPlans := (A5 hEngaged).right
+  contradiction
+
+-- Prove ¬WellAttended John (using no_invite_others)
+theorem no_well_attended : ¬WellAttended John :=
+  fun hWell => no_invite_others (A3 John hWell)
+
+-- Simplify A6 given no_well_attended
+theorem larger_family_implies_invite_friends : LargerFamily John → InviteFriends John := by
+  intro hLarge
+  have h := A6 hLarge
+  cases h with
+  | inl hWell => exact absurd hWell no_well_attended
+  | inr hInvite => exact hInvite
+
+-- Cannot prove ¬LargerFamily John or LargerFamily John
+-- Thus, the full statement (¬LargerFamily John ∧ ¬InviteOthers John) is uncertain
+</lean>
+
+ANSWER: Uncertain

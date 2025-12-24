@@ -1,0 +1,38 @@
+<lean>
+axiom obj : Type
+axiom ML : obj → Prop
+axiom Supervised : obj → Prop
+axiom Unsupervised : obj → Prop
+axiom Reinforcement : obj → Prop
+axiom Used : obj → Prop
+axiom RequiresLabeledData : obj → Prop
+
+-- Categorization of ML algorithms
+axiom categorization : ∀ a : obj, ML a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
+-- Unsupervised algorithms do not require labeled data
+axiom unsup_no_labels : ∀ a : obj, Unsupervised a → ¬ RequiresLabeledData a
+-- There exists a used ML algorithm to train the SOTA model
+axiom exists_used_ml : ∃ a : obj, Used a ∧ ML a
+-- Reinforcement learning is not used to train the SOTA model
+axiom no_rl_used : ∀ a : obj, Used a → ¬ Reinforcement a
+-- The ML algorithm used for training the SOTA model requires labeled data
+axiom used_ml_requires_labels : ∀ a : obj, Used a ∧ ML a → RequiresLabeledData a
+
+theorem supervised_is_used : ∃ a : obj, Used a ∧ Supervised a := by
+  rcases exists_used_ml with ⟨a, hUM⟩
+  have hUsed : Used a := And.left hUM
+  have hML : ML a := And.right hUM
+  have hReq : RequiresLabeledData a := used_ml_requires_labels a ⟨hUsed, hML⟩
+  have hNotRL : ¬ Reinforcement a := no_rl_used a hUsed
+  have hSup : Supervised a := by
+    have hcat := categorization a hML
+    rcases hcat with hS | hUR
+    · exact hS
+    · rcases hUR with hU | hR
+      · have hNoReq : ¬ RequiresLabeledData a := unsup_no_labels a hU
+        exact False.elim (hNoReq hReq)
+      · exact False.elim (hNotRL hR)
+  exact Exists.intro a (And.intro hUsed hSup)
+</lean>
+
+ANSWER: True

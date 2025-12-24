@@ -1,0 +1,78 @@
+The Lean code models the given context and attempts to prove the negation of the statement "Coco Gauff has lost to Rafael Nadal". The key steps are:
+
+1. Define the domain and predicates:
+   - `Player` type for tennis players
+   - Predicates for properties (WTA highly ranked, lost to Świątek/Nadal, female/male, at Roland Garros 2022)
+   - Constant `Coco_Gauff`
+
+2. Formalize all axioms:
+   - A1: WTA highly ranked → most active (unused in proof)
+   - A2: Lost to Świątek → WTA highly ranked
+   - A3: At RG2022 and female → lost to Świątek
+   - A4: At RG2022 → female or male
+   - A5: At RG2022 and male → lost to Nadal
+   - A6: (WTA highly ranked or lost to Nadal) → not male
+   - A7: Coco_Gauff at RG2022
+
+3. Prove intermediate results:
+   - `coco_not_male`: Coco_Gauff cannot be male (using A4, A5, A6, A7)
+   - `coco_female`: Coco_Gauff is female (using A4, A7, coco_not_male)
+   - `coco_lost_swiatek`: Coco_Gauff lost to Świątek (using A3, A7, coco_female)
+   - `coco_wta_high`: Coco_Gauff is WTA highly ranked (using A2, coco_lost_swiatek)
+
+4. Attempt to prove `¬ Lost_to_Nadal Coco_Gauff`:
+   - Assume `Lost_to_Nadal Coco_Gauff`
+   - This satisfies the disjunction in A6 (right branch)
+   - A6 yields `¬ Male Coco_Gauff` (already proven)
+   - No contradiction found
+   - Cannot derive False from premises
+
+The conclusion "Coco Gauff has lost to Rafael Nadal" cannot be proven false from the given axioms.
+
+<lean>
+axiom Player : Type
+axiom Coco_Gauff : Player
+axiom At_RG2022 : Player → Prop
+axiom Female : Player → Prop
+axiom Male : Player → Prop
+axiom WTA_highly_ranked : Player → Prop
+axiom Lost_to_Swiatek : Player → Prop
+axiom Lost_to_Nadal : Player → Prop
+
+axiom A1 : ∀ p, WTA_highly_ranked p → True -- Unused; included for completeness
+axiom A2 : ∀ p, Lost_to_Swiatek p → WTA_highly_ranked p
+axiom A3 : ∀ p, At_RG2022 p → Female p → Lost_to_Swiatek p
+axiom A4 : ∀ p, At_RG2022 p → Female p ∨ Male p
+axiom A5 : ∀ p, At_RG2022 p → Male p → Lost_to_Nadal p
+axiom A6 : (WTA_highly_ranked Coco_Gauff ∨ Lost_to_Nadal Coco_Gauff) → ¬ Male Coco_Gauff
+axiom A7 : At_RG2022 Coco_Gauff
+
+theorem coco_not_male : ¬ Male Coco_Gauff := by
+  intro hMale
+  have hNadal := A5 Coco_Gauff A7 hMale
+  have h : WTA_highly_ranked Coco_Gauff ∨ Lost_to_Nadal Coco_Gauff := Or.inr hNadal
+  exact A6 h hMale
+
+theorem coco_female : Female Coco_Gauff := by
+  have h := A4 Coco_Gauff A7
+  cases h with
+  | inl hFem => exact hFem
+  | inr hMale => exact False.elim (coco_not_male hMale)
+
+theorem coco_lost_swiatek : Lost_to_Swiatek Coco_Gauff :=
+  A3 Coco_Gauff A7 coco_female
+
+theorem coco_wta_high : WTA_highly_ranked Coco_Gauff :=
+  A2 Coco_Gauff coco_lost_swiatek
+
+-- Attempt to prove ¬Lost_to_Nadal Coco_Gauff leads to Failure
+theorem cannot_prove_negation : ¬ (∀ (_ : Player), Lost_to_Nadal Coco_Gauff → False) := by
+  intro h
+  -- We have no contradiction from assuming Lost_to_Nadal Coco_Gauff
+  -- since axioms allow female players to lose to Nadal
+  sorry  -- Cannot complete proof
+
+-- Final check: Cannot prove ¬Lost_to_Nadal Coco_Gauff
+</lean>
+
+ANSWER: Failure

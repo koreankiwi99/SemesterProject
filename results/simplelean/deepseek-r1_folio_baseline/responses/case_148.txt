@@ -1,0 +1,52 @@
+<lean>
+axiom Person : Type
+axiom Vladimir : Person
+axiom Ekaterina : Person
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+
+axiom reg_implies_part : ∀ x, CanRegister x → CanParticipate x
+axiom us_implies_reg : ∀ x, USCitizen x → CanRegister x
+axiom citizenship : ∀ x, USCitizen x ∨ TaiwaneseCitizen x
+axiom rf_no_taiwanese : ∀ x, RFOfficial x → ¬ TaiwaneseCitizen x
+axiom vladimir_not_taiwanese : ¬ TaiwaneseCitizen Vladimir
+axiom ekaterina_reg_or_rf : CanRegister Ekaterina ∨ RFOfficial Ekaterina
+
+theorem vladimir_us : USCitizen Vladimir := by
+  have h := citizenship Vladimir
+  cases h with
+  | inl us => exact us
+  | inr tw => exact absurd tw vladimir_not_taiwanese
+
+theorem vladimir_can_register : CanRegister Vladimir := 
+  us_implies_reg Vladimir vladimir_us
+
+theorem vladimir_can_participate : CanParticipate Vladimir := 
+  reg_implies_part Vladimir vladimir_can_register
+
+theorem ekaterina_can_register : CanRegister Ekaterina := by
+  cases ekaterina_reg_or_rf with
+  | inl reg => exact reg
+  | inr rf => 
+      have no_tw := rf_no_taiwanese Ekaterina rf
+      have citz := citizenship Ekaterina
+      cases citz with
+      | inl us => exact us_implies_reg Ekaterina us
+      | inr tw => exact absurd tw no_tw
+
+theorem both_happen : CanRegister Ekaterina ∧ CanParticipate Vladimir := 
+  ⟨ekaterina_can_register, vladimir_can_participate⟩
+
+-- The statement we evaluate: "¬ (Ekaterina can register ∧ Vladimir can participate)"
+-- Since we proved the conjunction, the negation is false
+</lean>
+
+After thorough analysis:
+1. Vladimir lacks Taiwanese citizenship and must therefore be a US citizen (by citizenship axiom). As a US citizen, he can register to vote and consequently participate in the election.
+2. Ekaterina can either register or be a Russian official. If she registers, the claim holds. If she is a Russian official, she cannot hold Taiwanese citizenship (by rf_no_taiwanese) and must therefore be a US citizen. Thus, she can register in both cases.
+3. We have proven both Ekaterina can register and Vladimir can participate, making the negated statement "¬ (Ekaterina can register ∧ Vladimir can participate)" false.
+
+ANSWER: False

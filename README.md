@@ -29,11 +29,11 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 ### DeepSeek-R1 Results
 
-| Condition | Accuracy | Lean Pass | Gaming | Conservative |
-|-----------|----------|-----------|--------|--------------|
-| Baseline | 175/203 (86.2%) | 193/203 (95.1%) | 6 | 22 |
-| bidir_true | 181/203 (89.2%) | 191/203 (94.1%) | - | - |
-| bidir_false | ⏳ running | - | - | - |
+| Condition | Accuracy | Lean Pass |
+|-----------|----------|-----------|
+| Baseline | 175/203 (86.2%) | 193/203 (95.1%) |
+| bidir_true | 186/203 (91.6%) | 196/203 (96.6%) |
+| bidir_false | 185/203 (91.1%) | 191/203 (94.1%) |
 
 ### Gaming Cases Analysis
 

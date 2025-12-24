@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom MultipleBirth : obj → Prop
+axiom HangOutWithSiblings : obj → Prop
+axiom SiblingsBornTogether : obj → Prop
+axiom ComplainsOften : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, MultipleBirth x → HangOutWithSiblings x
+axiom P2 : ∀ x : obj, SiblingsBornTogether x → MultipleBirth x
+axiom P3 : ∀ x : obj, ComplainsOften x → SiblingsBornTogether x
+axiom P4 : ∀ x : obj, LiveAtHome x → ¬LiveWithStrangers x
+axiom P5 : ∀ x : obj, HangOutWithSiblings x → LiveAtHome x
+
+-- Luke-specific disjunction
+axiom L1 : (MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬MultipleBirth Luke ∧ ¬LiveWithStrangers Luke)
+
+-- Derived: Multiple birth implies not living with strangers
+theorem MB_implies_not_LWS : ∀ x : obj, MultipleBirth x → ¬LiveWithStrangers x :=
+  fun x hMB => P4 x (P5 x (P1 x hMB))
+
+-- From L1 and MB→¬LWS, deduce Luke ¬MB ∧ ¬LWS
+theorem Luke_not_MB_and_not_LWS : ¬MultipleBirth Luke ∧ ¬LiveWithStrangers Luke := by
+  have hImp : MultipleBirth Luke → ¬LiveWithStrangers Luke :=
+    fun hmb => MB_implies_not_LWS Luke hmb
+  cases L1 with
+  | inl h =>
+      have hmb := h.left
+      have hLWS := h.right
+      have hnotLWS := hImp hmb
+      have contra : False := hnotLWS hLWS
+      exact False.elim contra
+  | inr h =>
+      exact h
+
+-- Complains implies multiple birth (via siblings-born-together)
+theorem Complains_implies_MB : ∀ x : obj, ComplainsOften x → MultipleBirth x :=
+  fun x hc => P2 x (P3 x hc)
+
+-- Therefore Luke does not complain
+theorem Luke_not_Complains : ¬ComplainsOften Luke := by
+  have hnotMB := (Luke_not_MB_and_not_LWS).left
+  have c2mb := Complains_implies_MB Luke
+  exact fun hc => hnotMB (c2mb hc)
+
+-- The statement to evaluate actually holds:
+theorem statement_true : ¬MultipleBirth Luke ∧ ¬ComplainsOften Luke :=
+  And.intro (Luke_not_MB_and_not_LWS.left) Luke_not_Complains
+
+-- Hence we cannot prove the negation of the statement from the premises.
+-- Cannot prove ¬(¬MultipleBirth Luke ∧ ¬ComplainsOften Luke)
+</lean>
+
+ANSWER: Failure

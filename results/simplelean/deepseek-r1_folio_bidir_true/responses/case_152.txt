@@ -1,0 +1,46 @@
+The context provides information about hydrocarbons, organic compounds, chemical compounds, and their properties. The mixture is introduced with a specific disjunction: it is either (a chemical compound and contains only one element) or (not a chemical compound and not containing only one element). However, axiom 5 states that no chemical compound contains only one element, making the first disjunct impossible. Therefore, the mixture must not be a chemical compound and must not contain only one element.
+
+The statement to evaluate is whether the mixture contains carbon. Axiom 4 states that all organic compounds contain carbon, but organic compounds are a subset of chemical compounds (by axioms 1 and 3). Since the mixture is not a chemical compound, it cannot be an organic compound. There are no axioms stating that non-chemical compounds must contain carbon or that everything containing carbon must be a chemical compound. Thus, there is insufficient information to prove that the mixture contains carbon.
+
+<lean>
+axiom Substance : Type
+axiom Element : Type
+axiom carbon : Element
+
+axiom ChemicalCompound : Substance → Prop
+axiom OrganicCompound : Substance → Prop
+axiom Hydrocarbon : Substance → Prop
+axiom Alkane : Substance → Prop
+axiom containsElement : Substance → Element → Prop
+
+def containsOnlyOneElement (s : Substance) : Prop :=
+  ∃ (e : Element), ∀ (e' : Element), containsElement s e' → e' = e
+
+axiom A1 : ∀ s : Substance, Hydrocarbon s → OrganicCompound s
+axiom A2 : ∀ s : Substance, Alkane s → Hydrocarbon s
+axiom A3 : ∀ s : Substance, OrganicCompound s → ChemicalCompound s
+axiom A4 : ∀ s : Substance, OrganicCompound s → containsElement s carbon
+axiom A5 : ∀ s : Substance, ChemicalCompound s → ¬ containsOnlyOneElement s
+
+axiom mixture : Substance
+axiom A6 : (ChemicalCompound mixture ∧ containsOnlyOneElement mixture) ∨ (¬ ChemicalCompound mixture ∧ ¬ containsOnlyOneElement mixture)
+
+theorem mixture_not_chemical : ¬ ChemicalCompound mixture := by
+  cases A6 with
+  | inl h => 
+      have h1 := h.1
+      exact absurd (h.2) (A5 mixture h1)
+  | inr h => exact h.1
+
+-- The mixture does not contain only one element, but this doesn't imply anything about carbon
+theorem goal : containsElement mixture carbon := by 
+  -- No axioms force non-chemical compounds to contain carbon
+  -- Attempting to use A4 requires OrganicCompound mixture, which requires ChemicalCompound mixture (A3), contradiction
+  have : ¬ ChemicalCompound mixture := mixture_not_chemical
+  have : ¬ OrganicCompound mixture := fun h => this (A3 mixture h)
+  -- No other path to prove containsElement mixture carbon
+  sorry  -- Proof fails
+
+</lean>
+
+ANSWER: Failure

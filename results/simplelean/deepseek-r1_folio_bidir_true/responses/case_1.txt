@@ -1,0 +1,58 @@
+The reasoning involves translating the given context and statement into Lean 4 syntax and proving the statement. The context defines several properties about club members, and the statement concerns Bonnie's characteristics. The proof shows that the conclusion follows from the premises by case analysis, leveraging contradictions and disjunctions derived from the axioms.
+
+<lean>
+axiom obj : Type
+axiom Bonnie : obj
+
+axiom InClub : obj → Prop
+axiom PerformTalent : obj → Prop
+axiom AttendEvents : obj → Prop
+axiom EngagedEvents : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperoneDance : obj → Prop
+axiom StudentAtSchool : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesFurtherCareer : obj → Prop
+
+axiom A1 : ∀ x, InClub x ∧ PerformTalent x → AttendEvents x ∧ EngagedEvents x
+axiom A2 : ∀ x, InClub x → PerformTalent x ∨ InactiveDisinterested x
+axiom A3 : ∀ x, InClub x ∧ ChaperoneDance x → ¬ StudentAtSchool x
+axiom A4 : ∀ x, InClub x ∧ InactiveDisinterested x → ChaperoneDance x
+axiom A5 : ∀ x, InClub x → ( (YoungChild x ∨ Teenager x) ∧ WishesFurtherCareer x → StudentAtSchool x )
+
+axiom Bonnie_in_club : InClub Bonnie
+axiom Bonnie_case : 
+      ( (AttendEvents Bonnie ∧ EngagedEvents Bonnie) ∧ StudentAtSchool Bonnie ) ∨ 
+      ( ¬ (AttendEvents Bonnie ∧ EngagedEvents Bonnie) ∧ ¬ StudentAtSchool Bonnie )
+
+theorem target : 
+      ( ( (YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherCareer Bonnie ∧ ChaperoneDance Bonnie ) ∨
+        ( ¬ (YoungChild Bonnie ∨ Teenager Bonnie) ∧ ¬ WishesFurtherCareer Bonnie ) ) 
+      → 
+      ( StudentAtSchool Bonnie ∨ InactiveDisinterested Bonnie ) := by
+  intro h
+  cases h with
+  | inl h1 => 
+      let ⟨h_younteen, h_wish, h_chaperone⟩ := h1
+      have h_student : StudentAtSchool Bonnie := 
+        A5 Bonnie Bonnie_in_club ⟨h_younteen, h_wish⟩
+      have h_not_student : ¬ StudentAtSchool Bonnie := 
+        A3 Bonnie ⟨Bonnie_in_club, h_chaperone⟩
+      contradiction
+  | inr h2 => 
+      let ⟨h_not_younteen, h_not_wish⟩ := h2
+      have h_A2 := A2 Bonnie Bonnie_in_club
+      cases h_A2 with
+      | inl h_perform => 
+          have h_events : AttendEvents Bonnie ∧ EngagedEvents Bonnie := 
+            A1 Bonnie ⟨Bonnie_in_club, h_perform⟩
+          cases Bonnie_case with
+          | inl h1 => exact Or.inl h1.right
+          | inr h2 => 
+              have := h2.left
+              contradiction
+      | inr h_inactive => exact Or.inr h_inactive
+</lean>
+
+ANSWER: True

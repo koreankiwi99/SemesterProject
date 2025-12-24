@@ -1,0 +1,97 @@
+The goal is to prove that "German is a Romance language" is false based on the given premises. After formalizing the context in Lean, we attempt to derive a contradiction by assuming `Romance German`. However, the axioms do not lead to a contradiction:
+
+- `Romance German` implies `Related German Spanish` via `A2` (since Spanish is Romance), but this is already stated in `A5`.
+- Basque is proven not to be Romance (if it were, it would be related to Spanish, contradicting `A6`), but this doesn't affect German.
+- There are no axioms forcing non-Romance languages to be unrelated to Romance languages, so `Related German Spanish` (given) is consistent with German not being Romance.
+- No other contradictions arise from the premises.
+
+Thus, we cannot prove `¬Romance German`.
+
+<lean>
+axiom Language : Type
+axiom French : Language
+axiom Spanish : Language
+axiom German : Language
+axiom Basque : Language
+axiom Romance : Language → Prop
+axiom IndoEuropean : Language → Prop
+axiom Related : Language → Language → Prop
+
+axiom A1 : ∀ l : Language, Romance l → IndoEuropean l
+axiom A2 : ∀ l1 l2 : Language, Romance l1 ∧ Romance l2 → Related l1 l2
+axiom A3 : Romance French
+axiom A4 : Romance Spanish
+axiom A5 : Related German Spanish
+axiom A6 : ∀ l : Language, l ≠ Basque → ¬ Related Basque l
+
+-- Attempt to prove ¬Romance German by contradiction fails
+theorem german_not_romance : ¬Romance German := by
+  intro h_german_romance
+  -- German and Spanish are both Romance → Related German Spanish (by A2)
+  have : Related German Spanish := A2 German Spanish ⟨h_german_romance, A4⟩
+  -- But A5 already states Related German Spanish → no contradiction
+  -- Check Basque: if Basque were Romance, it would contradict A6
+  have no_basque_romance : ¬Romance Basque := by
+    intro h_basque_romance
+    have : Related Basque Spanish := A2 Basque Spanish ⟨h_basque_romance, A4⟩
+    apply A6 Spanish
+    · simp -- or prove Spanish ≠ Basque if needed, but contradiction arises regardless
+    · assumption
+  -- No axiom connects German's relation to Romance status → no contradiction
+  -- Cannot derive further contradictions
+  admit -- Proof fails
+
+-- Since the proof fails, we cannot prove ¬Romance German
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the proof attempted to use `A6` without proving that Spanish and Basque are distinct. Adding an axiom for distinctness resolves this, but it doesn't help prove the main goal. After fixing this, the proof attempt for `¬Romance German` still fails because the premises don't provide a contradiction when assuming `Romance German`:
+
+1. Assuming `Romance German` allows deriving `Related German Spanish` via `A2`, but this is consistent with `A5` (which already states this relation).
+2. There are no axioms connecting German's relation to Spanish with Romance status in a way that forces contradiction.
+3. The Basque-related proof (now fixed) doesn't interact with German.
+
+Thus, we cannot prove `¬Romance German`.
+
+<lean>
+axiom Language : Type
+axiom French : Language
+axiom Spanish : Language
+axiom German : Language
+axiom Basque : Language
+
+axiom Romance : Language → Prop
+axiom IndoEuropean : Language → Prop
+axiom Related : Language → Language → Prop
+
+axiom A1 : ∀ l : Language, Romance l → IndoEuropean l
+axiom A2 : ∀ l1 l2 : Language, Romance l1 ∧ Romance l2 → Related l1 l2
+axiom A3 : Romance French
+axiom A4 : Romance Spanish
+axiom A5 : Related German Spanish
+axiom A6 : ∀ l : Language, l ≠ Basque → ¬ Related Basque l
+
+-- Required to apply A6 for Spanish
+axiom Spanish_not_Basque : Spanish ≠ Basque
+
+-- Prove Basque isn't Romance (context consistency)
+theorem no_basque_romance : ¬Romance Basque := by
+  intro h
+  have : Related Basque Spanish := A2 Basque Spanish ⟨h, A4⟩
+  exact A6 Spanish Spanish_not_Basque this
+
+-- Attempt to prove ¬Romance German (fails)
+theorem german_not_romance : ¬Romance German := by
+  intro h_german_romance
+  have : Related German Spanish := A2 German Spanish ⟨h_german_romance, A4⟩
+  -- No contradiction: A5 already states Related German Spanish
+  -- No axioms force German to be non-Romance
+  admit  -- Proof fails; no contradiction found
+</lean>
+
+ANSWER: Failure

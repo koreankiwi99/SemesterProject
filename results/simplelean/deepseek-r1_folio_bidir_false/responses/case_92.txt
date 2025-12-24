@@ -1,0 +1,188 @@
+To evaluate the statement "Tom will rent an apartment in The Olive Garden," we attempt to prove its negation using the provided premises. The key conditions for Tom to rent are:  
+1. He is allowed to move in with Fluffy (which requires the building to allow pets).  
+2. The security deposit is ≤ $1500.  
+
+At The Olive Garden:  
+- Monthly rent is $2000.  
+- Security deposit ≥ monthly rent ($2000) by premise.  
+- $2000 > $1500, so security deposit > $1500.  
+Thus, condition (2) fails. However, the premises only state that Tom *will* rent if both conditions hold (an implication), not that he *won't* rent if they fail. There are no premises indicating Tom would rent without meeting these conditions or under other circumstances. Therefore, we cannot prove the negation of the statement.  
+
+<lean>
+axiom obj : Type
+
+/- Constants -/
+axiom Tom : obj
+axiom Fluffy : obj
+axiom OliveGarden : obj
+
+/- Predicates -/
+axiom ManagedBuilding : obj → Prop
+axiom AllowsPets : obj → Prop
+axiom AllowsMoveInWithPet : obj → Prop
+axiom TomRents : obj → Prop  -- Tom rents an apartment in this building
+
+/- Functions -/
+axiom monthlyRent : obj → Nat
+axiom securityDeposit : obj → Nat
+
+/- Axioms -/
+axiom A1 : ∃ b : obj, ManagedBuilding b ∧ AllowsPets b  -- Some managed building allows pets
+axiom A2 : ∀ b : obj, ManagedBuilding b → securityDeposit b ≥ monthlyRent b  -- Deposit ≥ rent
+axiom A3 : ManagedBuilding OliveGarden
+axiom A4 : monthlyRent OliveGarden = 2000
+axiom A5 : 2000 > 1500  -- Explicit inequality
+axiom A6 : ∀ b : obj, ManagedBuilding b → AllowsPets b → AllowsMoveInWithPet b  -- Allows pets → allows move-in
+axiom A7 : ∀ b : obj, ManagedBuilding b → 
+  (AllowsMoveInWithPet b ∧ securityDeposit b ≤ 1500) → 
+  TomRents b  -- Tom rents only if both conditions hold
+
+/- Inequality properties (needed for reasoning) -/
+axiom gt_implies_not_le : ∀ (a b : Nat), a > b → ¬(a ≤ b)
+axiom trans_ge_gt : ∀ (a b c : Nat), a ≥ b → b > c → a > c
+
+/- Prove deposit at Olive Garden > 1500 -/
+lemma OG_deposit_ge_2000 : securityDeposit OliveGarden ≥ 2000 := by
+  have h1 := A2 OliveGarden A3  -- securityDeposit OliveGarden ≥ monthlyRent OliveGarden
+  rw [A4] at h1  -- Replace monthlyRent with 2000
+  exact h1
+
+lemma OG_deposit_gt_1500 : securityDeposit OliveGarden > 1500 := by
+  apply trans_ge_gt (securityDeposit OliveGarden) 2000 1500
+  · exact OG_deposit_ge_2000
+  · exact A5
+
+lemma OG_deposit_not_le_1500 : ¬(securityDeposit OliveGarden ≤ 1500) := by
+  apply gt_implies_not_le (securityDeposit OliveGarden) 1500
+  exact OG_deposit_gt_1500
+
+/- We cannot prove ¬TomRents OliveGarden because:
+   - A7 only gives a sufficient condition for Tom to rent, not a necessary one.
+   - No premises prohibit Tom from renting when the conditions fail. -/
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect application of the `trans_ge_gt` axiom and missing foundational properties of natural numbers. After correcting the approach:
+
+1. Removed unnecessary lemmas and axiomatized required mathematical properties
+2. Focused on the key insight: While we can prove the security deposit at Olive Garden exceeds $1500, this only invalidates one condition for Tom to rent. 
+3. Crucially, axiom A7 only provides a sufficient condition (Tom rents IF conditions are met), not a necessary condition (Tom rents ONLY IF conditions are met). 
+
+<lean>
+axiom obj : Type
+
+axiom Tom : obj
+axiom Fluffy : obj
+axiom OliveGarden : obj
+
+axiom ManagedBuilding : obj → Prop
+axiom AllowsPets : obj → Prop
+axiom AllowsMoveInWithPet : obj → Prop
+axiom TomRents : obj → Prop
+
+axiom monthlyRent : obj → Nat
+axiom securityDeposit : obj → Nat
+
+axiom A1 : ∃ b : obj, ManagedBuilding b ∧ AllowsPets b
+axiom A2 : ∀ b : obj, ManagedBuilding b → securityDeposit b ≥ monthlyRent b
+axiom A3 : ManagedBuilding OliveGarden
+axiom A4 : monthlyRent OliveGarden = 2000
+axiom A5 : 2000 > 1500
+axiom A6 : ∀ b : obj, ManagedBuilding b → AllowsPets b → AllowsMoveInWithPet b
+axiom A7 : ∀ b : obj, ManagedBuilding b → 
+  (AllowsMoveInWithPet b ∧ securityDeposit b ≤ 1500) → 
+  TomRents b
+
+-- Required mathematical properties
+axiom ge_trans : ∀ (a b c : Nat), a ≥ b → b ≥ c → a ≥ c
+axiom gt_imp_not_le : ∀ (a b : Nat), a > b → ¬(a ≤ b)
+
+-- Prove deposit > 1500
+theorem OG_deposit_gt_1500 : securityDeposit OliveGarden > 1500 := by
+  have h1 : securityDeposit OliveGarden ≥ 2000 := by
+    apply A2 OliveGarden A3
+    rw [A4]
+  apply gt_imp_not_le.2  -- Use property that a ≥ b and b > c implies a > c
+  have : 2000 > 1500 := A5
+  exact Nat.le_trans h1 (Nat.le_of_lt this)  -- Built-in natural number properties
+
+-- But this only shows one condition fails. We cannot prove ¬TomRents OliveGarden because:
+-- 1. We don't know if Olive Garden allows pets (A1 says some building does, not necessarily this one)
+-- 2. A7 doesn't prohibit Tom from renting when conditions fail
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to incorrect tactic usage and missing foundational mathematical properties. After correcting these:
+
+1. **Mathematical Properties**: Added axioms for natural number transitivity and inequality properties.
+2. **Proof Correction**:
+   - Used `exact` instead of `apply` for direct term application
+   - Explicitly applied transitivity lemmas with specific arguments
+   - Used `rw` to substitute known values in hypotheses
+
+The key insight remains: While we can prove the security deposit at Olive Garden exceeds $1500, this only invalidates one condition for Tom to rent. Crucially:
+- Axiom A7 only provides a sufficient condition (Tom rents IF conditions are met), not a necessary condition
+- We don't know if Olive Garden allows pets (A1 only states some building allows pets)
+- There might be other reasons for Tom to rent
+
+Thus, we cannot prove ¬TomRents OliveGarden.
+
+<lean>
+axiom obj : Type
+
+axiom Tom : obj
+axiom Fluffy : obj
+axiom OliveGarden : obj
+
+axiom ManagedBuilding : obj → Prop
+axiom AllowsPets : obj → Prop
+axiom AllowsMoveInWithPet : obj → Prop
+axiom TomRents : obj → Prop
+
+axiom monthlyRent : obj → Nat
+axiom securityDeposit : obj → Nat
+
+axiom A1 : ∃ b : obj, ManagedBuilding b ∧ AllowsPets b
+axiom A2 : ∀ b : obj, ManagedBuilding b → securityDeposit b ≥ monthlyRent b
+axiom A3 : ManagedBuilding OliveGarden
+axiom A4 : monthlyRent OliveGarden = 2000
+axiom A5 : 2000 > 1500
+axiom A6 : ∀ b : obj, ManagedBuilding b → AllowsPets b → AllowsMoveInWithPet b
+axiom A7 : ∀ b : obj, ManagedBuilding b → 
+  (AllowsMoveInWithPet b ∧ securityDeposit b ≤ 1500) → 
+  TomRents b
+
+-- Foundational mathematical properties
+axiom ge_trans : ∀ (a b c : Nat), a ≥ b → b ≥ c → a ≥ c
+axiom gt_trans : ∀ (a b c : Nat), a > b → b > c → a > c
+axiom gt_imp_ge : ∀ (a b : Nat), a > b → a ≥ b
+axiom gt_imp_not_le : ∀ (a b : Nat), a > b → ¬(a ≤ b)
+
+-- Prove deposit > 1500
+theorem OG_deposit_gt_1500 : securityDeposit OliveGarden > 1500 := by
+  have h1 : securityDeposit OliveGarden ≥ monthlyRent OliveGarden := A2 OliveGarden A3
+  rw [A4] at h1  -- h1 now: securityDeposit OliveGarden ≥ 2000
+  have h2 : 2000 ≥ 1500 := gt_imp_ge 2000 1500 A5
+  exact ge_trans (securityDeposit OliveGarden) 2000 1500 h1 h2
+
+-- Prove deposit cannot be ≤ 1500
+theorem OG_deposit_not_le_1500 : ¬(securityDeposit OliveGarden ≤ 1500) := 
+  gt_imp_not_le (securityDeposit OliveGarden) 1500 OG_deposit_gt_1500
+
+-- Cannot prove ¬TomRents OliveGarden because:
+-- 1. A7 is sufficient but not necessary condition
+-- 2. No information about pets at Olive Garden
+-- 3. Tom might rent for other reasons
+</lean>
+
+ANSWER: Failure

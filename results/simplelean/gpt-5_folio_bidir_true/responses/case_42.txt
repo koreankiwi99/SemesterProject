@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+axiom Coco : obj
+
+axiom RankedHighlyWTA : obj → Prop
+axiom MostActiveGS : obj → Prop
+axiom AtRG22 : obj → Prop
+axiom LostToIga : obj → Prop
+axiom LostToNadal : obj → Prop
+axiom FemaleRG22 : obj → Prop
+axiom MaleRG22 : obj → Prop
+
+-- If someone is ranked highly by the WTA, they are one of the most active players in major tennis.
+axiom R1 : ∀ x : obj, RankedHighlyWTA x → MostActiveGS x
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom R2 : ∀ x : obj, (LostToIga x ∧ AtRG22 x) → RankedHighlyWTA x
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom R3 : ∀ x : obj, FemaleRG22 x → LostToIga x
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom R4 : ∀ x : obj, AtRG22 x → FemaleRG22 x ∨ MaleRG22 x
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom R5 : ∀ x : obj, MaleRG22 x → LostToNadal x
+-- If Coco is ranked highly by the WTA or lost to Nadal, then Coco is not a male tennis player at RG2022.
+axiom R6 : (RankedHighlyWTA Coco ∨ LostToNadal Coco) → ¬ MaleRG22 Coco
+-- Coco is at Roland Garros 2022.
+axiom T1 : AtRG22 Coco
+
+theorem coco_most_active : MostActiveGS Coco :=
+by
+  have disj : FemaleRG22 Coco ∨ MaleRG22 Coco := R4 Coco T1
+  have hr : RankedHighlyWTA Coco :=
+    Or.elim disj
+      (fun hf =>
+        have li : LostToIga Coco := R3 Coco hf
+        show RankedHighlyWTA Coco from R2 Coco (And.intro li T1)
+      )
+      (fun hm =>
+        have ln : LostToNadal Coco := R5 Coco hm
+        have nMale : ¬ MaleRG22 Coco := R6 (Or.inr ln)
+        False.elim (nMale hm)
+      )
+  exact R1 Coco hr
+</lean>
+
+ANSWER: True

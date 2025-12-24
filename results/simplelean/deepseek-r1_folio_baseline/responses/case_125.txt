@@ -1,0 +1,75 @@
+Based on the given context, we translate the reasoning into Lean 4. The key predicates are: `Pet` (Peter's pet), `Mammal`, `Animal`, `Monkey`, `Bird`, `Fly`, `Breathe`, `Wings`. The entity is `Rock`.
+
+<lean>
+axiom obj : Type
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom Fly : obj → Prop
+axiom Breathe : obj → Prop
+axiom Wings : obj → Prop
+axiom Rock : obj
+
+-- All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x : obj, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x : obj, Pet x → Monkey x ∨ Bird x
+-- Peter's birds can fly.
+axiom A4 : ∀ x : obj, Pet x ∧ Bird x → Fly x
+-- All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x : obj, Animal x ∧ Pet x → Breathe x
+-- If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x : obj, Pet x ∧ Fly x → Wings x
+-- Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+-- We prove that Rock has wings.
+theorem rock_has_wings : Wings Rock := by
+  -- Rock is a pet (A7), so by A3, Rock is either a monkey or a bird.
+  have h1 := A3 Rock A7
+  cases h1 with
+  | inl monkey_rock =>
+      -- Rock is a monkey.
+      have mammal_rock : Mammal Rock := A2 Rock monkey_rock
+      have animal_rock : Animal Rock := A1 Rock ⟨A7, mammal_rock⟩
+      have breathe_rock : Breathe Rock := A5 Rock ⟨animal_rock, A7⟩
+      -- Using A8: Fly Rock ∨ Bird Rock ∨ ¬Breathe Rock
+      have h2 := A8
+      cases h2 with
+      | inl fly_rock => exact A6 Rock ⟨A7, fly_rock⟩
+      | inr rest =>
+          cases rest with
+          | inl bird_rock => 
+              -- Contradiction: Rock is monkey and bird? But even if, we can use bird case.
+              have fly_rock : Fly Rock := A4 Rock ⟨A7, bird_rock⟩
+              exact A6 Rock ⟨A7, fly_rock⟩
+          | inr not_breathe => 
+              -- Contradiction with breathe_rock.
+              contradiction
+  | inr bird_rock =>
+      -- Rock is a bird.
+      have fly_rock : Fly Rock := A4 Rock ⟨A7, bird_rock⟩
+      exact A6 Rock ⟨A7, fly_rock⟩
+</lean>
+
+**Proof Explanation:**  
+- Since Rock is Peter's pet (A7), by A3, Rock is either a monkey or a bird.  
+- **Case 1 (Monkey)**:  
+  - A2 implies Rock is a mammal.  
+  - A1 (with Pet and Mammal) implies Rock is an animal.  
+  - A5 (with Animal and Pet) implies Rock breathes.  
+  - A8 states: Fly Rock ∨ Bird Rock ∨ ¬Breathe Rock. Since Rock breathes and isn't a bird (in this branch), Fly Rock must hold.  
+  - A6 (with Pet and Fly) gives Wings Rock.  
+- **Case 2 (Bird)**:  
+  - A4 (with Pet and Bird) implies Fly Rock.  
+  - A6 (with Pet and Fly) directly gives Wings Rock.  
+
+Thus, Wings Rock is provable in all cases.  
+
+ANSWER: True

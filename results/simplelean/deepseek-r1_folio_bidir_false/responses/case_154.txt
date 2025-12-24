@@ -1,0 +1,64 @@
+The goal is to prove the negation of the statement:  
+"If the mixture contains only one element or contains carbon, then the mixture is neither a chemical compound nor an alkane."  
+This negation is:  
+"(The mixture contains only one element or contains carbon) and (the mixture is a chemical compound or is an alkane)."  
+
+From the premises:  
+- The mixture must either be a chemical compound and contain only one element, or neither (axiom A6).  
+- If it is a chemical compound, it cannot contain only one element (axiom A5), making the first case impossible. Thus, the mixture is not a chemical compound and does not contain only one element (theorem `case2`).  
+- If the mixture were an alkane, it would be a hydrocarbon (A2), then an organic compound (A1), then a chemical compound (A3), contradicting `¬ChemicalCompound Mixture`. Hence, it cannot be an alkane (theorem `not_alkane`).  
+
+The second part of the negation, `ChemicalCompound Mixture ∨ Alkane Mixture`, is false because both disjuncts are false. Therefore, the entire conjunction (the negation) is false and cannot be proven.  
+
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+axiom Hydrocarbon : obj → Prop
+axiom OrganicCompound : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom ContainsOnlyOneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+axiom A1 : ∀ x : obj, Hydrocarbon x → OrganicCompound x
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom A3 : ∀ x : obj, OrganicCompound x → ChemicalCompound x
+axiom A4 : ∀ x : obj, OrganicCompound x → ContainsCarbon x
+axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ ContainsOnlyOneElement x
+axiom A6 : (ChemicalCompound Mixture ∧ ContainsOnlyOneElement Mixture) ∨ 
+           (¬ ChemicalCompound Mixture ∧ ¬ ContainsOnlyOneElement Mixture)
+
+theorem not_chem_and_one : ¬ (ChemicalCompound Mixture ∧ ContainsOnlyOneElement Mixture) := by
+  intro h
+  have hchem := h.1
+  have hone := h.2
+  exact A5 Mixture hchem hone
+
+theorem case2 : ¬ ChemicalCompound Mixture ∧ ¬ ContainsOnlyOneElement Mixture := by
+  cases A6 with
+  | inl h => exact absurd h not_chem_and_one
+  | inr h => exact h
+
+theorem not_chem : ¬ ChemicalCompound Mixture := case2.1
+theorem not_one : ¬ ContainsOnlyOneElement Mixture := case2.2
+
+theorem not_alkane : ¬ Alkane Mixture := by
+  intro h_alkane
+  have h_hydro : Hydrocarbon Mixture := A2 Mixture h_alkane
+  have h_org : OrganicCompound Mixture := A1 Mixture h_hydro
+  have h_chem : ChemicalCompound Mixture := A3 Mixture h_org
+  exact not_chem h_chem
+
+-- Attempt to prove the negation: (ContainsOnlyOneElement Mixture ∨ ContainsCarbon Mixture) ∧ (ChemicalCompound Mixture ∨ Alkane Mixture)
+theorem negation_false : ¬ ((ContainsOnlyOneElement Mixture ∨ ContainsCarbon Mixture) ∧ 
+                          (ChemicalCompound Mixture ∨ Alkane Mixture)) := by
+  intro h
+  have h_right := h.2
+  cases h_right with
+  | inl h_chem => exact not_chem h_chem
+  | inr h_alkane => exact not_alkane h_alkane
+
+-- Since the negation is false and cannot be proven, we cannot disprove the original statement.
+</lean>
+
+ANSWER: Failure

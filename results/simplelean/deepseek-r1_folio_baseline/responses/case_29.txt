@@ -1,0 +1,76 @@
+The reasoning involves analyzing the given context and determining the truth value of the statement: "If Marvin is not from Mars, then Marvin is a human."
+
+### Key Steps:
+1. **Formalize Context**:
+   - All aliens are extraterrestrials: `∀x, Alien x → Extraterrestrial x`
+   - If from Mars, then alien: `∀x, FromMars x → Alien x`
+   - No extraterrestrials are human: `∀x, Extraterrestrial x → ¬Human x`
+   - Highly intelligent beings from Earth are human: `∀x, (HighlyIntelligent x ∧ FromEarth x) → Human x`
+   - Marvin is highly intelligent: `HighlyIntelligent Marvin`
+   - Marvin is either from both Earth and Mars or from neither: `(FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)`
+   - If not from Earth, then extraterrestrial: `¬FromEarth Marvin → Extraterrestrial Marvin`
+
+2. **Analyze Cases**:
+   - **Case 1**: Marvin is from both Earth and Mars.
+     - From Earth: By axiom 4, Marvin is human (`Human Marvin`).
+     - From Mars: By axioms 2 and 1, Marvin is extraterrestrial, so not human (`¬Human Marvin`). Contradiction. Thus, Case 1 is impossible.
+   - **Case 2**: Marvin is from neither Earth nor Mars (only remaining possibility).
+     - Not from Earth: By axiom 7, Marvin is extraterrestrial.
+     - By axiom 3, Marvin is not human (`¬Human Marvin`).
+     - Not from Mars (`¬FromMars Marvin`) is true, but Marvin is not human. Thus, the implication `¬FromMars Marvin → Human Marvin` is false (antecedent true, consequent false).
+
+3. **Conclusion**:
+   - The statement "If Marvin is not from Mars, then Marvin is a human" is false because in the only possible scenario (Case 2), Marvin is not from Mars but is also not human.
+
+### Lean Formalization and Proof:
+The Lean code formalizes the axioms and proves that the implication is false, leading to the answer "False".
+
+<lean>
+axiom Entity : Type
+axiom Marvin : Entity
+axiom Alien : Entity → Prop
+axiom Extraterrestrial : Entity → Prop
+axiom FromMars : Entity → Prop
+axiom Human : Entity → Prop
+axiom HighlyIntelligent : Entity → Prop
+axiom FromEarth : Entity → Prop
+
+axiom all_aliens_extraterrestrial : ∀ x, Alien x → Extraterrestrial x
+axiom from_mars_alien : ∀ x, FromMars x → Alien x
+axiom no_extraterrestrial_human : ∀ x, Extraterrestrial x → ¬ Human x
+axiom intelligent_earth_human : ∀ x, HighlyIntelligent x ∧ FromEarth x → Human x
+axiom marvin_intelligent : HighlyIntelligent Marvin
+axiom marvin_origin : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom not_earth_extraterrestrial : ¬FromEarth Marvin → Extraterrestrial Marvin
+
+-- Prove Case 1 (from Earth and Mars) is impossible due to contradiction
+theorem case1_impossible : ¬ (FromEarth Marvin ∧ FromMars Marvin) := by
+  intro ⟨h_earth, h_mars⟩
+  have h_alien : Alien Marvin := from_mars_alien Marvin h_mars
+  have h_et : Extraterrestrial Marvin := all_aliens_extraterrestrial Marvin h_alien
+  have h_not_human : ¬ Human Marvin := no_extraterrestrial_human Marvin h_et
+  have h_human : Human Marvin := intelligent_earth_human Marvin ⟨marvin_intelligent, h_earth⟩
+  exact h_not_human h_human
+
+-- Case 2 must hold (neither from Earth nor Mars)
+theorem case2 : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+  cases marvin_origin with
+  | inl h => exact absurd h case1_impossible
+  | inr h => exact h
+
+theorem marvin_not_earth : ¬FromEarth Marvin := case2.left
+theorem marvin_not_mars : ¬FromMars Marvin := case2.right
+
+theorem marvin_extraterrestrial : Extraterrestrial Marvin := not_earth_extraterrestrial marvin_not_earth
+theorem marvin_not_human : ¬ Human Marvin := no_extraterrestrial_human Marvin marvin_extraterrestrial
+
+-- The statement: ¬FromMars Marvin → Human Marvin is false
+theorem implication_false : ¬ (¬FromMars Marvin → Human Marvin) := by
+  intro h_imply
+  have h_human : Human Marvin := h_imply marvin_not_mars
+  exact marvin_not_human h_human
+
+-- Therefore, the statement in the question is false
+</lean>
+
+ANSWER: False

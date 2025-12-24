@@ -1,0 +1,49 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegister : Person → Prop
+axiom CanParticipate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+axiom Premise1 : ∀ x, CanRegister x → CanParticipate x
+axiom Premise2 : ∀ x, USCitizen x → CanRegister x
+axiom Premise3 : ∀ x, USCitizen x ∨ TaiCitizen x
+axiom Premise4 : ∀ x, RFOfficial x → ¬ TaiCitizen x
+axiom Premise5 : ¬ TaiCitizen Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom Premise6 : CanRegister Ekaterina ∨ RFOfficial Ekaterina
+
+-- Attempt to prove negation of conclusion: ¬(CanParticipate Ekaterina ∨ ManagerGazprom Ekaterina)
+theorem prove_negation : ¬(CanParticipate Ekaterina ∨ ManagerGazprom Ekaterina) → False := by
+  intro h_neg
+  -- Decompose negation into ¬CanParticipate and ¬ManagerGazprom
+  have ⟨h_no_part, h_no_manager⟩ : ¬CanParticipate Ekaterina ∧ ¬ManagerGazprom Ekaterina := by
+    exact not_or.mp h_neg
+  -- Case analysis on Premise6
+  cases Premise6 with
+  | inl h_reg =>
+      -- Ekaterina can register → she can participate (Premise1)
+      have h_part : CanParticipate Ekaterina := Premise1 Ekaterina h_reg
+      contradiction
+  | inr h_rf =>
+      -- Ekaterina is RF official → no Taiwanese citizenship (Premise4)
+      have h_no_tai : ¬ TaiCitizen Ekaterina := Premise4 Ekaterina h_rf
+      -- From Premise3: must have US citizenship
+      cases Premise3 Ekaterina with
+      | inl h_us =>
+          -- US citizenship → can register (Premise2) → can participate (Premise1)
+          have h_reg : CanRegister Ekaterina := Premise2 Ekaterina h_us
+          have h_part : CanParticipate Ekaterina := Premise1 Ekaterina h_reg
+          contradiction
+      | inr h_tai =>
+          -- Contradiction with h_no_tai
+          contradiction
+
+-- Since we derived a contradiction when assuming the negation, we cannot prove the conclusion false
+</lean>
+
+ANSWER: Failure

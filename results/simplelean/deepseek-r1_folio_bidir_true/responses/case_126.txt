@@ -1,0 +1,50 @@
+The premises lead to the conclusion that Rock has wings, making it impossible to prove that Rock does not have wings. The reasoning is as follows:
+
+- Rock is Peter's pet (A7).
+- Peter's pets are either monkeys or birds (A3), so Rock is a monkey or a bird.
+- If Rock is a bird (A4): Peter's birds can fly → Rock can fly → by A6, Rock has wings.
+- If Rock is a monkey (A2): Monkeys are mammals → Rock is a mammal → by A1, Rock is an animal → by A5, Rock can breathe. A8 states: Rock can fly ∨ Rock is a bird ∨ ¬Rock can breathe. Since Rock is a monkey (not a bird) and can breathe, A8 forces Rock can fly → by A6, Rock has wings.
+- In all cases, Rock has wings, so ¬HasWings(Rock) is false and cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+axiom A1 : ∀ x : obj, PeterPet x ∧ Mammal x → Animal x
+axiom A2 : ∀ x : obj, Monkey x → Mammal x
+axiom A3 : ∀ x : obj, PeterPet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, PeterPet x ∧ Bird x → CanFly x
+axiom A5 : ∀ x : obj, Animal x ∧ PeterPet x → CanBreathe x
+axiom A6 : ∀ x : obj, PeterPet x ∧ CanFly x → HasWings x
+axiom A7 : PeterPet Rock
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+theorem Rock_has_wings : HasWings Rock := by
+  have pet := A7
+  have type := A3 Rock pet
+  cases type with
+  | inl monkey =>
+      have mammal := A2 Rock monkey
+      have animal := A1 Rock ⟨pet, mammal⟩
+      have breathe := A5 Rock ⟨animal, pet⟩
+      cases A8 with
+      | inl fly => exact A6 Rock ⟨pet, fly⟩
+      | inr rest =>
+          cases rest with
+          | inl bird => exact A6 Rock ⟨pet, A4 Rock ⟨pet, bird⟩⟩
+          | inr not_breathe => contradiction
+  | inr bird => exact A6 Rock ⟨pet, A4 Rock ⟨pet, bird⟩⟩
+
+-- The conclusion "Rock does not have wings" (¬HasWings Rock) is false
+-- and cannot be proven from the axioms.
+</lean>
+
+ANSWER: Failure

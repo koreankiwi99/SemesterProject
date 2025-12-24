@@ -1,0 +1,122 @@
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom A2 : ∀ x, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x, Pet x → Monkey x ∨ Bird x
+-- Peter's birds can fly.
+axiom A4 : ∀ x, Pet x ∧ Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x, Pet x ∧ Animal x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x, Pet x ∧ CanFly x → HasWings x
+-- Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- Attempt to prove ¬HasWings Rock
+theorem not_has_wings : ¬HasWings Rock := by
+  intro h_wings
+  -- Show Rock must have wings to derive contradiction
+  have h_pet := A7
+  have h_type : Monkey Rock ∨ Bird Rock := A3 Rock h_pet
+  cases h_type with
+  | inl monkey_rock =>
+      have mammal_rock : Mammal Rock := A2 Rock monkey_rock
+      have animal_rock : Animal Rock := A1 Rock ⟨h_pet, mammal_rock⟩
+      have breathe_rock : CanBreathe Rock := A5 Rock ⟨h_pet, animal_rock⟩
+      cases A8 with
+      | inl fly_rock => 
+          have : HasWings Rock := A6 Rock ⟨h_pet, fly_rock⟩
+          contradiction
+      | inr rest =>
+          cases rest with
+          | inl bird_rock =>
+              have fly_rock : CanFly Rock := A4 Rock ⟨h_pet, bird_rock⟩
+              have : HasWings Rock := A6 Rock ⟨h_pet, fly_rock⟩
+              contradiction
+          | inr not_breathe => 
+              contradiction  -- contradicts breathe_rock
+  | inr bird_rock =>
+      have fly_rock : CanFly Rock := A4 Rock ⟨h_pet, bird_rock⟩
+      have : HasWings Rock := A6 Rock ⟨h_pet, fly_rock⟩
+      contradiction
+  -- Contradiction obtained in all cases? But wait: 
+  -- This proof actually shows HasWings Rock must hold, so ¬HasWings Rock leads to contradiction.
+  -- However, note: the proof above uses A8 and the other axioms to show that in every case, HasWings Rock is true.
+  -- Therefore, we have proved ¬HasWings Rock → false, meaning ¬HasWings Rock is false? 
+  -- But we are required to prove ¬HasWings Rock from the axioms. We have instead used ¬HasWings Rock and derived false, which proves that ¬HasWings Rock is false? 
+  -- This means the axioms imply HasWings Rock, so ¬HasWings Rock cannot be proven.
+
+-- Since the above theorem proves ¬HasWings Rock leads to contradiction, 
+-- it demonstrates that ¬HasWings Rock is inconsistent with the axioms. 
+-- But we cannot prove ¬HasWings Rock positively without assumptions? 
+-- Actually, the attempt fails because we assumed ¬HasWings Rock and got contradiction, 
+-- meaning the negation of ¬HasWings Rock (i.e., HasWings Rock) is true. 
+-- Therefore, we cannot prove ¬HasWings Rock as a standalone theorem from the axioms alone.
+
+-- Conclusion: The attempt to prove ¬HasWings Rock fails.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `contradiction` tactic failed to automatically detect contradictions in certain branches. The proof has been revised to explicitly apply the hypothesis `h_wings` (which assumes `HasWings Rock`) to derived proofs of `HasWings Rock` in most branches, and to directly contradict `CanBreathe Rock` with `¬CanBreathe Rock` in one branch.
+
+However, after careful analysis, the axioms actually imply that Rock must have wings. Therefore, it's impossible to prove the negation `¬HasWings Rock`. The revised Lean code reflects this by removing the failed proof attempt and adding explanatory comments.
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom CanFly : obj → Prop
+axiom CanBreathe : obj → Prop
+axiom HasWings : obj → Prop
+
+-- All of Peter's pets that are mammals are also animals.
+axiom A1 : ∀ x, Pet x ∧ Mammal x → Animal x
+-- All monkeys are mammals.
+axiom A2 : ∀ x, Monkey x → Mammal x
+-- Peter's pets are all either monkeys or birds.
+axiom A3 : ∀ x, Pet x → Monkey x ∨ Bird x
+-- Peter's birds can fly.
+axiom A4 : ∀ x, Pet x ∧ Bird x → CanFly x
+-- All animals that are Peter's pets can breathe.
+axiom A5 : ∀ x, Pet x ∧ Animal x → CanBreathe x
+-- If Peter's pet can fly, then it has wings.
+axiom A6 : ∀ x, Pet x ∧ CanFly x → HasWings x
+-- Rock is Peter's pet.
+axiom A7 : Pet Rock
+-- Rock can fly, or Rock is a bird, or Rock cannot breathe.
+axiom A8 : CanFly Rock ∨ Bird Rock ∨ ¬ CanBreathe Rock
+
+-- Attempt to prove ¬HasWings Rock fails because:
+-- 1. Rock is a pet (A7)
+-- 2. Rock is either monkey or bird (A3)
+--   - If monkey: Proves CanBreathe Rock, forcing A8 to yield either 
+--     CanFly Rock (direct wings) or Bird Rock (implies CanFly → wings)
+--   - If bird: Directly proves CanFly Rock → wings
+-- Thus, axioms imply HasWings Rock, making ¬HasWings Rock unprovable.
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+
+-- All hydrocarbons are organic compounds.
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+-- All alkanes are hydrocarbons.
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+-- All organic compounds are chemical compounds.
+axiom A3 : ∀ x : obj, Organic x → ChemicalCompound x
+-- All organic compounds contain carbon.
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+-- No chemical compounds contain only one element.
+axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom A6 : (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) ∨ (¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture)
+
+theorem target :
+  (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) →
+  (¬ ChemicalCompound Mixture ∧ ¬ Alkane Mixture) := by
+  intro _
+  -- Show that the first disjunct of A6 is impossible
+  have hnotpair : ¬ (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) := by
+    intro h
+    have hc : ChemicalCompound Mixture := h.left
+    have ho : OnlyOneElement Mixture := h.right
+    have hno : ¬ OnlyOneElement Mixture := A5 Mixture hc
+    exact hno ho
+  -- Therefore, the second disjunct of A6 holds
+  have hconj : ¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture := by
+    cases A6 with
+    | inl h =>
+        have : False := hnotpair h
+        exact False.elim this
+    | inr h => exact h
+  have hNotChem : ¬ ChemicalCompound Mixture := hconj.left
+  -- From ¬ChemicalCompound Mixture and Alkane → ChemicalCompound, derive ¬Alkane Mixture
+  have notAlk : ¬ Alkane Mixture := by
+    intro ha
+    have hc : ChemicalCompound Mixture := A3 Mixture (A1 Mixture (A2 Mixture ha))
+    exact hNotChem hc
+  exact And.intro hNotChem notAlk
+</lean>
+
+ANSWER: True

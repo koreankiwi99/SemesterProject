@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+
+axiom Picuris : obj
+axiom Juan : obj
+
+axiom MountainRange : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom Visited : obj → obj → Prop
+
+axiom Mine : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+-- Facts from the context
+axiom MR_Picuris : MountainRange Picuris
+axiom InNM_or_TX_Picuris : InNewMexico Picuris ∨ InTexas Picuris
+axiom Visited_Juan_Picuris : Visited Juan Picuris
+
+-- The Harding Pegmatite Mine, located in the Picuris Mountains, was donated.
+axiom H : obj
+axiom Harding_is_mine : Mine H
+axiom Harding_located : LocatedIn H Picuris
+axiom Harding_donated : Donated H
+
+-- There are no mountain ranges in Texas that have mines that have been donated.
+axiom Texas_no_donated_ranges :
+  ∀ r : obj, MountainRange r ∧ InTexas r → ¬ (∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m)
+
+theorem juan_visited_nm_range : ∃ r : obj, MountainRange r ∧ InNewMexico r ∧ Visited Juan r := by
+  -- There exists a donated mine located in the Picuris Mountains
+  have exH : ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
+    refine Exists.intro H ?_
+    exact And.intro Harding_is_mine (And.intro Harding_located Harding_donated)
+  -- Hence, Picuris cannot be in Texas
+  have notTexas : ¬ InTexas Picuris := by
+    intro tx
+    have hmt : MountainRange Picuris ∧ InTexas Picuris := And.intro MR_Picuris tx
+    have noex := Texas_no_donated_ranges Picuris hmt
+    exact noex exH
+  -- From "in New Mexico or Texas" and "not in Texas", conclude "in New Mexico"
+  have inNM : InNewMexico Picuris := by
+    cases InNM_or_TX_Picuris with
+    | inl nm => exact nm
+    | inr tx => exact False.elim (notTexas tx)
+  -- Conclude the existential statement
+  refine Exists.intro Picuris ?_
+  exact And.intro MR_Picuris (And.intro inNM Visited_Juan_Picuris)
+</lean>
+
+ANSWER: True

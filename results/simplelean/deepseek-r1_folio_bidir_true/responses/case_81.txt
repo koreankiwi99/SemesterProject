@@ -1,0 +1,107 @@
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+
+-- No baked sweets are spicy
+axiom no_baked_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+
+-- All cupcakes are baked sweets
+axiom all_cupcakes_baked : ∀ x, Cupcake x → BakedSweet x
+
+-- All mala hotpots are spicy
+axiom all_mala_spicy : ∀ x, MalaHotpot x → Spicy x
+
+-- All products from Baked by Melissa are cupcakes
+axiom all_BbM_cupcakes : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+
+-- Dried Thai chilies are spicy or mala hotpots or not baked sweets
+axiom dried_thai_disjunction : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
+
+theorem goal : ¬ ProductOfBakedByMelissa DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies := by
+  -- First prove ¬BakedSweet DriedThaiChilies
+  have no_baked : ¬ BakedSweet DriedThaiChilies := by
+    cases dried_thai_disjunction with
+    | inl spicy => 
+        intro baked
+        have not_spicy := no_baked_spicy DriedThaiChilies baked
+        contradiction
+    | inr (inl mala) =>
+        intro baked
+        have spicy := all_mala_spicy DriedThaiChilies mala
+        have not_spicy := no_baked_spicy DriedThaiChilies baked
+        contradiction
+    | inr (inr not_baked) => exact not_baked
+  
+  -- Now prove ¬ProductOfBakedByMelissa DriedThaiChilies
+  have no_product : ¬ ProductOfBakedByMelissa DriedThaiChilies := by
+    intro product
+    have cupcake := all_BbM_cupcakes DriedThaiChilies product
+    have baked := all_cupcakes_baked DriedThaiChilies cupcake
+    contradiction
+  
+  exact ⟨no_product, no_baked⟩
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to the nested disjunction handling in the `cases` tactic. The original code attempted to pattern match directly on `inr (inl ...)` and `inr (inr ...)`, but Lean requires explicit handling of each disjunction level. The corrected solution uses `rcases` to cleanly decompose the three-way disjunction into separate cases.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+
+-- No baked sweets are spicy
+axiom no_baked_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+
+-- All cupcakes are baked sweets
+axiom all_cupcakes_baked : ∀ x, Cupcake x → BakedSweet x
+
+-- All mala hotpots are spicy
+axiom all_mala_spicy : ∀ x, MalaHotpot x → Spicy x
+
+-- All products from Baked by Melissa are cupcakes
+axiom all_BbM_cupcakes : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+
+-- Dried Thai chilies are spicy or mala hotpots or not baked sweets
+axiom dried_thai_disjunction : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
+
+theorem goal : ¬ ProductOfBakedByMelissa DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies := by
+  -- Prove ¬BakedSweet DriedThaiChilies by case analysis
+  have no_baked : ¬ BakedSweet DriedThaiChilies := by
+    rcases dried_thai_disjunction with spicy | mala | not_baked
+    -- Case 1: Spicy
+    · intro baked
+      exact no_baked_spicy DriedThaiChilies baked spicy
+    -- Case 2: MalaHotpot
+    · intro baked
+      exact no_baked_spicy DriedThaiChilies baked (all_mala_spicy DriedThaiChilies mala)
+    -- Case 3: Already not baked
+    · exact not_baked
+  
+  -- Prove ¬ProductOfBakedByMelissa DriedThaiChilies
+  have no_product : ¬ ProductOfBakedByMelissa DriedThaiChilies := by
+    intro product
+    have cupcake := all_BbM_cupcakes DriedThaiChilies product
+    have baked := all_cupcakes_baked DriedThaiChilies cupcake
+    exact no_baked baked
+  
+  exact ⟨no_product, no_baked⟩
+</lean>
+
+ANSWER: True

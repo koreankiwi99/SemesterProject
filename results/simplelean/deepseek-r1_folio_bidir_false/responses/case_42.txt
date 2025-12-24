@@ -1,0 +1,53 @@
+The goal is to prove that the statement "Coco Gauff is among the most active Grand-Slam players" (interpreted as `Active Coco`) is false from the given premises. After formalizing the context in Lean, we attempt to prove `¬Active Coco`. However, the axioms imply that `Active Coco` must be true:
+
+1. Coco is at Roland Garros 2022 (`AtRG22 Coco`).
+2. By axiom R4, Coco is either female or male.
+3. If Coco is female:
+   - `Female Coco ∧ AtRG22 Coco` implies `LostToIga Coco` (by R3).
+   - `LostToIga Coco` implies `WTA_high Coco` (by R2).
+   - `WTA_high Coco` implies `Active Coco` (by R1).
+4. If Coco is male:
+   - `Male Coco ∧ AtRG22 Coco` implies `LostToRafael Coco` (by R5).
+   - `LostToRafael Coco` satisfies the disjunction in R6, implying `¬(Male Coco ∧ AtRG22 Coco)`.
+   - But `Male Coco ∧ AtRG22 Coco` holds, leading to a contradiction. Thus, Coco cannot be male.
+
+Therefore, Coco must be female, leading to `Active Coco`. Since we can prove `Active Coco`, we cannot prove its negation (`¬Active Coco`). The attempt to prove the statement false fails.
+
+<lean>
+axiom obj : Type
+axiom Coco : obj
+axiom Iga : obj
+axiom Rafael : obj
+
+axiom WTA_high : obj → Prop
+axiom Active : obj → Prop
+axiom LostToIga : obj → Prop
+axiom LostToRafael : obj → Prop
+axiom Female : obj → Prop
+axiom Male : obj → Prop
+axiom AtRG22 : obj → Prop
+
+axiom R1 : ∀ x, WTA_high x → Active x
+axiom R2 : ∀ x, LostToIga x → WTA_high x
+axiom R3 : ∀ x, Female x ∧ AtRG22 x → LostToIga x
+axiom R4 : ∀ x, AtRG22 x → Female x ∨ Male x
+axiom R5 : ∀ x, Male x ∧ AtRG22 x → LostToRafael x
+axiom R6 : (WTA_high Coco ∨ LostToRafael Coco) → ¬ (Male Coco ∧ AtRG22 Coco)
+axiom T1 : AtRG22 Coco
+
+-- Attempt to prove ¬Active Coco fails because Active Coco is derivable
+theorem active_coco : Active Coco := by
+  have h_gender := R4 Coco T1
+  cases h_gender with
+  | inl h_female =>
+    have h_lost_iga := R3 Coco ⟨h_female, T1⟩
+    exact R1 Coco (R2 Coco h_lost_iga)
+  | inr h_male =>
+    have h_lost_rafael := R5 Coco ⟨h_male, T1⟩
+    have h_not_male := R6 (Or.inr h_lost_rafael)
+    exact absurd ⟨h_male, T1⟩ h_not_male
+
+-- Thus, ¬Active Coco is not provable
+</lean>
+
+ANSWER: Failure

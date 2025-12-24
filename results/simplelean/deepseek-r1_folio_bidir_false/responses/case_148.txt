@@ -1,0 +1,158 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+
+axiom P1 : ∀ x : Person, Register x → Participate x
+axiom P2 : ∀ x : Person, USCitizen x → Register x
+axiom P3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+axiom P5 : ¬ TaiwaneseCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem prove_conclusion_false : Register Ekaterina ∧ Participate Vladimir := by
+  -- Prove Vladimir can participate
+  have vladimir_case : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := P3 Vladimir
+  have vladimir_not_taiwanese : ¬ TaiwaneseCitizen Vladimir := P5
+  cases vladimir_case with
+  | inl h_us => 
+    have register_vladimir : Register Vladimir := P2 Vladimir h_us
+    have participate_vladimir : Participate Vladimir := P1 Vladimir register_vladimir
+    exact ?_
+  | inr h_taiwanese => 
+    contradiction  -- Contradiction with P5
+
+  -- Prove Ekaterina can register
+  cases P6 with
+  | inl reg_ekaterina => 
+    exact ?_
+  | inr official_ekaterina => 
+    have no_taiwanese : ¬ TaiwaneseCitizen Ekaterina := P4 Ekaterina official_ekaterina
+    have ekaterina_case : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := P3 Ekaterina
+    cases ekaterina_case with
+    | inl h_us => 
+      have reg_ekaterina : Register Ekaterina := P2 Ekaterina h_us
+      exact ?_
+    | inr h_taiwanese => 
+      contradiction  -- Contradiction with no_taiwanese
+
+  -- Combine proofs
+  constructor
+  · assumption  -- Ekaterina registration proof
+  · assumption  -- Vladimir participation proof
+
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+
+axiom P1 : ∀ x : Person, Register x → Participate x
+axiom P2 : ∀ x : Person, USCitizen x → Register x
+axiom P3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+axiom P5 : ¬ TaiwaneseCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem prove_conclusion_false : Register Ekaterina ∧ Participate Vladimir := by
+  constructor
+  · -- Prove Register Ekaterina
+    cases P6 with
+    | inl reg => exact reg
+    | inr official => 
+      have no_tw : ¬ TaiwaneseCitizen Ekaterina := P4 Ekaterina official
+      have e_case : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := P3 Ekaterina
+      cases e_case with
+      | inl us => exact P2 Ekaterina us
+      | inr tw => contradiction
+  · -- Prove Participate Vladimir
+    have v_case : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := P3 Vladimir
+    cases v_case with
+    | inl us => 
+      have regV : Register Vladimir := P2 Vladimir us
+      exact P1 Vladimir regV
+    | inr tw => contradiction
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the `contradiction` tactic didn't automatically use the global axiom `P5` in the Vladimir case. We need to explicitly apply the contradiction between `tw : TaiwaneseCitizen Vladimir` and `P5 : ¬ TaiwaneseCitizen Vladimir`. Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+
+axiom P1 : ∀ x : Person, Register x → Participate x
+axiom P2 : ∀ x : Person, USCitizen x → Register x
+axiom P3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizen x
+axiom P5 : ¬ TaiwaneseCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem prove_conclusion_false : Register Ekaterina ∧ Participate Vladimir := by
+  constructor
+  · -- Prove Register Ekaterina
+    cases P6 with
+    | inl reg => exact reg
+    | inr official => 
+      have no_tw : ¬ TaiwaneseCitizen Ekaterina := P4 Ekaterina official
+      have e_case : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := P3 Ekaterina
+      cases e_case with
+      | inl us => exact P2 Ekaterina us
+      | inr tw => contradiction  -- Contradiction with no_tw
+  · -- Prove Participate Vladimir
+    have v_case : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := P3 Vladimir
+    cases v_case with
+    | inl us => 
+      have regV : Register Vladimir := P2 Vladimir us
+      exact P1 Vladimir regV
+    | inr tw => 
+      exact False.elim (P5 tw)  -- Explicit contradiction with P5
+</lean>
+
+ANSWER: False
+
+Explanation:
+1. For Ekaterina's registration:
+   - If she can register (P6 left), we're done
+   - If she's a Russian official (P6 right):
+     * She can't have Taiwanese citizenship (P4)
+     * She must have US citizenship (P3 + contradiction)
+     * US citizenship implies registration (P2)
+
+2. For Vladimir's participation:
+   - He must have US or Taiwanese citizenship (P3)
+   - If US citizenship: registration (P2) → participation (P1)
+   - If Taiwanese citizenship: contradicts P5 (explicitly handled with False.elim)
+
+The theorem successfully proves that Ekaterina can register AND Vladimir can participate, meaning the original statement ("it is not true that both...") is false.

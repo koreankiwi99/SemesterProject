@@ -1,0 +1,97 @@
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+
+-- Predicates
+axiom EatsSaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom GrewUpHealthConscious : Person → Prop
+axiom FulfillsNutrition : Person → Prop
+axiom DisregardsWellBeing : Person → Prop
+axiom VisitsGymDaily : Person → Prop
+
+-- Axioms
+axiom axiom1 : ∀ p : Person, EatsSaladsRegularly p → HealthConscious p
+axiom axiom2 : ∀ p : Person, GrewUpHealthConscious p → EatsSaladsRegularly p
+axiom axiom3 : ∀ p : Person, FulfillsNutrition p → GrewUpHealthConscious p
+axiom axiom4 : ∀ p : Person, DisregardsWellBeing p → ¬ HealthConscious p
+axiom axiom5 : ∀ p : Person, VisitsGymDaily p → FulfillsNutrition p
+axiom axiom6 : (GrewUpHealthConscious Taylor ∧ DisregardsWellBeing Taylor) ∨ (¬ GrewUpHealthConscious Taylor ∧ ¬ DisregardsWellBeing Taylor)
+
+-- Statement to prove: Taylor neither grew up health-conscious nor visits gym daily.
+theorem taylor_case : ¬ GrewUpHealthConscious Taylor ∧ ¬ VisitsGymDaily Taylor := by
+  -- Case analysis on Taylor's situation (axiom6)
+  cases axiom6 with
+  | inl (case1) => 
+      -- Case 1: Taylor grew up health-conscious AND disregards well-being
+      have h_grew := case1.left
+      have h_disregard := case1.right
+      -- Since Taylor grew up health-conscious, she eats salads (axiom2)
+      have h_eats := axiom2 Taylor h_grew
+      -- Then she is health-conscious (axiom1)
+      have h_health_conscious := axiom1 Taylor h_eats
+      -- But from disregarding well-being, she is NOT health-conscious (axiom4)
+      have h_not_health := axiom4 Taylor h_disregard
+      -- Contradiction
+      contradiction
+  | inr (case2) =>
+      -- Case 2: Taylor did NOT grow up health-conscious and does NOT disregard well-being
+      have not_grew := case2.left
+      -- We need to also show ¬VisitsGymDaily
+      apply And.intro not_grew
+      intro h_gym
+      -- If Taylor visits gym daily, she fulfills nutrition (axiom5)
+      have h_nutrition := axiom5 Taylor h_gym
+      -- Then she grew up health-conscious (axiom3)
+      have h_grew' := axiom3 Taylor h_nutrition
+      -- Contradiction with not_grew
+      contradiction
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to the way the `cases` tactic was used and the handling of the contradiction in the `inl` branch. The corrected code uses `let` to destructure the conjunctions and explicitly handles the contradiction with `False.elim`. The `inr` branch uses `constructor` to split the goal and proves each part directly.
+
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+
+-- Predicates
+axiom EatsSaladsRegularly : Person → Prop
+axiom HealthConscious : Person → Prop
+axiom GrewUpHealthConscious : Person → Prop
+axiom FulfillsNutrition : Person → Prop
+axiom DisregardsWellBeing : Person → Prop
+axiom VisitsGymDaily : Person → Prop
+
+-- Axioms
+axiom axiom1 : ∀ p : Person, EatsSaladsRegularly p → HealthConscious p
+axiom axiom2 : ∀ p : Person, GrewUpHealthConscious p → EatsSaladsRegularly p
+axiom axiom3 : ∀ p : Person, FulfillsNutrition p → GrewUpHealthConscious p
+axiom axiom4 : ∀ p : Person, DisregardsWellBeing p → ¬ HealthConscious p
+axiom axiom5 : ∀ p : Person, VisitsGymDaily p → FulfillsNutrition p
+axiom axiom6 : (GrewUpHealthConscious Taylor ∧ DisregardsWellBeing Taylor) ∨ (¬ GrewUpHealthConscious Taylor ∧ ¬ DisregardsWellBeing Taylor)
+
+-- Statement to prove: Taylor neither grew up health-conscious nor visits gym daily.
+theorem taylor_case : ¬ GrewUpHealthConscious Taylor ∧ ¬ VisitsGymDaily Taylor := by
+  cases axiom6 with
+  | inl case1 =>
+      let ⟨h_grew, h_disregard⟩ := case1
+      have h_health_conscious : HealthConscious Taylor := axiom1 Taylor (axiom2 Taylor h_grew)
+      have h_not_health : ¬ HealthConscious Taylor := axiom4 Taylor h_disregard
+      exact False.elim (h_not_health h_health_conscious)
+  | inr case2 =>
+      let ⟨not_grew, not_disregard⟩ := case2
+      constructor
+      · exact not_grew
+      · intro h_gym
+        have h_nutrition := axiom5 Taylor h_gym
+        have h_grew' := axiom3 Taylor h_nutrition
+        exact not_grew h_grew'
+</lean>
+
+ANSWER: True

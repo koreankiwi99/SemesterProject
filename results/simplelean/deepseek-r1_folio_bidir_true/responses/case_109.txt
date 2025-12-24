@@ -1,0 +1,67 @@
+Based on the context and the statement to evaluate, I will translate the reasoning into Lean 4 code. The key insight is that Peter's case analysis leads to a contradiction in one scenario, forcing the other scenario where the required disjunction holds.
+
+<lean>
+axiom Person : Type
+axiom Peter : Person
+
+-- Predicates
+axiom SpillsLot : Person → Prop
+axiom NotablyTidy : Person → Prop
+axiom ClumsyFoodieGoesOut : Person → Prop
+axiom Cleanly : Person → Prop
+axiom ValuesOrderSpotlessness : Person → Prop
+axiom FamilyPrioritizesOrderSpotlessness : Person → Prop
+
+-- Premises
+axiom P1 : ∀ p, SpillsLot p → ¬ NotablyTidy p
+axiom P2 : ∀ p, ClumsyFoodieGoesOut p → SpillsLot p
+axiom P3 : ∀ p, Cleanly p → NotablyTidy p
+axiom P4 : ∀ p, ValuesOrderSpotlessness p → Cleanly p
+axiom P5 : ∀ p, FamilyPrioritizesOrderSpotlessness p → ValuesOrderSpotlessness p
+axiom PeterCase : (SpillsLot Peter ∧ Cleanly Peter) ∨ (¬ SpillsLot Peter ∧ ¬ Cleanly Peter)
+
+-- Theorem: Peter is either (clumsy foodie AND family prioritizes) OR (neither)
+theorem peter_property : 
+    (ClumsyFoodieGoesOut Peter ∧ FamilyPrioritizesOrderSpotlessness Peter) ∨ 
+    (¬ ClumsyFoodieGoesOut Peter ∧ ¬ FamilyPrioritizesOrderSpotlessness Peter) := by
+  -- Consider Peter's cases
+  cases PeterCase with
+  | inl h => 
+    -- Case 1: SpillsLot and Cleanly
+    have spill : SpillsLot Peter := h.left
+    have clean : Cleanly Peter := h.right
+    -- Cleanly implies NotablyTidy (P3)
+    have tidy : NotablyTidy Peter := P3 Peter clean
+    -- SpillsLot implies not NotablyTidy (P1)
+    have not_tidy : ¬ NotablyTidy Peter := P1 Peter spill
+    -- Contradiction
+    contradiction
+  | inr h =>
+    -- Case 2: Not SpillsLot and Not Cleanly
+    have no_spill : ¬ SpillsLot Peter := h.left
+    have not_clean : ¬ Cleanly Peter := h.right
+    -- Show not ClumsyFoodieGoesOut (from P2 contrapositive)
+    have not_clumsy : ¬ ClumsyFoodieGoesOut Peter := 
+      fun hc => no_spill (P2 Peter hc)
+    -- Show not FamilyPrioritizes (using chain: family→values→cleanly)
+    have not_family : ¬ FamilyPrioritizesOrderSpotlessness Peter := 
+      fun hf => 
+        have values : ValuesOrderSpotlessness Peter := P5 Peter hf
+        have clean : Cleanly Peter := P4 Peter values
+        not_clean clean
+    -- Right disjunct holds
+    exact Or.inr ⟨not_clumsy, not_family⟩
+</lean>
+
+ANSWER: True
+
+Explanation:
+- The Lean code formalizes all premises and defines the required predicates.
+- The proof shows that the first case (Peter spills food and is cleanly) leads to a contradiction because:
+  - Cleanliness implies tidiness (P3)
+  - Spilling food implies not tidiness (P1)
+- Thus, only the second case is possible where Peter doesn't spill food and isn't cleanly.
+- In this case:
+  - Not spilling food implies not being a clumsy foodie (contrapositive of P2)
+  - Not being cleanly implies his family doesn't prioritize order (via P5→P4 chain)
+- Therefore, the second disjunct of the conclusion holds ("neither clumsy foodie nor family prioritizes"), making the entire disjunction true.

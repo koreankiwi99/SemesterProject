@@ -1,0 +1,113 @@
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+axiom Man : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom JumpWhenShooting : Person → Prop
+axiom Shooter : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom taller_block : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man.
+axiom man_michael : Man Michael
+
+-- Peter is a man who is taller than Michael.
+axiom man_peter : Man Peter
+axiom peter_taller : Taller Peter Michael
+
+-- Transitivity of taller
+axiom trans_taller : ∀ x y z, Taller x y → Taller y z → Taller x z
+
+-- Michael can block any non-jumping shooter.
+axiom michael_block : ∀ p, ¬ JumpWhenShooting p → CanBlock Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom not_block_windy : ¬ CanBlock Michael Windy
+
+-- Every shooter who jumps when shooting is a great shooter.
+axiom great_jumper : ∀ p, Shooter p → JumpWhenShooting p → GreatShooter p
+
+-- Windy is a shooter (implied by "Windy's shooting").
+axiom windy_shooter : Shooter Windy
+
+-- Prove Windy is a great shooter
+theorem windy_great : GreatShooter Windy := by
+  -- Show Windy jumps when shooting (from michael_block and not_block_windy)
+  have : JumpWhenShooting Windy := by
+    by_contra h
+    exact not_block_windy (michael_block Windy h)
+  -- Apply great_jumper to conclude
+  exact great_jumper Windy windy_shooter this
+
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to the use of the `by_contra` tactic without classical reasoning support. To resolve this, I've added the law of excluded middle as an axiom and restructured the proof to use case analysis. This allows us to prove that Windy jumps when shooting by contradiction, which then enables us to conclude that Windy is a great shooter.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+axiom Man : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom JumpWhenShooting : Person → Prop
+axiom Shooter : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom taller_block : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man.
+axiom man_michael : Man Michael
+
+-- Peter is a man who is taller than Michael.
+axiom man_peter : Man Peter
+axiom peter_taller : Taller Peter Michael
+
+-- Transitivity of taller
+axiom trans_taller : ∀ x y z, Taller x y → Taller y z → Taller x z
+
+-- Michael can block any non-jumping shooter.
+axiom michael_block : ∀ p, ¬ JumpWhenShooting p → CanBlock Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom not_block_windy : ¬ CanBlock Michael Windy
+
+-- Every shooter who jumps when shooting is a great shooter.
+axiom great_jumper : ∀ p, Shooter p → JumpWhenShooting p → GreatShooter p
+
+-- Windy is a shooter (implied by "Windy's shooting").
+axiom windy_shooter : Shooter Windy
+
+-- Law of excluded middle for classical reasoning
+axiom em : ∀ (p : Prop), p ∨ ¬p
+
+-- Prove Windy is a great shooter
+theorem windy_great : GreatShooter Windy := by
+  -- Prove Windy jumps when shooting using classical case analysis
+  have : JumpWhenShooting Windy := by
+    cases em (JumpWhenShooting Windy) with
+    | inl yes => exact yes
+    | inr no =>
+        have : CanBlock Michael Windy := michael_block Windy no
+        exact absurd this not_block_windy
+  -- Apply great_jumper to conclude
+  exact great_jumper Windy windy_shooter this
+
+</lean>
+
+ANSWER: True

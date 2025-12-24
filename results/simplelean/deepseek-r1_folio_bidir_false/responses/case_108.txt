@@ -1,0 +1,102 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrioritizes : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+axiom R1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom R2 : ∀ x : obj, ClumsyFoodie x ∧ GoesOutFrequently x → Spills x
+axiom R3 : ∀ x : obj, Cleanly x → Tidy x
+axiom R4 : ∀ x : obj, ValuesOrder x → Cleanly x
+axiom R5 : ∀ x : obj, FamilyPrioritizes x → ValuesOrder x
+axiom T6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+theorem neg_conclusion : ¬ ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∨ FamilyPrioritizes Peter) := by
+  intro h
+  cases h with
+  | inl h1 =>
+      have spills : Spills Peter := R2 Peter h1
+      cases T6 with
+      | inl h2 =>
+          have not_tidy : ¬ Tidy Peter := R1 Peter spills
+          have tidy : Tidy Peter := R3 Peter h2.2
+          contradiction
+      | inr h2 =>
+          contradiction
+  | inr h1 =>
+      have values : ValuesOrder Peter := R5 Peter h1
+      have cleanly : Cleanly Peter := R4 Peter values
+      cases T6 with
+      | inl h2 =>
+          contradiction
+      | inr h2 =>
+          contradiction
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors occurred because the `contradiction` tactic couldn't automatically resolve all contradictions. Specifically:
+1. In Case 1 (clumsy foodie) with ¬Spills Peter: Explicit contradiction between Spills Peter and ¬Spills Peter
+2. In Case 2 (family prioritizes) with Spills Peter: Contradiction between Tidy Peter (from cleanly) and ¬Tidy Peter (from spills)
+3. In Case 2 with ¬Cleanly Peter: Direct contradiction with derived Cleanly Peter
+
+Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrioritizes : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+
+axiom R1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom R2 : ∀ x : obj, ClumsyFoodie x ∧ GoesOutFrequently x → Spills x
+axiom R3 : ∀ x : obj, Cleanly x → Tidy x
+axiom R4 : ∀ x : obj, ValuesOrder x → Cleanly x
+axiom R5 : ∀ x : obj, FamilyPrioritizes x → ValuesOrder x
+axiom T6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+theorem neg_conclusion : ¬ ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∨ FamilyPrioritizes Peter) := by
+  intro h
+  cases h with
+  | inl h1 =>  -- ClumsyFoodie and GoesOutFrequently
+      have spills : Spills Peter := R2 Peter h1
+      cases T6 with
+      | inl h2 =>  -- Spills and Cleanly
+          have not_tidy : ¬ Tidy Peter := R1 Peter spills
+          have tidy : Tidy Peter := R3 Peter h2.2
+          exact not_tidy tidy
+      | inr h2 =>  -- ¬Spills and ¬Cleanly
+          exact h2.1 spills  -- ¬Spills contradicts spills
+  | inr h1 =>  -- FamilyPrioritizes
+      have values : ValuesOrder Peter := R5 Peter h1
+      have cleanly : Cleanly Peter := R4 Peter values
+      cases T6 with
+      | inl h2 =>  -- Spills and Cleanly
+          have not_tidy : ¬ Tidy Peter := R1 Peter h2.1
+          have tidy : Tidy Peter := R3 Peter cleanly
+          exact not_tidy tidy
+      | inr h2 =>  -- ¬Spills and ¬Cleanly
+          exact h2.2 cleanly  -- ¬Cleanly contradicts cleanly
+</lean>
+
+ANSWER: False
+
+Explanation:
+The proof successfully derives contradictions in all cases:
+- When Peter is a clumsy foodie, his spilling leads to contradictions in both subcases of T6
+- When Peter's family prioritizes order, his cleanliness leads to contradictions in both subcases of T6
+Thus, the negation of the conclusion is provable.

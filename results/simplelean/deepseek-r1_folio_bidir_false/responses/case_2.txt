@@ -1,0 +1,58 @@
+The reasoning involves translating the natural language context into Lean axioms and proving that the given statement is false. The statement to evaluate is: "If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community."
+
+After formalizing the context, the Lean proof shows that:
+1. Bonnie must either perform often or be inactive and disinterested (from axiom T1).
+2. In both cases, the antecedent (Bonnie chaperones or performs often) holds:
+   - If she performs often, the disjunction holds.
+   - If she is inactive and disinterested, she chaperones (from T4), so the disjunction holds.
+3. The consequent (Bonnie is young/teen, wishes to further academics, inactive, and disinterested) leads to a contradiction:
+   - Assuming the consequent, Bonnie is inactive and disinterested, so she chaperones (T4).
+   - Then she is not a student (T3).
+   - But being young/teen and wishing to further academics implies she is a student (T5), contradicting T3.
+
+Thus, the implication is false because the antecedent is true while the consequent is false.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom InClub : Person → Prop
+axiom PerformsOften : Person → Prop
+axiom AttendsEvents : Person → Prop
+axiom Engaged : Person → Prop
+axiom Inactive : Person → Prop
+axiom Disinterested : Person → Prop
+axiom Chaperones : Person → Prop
+axiom StudentAttendsSchool : Person → Prop
+axiom YoungOrTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom T1 : ∀ x, InClub x → PerformsOften x ∨ (Inactive x ∧ Disinterested x)
+axiom T2 : ∀ x, InClub x ∧ PerformsOften x → AttendsEvents x ∧ Engaged x
+axiom T3 : ∀ x, InClub x ∧ Chaperones x → ¬ StudentAttendsSchool x
+axiom T4 : ∀ x, InClub x ∧ Inactive x ∧ Disinterested x → Chaperones x
+axiom T5 : ∀ x, InClub x → YoungOrTeen x → WishFurther x → StudentAttendsSchool x
+axiom BonnieInClub : InClub Bonnie
+axiom Bonnie_fact : (AttendsEvents Bonnie ∧ Engaged Bonnie) ↔ StudentAttendsSchool Bonnie
+
+theorem not_implication : 
+  (Chaperones Bonnie ∨ PerformsOften Bonnie) ∧ 
+  ¬ (YoungOrTeen Bonnie ∧ WishFurther Bonnie ∧ Inactive Bonnie ∧ Disinterested Bonnie) := by 
+  apply And.intro
+  · -- Show Chaperones ∨ PerformsOften
+    have H_cases := T1 Bonnie BonnieInClub
+    cases H_cases with
+    | inl H_perform => exact Or.inr H_perform
+    | inr H_inactive_dis => 
+        have H_chaperone := T4 Bonnie ⟨BonnieInClub, H_inactive_dis.1, H_inactive_dis.2⟩
+        exact Or.inl H_chaperone
+  · -- Negate the consequent
+    intro H
+    have ⟨H_young, H_wish, H_inactive, H_disinterested⟩ := H
+    have H_chaperone := T4 Bonnie ⟨BonnieInClub, H_inactive, H_disinterested⟩
+    have H_not_student := T3 Bonnie ⟨BonnieInClub, H_chaperone⟩
+    have H_student := T5 Bonnie BonnieInClub H_young H_wish
+    exact H_not_student H_student
+</lean>
+
+ANSWER: False

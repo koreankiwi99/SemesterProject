@@ -66,11 +66,13 @@ def parse_answer(response, answer_format="true_false"):
 
     # Set patterns based on format
     if answer_format == "bidir_true":
-        pattern = r'ANSWER:\s*(True|Failure|Failed)'
-        fallback_pattern = r'\b(True|Failure|Failed)\b'
+        # Accept both True and Yes (dataset-specific)
+        pattern = r'ANSWER:\s*(True|Yes|Failure|Failed)'
+        fallback_pattern = r'\b(True|Yes|Failure|Failed)\b'
     elif answer_format == "bidir_false":
-        pattern = r'ANSWER:\s*(False|Failure|Failed)'
-        fallback_pattern = r'\b(False|Failure|Failed)\b'
+        # Accept both False and No (dataset-specific)
+        pattern = r'ANSWER:\s*(False|No|Failure|Failed)'
+        fallback_pattern = r'\b(False|No|Failure|Failed)\b'
     elif answer_format == "true_false":
         pattern = r'ANSWER:\s*(True|False|Unknown|Uncertain)'
         fallback_pattern = r'\b(True|False|Unknown|Uncertain)\b'

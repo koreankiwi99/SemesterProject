@@ -174,10 +174,11 @@ async def run_single_case(
 
             # Calculate correctness based on condition
             # Note: gt_norm is "yes"/"no" from dataset
-            # For bidir, model outputs dataset-specific format (Yes/No for multilogieval, True/False for folio)
+            # pred_norm is normalized: "true"/"failure" for bidir_true, "false"/"failure" for bidir_false
             if answer_format == "bidir_true":
-                # bidir_true: answer_true correct if gt=yes, "Failure" correct if gt=no
-                correct = (pred_norm == gt_norm) or \
+                # bidir_true: success (yes/true) correct if gt=yes, failure correct if gt=no
+                is_success = pred_norm in ("yes", "true")
+                correct = (is_success and gt_norm == "yes") or \
                           (pred_norm == "failure" and gt_norm == "no")
             elif answer_format == "bidir_false":
                 # bidir_false: answer_false correct if gt=no, "Failure" correct if gt=yes

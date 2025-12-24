@@ -1,0 +1,67 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformsTalentOften : obj → Prop
+axiom AttendsEngagedEvents : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom ChaperonesDances : obj → Prop
+axiom StudentAttendsSchool : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesFurtherAcademic : obj → Prop
+
+-- Context axioms
+-- People in this club who perform in school talent shows often attend and are very engaged with school events.
+axiom R1 : ∀ x : obj, InClub x ∧ PerformsTalentOften x → AttendsEngagedEvents x
+-- People in this club either perform in school talent shows often or are inactive and disinterested community members.
+axiom R2 : ∀ x : obj, InClub x → (PerformsTalentOften x ∨ InactiveDisinterested x)
+-- People in this club who chaperone high school dances are not students who attend the school.
+axiom R3 : ∀ x : obj, InClub x ∧ ChaperonesDances x → ¬StudentAttendsSchool x
+-- All people in this club who are inactive and disinterested members of their community chaperone high school dances.
+axiom R4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperonesDances x
+-- All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school.
+axiom R5 : ∀ x : obj, InClub x ∧ (YoungChild x ∨ Teenager x) ∧ WishesFurtherAcademic x → StudentAttendsSchool x
+
+-- Bonnie-specific facts
+axiom B_in : InClub Bonnie
+axiom B_either : (AttendsEngagedEvents Bonnie ∧ StudentAttendsSchool Bonnie) ∨ (¬AttendsEngagedEvents Bonnie ∧ ¬StudentAttendsSchool Bonnie)
+
+-- Antecedent of the statement to evaluate
+def Antecedent : Prop :=
+  (((YoungChild Bonnie) ∨ (Teenager Bonnie)) ∧ WishesFurtherAcademic Bonnie ∧ ChaperonesDances Bonnie)
+  ∨ ¬(((YoungChild Bonnie) ∨ (Teenager Bonnie)) ∧ WishesFurtherAcademic Bonnie)
+
+-- From the given information, we can prove the conclusion (SAS ∨ ID) unconditionally for Bonnie.
+theorem bonnie_SAS_or_ID : StudentAttendsSchool Bonnie ∨ InactiveDisinterested Bonnie := by
+  have hClub : InClub Bonnie := B_in
+  cases B_either with
+  | inl h =>
+    -- AE ∧ SAS
+    apply Or.inl
+    exact h.right
+  | inr h =>
+    -- ¬AE ∧ ¬SAS
+    have hNotAE : ¬AttendsEngagedEvents Bonnie := h.left
+    have hPerfOrID : PerformsTalentOften Bonnie ∨ InactiveDisinterested Bonnie := R2 Bonnie hClub
+    cases hPerfOrID with
+    | inl hPerf =>
+      have hAE : AttendsEngagedEvents Bonnie := R1 Bonnie ⟨hClub, hPerf⟩
+      have hFalse : False := hNotAE hAE
+      exact False.elim hFalse
+    | inr hID =>
+      exact Or.inr hID
+
+-- Therefore the implication in the statement is true.
+theorem statement_true : Antecedent → (StudentAttendsSchool Bonnie ∨ InactiveDisinterested Bonnie) := by
+  intro _
+  exact bonnie_SAS_or_ID
+
+-- Cannot prove the negation of the statement from the premises.
+</lean>
+
+ANSWER: Failure

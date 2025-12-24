@@ -43,6 +43,29 @@ We design a minimal prompt that achieves 100% valid Lean 4 output without introd
   | True → Uncertain  | 3      | 0      | 3     |
   | Total             | 28     | 0      | 28    |
 
+### Bidirectional Verification (GPT-5)
+Force model to prove in one direction only, then check for contradictions.
+
+| Condition | Accuracy | Lean Pass | Gaming | Conservative |
+|-----------|----------|-----------|--------|--------------|
+| bidir_true | 185/203 (91.1%) | 203/203 (100%) | 8 | 10 |
+| bidir_false | 186/203 (91.6%) | 202/203 (99.5%) | 5 | 12 |
+
+**Key Finding: 7 cases where BOTH True AND False were "proved"**
+- Cases: 75, 76, 77, 156, 157, 158, 159
+- This indicates formalization errors (inconsistent axioms)
+- Bidirectional verification successfully detects these contradictions
+
+| Case | Ground Truth | bidir_true | bidir_false |
+|------|--------------|------------|-------------|
+| 75 | Uncertain | True | False |
+| 76 | True | True | False |
+| 77 | False | True | False |
+| 156 | False | True | False |
+| 157 | True | True | False |
+| 158 | True | True | False |
+| 159 | Uncertain | True | False |
+
 ### Reasoning Token Pressure (n=4096)
   - 203/203 cases (complete)
   - Accuracy: 163/203 (80.3%) — **5.4% drop from baseline**

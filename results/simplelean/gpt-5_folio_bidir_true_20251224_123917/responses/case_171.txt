@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+axiom Colorectal : obj
+
+-- Premises
+axiom A1 : ∀ x : obj, Deadly x → LowSurvival x
+axiom A2 : ∀ x : obj, SevereCancer x → Deadly x
+axiom A3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+axiom A4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+axiom A5 : ∀ x : obj, MildFlu x → LowSurvival x
+axiom A6 : ¬ (BileDuctCancer Colorectal ∧ LowSurvival Colorectal)
+
+-- From the premises, BileDuctCancer Colorectal leads to a contradiction
+theorem not_bdc_colorectal : ¬ BileDuctCancer Colorectal := by
+  intro hBDC
+  have hSev : SevereCancer Colorectal := A3 Colorectal hBDC
+  have hDead : Deadly Colorectal := A2 Colorectal hSev
+  have hLow : LowSurvival Colorectal := A1 Colorectal hDead
+  exact A6 (And.intro hBDC hLow)
+
+-- Hence, Cholangiocarcinoma Colorectal is also impossible
+theorem not_cholang_colorectal : ¬ Cholangiocarcinoma Colorectal := by
+  intro hCh
+  have hBDC : BileDuctCancer Colorectal := A4 Colorectal hCh
+  exact not_bdc_colorectal hBDC
+
+-- Target statement (one plausible formalization of the natural language):
+-- (Cholangiocarcinoma ∧ (MildFlu ∨ BileDuctCancer)) ∨ (Cholangiocarcinoma ∧ MildFlu ∧ BileDuctCancer)
+def Target : Prop :=
+  (Cholangiocarcinoma Colorectal ∧ (MildFlu Colorectal ∨ BileDuctCancer Colorectal)) ∨
+  (Cholangiocarcinoma Colorectal ∧ MildFlu Colorectal ∧ BileDuctCancer Colorectal)
+
+-- From the premises we can actually refute Target
+theorem target_false : ¬ Target := by
+  intro h
+  cases h with
+  | inl h1 =>
+    exact not_cholang_colorectal h1.left
+  | inr h2 =>
+    exact not_cholang_colorectal h2.left
+
+-- Therefore, the target statement does not follow from the premises.
+-- Cannot prove Target from given axioms.
+</lean>
+
+ANSWER: Failure

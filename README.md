@@ -73,7 +73,18 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 ## MultiLogiEval
 
-Regular FOL (d1-d5) - organized by depth:
+Sampled FOL dataset (100 cases: d3-d5, balanced Yes/No):
+
+### GPT-5 Baseline Results
+
+| Depth | Yes | No | Accuracy | Lean Pass |
+|-------|-----|-----|----------|-----------|
+| d3 | 20 | 20 | 26/40 (65.0%) | - |
+| d4 | 20 | 20 | 26/40 (65.0%) | - |
+| d5 | 20 | 0 | 17/20 (85.0%) | - |
+| **Total** | 60 | 40 | **69/100 (69.0%)** | **100/100 (100%)** |
+
+### Original Dataset Distribution
 
 | Depth | Yes         | No          | Total |
 |-------|-------------|-------------|-------|

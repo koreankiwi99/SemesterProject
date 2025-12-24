@@ -1,0 +1,49 @@
+<lean>
+axiom person : Type
+axiom Mike : person
+
+axiom HasGas : person → Prop
+axiom CanDriveLong : person → Prop
+axiom ScenicRoute : person → Prop
+axiom SeeSights : person → Prop
+axiom LovesRoadTrips : person → Prop
+
+-- If the car has gas, then they can drive long distances.
+axiom R1 : ∀ x : person, HasGas x → CanDriveLong x
+-- If they see the sights, then they take the scenic route.
+axiom R2 : ∀ x : person, SeeSights x → ScenicRoute x
+-- Either the car has gas, or they are not taking the scenic route, or both gas and not scenic.
+axiom D1 : HasGas Mike ∨ ¬ScenicRoute Mike ∨ (HasGas Mike ∧ ¬ScenicRoute Mike)
+-- If someone loves road trips, they take the scenic route to see the sights.
+axiom C1 : ∀ x : person, LovesRoadTrips x → (ScenicRoute x ∧ SeeSights x)
+
+-- From the assumptions, if Mike cannot drive long distances, then he does not love road trips.
+theorem not_drive_implies_not_love : ¬CanDriveLong Mike → ¬LovesRoadTrips Mike := by
+  intro hNotDrive
+  -- From ¬CanDriveLong and (HasGas → CanDriveLong), derive ¬HasGas.
+  have hNotGas : ¬HasGas Mike := by
+    intro hGas
+    have hDrive : CanDriveLong Mike := R1 Mike hGas
+    exact hNotDrive hDrive
+  -- Use the disjunction D1 and ¬HasGas to get ¬ScenicRoute.
+  have hNotScenic : ¬ScenicRoute Mike := by
+    have h := D1
+    apply Or.elim h
+    · intro hGas
+      exact False.elim (hNotGas hGas)
+    · intro hRest
+      apply Or.elim hRest
+      · intro hNotSc
+        exact hNotSc
+      · intro hBoth
+        exact False.elim (hNotGas hBoth.left)
+  -- From LovesRoadTrips → ScenicRoute ∧ SeeSights, conclude ¬LovesRoadTrips.
+  intro hLove
+  have hScenicAndSee := C1 Mike hLove
+  have hScenic : ScenicRoute Mike := hScenicAndSee.left
+  exact hNotScenic hScenic
+
+-- Cannot prove (¬CanDriveLong Mike → LovesRoadTrips Mike) or its negation from given axioms.
+</lean>
+
+ANSWER: Uncertain

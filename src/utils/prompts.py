@@ -18,15 +18,26 @@ DATASET_CONFIG = {
 }
 
 # Bidirectional condition configurations
+# Note: answer_format_str uses placeholder, resolved by get_answer_format_str()
 BIDIR_CONFIG = {
     "bidir_true": {
         "answer_format": "bidir_true",
-        "answer_format_str": "True/Failure",
+        "answer_format_str_template": "{answer_true}/Failure",
         "user_prompt_path": "prompts/bidirectional/user.txt",
     },
     "bidir_false": {
         "answer_format": "bidir_false",
-        "answer_format_str": "False/Failure",
+        "answer_format_str_template": "{answer_false}/Failure",
+        "user_prompt_path": "prompts/bidirectional/user.txt",
+    },
+    "spooky_true": {
+        "answer_format": "bidir_true",  # Same format as bidir_true
+        "answer_format_str_template": "{answer_true}/Failure",
+        "user_prompt_path": "prompts/bidirectional/user.txt",
+    },
+    "spooky_false": {
+        "answer_format": "bidir_false",  # Same format as bidir_false
+        "answer_format_str_template": "{answer_false}/Failure",
         "user_prompt_path": "prompts/bidirectional/user.txt",
     }
 }
@@ -103,8 +114,14 @@ def get_answer_format_str(dataset: str, condition: str = None) -> str:
         condition: Optional condition (e.g., "bidir_true", "bidir_false")
 
     Returns:
-        Human-readable format string (e.g., "True/False/Uncertain", "True/Failure")
+        Human-readable format string (e.g., "True/False/Uncertain", "Yes/Failure")
     """
     if condition and condition in BIDIR_CONFIG:
-        return BIDIR_CONFIG[condition]["answer_format_str"]
+        # Format the template with dataset-specific values
+        template = BIDIR_CONFIG[condition]["answer_format_str_template"]
+        config = DATASET_CONFIG[dataset]
+        return template.format(
+            answer_true=config["answer_true"],
+            answer_false=config["answer_false"]
+        )
     return DATASET_CONFIG[dataset]["answer_format_str"]

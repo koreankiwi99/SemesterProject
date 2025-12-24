@@ -44,6 +44,9 @@ SYSTEM_PROMPTS = {
     # Bidirectional prompts
     "bidir_true": "prompts/bidirectional/true_system.txt",
     "bidir_false": "prompts/bidirectional/false_system.txt",
+    # Spooky (nudging) prompts for specification gaming experiment
+    "spooky_true": "prompts/bidirectional/spooky_true_system.txt",
+    "spooky_false": "prompts/bidirectional/spooky_false_system.txt",
 }
 
 FEEDBACK_PROMPTS = {
@@ -170,14 +173,18 @@ async def run_single_case(
             gt_norm = ground_truth.lower() if ground_truth else None
 
             # Calculate correctness based on condition
+            # Note: gt_norm is "yes"/"no" from dataset
+            # For bidir, model outputs dataset-specific format (Yes/No for multilogieval, True/False for folio)
             if answer_format == "bidir_true":
-                # bidir_true: "True" correct if gt=True, "Failure" correct if gt!=True
-                correct = (pred_norm == "true" and gt_norm == "true") or \
-                          (pred_norm == "failure" and gt_norm != "true")
+                # bidir_true: answer_true correct if gt=yes, "Failure" correct if gt=no
+                correct = (pred_norm == gt_norm) or \
+                          (pred_norm == "failure" and gt_norm == "no")
             elif answer_format == "bidir_false":
-                # bidir_false: "False" correct if gt=False, "Failure" correct if gt!=False
-                correct = (pred_norm == "false" and gt_norm == "false") or \
-                          (pred_norm == "failure" and gt_norm != "false")
+                # bidir_false: answer_false correct if gt=no, "Failure" correct if gt=yes
+                # pred will be "no" (multilogieval) or "false" (folio), gt is always "yes"/"no"
+                is_false_answer = pred_norm in ("no", "false")
+                correct = (is_false_answer and gt_norm == "no") or \
+                          (pred_norm == "failure" and gt_norm == "yes")
             else:
                 correct = pred_norm == gt_norm
 
@@ -328,7 +335,7 @@ def main():
     parser = argparse.ArgumentParser(description='SimpleLean experiment')
     parser.add_argument('--dataset', required=True, choices=['folio', 'multilogieval'])
     parser.add_argument('--model', default='deepseek-r1')
-    parser.add_argument('--condition', default='baseline', choices=['system', 'baseline', 'lean4_specified', 'lean4_balanced', 'lean4_minimal', 'bidir_true', 'bidir_false'])
+    parser.add_argument('--condition', default='baseline', choices=['system', 'baseline', 'lean4_specified', 'lean4_balanced', 'lean4_minimal', 'bidir_true', 'bidir_false', 'spooky_true', 'spooky_false'])
     parser.add_argument('--concurrency', type=int, default=5)
     parser.add_argument('--max_cases', type=int, default=None)
     parser.add_argument('--max_iterations', type=int, default=3)

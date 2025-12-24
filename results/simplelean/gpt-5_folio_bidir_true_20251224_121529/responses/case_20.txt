@@ -1,0 +1,73 @@
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom Rabbit : obj → Prop
+axiom Squirrel : obj → Prop
+axiom Turtle : obj → Prop
+axiom NearCampus : obj → Prop
+axiom Cute : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+
+-- All rabbits that can be spotted near the campus are cute.
+axiom rabbits_near_cute : ∀ x : obj, (Rabbit x ∧ NearCampus x) → Cute x
+-- Some turtles can be spotted near the campus.
+axiom some_turtles_near : ∃ x : obj, Turtle x ∧ NearCampus x
+-- The only animals that can be spotted near the campus are rabbits and squirrels.
+axiom only_near_rabbits_or_squirrels : ∀ x : obj, NearCampus x → (Rabbit x ∨ Squirrel x)
+-- If something is skittish, then it is not calm.
+axiom skittish_not_calm : ∀ x : obj, Skittish x → ¬ Calm x
+-- All the squirrels that can be spotted near the campus are skittish.
+axiom squirrels_near_skittish : ∀ x : obj, (Squirrel x ∧ NearCampus x) → Skittish x
+-- Rockie can be spotted near the campus, and it is calm.
+axiom rockie_near_and_calm : NearCampus Rockie ∧ Calm Rockie
+
+theorem not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro hSq
+  have hSk : Skittish Rockie := by
+    apply squirrels_near_skittish Rockie
+    exact And.intro hSq (And.left rockie_near_and_calm)
+  have hNotC : ¬ Calm Rockie := by
+    apply skittish_not_calm Rockie
+    exact hSk
+  exact hNotC (And.right rockie_near_and_calm)
+
+theorem rabbit_Rockie : Rabbit Rockie := by
+  have hOr : Rabbit Rockie ∨ Squirrel Rockie := by
+    apply only_near_rabbits_or_squirrels Rockie
+    exact And.left rockie_near_and_calm
+  cases hOr with
+  | inl hRab => exact hRab
+  | inr hSq =>
+      have hFalse : False := by
+        have hNS := not_squirrel_Rockie
+        exact hNS hSq
+      exact False.elim hFalse
+
+theorem cute_Rockie : Cute Rockie := by
+  apply rabbits_near_cute Rockie
+  exact And.intro rabbit_Rockie (And.left rockie_near_and_calm)
+
+theorem not_skittish_Rockie : ¬ Skittish Rockie := by
+  intro hSk
+  have hNotC : ¬ Calm Rockie := by
+    apply skittish_not_calm Rockie
+    exact hSk
+  exact hNotC (And.right rockie_near_and_calm)
+
+-- The queried statement is false given the premises:
+-- If Rockie is cute and calm, then Rockie is a skittish turtle.
+theorem statement_false :
+  ¬ ((Cute Rockie ∧ Calm Rockie) → (Skittish Rockie ∧ Turtle Rockie)) := by
+  intro hImp
+  have hA : Cute Rockie ∧ Calm Rockie := by
+    exact And.intro cute_Rockie (And.right rockie_near_and_calm)
+  have hB : Skittish Rockie ∧ Turtle Rockie := by
+    exact hImp hA
+  have hSk : Skittish Rockie := And.left hB
+  have hNotC : ¬ Calm Rockie := skittish_not_calm Rockie hSk
+  exact hNotC (And.right rockie_near_and_calm)
+</lean>
+
+ANSWER: Failure

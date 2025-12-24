@@ -1,0 +1,40 @@
+<lean>
+axiom obj : Type
+axiom HPS : obj
+
+axiom Listed : obj → Prop
+axiom ManyNegRev : obj → Prop
+axiom TakeOut : obj → Prop
+axiom RatingGT4 : obj → Prop
+axiom Popular : obj → Prop
+
+-- If listed in Yelp’s recommendations, then not many negative reviews
+axiom A1 : ∀ x : obj, Listed x → ¬ ManyNegRev x
+-- Rating > 4 implies listed in Yelp’s recommendations
+axiom A2 : ∀ x : obj, RatingGT4 x → Listed x
+-- Some restaurant does not provide take-out and receives many negative reviews
+axiom A3 : ∃ x : obj, ¬ TakeOut x ∧ ManyNegRev x
+-- Popular among locals implies rating > 4
+axiom A4 : ∀ x : obj, Popular x → RatingGT4 x
+-- HPS has rating > 4 or is popular
+axiom A5 : RatingGT4 HPS ∨ Popular HPS
+
+theorem hps_statement :
+  (TakeOut HPS ∧ ManyNegRev HPS) → (RatingGT4 HPS ∧ ¬ TakeOut HPS) := by
+  intro h
+  -- Derive RatingGT4 HPS from the disjunction and popularity implication
+  have rgt4 : RatingGT4 HPS := by
+    cases A5 with
+    | inl hR => exact hR
+    | inr hP => exact A4 HPS hP
+  -- From rating > 4, get listed, hence not many negative reviews
+  have listed : Listed HPS := A2 HPS rgt4
+  have notMN : ¬ ManyNegRev HPS := A1 HPS listed
+  -- From the assumption, we have many negative reviews
+  have mn : ManyNegRev HPS := And.right h
+  -- Conclude ¬TakeOut HPS via contradiction (ignoring the argument)
+  have notTO : ¬ TakeOut HPS := fun _ => notMN mn
+  exact And.intro rgt4 notTO
+</lean>
+
+ANSWER: True

@@ -41,6 +41,9 @@ SYSTEM_PROMPTS = {
     "lean4_specified": "prompts/simplelean-conditions/pilot/system_lean4_specified.txt",
     "lean4_balanced": "prompts/simplelean-conditions/pilot/system_lean4_balanced.txt",
     "lean4_minimal": "prompts/simplelean-conditions/pilot/system_lean4_minimal.txt",
+    # Bidirectional prompts
+    "bidir_true": "prompts/bidirectional/true_system.txt",
+    "bidir_false": "prompts/bidirectional/false_system.txt",
 }
 
 FEEDBACK_PROMPTS = {
@@ -70,14 +73,15 @@ async def run_single_case(
     semaphore: asyncio.Semaphore,
     model: str,
     max_iterations: int = 3,
-    max_completion_tokens: int = 0
+    max_completion_tokens: int = 0,
+    condition: str = None
 ) -> dict:
     """Run a single case with SimpleLean iteration logic."""
-    answer_format = get_answer_format(dataset)
-    answer_format_str = get_answer_format_str(dataset)
+    answer_format = get_answer_format(dataset, condition)
+    answer_format_str = get_answer_format_str(dataset, condition)
 
     async with semaphore:
-        user_prompt = format_user_prompt(case, dataset)
+        user_prompt = format_user_prompt(case, dataset, condition)
         ground_truth = case.get('ground_truth', '')
 
         conversation_history = [
@@ -165,6 +169,18 @@ async def run_single_case(
             pred_norm = final_prediction.lower() if final_prediction else None
             gt_norm = ground_truth.lower() if ground_truth else None
 
+            # Calculate correctness based on condition
+            if answer_format == "bidir_true":
+                # bidir_true: "True" correct if gt=True, "Failure" correct if gt!=True
+                correct = (pred_norm == "true" and gt_norm == "true") or \
+                          (pred_norm == "failure" and gt_norm != "true")
+            elif answer_format == "bidir_false":
+                # bidir_false: "False" correct if gt=False, "Failure" correct if gt!=False
+                correct = (pred_norm == "false" and gt_norm == "false") or \
+                          (pred_norm == "failure" and gt_norm != "false")
+            else:
+                correct = pred_norm == gt_norm
+
             # Aggregate token usage across iterations
             total_tokens = {
                 'prompt_tokens': sum(it.get('token_usage', {}).get('prompt_tokens', 0) or 0 for it in iterations),
@@ -176,7 +192,7 @@ async def run_single_case(
                 "prediction": final_prediction,
                 "parse_status": final_parse_status,
                 "ground_truth": ground_truth,
-                "correct": pred_norm == gt_norm,
+                "correct": correct,
                 "model": model,
                 "iterations": iterations,
                 "num_iterations": len(iterations),
@@ -277,7 +293,7 @@ async def run_experiment(
             return None
         result = await run_single_case(
             client, case, system_prompt, dataset, lean_server, semaphore,
-            model, max_iterations, max_completion_tokens
+            model, max_iterations, max_completion_tokens, condition
         )
         result['case_idx'] = idx
         await saver.save_result(result, idx)
@@ -309,7 +325,7 @@ def main():
     parser = argparse.ArgumentParser(description='SimpleLean experiment')
     parser.add_argument('--dataset', required=True, choices=['folio', 'multilogieval'])
     parser.add_argument('--model', default='deepseek-r1')
-    parser.add_argument('--condition', default='baseline', choices=['system', 'baseline', 'lean4_specified', 'lean4_balanced', 'lean4_minimal'])
+    parser.add_argument('--condition', default='baseline', choices=['system', 'baseline', 'lean4_specified', 'lean4_balanced', 'lean4_minimal', 'bidir_true', 'bidir_false'])
     parser.add_argument('--concurrency', type=int, default=5)
     parser.add_argument('--max_cases', type=int, default=None)
     parser.add_argument('--max_iterations', type=int, default=3)

@@ -1,0 +1,55 @@
+Analyze this Lean 4 formal verification error where the model produced a wrong answer.
+
+**Premises**: {premises}
+
+**Conclusion**: {conclusion}
+
+**Ground Truth**: {ground_truth}
+**Model Prediction**: {prediction} (INCORRECT)
+
+**Lean Code**:
+```lean
+{lean_code}
+```
+
+Follow this DECISION TREE to classify. Answer each question in order and stop at the first YES:
+
+**Q1: Does the proof contain `False.elim`, `False.rec`, `absurd`, or explicitly derive `False`?**
+→ YES: **AXIOMATIZE_CONTRADICTION** (proof exploits a logical contradiction)
+
+**Q2: Do any axioms directly state the conclusion or its negation as a fact?**
+→ YES: **AXIOMATIZE_CONCLUSION**
+
+**Q3: Does any SINGLE axiom contain a self-negating pattern like `P x → ... ∧ ¬P x`?**
+Example: `Need Hannah → (¬Picky Hannah ∧ ¬Need Hannah)` — this says "if Need then ¬Need", which is self-contradictory.
+(Note: This is different from wrong implication direction. This is about the SAME predicate appearing both positive and negated.)
+→ YES: **AXIOMATIZE_CONTRADICTION**
+
+**Q4: Do two axioms directly contradict each other (one says P, another says ¬P)?**
+Example: `axiom A : WorksInLab James` and `axiom B : ¬WorksInLab James`
+→ YES: **AXIOMATIZE_CONTRADICTION**
+
+**Q5: Do any axioms state facts NOT mentioned in the premises?**
+→ YES: **AXIOMATIZE_FABRICATION**
+
+**Q6: For each premise, check if there's a corresponding axiom:**
+- If an axiom EXISTS for the premise but has WRONG implication direction → **FORMALIZE_INCORRECTLY**
+  (Example: "Composers write music" as `Composer x → Wrote x y` instead of `Wrote x y → Composer x`)
+- If an axiom EXISTS for the premise but has WRONG argument order → **FORMALIZE_INCORRECTLY**
+  (Example: "A is in B" as `LocatedIn B A` instead of `LocatedIn A B`)
+- If an axiom EXISTS for the premise but has WRONG quantifier → **FORMALIZE_INCORRECTLY**
+- If NO axiom exists at all for a premise → **MISSING_PREMISES**
+
+**Q7: Are all axioms correct but proof incomplete?**
+→ YES: **PROOF_INCOMPLETE** (rare)
+
+**Q8: None of the above?**
+→ **OTHER**
+
+Return ONLY a JSON object:
+{{
+  "decision_path": "Q1-NO, Q2-NO, Q3-NO, Q4-NO, Q5-NO, Q6-FORMALIZE_INCORRECTLY (axiom X has wrong direction)",
+  "root_cause_category": "CATEGORY_NAME",
+  "error_description": "1-2 sentence explanation",
+  "problematic_element": "specific axiom name or 'N/A'"
+}}

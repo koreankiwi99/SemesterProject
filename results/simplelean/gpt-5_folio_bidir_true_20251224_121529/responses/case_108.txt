@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrioritizes : obj → Prop
+axiom ClumsyFoodieGoesOut : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+-- All clumsy foodies who go out frequently are people who spill a lot of food on their clothing.
+axiom A2 : ∀ x : obj, ClumsyFoodieGoesOut x → Spills x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValuesOrder x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamilyPrioritizes x → ValuesOrder x
+-- Peter is either (spills ∧ cleanly) or (¬spills ∧ ¬cleanly)
+axiom A6 : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- The queried statement would be: ClumsyFoodieGoesOut Peter ∨ FamilyPrioritizes Peter
+-- We show in fact its negation follows from the premises.
+theorem not_query : ¬ (ClumsyFoodieGoesOut Peter ∨ FamilyPrioritizes Peter) := by
+  -- First, show that Peter cannot be both spilling and cleanly.
+  have not_case1 : ¬ (Spills Peter ∧ Cleanly Peter) := by
+    intro h
+    have hs : Spills Peter := And.left h
+    have hc : Cleanly Peter := And.right h
+    have ht : Tidy Peter := A3 Peter hc
+    have hnt : ¬ Tidy Peter := A1 Peter hs
+    exact hnt ht
+  -- From A6 and not_case1, deduce ¬Spills Peter ∧ ¬Cleanly Peter.
+  have hcase2 : ¬ Spills Peter ∧ ¬ Cleanly Peter := by
+    refine Or.elim A6 ?h1 ?h2
+    · intro h
+      exact False.elim (not_case1 h)
+    · intro h
+      exact h
+  have hns : ¬ Spills Peter := And.left hcase2
+  have hnc : ¬ Cleanly Peter := And.right hcase2
+  -- From ¬Spills and A2, get ¬ClumsyFoodieGoesOut Peter (by modus tollens).
+  have ncfgo : ¬ ClumsyFoodieGoesOut Peter := by
+    intro hcf
+    have hs : Spills Peter := A2 Peter hcf
+    exact hns hs
+  -- From ¬Cleanly and (Family → Values → Cleanly), get ¬FamilyPrioritizes Peter (by modus tollens).
+  have nfamily : ¬ FamilyPrioritizes Peter := by
+    intro hfam
+    have hv : ValuesOrder Peter := A5 Peter hfam
+    have hc : Cleanly Peter := A4 Peter hv
+    exact hnc hc
+  -- Conclude the negation of the queried disjunction.
+  intro h
+  cases h with
+  | inl hcf => exact ncfgo hcf
+  | inr hfam => exact nfamily hfam
+
+-- Therefore, we cannot prove ClumsyFoodieGoesOut Peter ∨ FamilyPrioritizes Peter from the given axioms.
+</lean>
+
+ANSWER: Failure

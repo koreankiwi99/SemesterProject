@@ -1,0 +1,62 @@
+<lean>
+axiom obj : Type
+axiom Ekaterina : obj
+axiom Vladimir : obj
+
+axiom CanRegisterUS : obj → Prop
+axiom CanParticipate2024 : obj → Prop
+axiom USCitizen : obj → Prop
+axiom TWNCitizen : obj → Prop
+axiom RFOfficial : obj → Prop
+axiom ManagerGazprom : obj → Prop
+
+-- 1. Everyone who can register in the US can participate in the 2024 US presidential election.
+axiom A1 : ∀ x : obj, CanRegisterUS x → CanParticipate2024 x
+-- 2. US citizenship implies ability to register in the US.
+axiom A2 : ∀ x : obj, USCitizen x → CanRegisterUS x
+-- 3. Every person has either US or Taiwanese citizenship.
+axiom A3 : ∀ x : obj, USCitizen x ∨ TWNCitizen x
+-- 4. No Russian Federation officials hold Taiwanese citizenship.
+axiom A4 : ∀ x : obj, RFOfficial x → ¬ TWNCitizen x
+-- 5. Vladimir neither holds Taiwanese citizenship nor is a manager at Gazprom.
+axiom A5a : ¬ TWNCitizen Vladimir
+axiom A5b : ¬ ManagerGazprom Vladimir
+-- 6. Ekaterina can register in the US, or she is a Russian Federation official.
+axiom A6 : CanRegisterUS Ekaterina ∨ RFOfficial Ekaterina
+
+theorem Vladimir_USCitizen : USCitizen Vladimir :=
+by
+  have h := A3 Vladimir
+  cases h with
+  | inl hUS => exact hUS
+  | inr hTWN =>
+      exact False.elim (A5a hTWN)
+
+theorem Vladimir_CanParticipate : CanParticipate2024 Vladimir :=
+by
+  have hUS := Vladimir_USCitizen
+  have hReg := A2 Vladimir hUS
+  exact A1 Vladimir hReg
+
+theorem Ekaterina_CanRegister : CanRegisterUS Ekaterina :=
+by
+  have h := A6
+  cases h with
+  | inl hReg => exact hReg
+  | inr hRFO =>
+      have hnotTWN : ¬ TWNCitizen Ekaterina := A4 Ekaterina hRFO
+      have hdisj := A3 Ekaterina
+      cases hdisj with
+      | inl hUS =>
+          exact A2 Ekaterina hUS
+      | inr hTWN =>
+          exact False.elim (hnotTWN hTWN)
+
+theorem conj_holds : CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+by
+  apply And.intro
+  · exact Ekaterina_CanRegister
+  · exact Vladimir_CanParticipate
+</lean>
+
+ANSWER: Failure

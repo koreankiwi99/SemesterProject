@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom ContainsOnlyOneElement : obj → Prop
+
+-- All hydrocarbons are organic compounds.
+axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
+-- All alkanes are hydrocarbons.
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+-- All organic compounds are chemical compounds.
+axiom A3 : ∀ x : obj, Organic x → ChemicalCompound x
+-- All organic compounds contain carbon.
+axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
+-- No chemical compounds contain only one element.
+axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ ContainsOnlyOneElement x
+-- The mixture either both is a chemical compound and contains only one element, or neither.
+axiom A6 :
+  (ChemicalCompound Mixture ∧ ContainsOnlyOneElement Mixture) ∨
+  (¬ ChemicalCompound Mixture ∧ ¬ ContainsOnlyOneElement Mixture)
+
+theorem mixture_conclusion :
+  (ContainsOnlyOneElement Mixture ∨ ContainsCarbon Mixture) →
+  (¬ ChemicalCompound Mixture ∧ ¬ Alkane Mixture) := by
+  -- First, show the mixture is not a chemical compound.
+  have notCC : ¬ ChemicalCompound Mixture := by
+    intro hcc
+    have hdisj := A6
+    cases hdisj with
+    | inl hboth =>
+      have hcoe : ContainsOnlyOneElement Mixture := hboth.right
+      have hnotcoe : ¬ ContainsOnlyOneElement Mixture := A5 Mixture hcc
+      exact hnotcoe hcoe
+    | inr hneither =>
+      exact hneither.left hcc
+  -- Then, show the mixture is not an alkane (since alkane → hydrocarbon → organic → chemical compound).
+  have notAlk : ¬ Alkane Mixture := by
+    intro halk
+    have hhyd : Hydrocarbon Mixture := A2 Mixture halk
+    have horg : Organic Mixture := A1 Mixture hhyd
+    have hcc : ChemicalCompound Mixture := A3 Mixture horg
+    exact notCC hcc
+  intro _
+  exact And.intro notCC notAlk
+</lean>
+
+ANSWER: True

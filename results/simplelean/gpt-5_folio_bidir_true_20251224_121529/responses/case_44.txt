@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom Coco : obj
+
+-- Predicates
+axiom RankedHighWTA : obj → Prop
+axiom MostActiveMajor : obj → Prop
+axiom LostToSwiatekRG22 : obj → Prop
+axiom LostToNadalRG22 : obj → Prop
+axiom FemaleRG22 : obj → Prop
+axiom MaleRG22 : obj → Prop
+axiom PlayerRG22 : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, RankedHighWTA x → MostActiveMajor x
+axiom A2 : ∀ x : obj, LostToSwiatekRG22 x → RankedHighWTA x
+axiom A3 : ∀ x : obj, FemaleRG22 x → LostToSwiatekRG22 x
+axiom A4 : ∀ x : obj, PlayerRG22 x → FemaleRG22 x ∨ MaleRG22 x
+axiom A5 : ∀ x : obj, MaleRG22 x → LostToNadalRG22 x
+axiom A6 : (RankedHighWTA Coco ∨ LostToNadalRG22 Coco) → ¬ MaleRG22 Coco
+axiom A7 : PlayerRG22 Coco
+
+-- In fact, from the premises we can derive that Coco both lost to Świątek and is most active.
+theorem coco_lost_and_active : LostToSwiatekRG22 Coco ∧ MostActiveMajor Coco := by
+  -- From being a player at RG22, Coco is female or male
+  have disj : FemaleRG22 Coco ∨ MaleRG22 Coco := A4 Coco A7
+  -- Show Coco is not male using A6 in both cases of the disjunction
+  have not_male : ¬ MaleRG22 Coco := by
+    cases disj with
+    | inl hf =>
+        have hls : LostToSwiatekRG22 Coco := A3 Coco hf
+        have hrh : RankedHighWTA Coco := A2 Coco hls
+        exact A6 (Or.inl hrh)
+    | inr hm =>
+        have hln : LostToNadalRG22 Coco := A5 Coco hm
+        exact A6 (Or.inr hln)
+  -- From disjunction and not_male, conclude Coco is female
+  have hfem : FemaleRG22 Coco := by
+    cases disj with
+    | inl hf => exact hf
+    | inr hm => exact False.elim (not_male hm)
+  -- Chain the implications to get the conjunction
+  have hls : LostToSwiatekRG22 Coco := A3 Coco hfem
+  have hrh : RankedHighWTA Coco := A2 Coco hls
+  have hma : MostActiveMajor Coco := A1 Coco hrh
+  exact And.intro hls hma
+
+-- Therefore, we cannot prove ¬(LostToSwiatekRG22 Coco ∧ MostActiveMajor Coco) from the premises; the statement is actually false.
+</lean>
+
+ANSWER: Failure

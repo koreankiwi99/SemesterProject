@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Tom : obj
+axiom ETS : obj
+
+-- Predicates
+axiom GREApplicant : obj → Prop
+axiom TakingGRE : obj → Prop
+axiom ProvesHardship : obj → Prop
+axiom SingleParentFamily : obj → Prop
+axiom FewResources : obj → Prop
+axiom ProvidesAid : obj → obj → Prop  -- ProvidesAid provider recipient
+
+-- Axioms from the context
+-- ETS provides financial aid to GRE applicants who prove economic hardship.
+axiom A_provide : ∀ x : obj, GREApplicant x → ProvesHardship x → ProvidesAid ETS x
+-- Those in single-parent families or with few resources can prove hardship.
+axiom A_single_parent_hardship : ∀ x : obj, SingleParentFamily x → ProvesHardship x
+axiom A_few_resources_hardship : ∀ x : obj, FewResources x → ProvesHardship x
+-- Facts about Tom
+axiom T_single_parent : SingleParentFamily Tom
+axiom T_few_resources : FewResources Tom
+axiom T_applicant : GREApplicant Tom
+-- Relating applicants to taking the GRE (applying to take ⇒ taking)
+axiom A_applicant_taking : ∀ x : obj, GREApplicant x → TakingGRE x
+
+-- Tom proves hardship (from single-parent family, also from few resources)
+theorem tom_hardship : ProvesHardship Tom := by
+  apply A_single_parent_hardship
+  exact T_single_parent
+
+-- Tom is provided aid by ETS
+theorem tom_has_aid : ProvidesAid ETS Tom := by
+  apply A_provide Tom
+  · exact T_applicant
+  · exact tom_hardship
+
+-- Tom is taking the GRE
+theorem tom_taking : TakingGRE Tom := by
+  apply A_applicant_taking
+  exact T_applicant
+
+-- The statement in question:
+-- "No one taking the GRE test has financial aid provided to them by something."
+def NoTakerHasAid : Prop := ∀ x : obj, TakingGRE x → ¬ ∃ y : obj, ProvidesAid y x
+
+-- We refute the statement using Tom as a counterexample.
+theorem not_NoTakerHasAid : ¬ NoTakerHasAid := by
+  intro H
+  have hTom := H Tom tom_taking
+  have exAid : ∃ y : obj, ProvidesAid y Tom := by
+    exact Exists.intro ETS tom_has_aid
+  exact hTom exAid
+</lean>
+
+ANSWER: Failure

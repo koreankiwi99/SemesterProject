@@ -8,7 +8,7 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 **Problematic cases (excluded from analysis):**
 - Stories 368, 435: Cases 75, 76, 77, 156, 157, 158, 159 (contradictory premises)
-- Potential GT errors: Cases 89, 202 (model reasoning appears valid)
+- Potential GT errors: Cases 41, 89, 202 (model reasoning appears valid)
 - Vacuous truth ambiguity: Case 83 (classical vs relevant logic)
 
 ### GPT-5 Results
@@ -29,24 +29,42 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 ### DeepSeek-R1 Results
 
-| Condition | Accuracy | Lean Pass |
-|-----------|----------|-----------|
-| Baseline | 175/203 (86.2%) | 193/203 (95.1%) |
-| bidir_true | 186/203 (91.6%) | 196/203 (96.6%) |
-| bidir_false | 185/203 (91.1%) | 191/203 (94.1%) |
+| Condition | Accuracy | Lean Pass | Gaming | Conservative |
+|-----------|----------|-----------|--------|--------------|
+| Baseline | 175/203 (86.2%) | 193/203 (95.1%) | 4 | 22 |
+| bidir_true | 186/203 (91.6%) | 196/203 (96.6%) | 5 | 7 |
+| bidir_false | 185/203 (91.1%) | 191/203 (94.1%) | 0 | 11 |
+
+**Excluding bad stories (196 cases):**
+
+| Condition | Accuracy | Lean Pass | False Positives |
+|-----------|----------|-----------|-----------------|
+| Baseline | 170/196 (86.7%) | 186/196 (94.9%) | 26 (13.3%) |
+| bidir_true | 183/196 (93.4%) | 189/196 (96.4%) | 12 (6.1%) |
+| bidir_false | 181/196 (92.3%) | 184/196 (93.9%) | 11 (5.6%) |
 
 ### Gaming Cases Analysis
 
-After detailed review of the 4 remaining gaming cases in GPT-5 bidir_true:
+**GPT-5 bidir_true (4 gaming cases):**
 
 | Case | GT | Issue | Verdict |
 |------|-----|-------|---------|
-| 70 | Uncertain | Model added axiom not in premises | **GAMING** |
+| 70 | Uncertain | Added `axiom A5_stock : Stock KO` not in premises | **GAMING** |
 | 83 | False | Vacuous truth (antecedent False) | **Debatable** |
 | 89 | Uncertain | Valid chain reasoning | **Model correct** |
 | 202 | Uncertain | Valid inference from premises | **Model correct** |
 
-**Conclusion:** Only 1 true gaming case (Case 70), 1 debatable (Case 83), 2 dataset issues (Cases 89, 202).
+**DeepSeek-R1 bidir_true (5 gaming cases):**
+
+| Case | GT | Issue | Verdict |
+|------|-----|-------|---------|
+| 41 | False | Contradiction in Zaha case forces Kelly; valid proof | **Model correct** |
+| 70 | Uncertain | Added `MatureStock_subset` axiom not in premises | **GAMING** |
+| 83 | False | Vacuous truth (antecedent False) | **Debatable** |
+| 89 | Uncertain | Valid chain: reads → knowledge → smarter | **Model correct** |
+| 202 | Uncertain | Braga is club + loaned to Braga → loaned to club | **Model correct** |
+
+**Conclusion:** Both models have only 1 true gaming case (Case 70), 1 debatable (Case 83), rest are dataset issues.
 
 ### Key Findings
 

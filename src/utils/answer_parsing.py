@@ -35,14 +35,18 @@ def normalize_answer(answer, answer_format="yes_no"):
         elif low in ['unknown', 'uncertain', 'u']:
             return 'Uncertain'
     elif answer_format == "bidir_true":
-        # Bidirectional true: True or Failure
-        if low in ['true', 't', 'yes', 'y', 'success']:
+        # Bidirectional true: preserve Yes vs True based on input
+        if low in ['yes', 'y']:
+            return 'Yes'
+        elif low in ['true', 't', 'success']:
             return 'True'
         elif low in ['failure', 'failed', 'fail', 'f']:
             return 'Failure'
     elif answer_format == "bidir_false":
-        # Bidirectional false: False or Failure
-        if low in ['false', 'f', 'no', 'n', 'success']:
+        # Bidirectional false: preserve No vs False based on input
+        if low in ['no', 'n']:
+            return 'No'
+        elif low in ['false', 'f', 'success']:
             return 'False'
         elif low in ['failure', 'failed', 'fail']:
             return 'Failure'

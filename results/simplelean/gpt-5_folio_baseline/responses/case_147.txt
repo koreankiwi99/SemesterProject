@@ -1,43 +1,43 @@
 <lean>
-axiom Person : Type
-axiom Ekaterina : Person
-axiom Vladimir : Person
+axiom obj : Type
 
-axiom RegisterUS : Person → Prop
-axiom Participate2024 : Person → Prop
-axiom USCitizen : Person → Prop
-axiom TaiwanCitizen : Person → Prop
-axiom RFO : Person → Prop
-axiom GazpromManager : Person → Prop
+axiom Vladimir : obj
+axiom Ekaterina : obj
 
--- Everyone who can register in the US can participate in the 2024 election
-axiom A1 : ∀ x : Person, RegisterUS x → Participate2024 x
--- US citizenship implies can register in the US
-axiom A2 : ∀ x : Person, USCitizen x → RegisterUS x
--- Everyone either has US or Taiwanese citizenship
-axiom A3 : ∀ x : Person, USCitizen x ∨ TaiwanCitizen x
--- No Russian Federation officials have Taiwanese citizenship
-axiom A4 : ∀ x : Person, RFO x → ¬ TaiwanCitizen x
--- Vladimir neither has Taiwanese citizenship nor is a Gazprom manager
-axiom A5 : ¬ TaiwanCitizen Vladimir ∧ ¬ GazpromManager Vladimir
--- Ekaterina can register in the US or is a Russian Federation official
-axiom A6 : RegisterUS Ekaterina ∨ RFO Ekaterina
+axiom CanRegisterUS : obj → Prop
+axiom CanParticipate2024 : obj → Prop
+axiom USCitizen : obj → Prop
+axiom TaiwaneseCitizen : obj → Prop
+axiom RussianOfficial : obj → Prop
+axiom GazpromManager : obj → Prop
 
-theorem goal : Participate2024 Ekaterina ∨ GazpromManager Vladimir := by
-  have hPartEka : Participate2024 Ekaterina := by
-    cases A6 with
-    | inl hreg =>
-        exact A1 Ekaterina hreg
-    | inr hrfo =>
-        have hnotTC : ¬ TaiwanCitizen Ekaterina := A4 Ekaterina hrfo
-        have hUorT : USCitizen Ekaterina ∨ TaiwanCitizen Ekaterina := A3 Ekaterina
-        have hUS : USCitizen Ekaterina := by
-          cases hUorT with
-          | inl hus => exact hus
-          | inr htc => exact False.elim (hnotTC htc)
-        have hReg : RegisterUS Ekaterina := A2 Ekaterina hUS
-        exact A1 Ekaterina hReg
-  exact Or.inl hPartEka
+-- Everyone who can register to vote in the US can participate in the 2024 election
+axiom R_canReg_participate : ∀ x : obj, CanRegisterUS x → CanParticipate2024 x
+-- If someone has US citizenship, then they can register to vote in the US
+axiom R_uscit_reg : ∀ x : obj, USCitizen x → CanRegisterUS x
+-- A person either has US citizenship or Taiwanese citizenship
+axiom R_us_or_tw : ∀ x : obj, USCitizen x ∨ TaiwaneseCitizen x
+-- No Russian Federation officials hold Taiwanese citizenship
+axiom R_no_tw_for_official : ∀ x : obj, RussianOfficial x → ¬ TaiwaneseCitizen x
+-- Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom
+axiom R_vladimir_not_tw : ¬ TaiwaneseCitizen Vladimir
+axiom R_vladimir_not_manager : ¬ GazpromManager Vladimir
+-- Ekaterina can register to vote in the US, or she is a Russian federation official
+axiom R_ekaterina_reg_or_off : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem ekaterina_participates_or_vladimir_manager :
+  CanParticipate2024 Ekaterina ∨ GazpromManager Vladimir := by
+  apply Or.inl
+  -- It suffices to show Ekaterina can participate
+  have hRegOrOff : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina := R_ekaterina_reg_or_off
+  have hReg : CanRegisterUS Ekaterina := by
+    refine Or.elim hRegOrOff (fun hreg => hreg) (fun hoff => ?_)
+    have hNotTw : ¬ TaiwaneseCitizen Ekaterina := R_no_tw_for_official Ekaterina hoff
+    have hUSorTW : USCitizen Ekaterina ∨ TaiwaneseCitizen Ekaterina := R_us_or_tw Ekaterina
+    have hUS : USCitizen Ekaterina := by
+      refine Or.elim hUSorTW (fun hUS => hUS) (fun hTW => False.elim (hNotTw hTW))
+    exact R_uscit_reg Ekaterina hUS
+  exact R_canReg_participate Ekaterina hReg
 </lean>
 
 ANSWER: True

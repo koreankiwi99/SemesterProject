@@ -1,55 +1,47 @@
 <lean>
 axiom obj : Type
-
--- Entities and predicates
-axiom Rockie : obj
 axiom Rabbit : obj → Prop
 axiom Squirrel : obj → Prop
 axiom Turtle : obj → Prop
-axiom Near : obj → Prop
+axiom Spotted : obj → Prop
 axiom Cute : obj → Prop
 axiom Skittish : obj → Prop
 axiom Calm : obj → Prop
+axiom Rockie : obj
 
--- Axioms from the context
 -- All rabbits that can be spotted near the campus are cute.
-axiom A1 : ∀ x : obj, (Rabbit x ∧ Near x) → Cute x
+axiom A1 : ∀ x : obj, Rabbit x ∧ Spotted x → Cute x
 -- Some turtles can be spotted near the campus.
-axiom A2 : ∃ x : obj, Turtle x ∧ Near x
+axiom A2 : ∃ x : obj, Turtle x ∧ Spotted x
 -- The only animals that can be spotted near the campus are rabbits and squirrels.
-axiom A3 : ∀ x : obj, Near x → (Rabbit x ∨ Squirrel x)
+axiom A3 : ∀ x : obj, Spotted x → (Rabbit x ∨ Squirrel x)
 -- If something is skittish, then it is not calm.
 axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
 -- All the squirrels that can be spotted near the campus are skittish.
-axiom A5 : ∀ x : obj, (Squirrel x ∧ Near x) → Skittish x
+axiom A5 : ∀ x : obj, Squirrel x ∧ Spotted x → Skittish x
 -- Rockie can be spotted near the campus, and it is calm.
-axiom A6 : Near Rockie ∧ Calm Rockie
+axiom A6 : Spotted Rockie
+axiom A7 : Calm Rockie
 
--- Deductions
-theorem rockie_not_squirrel : ¬ Squirrel Rockie := by
-  intro hS
-  have hNear : Near Rockie := And.left A6
-  have hCalm : Calm Rockie := And.right A6
-  have hSk : Skittish Rockie := A5 Rockie (And.intro hS hNear)
+theorem not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro hSq
+  have hSk : Skittish Rockie := by
+    apply A5
+    exact And.intro hSq A6
   have hNotCalm : ¬ Calm Rockie := A4 Rockie hSk
-  exact hNotCalm hCalm
+  exact hNotCalm A7
 
-theorem rockie_rabbit : Rabbit Rockie := by
-  have hNear : Near Rockie := And.left A6
-  have hDisj : Rabbit Rockie ∨ Squirrel Rockie := A3 Rockie hNear
-  have hNS : ¬ Squirrel Rockie := rockie_not_squirrel
-  cases hDisj with
-  | inl hR => exact hR
-  | inr hS => exact False.elim (hNS hS)
+theorem rabbit_Rockie : Rabbit Rockie := by
+  have h := A3 Rockie A6
+  cases h with
+  | inl hr => exact hr
+  | inr hs =>
+    have : False := not_squirrel_Rockie hs
+    exact False.elim this
 
-theorem rockie_cute : Cute Rockie := by
-  exact A1 Rockie (And.intro rockie_rabbit (And.left A6))
-
--- From the given axioms, we cannot prove Turtle Rockie or ¬ Turtle Rockie.
--- The "only ... are rabbits and squirrels" gives Near x → (Rabbit x ∨ Squirrel x),
--- which does not exclude also being a Turtle.
--- Therefore, Rockie being a Turtle is not derivable nor refutable here.
--- No theorem about (Turtle Rockie) or its negation is provable with the given axioms.
+-- From the given information, we cannot derive Turtle Rockie or its negation.
+-- For instance, Rockie being a rabbit does not preclude being a turtle, and no disjointness is given.
+-- Hence the statement "Rockie is a turtle" is not provable, nor is its negation.
 </lean>
 
 ANSWER: Uncertain

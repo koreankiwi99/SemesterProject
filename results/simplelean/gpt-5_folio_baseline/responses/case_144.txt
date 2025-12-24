@@ -1,14 +1,15 @@
 <lean>
 axiom Person : Type
+
 axiom Vladimir : Person
 axiom Ekaterina : Person
 
-axiom CanRegisterUS : Person → Prop
-axiom CanParticipate2024 : Person → Prop
 axiom USCitizen : Person → Prop
 axiom TaiwaneseCitizen : Person → Prop
-axiom RussianOfficial : Person → Prop
-axiom ManagerGazprom : Person → Prop
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom RFOfficial : Person → Prop
+axiom GazpromManager : Person → Prop
 
 -- Everyone who can register to vote in the US can participate in the 2024 US presidential election.
 axiom A1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
@@ -17,25 +18,35 @@ axiom A2 : ∀ x : Person, USCitizen x → CanRegisterUS x
 -- A person either has US citizenship or Taiwanese citizenship.
 axiom A3 : ∀ x : Person, USCitizen x ∨ TaiwaneseCitizen x
 -- No Russian Federation officials hold Taiwanese citizenship.
-axiom A4 : ∀ x : Person, RussianOfficial x → ¬TaiwaneseCitizen x
+axiom A4 : ∀ x : Person, RFOfficial x → ¬ TaiwaneseCitizen x
 -- Vladimir neither holds Taiwanese citizenship nor is he a manager at Gazprom.
-axiom A5a : ¬TaiwaneseCitizen Vladimir
-axiom A5b : ¬ManagerGazprom Vladimir
+axiom A5a : ¬ TaiwaneseCitizen Vladimir
+axiom A5b : ¬ GazpromManager Vladimir
 -- Ekaterina can register to vote in the US, or she is a Russian federation official.
-axiom A6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+axiom A6 : CanRegisterUS Ekaterina ∨ RFOfficial Ekaterina
 
--- Some derivations about Vladimir (not directly answering the question)
-theorem vladimir_US : USCitizen Vladimir :=
-by
-  have h := A3 Vladimir
+-- Useful consequence: Taiwanese citizenship implies not an RF official.
+theorem taiwanese_not_rf : ∀ x : Person, TaiwaneseCitizen x → ¬ RFOfficial x := by
+  intro x ht
+  intro hr
+  exact (A4 x hr) ht
+
+-- From the exclusivity-or axiom and Vladimir not being Taiwanese, we can deduce he is a US citizen.
+theorem vladimir_US : USCitizen Vladimir := by
+  have h : USCitizen Vladimir ∨ TaiwaneseCitizen Vladimir := A3 Vladimir
+  have hnt : ¬ TaiwaneseCitizen Vladimir := A5a
   cases h with
   | inl hu => exact hu
-  | inr ht => exact False.elim (A5a ht)
+  | inr ht => exact False.elim (hnt ht)
 
-theorem vladimir_can_register : CanRegisterUS Vladimir := A2 Vladimir vladimir_US
-theorem vladimir_can_participate : CanParticipate2024 Vladimir := A1 Vladimir vladimir_can_register
+theorem vladimir_can_register : CanRegisterUS Vladimir := by
+  exact A2 Vladimir vladimir_US
 
--- From the given axioms, we cannot prove RussianOfficial Vladimir nor its negation.
+theorem vladimir_can_participate_2024 : CanParticipate2024 Vladimir := by
+  exact A1 Vladimir vladimir_can_register
+
+-- From the given axioms, we cannot prove RFOfficial Vladimir or its negation.
+-- No theorem about Vladimir being an RF official (or not) follows from the provided information.
 </lean>
 
 ANSWER: Uncertain

@@ -1,38 +1,39 @@
 <lean>
-axiom Person : Type
-axiom Hannah : Person
+axiom obj : Type
 
-axiom AtMS : Person → Prop
-axiom Work : Person → Prop
-axiom Need : Person → Prop
-axiom OrderTakeout : Person → Prop
-axiom EnjoyDiningHall : Person → Prop
-axiom Picky : Person → Prop
-axiom SpendTimeDiningHalls : Person → Prop
+-- Predicates
+axiom AtMS : obj → Prop                          -- at Mary's school
+axiom Works : obj → Prop                         -- works in student jobs on campus
+axiom Needs : obj → Prop                         -- needs to earn money to help pay for college tuition
+axiom OrdersTakeout : obj → Prop                 -- orders takeout frequently in college
+axiom EnjoysDining : obj → Prop                  -- enjoys the dining hall meals and recipes
+axiom NotPicky : obj → Prop                      -- is not a picky eater
+axiom SpendsTimeDiningHalls : obj → Prop         -- spends a lot of time eating/catching up with friends in dining halls
 
--- Rules for people at Mary's school
-axiom R1 : ∀ x : Person, AtMS x → Work x → Need x
-axiom R2 : ∀ x : Person, AtMS x → OrderTakeout x → Work x
-axiom R3 : ∀ x : Person, AtMS x → (OrderTakeout x ∨ EnjoyDiningHall x)
-axiom R4 : ∀ x : Person, AtMS x → EnjoyDiningHall x → ¬ Picky x
-axiom R5 : ∀ x : Person, AtMS x → EnjoyDiningHall x → SpendTimeDiningHalls x
+axiom Hannah : obj
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, AtMS x → Works x → Needs x
+axiom R2 : ∀ x : obj, AtMS x → OrdersTakeout x → Works x
+axiom R3 : ∀ x : obj, AtMS x → (OrdersTakeout x ∨ EnjoysDining x)
+axiom R4 : ∀ x : obj, AtMS x → EnjoysDining x → NotPicky x
+axiom R5 : ∀ x : obj, AtMS x → EnjoysDining x → SpendsTimeDiningHalls x
 
 -- Facts about Hannah
-axiom H_atMS : AtMS Hannah
-axiom H_work_and_cond :
-  Work Hannah ∧ (Need Hannah → (¬ Picky Hannah ∧ ¬ Need Hannah))
+axiom H_at : AtMS Hannah
+axiom H_fact : Works Hannah ∧ (Needs Hannah → (NotPicky Hannah ∧ ¬Needs Hannah))
 
--- From Hannah's conditional alone, we can derive ¬ Need Hannah
-theorem hannah_not_need : ¬ Need Hannah := by
+-- Target statement: Hannah needs to earn money to help pay for her college tuition.
+theorem hannah_needs : Needs Hannah := by
+  have hW : Works Hannah := And.left H_fact
+  exact R1 Hannah H_at hW
+
+-- For reference, the context also implies ¬Needs Hannah (inconsistency).
+theorem hannah_not_needs : ¬ Needs Hannah := by
+  have hImp : Needs Hannah → (NotPicky Hannah ∧ ¬ Needs Hannah) := And.right H_fact
   intro hN
-  have hcond : Need Hannah → (¬ Picky Hannah ∧ ¬ Need Hannah) :=
-    And.right H_work_and_cond
-  have hNotNeed : ¬ Need Hannah := And.right (hcond hN)
-  exact hNotNeed hN
-
--- Note: We can also derive Need Hannah from AtMS and Work:
-theorem hannah_need : Need Hannah :=
-  R1 Hannah H_atMS (And.left H_work_and_cond)
+  have hNotN : ¬ Needs Hannah := And.right (hImp hN)
+  exact hNotN hN
 </lean>
 
-ANSWER: False
+ANSWER: True

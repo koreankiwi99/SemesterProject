@@ -1,40 +1,48 @@
 <lean>
 axiom obj : Type
-
--- Entities
 axiom Hannah : obj
 
--- Predicates
-axiom AtSchool : obj → Prop
+axiom At : obj → Prop
 axiom Work : obj → Prop
 axiom Need : obj → Prop
-axiom OrderTakeout : obj → Prop
-axiom EnjoyDining : obj → Prop
+axiom Takeout : obj → Prop
+axiom Enjoy : obj → Prop
 axiom Picky : obj → Prop
-axiom SpendTimeDining : obj → Prop
+axiom Spend : obj → Prop
 
--- Rules
-axiom R1 : ∀ x : obj, AtSchool x ∧ Work x → Need x
-axiom R2 : ∀ x : obj, AtSchool x ∧ OrderTakeout x → Work x
-axiom R3 : ∀ x : obj, AtSchool x → (OrderTakeout x ∨ EnjoyDining x)
-axiom R4 : ∀ x : obj, AtSchool x ∧ EnjoyDining x → ¬ Picky x
-axiom R5 : ∀ x : obj, AtSchool x ∧ EnjoyDining x → SpendTimeDining x
+-- If people at Mary's school work in student jobs on campus, then they need to earn money.
+axiom A1 : ∀ x : obj, At x → Work x → Need x
+-- If people at Mary's school order takeout frequently in college, then they work in student jobs on campus.
+axiom A2 : ∀ x : obj, At x → Takeout x → Work x
+-- People at Mary's school order takeout frequently in college or enjoy the dining hall meals and recipes.
+axiom A3 : ∀ x : obj, At x → (Takeout x ∨ Enjoy x)
+-- If people at Mary's school enjoy the dining hall meals and recipes, then they are not picky eaters.
+axiom A4 : ∀ x : obj, At x → Enjoy x → ¬ Picky x
+-- If people at Mary's school enjoy the dining hall meals and recipes, then they spend a lot of their time in the campus dining halls.
+axiom A5 : ∀ x : obj, At x → Enjoy x → Spend x
 
--- Facts about Hannah
-axiom H_school : AtSchool Hannah
-axiom H_work : Work Hannah
-axiom H_cond : Need Hannah → (¬ Picky Hannah ∧ ¬ Need Hannah)
+-- Hannah-specific facts
+axiom A6 : At Hannah
+axiom A7 : Work Hannah
+axiom A8 : Need Hannah → (¬ Picky Hannah ∧ ¬ Need Hannah)
 
-theorem hannah_goal : AtSchool Hannah ∧ ¬ Picky Hannah ∧ SpendTimeDining Hannah := by
-  have hs : AtSchool Hannah := H_school
-  have hw : Work Hannah := H_work
-  have hneed : Need Hannah := R1 Hannah ⟨hs, hw⟩
-  have hcond : ¬ Picky Hannah ∧ ¬ Need Hannah := H_cond hneed
-  have hnp : ¬ Picky Hannah := hcond.left
-  have hnneed : ¬ Need Hannah := hcond.right
-  have contra : False := hnneed hneed
-  have hspend : SpendTimeDining Hannah := False.elim contra
-  exact And.intro hs (And.intro hnp hspend)
+theorem hannah_conclusion : At Hannah ∧ ¬ Picky Hannah ∧ Spend Hannah := by
+  have hAt : At Hannah := A6
+  have hDisj : Takeout Hannah ∨ Enjoy Hannah := A3 Hannah hAt
+  cases hDisj with
+  | inl hTake =>
+      have hWork : Work Hannah := A2 Hannah hAt hTake
+      have hNeed : Need Hannah := A1 Hannah hAt hWork
+      have hNP_and_nN : ¬ Picky Hannah ∧ ¬ Need Hannah := A8 hNeed
+      have hNotNeed : ¬ Need Hannah := And.right hNP_and_nN
+      have hFalse : False := hNotNeed hNeed
+      have hSpend : Spend Hannah := False.elim hFalse
+      have hNotPicky : ¬ Picky Hannah := And.left hNP_and_nN
+      exact And.intro hAt (And.intro hNotPicky hSpend)
+  | inr hEnjoy =>
+      have hNotPicky : ¬ Picky Hannah := A4 Hannah hAt hEnjoy
+      have hSpend : Spend Hannah := A5 Hannah hAt hEnjoy
+      exact And.intro hAt (And.intro hNotPicky hSpend)
 </lean>
 
 ANSWER: True

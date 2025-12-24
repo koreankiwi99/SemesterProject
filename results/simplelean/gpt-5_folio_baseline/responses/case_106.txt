@@ -1,103 +1,41 @@
-
-
-======================================================================
-ITERATION 2
-======================================================================
-
 <lean>
-axiom Person : Type
-axiom Provider : Type
+axiom obj : Type
+axiom ETS : obj
+axiom Tom : obj
 
-axiom Tom : Person
-axiom ETS : Provider
+-- Predicates
+axiom TakingGRE : obj → Prop
+axiom ProvesHardship : obj → Prop
+axiom SingleParentFamily : obj → Prop
+axiom FewResources : obj → Prop
+axiom ProvidedBy : obj → obj → Prop   -- ProvidedBy provider person
 
-axiom GREApplicant : Person → Prop
-axiom EconomicHardship : Person → Prop
-axiom SingleParentFamily : Person → Prop
-axiom FewResources : Person → Prop
-axiom ProvidesFA : Provider → Person → Prop
-
--- Rules from the context
-axiom R_provide : ∀ x : Person, GREApplicant x → EconomicHardship x → ProvidesFA ETS x
-axiom R_hardship : ∀ x : Person, (SingleParentFamily x ∨ FewResources x) → EconomicHardship x
+-- Rules
+axiom R1 : ∀ x : obj, TakingGRE x → ProvesHardship x → ProvidedBy ETS x
+axiom R2 : ∀ x : obj, (SingleParentFamily x ∨ FewResources x) → ProvesHardship x
 
 -- Facts about Tom
-axiom F_spf_Tom : SingleParentFamily Tom
-axiom F_few_Tom : FewResources Tom
-axiom F_app_Tom : GREApplicant Tom
+axiom T1 : SingleParentFamily Tom
+axiom T2 : FewResources Tom
+axiom T3 : TakingGRE Tom
 
-lemma Tom_hardship : EconomicHardship Tom :=
-  R_hardship Tom (Or.inl F_spf_Tom)
+-- There exists someone taking the GRE who has financial aid provided to them by something
+theorem exists_taker_with_aid : ∃ x : obj, TakingGRE x ∧ ∃ p : obj, ProvidedBy p x := by
+  have Hph : ProvesHardship Tom := R2 Tom (Or.inl T1)
+  have Hprov : ProvidedBy ETS Tom := R1 Tom T3 Hph
+  exact Exists.intro Tom (And.intro T3 (Exists.intro ETS Hprov))
 
--- There exists a GRE applicant who has financial aid provided to them by something (ETS).
-theorem exists_applicant_with_fa : ∃ x : Person, GREApplicant x ∧ ∃ p : Provider, ProvidesFA p x := by
-  refine Exists.intro Tom ?_
-  refine And.intro F_app_Tom ?_
-  refine Exists.intro ETS ?_
-  exact R_provide Tom F_app_Tom Tom_hardship
-
--- Therefore, it is not the case that no GRE applicant has financial aid from anything.
-theorem not_no_applicant_has_fa :
-  ¬ (∀ x : Person, GREApplicant x → ¬ ∃ p : Provider, ProvidesFA p x) := by
+-- Therefore, the statement "No one taking the GRE test has financial aid provided to them by something" is false
+theorem no_one_has_aid_false :
+  ¬ (∀ x : obj, TakingGRE x → ¬ ∃ p : obj, ProvidedBy p x) := by
   intro h
-  have hx := h Tom
-  have hx' : GREApplicant Tom → ¬ ∃ p : Provider, ProvidesFA p Tom := hx
-  have faTom : ∃ p : Provider, ProvidesFA p Tom := by
-    refine Exists.intro ETS ?_
-    exact R_provide Tom F_app_Tom Tom_hardship
-  have neg := hx' F_app_Tom
-  exact neg faTom
-</lean>
-
-ANSWER: False
-
-======================================================================
-ITERATION 3
-======================================================================
-
-<lean>
-axiom Person : Type
-axiom Provider : Type
-
-axiom Tom : Person
-axiom ETS : Provider
-
-axiom GREApplicant : Person → Prop
-axiom EconomicHardship : Person → Prop
-axiom SingleParentFamily : Person → Prop
-axiom FewResources : Person → Prop
-axiom ProvidesFA : Provider → Person → Prop
-
--- Rules from the context
-axiom R_provide : ∀ x : Person, GREApplicant x → EconomicHardship x → ProvidesFA ETS x
-axiom R_hardship : ∀ x : Person, (SingleParentFamily x ∨ FewResources x) → EconomicHardship x
-
--- Facts about Tom
-axiom F_spf_Tom : SingleParentFamily Tom
-axiom F_few_Tom : FewResources Tom
-axiom F_app_Tom : GREApplicant Tom
-
-theorem Tom_hardship : EconomicHardship Tom := by
-  have h : SingleParentFamily Tom ∨ FewResources Tom := Or.inl F_spf_Tom
-  exact R_hardship Tom h
-
--- There exists a GRE applicant who has financial aid provided to them by something (ETS).
-theorem exists_applicant_with_fa : ∃ x : Person, GREApplicant x ∧ ∃ p : Provider, ProvidesFA p x := by
-  refine Exists.intro Tom ?_
-  refine And.intro F_app_Tom ?_
-  refine Exists.intro ETS ?_
-  exact R_provide Tom F_app_Tom Tom_hardship
-
--- Therefore, it is not the case that no GRE applicant has financial aid from anything.
-theorem not_no_applicant_has_fa :
-  ¬ (∀ x : Person, GREApplicant x → ¬ ∃ p : Provider, ProvidesFA p x) := by
-  intro h
-  have hx : GREApplicant Tom → ¬ ∃ p : Provider, ProvidesFA p Tom := h Tom
-  have faTom : ∃ p : Provider, ProvidesFA p Tom := by
-    refine Exists.intro ETS ?_
-    exact R_provide Tom F_app_Tom Tom_hardship
-  have neg := hx F_app_Tom
-  exact neg faTom
+  have ex : ∃ x : obj, TakingGRE x ∧ ∃ p : obj, ProvidedBy p x := exists_taker_with_aid
+  cases ex with
+  | intro x hx =>
+    cases hx with
+    | intro hxTake hxExists =>
+      have hxNone : ¬ ∃ p : obj, ProvidedBy p x := h x hxTake
+      exact hxNone hxExists
 </lean>
 
 ANSWER: False

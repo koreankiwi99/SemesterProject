@@ -1,26 +1,39 @@
 <lean>
 axiom obj : Type
-axiom MT : obj
-axiom NLP : obj → Prop
-axiom Gen : obj → Prop
-axiom Under : obj → Prop
-axiom TextOut : obj → Prop
+axiom MachineTranslation : obj
 
--- A natural language processing task is categorized as either generation or understanding (mutually exclusive)
-axiom A1 : ∀ x : obj, NLP x → (Gen x ∨ Under x)
-axiom A2 : ∀ x : obj, ¬ (Gen x ∧ Under x)
+axiom NLPTask : obj → Prop
+axiom LanguageGeneration : obj → Prop
+axiom LanguageUnderstanding : obj → Prop
+axiom OutputTextSequence : obj → Prop
 
--- If the output of an NLP task is a text sequence, then it is a generation task
-axiom A3 : ∀ x : obj, (NLP x ∧ TextOut x) → Gen x
+-- Categorization as exclusive: every NLP task is either generation or understanding, but not both
+axiom categorization :
+  ∀ x : obj,
+    NLPTask x →
+    (LanguageGeneration x ∧ ¬ LanguageUnderstanding x) ∨
+    (LanguageUnderstanding x ∧ ¬ LanguageGeneration x)
 
--- Machine translation is an NLP task, and its output is a text sequence
-axiom A4 : NLP MT
-axiom A5 : TextOut MT
+-- If the output is a text sequence, then it is a language generation task
+axiom gen_of_text_output : ∀ x : obj, OutputTextSequence x → LanguageGeneration x
 
-theorem mt_not_understanding : ¬ Under MT := by
-  have hgen : Gen MT := A3 MT ⟨A4, A5⟩
-  intro hUnder
-  exact A2 MT ⟨hgen, hUnder⟩
+-- Machine translation facts
+axiom MT_is_task : NLPTask MachineTranslation
+axiom MT_outputs_text : OutputTextSequence MachineTranslation
+
+-- From the above, machine translation is not a language understanding task
+theorem mt_not_understanding : ¬ LanguageUnderstanding MachineTranslation := by
+  have genMT : LanguageGeneration MachineTranslation :=
+    gen_of_text_output MachineTranslation MT_outputs_text
+  have cat := categorization MachineTranslation MT_is_task
+  cases cat with
+  | inl h =>
+      -- h : LanguageGeneration MT ∧ ¬ LanguageUnderstanding MT
+      exact h.right
+  | inr h =>
+      -- h : LanguageUnderstanding MT ∧ ¬ LanguageGeneration MT, but we have genMT
+      intro _
+      exact h.right genMT
 </lean>
 
 ANSWER: False

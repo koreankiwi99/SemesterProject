@@ -92,6 +92,18 @@ def get_false_negatives(results: list) -> list:
     return false_negatives
 
 
+def get_all_lean_pass(results: list) -> list:
+    """Extract all cases where Lean verification passed."""
+    cases = []
+    for r in results:
+        if r is None:
+            continue
+        lean_ver = r.get('lean_verification') or {}
+        if lean_ver.get('success', False):
+            cases.append(r)
+    return cases
+
+
 def load_folio_data(folio_path: str = 'data/folio/original/folio-validation.json') -> dict:
     """Load FOLIO data and create lookup by example_id."""
     with open(folio_path, 'r') as f:
@@ -108,6 +120,8 @@ def main():
     parser.add_argument('--condition', default=None, help='Condition name if results has nested structure')
     parser.add_argument('--folio_data', default='data/folio/original/folio-validation.json',
                         help='Path to FOLIO data for premises/conclusion lookup')
+    parser.add_argument('--all', action='store_true',
+                        help='Analyze all Lean-pass cases, not just false negatives')
 
     args = parser.parse_args()
 
@@ -127,7 +141,19 @@ def main():
     # Load results
     print(f"Loading results from: {args.results}")
     with open(args.results, 'r') as f:
-        data = json.load(f)
+        content = f.read().strip()
+
+    # Auto-detect JSONL vs JSON format
+    if content.startswith('[') or content.startswith('{'):
+        # Try JSON first
+        try:
+            data = json.loads(content)
+        except json.JSONDecodeError:
+            # Fallback to JSONL
+            data = [json.loads(line) for line in content.split('\n') if line.strip()]
+    else:
+        # JSONL format (each line is a JSON object)
+        data = [json.loads(line) for line in content.split('\n') if line.strip()]
 
     # Handle nested structure (conditions experiment) vs flat list
     if args.condition:
@@ -147,19 +173,23 @@ def main():
     folio_lookup = load_folio_data(args.folio_data)
     print(f"Loaded {len(folio_lookup)} FOLIO entries")
 
-    # Get false negatives
-    false_negatives = get_false_negatives(results)
-    print(f"Found {len(false_negatives)} false negatives")
+    # Get cases to analyze
+    if args.all:
+        cases_to_analyze = get_all_lean_pass(results)
+        print(f"Found {len(cases_to_analyze)} Lean-pass cases to analyze (--all mode)")
+    else:
+        cases_to_analyze = get_false_negatives(results)
+        print(f"Found {len(cases_to_analyze)} false negatives")
 
     # Enrich with FOLIO data
-    for fn in false_negatives:
-        example_id = fn.get('example_id')
+    for case in cases_to_analyze:
+        example_id = case.get('example_id')
         if example_id in folio_lookup:
             folio_entry = folio_lookup[example_id]
-            fn['premises'] = folio_entry.get('premises', '')
-            fn['conclusion'] = folio_entry.get('conclusion', '')
+            case['premises'] = folio_entry.get('premises', '')
+            case['conclusion'] = folio_entry.get('conclusion', '')
 
-    if not false_negatives:
+    if not cases_to_analyze:
         print("No cases to analyze!")
         return
 
@@ -173,10 +203,19 @@ def main():
 
     # Analyze each case
     analyses = []
-    for i, case in enumerate(false_negatives):
-        print(f"Analyzing {i+1}/{len(false_negatives)}...", end=' ')
+    for i, case in enumerate(cases_to_analyze):
+        print(f"Analyzing {i+1}/{len(cases_to_analyze)}...", end=' ')
 
         analysis = analyze_case(case, client, prompt_template, args.model)
+
+        # Map field names (v6 uses 'category', older versions use 'root_cause_category')
+        category = (analysis.get('root_cause_category') or
+                    analysis.get('category', 'OTHER'))
+        description = (analysis.get('error_description') or
+                       analysis.get('explanation', ''))
+        problematic = (analysis.get('problematic_axiom') or
+                       analysis.get('problematic_element') or
+                       analysis.get('specific_axiom', 'N/A'))
 
         row = {
             'case_idx': case.get('case_idx'),
@@ -184,14 +223,23 @@ def main():
             'story_id': case.get('story_id'),
             'ground_truth': case.get('ground_truth'),
             'prediction': case.get('prediction'),
+            'correct': case.get('correct'),
             'pattern': f"{case.get('prediction')} → {case.get('ground_truth')}",
             'num_iterations': case.get('num_iterations'),
             'premises': (case.get('premises') or case.get('context', ''))[:300],
             'conclusion': case.get('conclusion') or case.get('question', ''),
-            'root_cause_category': analysis.get('root_cause_category', 'OTHER'),
-            'error_description': analysis.get('error_description', ''),
-            'problematic_axiom': analysis.get('problematic_axiom') or analysis.get('specific_axiom', 'N/A'),
+            'root_cause_category': category,
+            'error_description': description,
+            'problematic_axiom': problematic,
         }
+
+        # Add v6-specific fields if present
+        if 'is_gaming' in analysis:
+            row['is_gaming'] = analysis.get('is_gaming')
+        if 'is_faithful' in analysis:
+            row['is_faithful'] = analysis.get('is_faithful')
+        if 'is_dataset_issue' in analysis:
+            row['is_dataset_issue'] = analysis.get('is_dataset_issue')
 
         analyses.append(row)
         print(f"✓ {row['root_cause_category']}")

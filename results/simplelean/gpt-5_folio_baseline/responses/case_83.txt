@@ -1,43 +1,33 @@
 <lean>
 axiom obj : Type
-axiom HPS : obj  -- Hamden Plaza Subway store
+axiom HPS : obj
 
--- Predicates
-axiom ListedYelp : obj → Prop
-axiom ManyNegReviews : obj → Prop
-axiom ProvidesTakeOut : obj → Prop
+axiom Listed : obj → Prop
+axiom ManyNeg : obj → Prop
 axiom RatingGT4 : obj → Prop
-axiom PopularLocal : obj → Prop
+axiom Takeout : obj → Prop
+axiom Popular : obj → Prop
 
--- Axioms from the context
--- 1. If listed in Yelp’s recommendations, then has not received many negative reviews.
-axiom A1 : ∀ x : obj, ListedYelp x → ¬ ManyNegReviews x
--- 2. All with rating > 4 are listed in Yelp’s recommendations.
-axiom A2 : ∀ x : obj, RatingGT4 x → ListedYelp x
--- 3. Some restaurants that do not provide take-out receive many negative reviews.
-axiom A3 : ∃ x : obj, ¬ ProvidesTakeOut x ∧ ManyNegReviews x
--- 4. All popular among locals have rating > 4.
-axiom A4 : ∀ x : obj, PopularLocal x → RatingGT4 x
--- 5. HPS has rating > 4 or is popular among locals.
-axiom A5 : RatingGT4 HPS ∨ PopularLocal HPS
+axiom A1 : ∀ x : obj, Listed x → ¬ ManyNeg x
+axiom A2 : ∀ x : obj, RatingGT4 x → Listed x
+axiom A3 : ∃ x : obj, ¬ Takeout x ∧ ManyNeg x
+axiom A4 : ∀ x : obj, Popular x → RatingGT4 x
+axiom A5 : RatingGT4 HPS ∨ Popular HPS
 
--- Goal: If HPS provides take-out and receives many negative reviews,
--- then its rating is > 4 and it does not provide take-out.
-theorem hps_statement :
-  (ProvidesTakeOut HPS ∧ ManyNegReviews HPS) →
-  (RatingGT4 HPS ∧ ¬ ProvidesTakeOut HPS) :=
+theorem hps_claim :
+  (Takeout HPS ∧ ManyNeg HPS) → (RatingGT4 HPS ∧ ¬ Takeout HPS) :=
 by
   intro h
-  -- Derive RatingGT4 HPS unconditionally from A5 and A4
-  have hRating : RatingGT4 HPS :=
-    Or.elim A5 (fun hr => hr) (fun hp => A4 HPS hp)
-  -- From rating > 4, get listed; from listed, get not many negative reviews
-  have hListed : ListedYelp HPS := A2 HPS hRating
-  have hNotMany : ¬ ManyNegReviews HPS := A1 HPS hListed
-  -- From the contradiction with ManyNegReviews HPS, derive ¬ProvidesTakeOut HPS
-  have hNotTO : ¬ ProvidesTakeOut HPS :=
-    fun t => False.elim (hNotMany h.right)
-  exact And.intro hRating hNotTO
+  have hT : Takeout HPS := And.left h
+  have hM : ManyNeg HPS := And.right h
+  have hRG : RatingGT4 HPS := by
+    cases A5 with
+    | inl rg => exact rg
+    | inr pop => exact A4 HPS pop
+  have hListed : Listed HPS := A2 HPS hRG
+  have hNotM : ¬ ManyNeg HPS := A1 HPS hListed
+  have contra : False := hNotM hM
+  exact And.intro hRG (fun _ => False.elim contra)
 </lean>
 
 ANSWER: True

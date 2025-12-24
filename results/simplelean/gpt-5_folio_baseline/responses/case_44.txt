@@ -1,52 +1,49 @@
 <lean>
 axiom obj : Type
+
+-- Individuals
 axiom Coco : obj
 
+-- Predicates
 axiom RankedHighlyWTA : obj → Prop
 axiom MostActiveMajor : obj → Prop
-axiom LostToIgaRG22 : obj → Prop
-axiom FemaleRG22 : obj → Prop
-axiom MaleRG22 : obj → Prop
-axiom LostToNadalRG22 : obj → Prop
-axiom AtRG22 : obj → Prop
+axiom LostToIgaRG2022 : obj → Prop
+axiom LostToNadalRG2022 : obj → Prop
+axiom FemaleRG2022 : obj → Prop
+axiom MaleRG2022 : obj → Prop
+axiom PlayerRG2022 : obj → Prop
 
--- If someone is ranked highly by the WTA, then they are one of the most active players in major tennis.
+-- Axioms from the context
 axiom A1 : ∀ x : obj, RankedHighlyWTA x → MostActiveMajor x
--- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
-axiom A2 : ∀ x : obj, LostToIgaRG22 x → RankedHighlyWTA x
--- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
-axiom A3 : ∀ x : obj, FemaleRG22 x → LostToIgaRG22 x
--- All tennis players at Roland Garros 2022 are either female or male.
-axiom A4 : ∀ x : obj, AtRG22 x → (FemaleRG22 x ∨ MaleRG22 x)
--- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
-axiom A5 : ∀ x : obj, MaleRG22 x → LostToNadalRG22 x
--- If Coco Gauff is ranked highly by the WTA or lost to Rafael Nadal, then Coco Gauff is not a male tennis player at RG22.
-axiom A6 : (RankedHighlyWTA Coco ∨ LostToNadalRG22 Coco) → ¬ MaleRG22 Coco
--- Coco Gauff is at Roland Garros 2022.
-axiom A7 : AtRG22 Coco
+axiom A2 : ∀ x : obj, LostToIgaRG2022 x → RankedHighlyWTA x
+axiom A3 : ∀ x : obj, FemaleRG2022 x → LostToIgaRG2022 x
+axiom A4 : ∀ x : obj, PlayerRG2022 x → FemaleRG2022 x ∨ MaleRG2022 x
+axiom A5 : ∀ x : obj, MaleRG2022 x → LostToNadalRG2022 x
+axiom A6 : (RankedHighlyWTA Coco ∨ LostToNadalRG2022 Coco) → ¬ MaleRG2022 Coco
+axiom A7 : PlayerRG2022 Coco
 
--- We show the negation of the claim by proving Coco both lost to Iga and is one of the most active players.
-theorem coco_both : LostToIgaRG22 Coco ∧ MostActiveMajor Coco := by
-  have hFM : FemaleRG22 Coco ∨ MaleRG22 Coco := A4 Coco A7
-  have hHRorN : RankedHighlyWTA Coco ∨ LostToNadalRG22 Coco := by
-    cases hFM with
-    | inl hF =>
-        have hI : LostToIgaRG22 Coco := A3 Coco hF
-        have hR : RankedHighlyWTA Coco := A2 Coco hI
-        exact Or.inl hR
-    | inr hM =>
-        have hN : LostToNadalRG22 Coco := A5 Coco hM
-        exact Or.inr hN
-  have hNotM : ¬ MaleRG22 Coco := A6 hHRorN
-  have hF : FemaleRG22 Coco := by
-    cases hFM with
-    | inl hF => exact hF
-    | inr hM =>
-        exact False.elim (hNotM hM)
-  have hI : LostToIgaRG22 Coco := A3 Coco hF
-  have hR : RankedHighlyWTA Coco := A2 Coco hI
-  have hMact : MostActiveMajor Coco := A1 Coco hR
-  exact And.intro hI hMact
+-- We prove the negation of the statement: LostToIgaRG2022 Coco ∧ MostActiveMajor Coco
+theorem coco_lost_and_active : LostToIgaRG2022 Coco ∧ MostActiveMajor Coco := by
+  -- First, show Coco is not male at RG2022
+  have not_male : ¬ MaleRG2022 Coco := by
+    intro hM
+    have hLN : LostToNadalRG2022 Coco := A5 Coco hM
+    have hnm : ¬ MaleRG2022 Coco := A6 (Or.inr hLN)
+    exact hnm hM
+  -- From being a player, Coco is female or male; exclude male to get female
+  have fem_or_male : FemaleRG2022 Coco ∨ MaleRG2022 Coco := A4 Coco A7
+  have coco_female : FemaleRG2022 Coco := by
+    apply Or.elim fem_or_male
+    · intro hfem; exact hfem
+    · intro hmale; exact False.elim (not_male hmale)
+  -- Female implies lost to Iga
+  have coco_lost : LostToIgaRG2022 Coco := A3 Coco coco_female
+  -- Lost to Iga implies ranked highly
+  have coco_ranked : RankedHighlyWTA Coco := A2 Coco coco_lost
+  -- Ranked highly implies most active
+  have coco_active : MostActiveMajor Coco := A1 Coco coco_ranked
+  -- Conclude conjunction
+  exact And.intro coco_lost coco_active
 </lean>
 
 ANSWER: False

@@ -4,49 +4,37 @@ axiom Mixture : obj
 
 axiom Hydrocarbon : obj → Prop
 axiom Organic : obj → Prop
-axiom Alkane : obj → Prop
-axiom ChemicalCompound : obj → Prop
+axiom Chemical : obj → Prop
 axiom ContainsCarbon : obj → Prop
-axiom OnlyOneElement : obj → Prop
+axiom OneElement : obj → Prop
+axiom Alkane : obj → Prop
 
--- All hydrocarbons are organic compounds.
 axiom A1 : ∀ x : obj, Hydrocarbon x → Organic x
--- All alkanes are hydrocarbons.
 axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
--- All organic compounds are chemical compounds.
-axiom A3 : ∀ x : obj, Organic x → ChemicalCompound x
--- All organic compounds contain carbon.
+axiom A3 : ∀ x : obj, Organic x → Chemical x
 axiom A4 : ∀ x : obj, Organic x → ContainsCarbon x
--- No chemical compounds contain only one element.
-axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
--- The mixture either both is a chemical compound and contains only one element, or neither.
-axiom A6 : (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) ∨ (¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture)
+axiom A5 : ∀ x : obj, Chemical x → ¬ OneElement x
+axiom A6 : (Chemical Mixture ∧ OneElement Mixture) ∨ (¬ Chemical Mixture ∧ ¬ OneElement Mixture)
 
-theorem target :
-  (OnlyOneElement Mixture ∨ ContainsCarbon Mixture) →
-  (¬ ChemicalCompound Mixture ∧ ¬ Alkane Mixture) := by
+theorem mixture_implication :
+  (OneElement Mixture ∨ ContainsCarbon Mixture) → (¬ Chemical Mixture ∧ ¬ Alkane Mixture) := by
   intro _
-  -- Show that the first disjunct of A6 is impossible
-  have hnotpair : ¬ (ChemicalCompound Mixture ∧ OnlyOneElement Mixture) := by
-    intro h
-    have hc : ChemicalCompound Mixture := h.left
-    have ho : OnlyOneElement Mixture := h.right
-    have hno : ¬ OnlyOneElement Mixture := A5 Mixture hc
-    exact hno ho
-  -- Therefore, the second disjunct of A6 holds
-  have hconj : ¬ ChemicalCompound Mixture ∧ ¬ OnlyOneElement Mixture := by
+  have hNoChemAndNoOne : ¬ Chemical Mixture ∧ ¬ OneElement Mixture := by
     cases A6 with
-    | inl h =>
-        have : False := hnotpair h
+    | inl hboth =>
+        have hNoOne : ¬ OneElement Mixture := A5 Mixture hboth.left
+        have : False := hNoOne hboth.right
         exact False.elim this
-    | inr h => exact h
-  have hNotChem : ¬ ChemicalCompound Mixture := hconj.left
-  -- From ¬ChemicalCompound Mixture and Alkane → ChemicalCompound, derive ¬Alkane Mixture
-  have notAlk : ¬ Alkane Mixture := by
-    intro ha
-    have hc : ChemicalCompound Mixture := A3 Mixture (A1 Mixture (A2 Mixture ha))
-    exact hNotChem hc
-  exact And.intro hNotChem notAlk
+    | inr hnone =>
+        exact hnone
+  have hNoChem : ¬ Chemical Mixture := hNoChemAndNoOne.left
+  have hNoAlk : ¬ Alkane Mixture := by
+    intro hAlk
+    have hHydro : Hydrocarbon Mixture := A2 Mixture hAlk
+    have hOrg : Organic Mixture := A1 Mixture hHydro
+    have hChem : Chemical Mixture := A3 Mixture hOrg
+    exact hNoChem hChem
+  exact And.intro hNoChem hNoAlk
 </lean>
 
 ANSWER: True

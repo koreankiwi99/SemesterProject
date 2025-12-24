@@ -5,9 +5,9 @@ axiom Marvin : obj
 axiom Alien : obj → Prop
 axiom Extraterrestrial : obj → Prop
 axiom Human : obj → Prop
-axiom HighlyIntelligent : obj → Prop
-axiom FromEarth : obj → Prop
 axiom FromMars : obj → Prop
+axiom FromEarth : obj → Prop
+axiom HighlyIntelligent : obj → Prop
 
 -- All aliens are extraterrestrials.
 axiom A1 : ∀ x : obj, Alien x → Extraterrestrial x
@@ -18,34 +18,41 @@ axiom A3 : ∀ x : obj, Extraterrestrial x → ¬ Human x
 -- All highly intelligent beings from Earth are humans.
 axiom A4 : ∀ x : obj, HighlyIntelligent x ∧ FromEarth x → Human x
 -- Marvin is a highly intelligent being.
-axiom T5 : HighlyIntelligent Marvin
+axiom A5 : HighlyIntelligent Marvin
 -- Marvin is either from Earth and from Mars, or he is from neither.
-axiom T6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)
 -- If Marvin is not from Earth, then Marvin is an extraterrestrial.
-axiom A7 : ¬FromEarth Marvin → Extraterrestrial Marvin
+axiom A7 : ¬ FromEarth Marvin → Extraterrestrial Marvin
 
-theorem marvin_neither : ¬Human Marvin ∧ ¬FromMars Marvin := by
-  -- First, show Marvin cannot be both from Earth and from Mars
-  have hnotboth : ¬(FromEarth Marvin ∧ FromMars Marvin) := by
-    intro hboth
-    have hEarth : FromEarth Marvin := hboth.left
-    have hMars : FromMars Marvin := hboth.right
-    have hAlien : Alien Marvin := A2 Marvin hMars
-    have hExtra : Extraterrestrial Marvin := A1 Marvin hAlien
-    have hNotHuman : ¬Human Marvin := A3 Marvin hExtra
-    have hHuman : Human Marvin := A4 Marvin (And.intro T5 hEarth)
-    exact hNotHuman hHuman
-  -- From the disjunction and the impossibility of the first case, we get the second case
-  have hneither : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
-    cases T6 with
-    | inl hboth => exact False.elim (hnotboth hboth)
-    | inr hne => exact hne
-  have hNotEarth : ¬FromEarth Marvin := hneither.left
-  have hNotMars : ¬FromMars Marvin := hneither.right
-  -- From not Earth, Marvin is extraterrestrial, hence not human
-  have hExtra2 : Extraterrestrial Marvin := A7 hNotEarth
-  have hNotHuman : ¬Human Marvin := A3 Marvin hExtra2
-  exact And.intro hNotHuman hNotMars
+theorem marvin_neither_human_nor_from_mars : ¬ Human Marvin ∧ ¬ FromMars Marvin := by
+  -- First, show ¬ FromMars Marvin
+  have not_mars : ¬ FromMars Marvin := by
+    intro mMars
+    -- From the disjunction, deduce FromEarth Marvin ∧ FromMars Marvin (right disjunct contradicts mMars)
+    have hEM : FromEarth Marvin ∧ FromMars Marvin := by
+      cases A6 with
+      | inl h1 => exact h1
+      | inr h2 =>
+          have nm : ¬ FromMars Marvin := h2.right
+          exact False.elim (nm mMars)
+    have e : FromEarth Marvin := hEM.left
+    have human : Human Marvin := A4 Marvin ⟨A5, e⟩
+    have extr : Extraterrestrial Marvin := A1 Marvin (A2 Marvin mMars)
+    have not_human : ¬ Human Marvin := A3 Marvin extr
+    exact not_human human
+  -- Next, show ¬ Human Marvin
+  have not_earth : ¬ FromEarth Marvin := by
+    intro e
+    cases A6 with
+    | inl h1 =>
+        have m : FromMars Marvin := h1.right
+        exact not_mars m
+    | inr h2 =>
+        have ne : ¬ FromEarth Marvin := h2.left
+        exact ne e
+  have extr : Extraterrestrial Marvin := A7 not_earth
+  have not_human : ¬ Human Marvin := A3 Marvin extr
+  exact And.intro not_human not_mars
 </lean>
 
 ANSWER: True

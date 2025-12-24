@@ -1,59 +1,48 @@
 <lean>
 axiom obj : Type
-axiom DTC : obj  -- Dried Thai chilies
 
+-- Entities and predicates
+axiom DriedThaiChilies : obj
 axiom BakedSweet : obj → Prop
 axiom Spicy : obj → Prop
 axiom Cupcake : obj → Prop
 axiom MalaHotpot : obj → Prop
 axiom FromBBM : obj → Prop
 
--- No baked sweets are spicy.
+-- Given axioms
 axiom A1 : ∀ x : obj, BakedSweet x → ¬ Spicy x
--- All cupcakes are baked sweets.
 axiom A2 : ∀ x : obj, Cupcake x → BakedSweet x
--- All mala hotpots are spicy.
 axiom A3 : ∀ x : obj, MalaHotpot x → Spicy x
--- All products from Baked by Melissa are cupcakes.
 axiom A4 : ∀ x : obj, FromBBM x → Cupcake x
--- Dried Thai chilies are spicy or mala hotpots or not baked sweets.
-axiom A5 : Spicy DTC ∨ (MalaHotpot DTC ∨ ¬ BakedSweet DTC)
+axiom A5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬ BakedSweet DriedThaiChilies
 
-theorem dtc_neither : ¬ FromBBM DTC ∧ ¬ BakedSweet DTC := by
-  -- Spicy implies not baked sweet, from A1
-  have hSpicyImpNotBS : ∀ x, Spicy x → ¬ BakedSweet x := by
-    intro x
-    intro hS
-    intro hBS
-    have : ¬ Spicy x := A1 x hBS
-    exact this hS
-  -- Derive ¬BakedSweet DTC from the given disjunction A5
-  have notBS : ¬ BakedSweet DTC := by
-    cases A5 with
-    | inl hSpicy =>
-        intro hBS
-        have : ¬ Spicy DTC := A1 DTC hBS
-        exact this hSpicy
-    | inr hRest =>
-        cases hRest with
-        | inl hMH =>
-            intro hBS
-            have hS : Spicy DTC := A3 DTC hMH
-            have : ¬ Spicy DTC := A1 DTC hBS
-            exact this hS
-        | inr hNotBS =>
-            exact hNotBS
-  -- FromBBM implies BakedSweet via cupcakes
-  have hFBMtoBS : ∀ x, FromBBM x → BakedSweet x := by
-    intro x
-    intro hfbm
-    have hCup : Cupcake x := A4 x hfbm
-    exact A2 x hCup
-  -- Conclude ¬FromBBM DTC by modus tollens using ¬BakedSweet DTC
-  have notFBM : ¬ FromBBM DTC := by
-    intro hfbm
-    exact notBS (hFBMtoBS DTC hfbm)
-  exact And.intro notFBM notBS
+-- Composition: products from BBM are baked sweets
+theorem fromBBM_implies_baked : ∀ x : obj, FromBBM x → BakedSweet x :=
+fun x h => A2 x (A4 x h)
+
+-- Derive that Dried Thai chilies are not baked sweets
+theorem dtc_not_baked : ¬ BakedSweet DriedThaiChilies :=
+Or.elim A5
+  (fun hs =>
+    by
+      intro hb
+      exact (A1 DriedThaiChilies hb) hs)
+  (fun h2 =>
+    Or.elim h2
+      (fun hm =>
+        by
+          intro hb
+          have hs : Spicy DriedThaiChilies := A3 DriedThaiChilies hm
+          exact (A1 DriedThaiChilies hb) hs)
+      (fun hnb => hnb))
+
+-- Therefore, Dried Thai chilies are not from BBM
+theorem dtc_not_fromBBM : ¬ FromBBM DriedThaiChilies :=
+fun hfbm => dtc_not_baked (fromBBM_implies_baked DriedThaiChilies hfbm)
+
+-- Final claim: neither from BBM nor baked sweets
+theorem dtc_neither_bbm_nor_baked : ¬ FromBBM DriedThaiChilies ∧ ¬ BakedSweet DriedThaiChilies :=
+And.intro dtc_not_fromBBM dtc_not_baked
 </lean>
 
 ANSWER: True

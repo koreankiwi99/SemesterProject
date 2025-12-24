@@ -1,13 +1,76 @@
+<lean>
+axiom obj : Type
 
+-- Individuals
+axiom Bonnie : obj
 
-======================================================================
-ITERATION 2
-======================================================================
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendsEvents : obj → Prop
+axiom Engaged : obj → Prop
+axiom Inactive : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChild : obj → Prop
+axiom Teenager : obj → Prop
+axiom WishesFurtherEd : obj → Prop
 
+-- Axioms from the context
+-- People in this club who perform in school talent shows often attend and are very engaged with school events.
+axiom A1 : ∀ x : obj, InClub x → PerformOften x → AttendsEvents x ∧ Engaged x
+-- People in this club either perform often or are inactive and disinterested.
+axiom A2 : ∀ x : obj, InClub x → PerformOften x ∨ Inactive x
+-- People in this club who chaperone high school dances are not students.
+axiom A3 : ∀ x : obj, InClub x → Chaperone x → ¬ Student x
+-- In-club inactive and disinterested people chaperone high school dances.
+axiom A4 : ∀ x : obj, InClub x → Inactive x → Chaperone x
+-- In-club young children or teenagers who wish to further education are students.
+axiom A5 : ∀ x : obj, InClub x → ((YoungChild x ∨ Teenager x) ∧ WishesFurtherEd x) → Student x
 
+-- Bonnie facts
+axiom B_in : InClub Bonnie
+-- Bonnie either (attends ∧ engaged ∧ student) or (¬(attends ∧ engaged) ∧ ¬student)
+axiom B_disj :
+  (AttendsEvents Bonnie ∧ Engaged Bonnie ∧ Student Bonnie) ∨
+  (¬(AttendsEvents Bonnie ∧ Engaged Bonnie) ∧ ¬ Student Bonnie)
 
-======================================================================
-ITERATION 3
-======================================================================
+-- Target statement:
+-- If Bonnie is either (((young child ∨ teenager) ∧ wishes) ∧ chaperone) or ¬((young child ∨ teenager) ∧ wishes),
+-- then Bonnie is either a student or inactive.
+theorem bonnie_conclusion :
+  ( (((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherEd Bonnie) ∧ Chaperone Bonnie)
+    ∨ ¬ ((YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherEd Bonnie) )
+  → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro h
+  have hClub : InClub Bonnie := B_in
+  cases h with
+  | inl hA =>
+      -- hA : (((YC ∨ T) ∧ Wishes) ∧ Chaperone)
+      have hYTW : (YoungChild Bonnie ∨ Teenager Bonnie) ∧ WishesFurtherEd Bonnie := And.left hA
+      have hCh : Chaperone Bonnie := And.right hA
+      have hStu : Student Bonnie := A5 Bonnie hClub hYTW
+      have hNotStu : ¬ Student Bonnie := A3 Bonnie hClub hCh
+      have contra : False := hNotStu hStu
+      exact False.elim contra
+  | inr _hNotYTW =>
+      -- From club membership, either performs often or is inactive
+      have hPOI : PerformOften Bonnie ∨ Inactive Bonnie := A2 Bonnie hClub
+      cases hPOI with
+      | inl hPerf =>
+          have hAE : AttendsEvents Bonnie ∧ Engaged Bonnie := A1 Bonnie hClub hPerf
+          -- Use Bonnie's disjunction to conclude Student
+          cases B_disj with
+          | inl hAEStu =>
+              have hStu : Student Bonnie := And.right (And.right hAEStu)
+              exact Or.inl hStu
+          | inr hNotAEandNotStu =>
+              have hNotAE : ¬ (AttendsEvents Bonnie ∧ Engaged Bonnie) := And.left hNotAEandNotStu
+              have contra : False := hNotAE hAE
+              have hStu : Student Bonnie := False.elim contra
+              exact Or.inl hStu
+      | inr hInactive =>
+          exact Or.inr hInactive
+</lean>
 
-
+ANSWER: True

@@ -1,60 +1,48 @@
-
-
-======================================================================
-ITERATION 2
-======================================================================
-
 <lean>
 axiom obj : Type
-axiom Rock : obj
-
-axiom PetersPet : obj → Prop
+axiom Pet : obj → Prop
 axiom Mammal : obj → Prop
 axiom Animal : obj → Prop
 axiom Monkey : obj → Prop
 axiom Bird : obj → Prop
-axiom CanFly : obj → Prop
-axiom CanBreathe : obj → Prop
-axiom HasWings : obj → Prop
+axiom Fly : obj → Prop
+axiom Wings : obj → Prop
+axiom Breathe : obj → Prop
 
--- All of Peter's pets that are mammals are also animals.
-axiom A1 : ∀ x : obj, PetersPet x ∧ Mammal x → Animal x
--- All monkeys are mammals.
+axiom A1 : ∀ x : obj, Pet x ∧ Mammal x → Animal x
 axiom A2 : ∀ x : obj, Monkey x → Mammal x
--- Peter's pets are all either monkeys or birds.
-axiom A3 : ∀ x : obj, PetersPet x → (Monkey x ∨ Bird x)
--- Peter's birds can fly.
-axiom A4 : ∀ x : obj, PetersPet x ∧ Bird x → CanFly x
--- All animals that are Peter's pets can breathe.
-axiom A5 : ∀ x : obj, PetersPet x ∧ Animal x → CanBreathe x
--- If Peter's pet can fly, then it has wings.
-axiom A6 : ∀ x : obj, PetersPet x ∧ CanFly x → HasWings x
--- Rock is Peter's pet.
-axiom A7 : PetersPet Rock
--- Rock can fly, or Rock is a bird, or Rock cannot breathe.
-axiom A8 : CanFly Rock ∨ (Bird Rock ∨ ¬ CanBreathe Rock)
+axiom A3 : ∀ x : obj, Pet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x : obj, Pet x ∧ Bird x → Fly x
+axiom A5 : ∀ x : obj, Animal x ∧ Pet x → Breathe x
+axiom A6 : ∀ x : obj, Pet x ∧ Fly x → Wings x
 
-theorem rock_has_wings : HasWings Rock := by
-  have hPet : PetersPet Rock := A7
-  cases A8 with
-  | inl hFly =>
-      exact A6 Rock (And.intro hPet hFly)
-  | inr h =>
-      cases h with
-      | inl hBird =>
-          have hFly : CanFly Rock := A4 Rock (And.intro hPet hBird)
-          exact A6 Rock (And.intro hPet hFly)
-      | inr hNotBreath =>
-          have hMB : Monkey Rock ∨ Bird Rock := A3 Rock hPet
-          cases hMB with
-          | inl hMon =>
-              have hMam : Mammal Rock := A2 Rock hMon
-              have hAni : Animal Rock := A1 Rock (And.intro hPet hMam)
-              have hB : CanBreathe Rock := A5 Rock (And.intro hPet hAni)
-              exact False.elim (hNotBreath hB)
-          | inr hBird2 =>
-              have hFly : CanFly Rock := A4 Rock (And.intro hPet hBird2)
-              exact A6 Rock (And.intro hPet hFly)
+axiom Rock : obj
+axiom Rpet : Pet Rock
+axiom Rdisj : Fly Rock ∨ Bird Rock ∨ ¬Breathe Rock
+
+theorem rock_has_wings : Wings Rock := by
+  have pr : Pet Rock := Rpet
+  have d1 : Monkey Rock ∨ Bird Rock := A3 Rock pr
+  have d2 : Fly Rock ∨ Bird Rock ∨ ¬Breathe Rock := Rdisj
+  cases d2 with
+  | inl hf =>
+      exact A6 Rock ⟨pr, hf⟩
+  | inr rest =>
+      cases rest with
+      | inl hb =>
+          have hf : Fly Rock := A4 Rock ⟨pr, hb⟩
+          exact A6 Rock ⟨pr, hf⟩
+      | inr hnb =>
+          cases d1 with
+          | inl hmonkey =>
+              have hm : Mammal Rock := A2 Rock hmonkey
+              have ha : Animal Rock := A1 Rock ⟨pr, hm⟩
+              have hb : Breathe Rock := A5 Rock ⟨ha, pr⟩
+              have : False := hnb hb
+              exact False.elim this
+          | inr hbird =>
+              have hf : Fly Rock := A4 Rock ⟨pr, hbird⟩
+              exact A6 Rock ⟨pr, hf⟩
 </lean>
 
 ANSWER: False

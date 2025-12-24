@@ -1,58 +1,52 @@
 <lean>
-axiom Person : Type
-axiom Taylor : Person
+axiom obj : Type
+axiom Taylor : obj
 
-axiom EatsSaladsRegularly : Person → Prop
-axiom VeryConscious : Person → Prop
-axiom HealthHome : Person → Prop
-axiom FulfillsDailyNutrition : Person → Prop
-axiom DisregardsWellBeing : Person → Prop
-axiom VisitsGymDaily : Person → Prop
+axiom EatsSaladsRegularly : obj → Prop
+axiom VeryConscious : obj → Prop
+axiom GrewUpHC : obj → Prop
+axiom FulfillsDailyIntake : obj → Prop
+axiom DisregardsPhysicalWellBeing : obj → Prop
+axiom VisitsGymDaily : obj → Prop
 
--- All who eat salads regularly are very conscious
-axiom A1 : ∀ x : Person, EatsSaladsRegularly x → VeryConscious x
--- All who grew up in health-conscious homes eat salads regularly
-axiom A2 : ∀ x : Person, HealthHome x → EatsSaladsRegularly x
--- All who fulfill daily nutrition grew up in health-conscious homes
-axiom A3 : ∀ x : Person, FulfillsDailyNutrition x → HealthHome x
--- All who disregard their well-being are not very conscious
-axiom A4 : ∀ x : Person, DisregardsWellBeing x → ¬ VeryConscious x
--- Visiting gym daily implies fulfilling daily nutrition
-axiom A5 : ∀ x : Person, VisitsGymDaily x → FulfillsDailyNutrition x
+-- All people who eat salads regularly are very conscious about their health and eating habits.
+axiom A1 : ∀ x : obj, EatsSaladsRegularly x → VeryConscious x
+-- All people who grew up in health-conscious childhood homes eat salads regularly.
+axiom A2 : ∀ x : obj, GrewUpHC x → EatsSaladsRegularly x
+-- All people who fulfill their daily nutritional intakes grew up in health-conscious childhood homes.
+axiom A3 : ∀ x : obj, FulfillsDailyIntake x → GrewUpHC x
+-- All people who disregard their physical well-being are not very conscious about their health and eating habits.
+axiom A4 : ∀ x : obj, DisregardsPhysicalWellBeing x → ¬ VeryConscious x
+-- If people visit the gym at least once a day, then they always fulfill their daily nutritional intakes.
+axiom A5 : ∀ x : obj, VisitsGymDaily x → FulfillsDailyIntake x
+-- Taylor either grew up in a health-conscious childhood home and disregards her physical well-being, or she did neither.
+axiom A6 : (GrewUpHC Taylor ∧ DisregardsPhysicalWellBeing Taylor) ∨ (¬ GrewUpHC Taylor ∧ ¬ DisregardsPhysicalWellBeing Taylor)
 
--- Taylor either (H ∧ D) or (¬H ∧ ¬D)
-axiom A6 :
-  (HealthHome Taylor ∧ DisregardsWellBeing Taylor) ∨
-  (¬ HealthHome Taylor ∧ ¬ DisregardsWellBeing Taylor)
-
--- The (H ∧ D) case is impossible
-theorem not_hd : ¬ (HealthHome Taylor ∧ DisregardsWellBeing Taylor) := by
+-- The left disjunct leads to a contradiction, so it cannot hold.
+theorem left_impossible : ¬ (GrewUpHC Taylor ∧ DisregardsPhysicalWellBeing Taylor) := by
   intro h
-  have hH : HealthHome Taylor := And.left h
-  have hD : DisregardsWellBeing Taylor := And.right h
-  have hE : EatsSaladsRegularly Taylor := A2 Taylor hH
-  have hV : VeryConscious Taylor := A1 Taylor hE
-  have hNV : ¬ VeryConscious Taylor := A4 Taylor hD
-  exact hNV hV
+  have hG : GrewUpHC Taylor := And.left h
+  have hD : DisregardsPhysicalWellBeing Taylor := And.right h
+  have hESR : EatsSaladsRegularly Taylor := A2 Taylor hG
+  have hVC : VeryConscious Taylor := A1 Taylor hESR
+  have hNotVC : ¬ VeryConscious Taylor := A4 Taylor hD
+  exact hNotVC hVC
 
--- Hence Taylor did neither: we can derive ¬H and ¬D
-theorem notH : ¬ HealthHome Taylor := by
-  have hcases := A6
-  cases hcases with
-  | inl hhd =>
-      exact False.elim (not_hd hhd)
-  | inr hnot =>
-      exact And.left hnot
+-- Therefore the right disjunct holds: Taylor did neither.
+theorem right_case : ¬ GrewUpHC Taylor ∧ ¬ DisregardsPhysicalWellBeing Taylor :=
+  Or.elim A6 (fun hleft => False.elim (left_impossible hleft)) (fun hright => hright)
 
-theorem notD : ¬ DisregardsWellBeing Taylor := by
-  have hcases := A6
-  cases hcases with
-  | inl hhd =>
-      exact False.elim (not_hd hhd)
-  | inr hnot =>
-      exact And.right hnot
+-- Consequences (do not settle whether Taylor eats salads regularly)
+theorem not_GrewUpHC : ¬ GrewUpHC Taylor := And.left right_case
+theorem not_Disregards : ¬ DisregardsPhysicalWellBeing Taylor := And.right right_case
+theorem not_FulfillsDailyIntake : ¬ FulfillsDailyIntake Taylor := by
+  exact mt (A3 Taylor) not_GrewUpHC
+theorem not_VisitsGymDaily : ¬ VisitsGymDaily Taylor := by
+  exact mt (A5 Taylor) not_FulfillsDailyIntake
 
--- Cannot prove EatsSaladsRegularly Taylor or its negation from given axioms
+-- Cannot prove EatsSaladsRegularly Taylor or its negation from the given axioms.
+-- theorem taylor_eats_salads : EatsSaladsRegularly Taylor := ?_
+-- theorem taylor_not_eats_salads : ¬ EatsSaladsRegularly Taylor := ?_
 </lean>
 
 ANSWER: Uncertain

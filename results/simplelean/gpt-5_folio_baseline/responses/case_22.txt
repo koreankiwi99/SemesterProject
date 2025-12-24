@@ -1,7 +1,7 @@
 <lean>
 axiom Show : Type
-axiom BlackMirror : Show
 axiom StrangerThings : Show
+axiom BlackMirror : Show
 
 axiom Popular : Show → Prop
 axiom NetflixShow : Show → Prop
@@ -14,34 +14,32 @@ axiom ST_popular : Popular StrangerThings
 axiom ST_netflix : NetflixShow StrangerThings
 
 -- If a Netflix show is popular, Karen will binge-watch it.
-axiom binge_of_pop_netflix : ∀ x : Show, NetflixShow x ∧ Popular x → BingeKaren x
+axiom R_popular_netflix_to_binge : ∀ s : Show, NetflixShow s ∧ Popular s → BingeKaren s
 
--- If and only if Karen binge-watches a Netflix show, she will download it.
-axiom binge_iff_download_on_netflix : ∀ x : Show, NetflixShow x → (BingeKaren x ↔ DownloadKaren x)
+-- If and only if Karen binge-watches a Netflix show, she will download it. (equivalence on Netflix shows)
+axiom R_binge_iff_download : ∀ s : Show, NetflixShow s → (BingeKaren s ↔ DownloadKaren s)
 
 -- Karen does not download "Black Mirror."
-axiom not_download_BM : ¬ DownloadKaren BlackMirror
+axiom BM_not_download : ¬ DownloadKaren BlackMirror
 
 -- "Black Mirror" is a Netflix show.
 axiom BM_netflix : NetflixShow BlackMirror
 
 -- If Karen binge-watches a Netflix show, she will share it with Lisa.
-axiom share_if_binge_netflix : ∀ x : Show, NetflixShow x → BingeKaren x → ShareWithLisa x
+axiom R_binge_share : ∀ s : Show, NetflixShow s ∧ BingeKaren s → ShareWithLisa s
 
-theorem black_mirror_not_popular : ¬ Popular BlackMirror := by
+-- From the above, we can show "Black Mirror" is not popular.
+theorem BM_not_popular : ¬ Popular BlackMirror := by
   intro hpop
-  have hnet : NetflixShow BlackMirror := BM_netflix
-  have hiff : BingeKaren BlackMirror ↔ DownloadKaren BlackMirror :=
-    binge_iff_download_on_netflix BlackMirror hnet
+  have hiff := R_binge_iff_download BlackMirror BM_netflix
   have hb2d : BingeKaren BlackMirror → DownloadKaren BlackMirror := Iff.mp hiff
-  have hnotd : ¬ DownloadKaren BlackMirror := not_download_BM
   have hnotb : ¬ BingeKaren BlackMirror := by
     intro hb
-    exact hnotd (hb2d hb)
-  have hb : BingeKaren BlackMirror := by
-    have hconj : NetflixShow BlackMirror ∧ Popular BlackMirror := And.intro hnet hpop
-    exact binge_of_pop_netflix BlackMirror hconj
-  exact hnotb hb
+    exact BM_not_download (hb2d hb)
+  have hbinge : BingeKaren BlackMirror := by
+    apply R_popular_netflix_to_binge
+    exact And.intro BM_netflix hpop
+  exact hnotb hbinge
 </lean>
 
 ANSWER: False

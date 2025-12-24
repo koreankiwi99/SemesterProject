@@ -1,52 +1,102 @@
 <lean>
 axiom obj : Type
-
 axiom Show : obj → Prop
-axiom AirsMon8pm : obj → Prop
+axiom AirsMon8 : obj → Prop
 axiom GivesRosesOnTV : obj → Prop
-axiom EpisodeOfTheBachelor : obj → Prop
-axiom PortraysRealLives : obj → Prop
-axiom RealityTVShow : obj → Prop
+axiom BachelorEpisode : obj → Prop
+axiom PortraysRealPeople : obj → Prop
+axiom RealityTV : obj → Prop
 
 axiom BreakingBad : obj
 
--- Context axioms
-axiom some_monday8_rose_show :
-  ∃ s : obj, Show s ∧ AirsMon8pm s ∧ GivesRosesOnTV s
+-- Some show airing at 8 pm on Monday gives out roses on TV.
+axiom some_show : ∃ s : obj, Show s ∧ AirsMon8 s ∧ GivesRosesOnTV s
 
-axiom roses_implies_bachelor :
-  ∀ x : obj, GivesRosesOnTV x → EpisodeOfTheBachelor x
+-- If a show gives out roses on TV, then the show is an episode of The Bachelor.
+axiom R1 : ∀ x : obj, GivesRosesOnTV x → BachelorEpisode x
 
-axiom bachelor_portrays_real :
-  ∀ x : obj, EpisodeOfTheBachelor x → PortraysRealLives x
+-- The Bachelor portrays the lives of real people (modeled as: its episodes portray real people).
+axiom R2 : ∀ x : obj, BachelorEpisode x → PortraysRealPeople x
 
-axiom portrays_implies_reality :
-  ∀ x : obj, PortraysRealLives x → RealityTVShow x
+-- All shows portraying the lives of real people are reality TV shows.
+axiom R3 : ∀ x : obj, PortraysRealPeople x → RealityTV x
 
-axiom breaking_bad_is_show : Show BreakingBad
-axiom breaking_bad_not_reality : ¬ RealityTVShow BreakingBad
+-- Breaking Bad is a show.
+axiom BB_show : Show BreakingBad
 
--- From the rules, any show that gives out roses is reality TV; Breaking Bad is not.
--- Hence Breaking Bad does not give out roses.
-theorem breaking_bad_not_gives_roses : ¬ GivesRosesOnTV BreakingBad :=
+-- Breaking Bad is not a reality TV show.
+axiom BB_not_reality : ¬ RealityTV BreakingBad
+
+lemma roses_implies_reality : ∀ x : obj, GivesRosesOnTV x → RealityTV x :=
+  fun x h => R3 x (R2 x (R1 x h))
+
+theorem BB_not_roses : ¬ GivesRosesOnTV BreakingBad :=
+  fun h => BB_not_reality (roses_implies_reality BreakingBad h)
+
+-- Target statement: "Breaking Bad is a TV show in which roses are given out on Monday at 8 pm."
+-- This would mean Show BreakingBad ∧ AirsMon8 BreakingBad ∧ GivesRosesOnTV BreakingBad.
+-- We refute it using ¬GivesRosesOnTV BreakingBad.
+theorem query_false :
+  ¬ (Show BreakingBad ∧ AirsMon8 BreakingBad ∧ GivesRosesOnTV BreakingBad) :=
+  fun h => BB_not_roses h.right.right
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Show : obj → Prop
+axiom AirsMon8 : obj → Prop
+axiom GivesRosesOnTV : obj → Prop
+axiom BachelorEpisode : obj → Prop
+axiom PortraysRealPeople : obj → Prop
+axiom RealityTV : obj → Prop
+
+axiom BreakingBad : obj
+
+-- Some show airing at 8 pm on Monday gives out roses on TV.
+axiom some_show : ∃ s : obj, Show s ∧ AirsMon8 s ∧ GivesRosesOnTV s
+
+-- If a show gives out roses on TV, then the show is an episode of The Bachelor.
+axiom R1 : ∀ x : obj, GivesRosesOnTV x → BachelorEpisode x
+
+-- The Bachelor portrays the lives of real people (modeled as: its episodes portray real people).
+axiom R2 : ∀ x : obj, BachelorEpisode x → PortraysRealPeople x
+
+-- All shows portraying the lives of real people are reality TV shows.
+axiom R3 : ∀ x : obj, PortraysRealPeople x → RealityTV x
+
+-- Breaking Bad is a show.
+axiom BB_show : Show BreakingBad
+
+-- Breaking Bad is not a reality TV show.
+axiom BB_not_reality : ¬ RealityTV BreakingBad
+
+theorem roses_implies_reality : ∀ x : obj, GivesRosesOnTV x → RealityTV x :=
 by
-  intro hrose
-  have hbachelor : EpisodeOfTheBachelor BreakingBad :=
-    roses_implies_bachelor BreakingBad hrose
-  have hportray : PortraysRealLives BreakingBad :=
-    bachelor_portrays_real BreakingBad hbachelor
-  have hreality : RealityTVShow BreakingBad :=
-    portrays_implies_reality BreakingBad hportray
-  exact breaking_bad_not_reality hreality
+  intro x h
+  have hb : BachelorEpisode x := R1 x h
+  have hp : PortraysRealPeople x := R2 x hb
+  exact R3 x hp
 
--- Therefore the full conjunctive statement is false.
-theorem breaking_bad_not_monday8_rose_show :
-  ¬ (Show BreakingBad ∧ AirsMon8pm BreakingBad ∧ GivesRosesOnTV BreakingBad) :=
+theorem BB_not_roses : ¬ GivesRosesOnTV BreakingBad :=
 by
   intro h
-  have hAG : AirsMon8pm BreakingBad ∧ GivesRosesOnTV BreakingBad := And.right h
-  have hG : GivesRosesOnTV BreakingBad := And.right hAG
-  exact breaking_bad_not_gives_roses hG
+  apply BB_not_reality
+  exact (roses_implies_reality BreakingBad h)
+
+-- Target statement negated: "Breaking Bad is a TV show in which roses are given out on Monday at 8 pm."
+-- This means Show BreakingBad ∧ AirsMon8 BreakingBad ∧ GivesRosesOnTV BreakingBad, which we refute.
+theorem query_false :
+  ¬ (Show BreakingBad ∧ AirsMon8 BreakingBad ∧ GivesRosesOnTV BreakingBad) :=
+by
+  intro h
+  apply BB_not_roses
+  exact h.right.right
 </lean>
 
 ANSWER: False

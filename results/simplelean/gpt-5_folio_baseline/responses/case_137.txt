@@ -1,51 +1,41 @@
-
-
-======================================================================
-ITERATION 2
-======================================================================
-
-
-
-======================================================================
-ITERATION 3
-======================================================================
-
 <lean>
 axiom Alg : Type
-axiom alg : Alg
-
-axiom ML : Alg → Prop
+axiom Learning : Alg → Prop
 axiom Supervised : Alg → Prop
 axiom Unsupervised : Alg → Prop
 axiom Reinforcement : Alg → Prop
-axiom RequiresLabeled : Alg → Prop
+axiom RequiresLabels : Alg → Prop
 
--- Categorization: any ML algorithm is supervised, unsupervised, or reinforcement
-axiom categorize : ∀ a : Alg, ML a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
--- Unsupervised algorithms do not require labeled data
-axiom unsup_no_labels : ∀ a : Alg, Unsupervised a → ¬ RequiresLabeled a
--- The SOTA text summarization model is trained with an ML algorithm 'alg'
-axiom trained_with_ML : ML alg
--- Reinforcement learning is not used to train the SOTA model
-axiom not_rl_used : ¬ Reinforcement alg
--- The ML algorithm for training text summarization models requires labeled data
-axiom requires_labels : RequiresLabeled alg
+-- The specific algorithm used to train the state-of-the-art text summarization model
+axiom A : Alg
 
-theorem supervised_used : Supervised alg := by
-  have hdisj := categorize alg trained_with_ML
-  have hnotU : ¬ Unsupervised alg := fun hU => by
-    have hnotReq := unsup_no_labels alg hU
-    exact hnotReq requires_labels
-  have hnotR : ¬ Reinforcement alg := not_rl_used
-  cases hdisj with
-  | inl hS =>
-    exact hS
-  | inr hUR =>
-    cases hUR with
-    | inl hU =>
-      exact False.elim (hnotU hU)
-    | inr hR =>
-      exact False.elim (hnotR hR)
+-- Machine Learning algorithms can be categorized as supervised, unsupervised, or reinforcement
+axiom categorize : ∀ a : Alg, Learning a → (Supervised a ∨ Unsupervised a ∨ Reinforcement a)
+
+-- Unsupervised learning algorithms do not require labeled data
+axiom unsup_no_labels : ∀ a : Alg, Unsupervised a → ¬ RequiresLabels a
+
+-- The ML algorithm used for training the text summarization model requires labeled data
+axiom requires_A : RequiresLabels A
+
+-- The state-of-the-art text summarization model is trained with machine learning algorithms (so A is ML)
+axiom learning_A : Learning A
+
+-- Reinforcement learning is not used to train the model (so A is not reinforcement)
+axiom not_rl_A : ¬ Reinforcement A
+
+theorem supervised_used : Supervised A := by
+  have disj := categorize A learning_A
+  have not_unsup : ¬ Unsupervised A := by
+    intro hu
+    have : ¬ RequiresLabels A := unsup_no_labels A hu
+    exact this requires_A
+  cases disj with
+  | inl hs => exact hs
+  | inr h =>
+    cases h with
+    | inl hu => exact False.elim (not_unsup hu)
+    | inr hr => exact False.elim (not_rl_A hr)
 </lean>
 
 ANSWER: True

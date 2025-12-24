@@ -1,57 +1,43 @@
-
-
-======================================================================
-ITERATION 2
-======================================================================
-
 <lean>
-axiom obj : Type
-axiom Taylor : obj
+axiom Person : Type
+axiom Taylor : Person
 
-axiom EatsSaladsRegularly : obj → Prop
-axiom VeryConscious : obj → Prop
-axiom GrewUpHealthConsciousHome : obj → Prop
-axiom FulfillDailyNutritionalIntakes : obj → Prop
-axiom DisregardPhysicalWellBeing : obj → Prop
-axiom VisitGymOnceADay : obj → Prop
+axiom EatSalads : Person → Prop
+axiom Conscious : Person → Prop
+axiom HealthyChildhood : Person → Prop
+axiom MeetsIntake : Person → Prop
+axiom Disregard : Person → Prop
+axiom GymDaily : Person → Prop
 
--- 1. All who eat salads regularly are very conscious
-axiom A1 : ∀ x : obj, EatsSaladsRegularly x → VeryConscious x
--- 2. All who grew up in health-conscious homes eat salads regularly
-axiom A2 : ∀ x : obj, GrewUpHealthConsciousHome x → EatsSaladsRegularly x
--- 3. All who fulfill daily nutritional intakes grew up in health-conscious homes
-axiom A3 : ∀ x : obj, FulfillDailyNutritionalIntakes x → GrewUpHealthConsciousHome x
--- 4. All who disregard physical well-being are not very conscious
-axiom A4 : ∀ x : obj, DisregardPhysicalWellBeing x → ¬ VeryConscious x
--- 5. If visit gym once a day, then fulfill daily nutritional intakes
-axiom A5 : ∀ x : obj, VisitGymOnceADay x → FulfillDailyNutritionalIntakes x
--- 6. Taylor either (grew up HC and disregards) or (neither)
-axiom A6 : (GrewUpHealthConsciousHome Taylor ∧ DisregardPhysicalWellBeing Taylor)
-         ∨ (¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardPhysicalWellBeing Taylor)
+-- All people who eat salads regularly are very conscious about their health and eating habits.
+axiom A1 : ∀ x : Person, EatSalads x → Conscious x
+-- All people who grew up in health-conscious childhood homes eat salads regularly.
+axiom A2 : ∀ x : Person, HealthyChildhood x → EatSalads x
+-- All people who fulfill their daily nutritional intakes grew up in health-conscious childhood homes.
+axiom A3 : ∀ x : Person, MeetsIntake x → HealthyChildhood x
+-- All people who disregard their physical well-being are not very conscious about their health and eating habits.
+axiom A4 : ∀ x : Person, Disregard x → ¬ Conscious x
+-- If people visit the gym at least once a day, then they always fulfill their daily nutritional intakes.
+axiom A5 : ∀ x : Person, GymDaily x → MeetsIntake x
+-- Taylor either grew up in a health-conscious childhood home and disregards her physical well-being, or she did neither.
+axiom A6 : (HealthyChildhood Taylor ∧ Disregard Taylor) ∨ (¬HealthyChildhood Taylor ∧ ¬Disregard Taylor)
 
-theorem taylor_not_visit_gym : ¬ VisitGymOnceADay Taylor := by
-  -- Show the first disjunct in A6 is impossible
-  have hNotBoth : ¬ (GrewUpHealthConsciousHome Taylor ∧ DisregardPhysicalWellBeing Taylor) := by
-    intro h
-    have hHC : GrewUpHealthConsciousHome Taylor := And.left h
-    have hDis : DisregardPhysicalWellBeing Taylor := And.right h
-    have hEat : EatsSaladsRegularly Taylor := A2 Taylor hHC
-    have hVC  : VeryConscious Taylor := A1 Taylor hEat
-    have hNotVC : ¬ VeryConscious Taylor := A4 Taylor hDis
-    exact hNotVC hVC
-  -- From A6 and the impossibility above, conclude Taylor did neither
-  have hNeither : ¬ GrewUpHealthConsciousHome Taylor ∧ ¬ DisregardPhysicalWellBeing Taylor := by
-    apply Or.elim A6
-    · intro hBoth
-      exact False.elim (hNotBoth hBoth)
-    · intro h
+theorem taylor_not_gym : ¬ GymDaily Taylor := by
+  -- First, show Taylor did neither (the left disjunct leads to a contradiction)
+  have nh_and_nd : ¬HealthyChildhood Taylor ∧ ¬Disregard Taylor := by
+    cases A6 with
+    | inl h =>
+      have es : EatSalads Taylor := A2 Taylor h.left
+      have c  : Conscious Taylor := A1 Taylor es
+      have nc : ¬Conscious Taylor := A4 Taylor h.right
+      exact False.elim (nc c)
+    | inr h =>
       exact h
-  have hNotHC : ¬ GrewUpHealthConsciousHome Taylor := And.left hNeither
-  -- If Taylor visited the gym daily, that would imply HC, contradicting ¬HC
-  intro hVG
-  have hFul : FulfillDailyNutritionalIntakes Taylor := A5 Taylor hVG
-  have hHC : GrewUpHealthConsciousHome Taylor := A3 Taylor hFul
-  exact hNotHC hHC
+  have nh : ¬HealthyChildhood Taylor := nh_and_nd.left
+  intro g
+  have mi : MeetsIntake Taylor := A5 Taylor g
+  have hh : HealthyChildhood Taylor := A3 Taylor mi
+  exact nh hh
 </lean>
 
 ANSWER: False

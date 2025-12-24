@@ -1,56 +1,52 @@
 <lean>
-axiom obj : Type
-axiom Taylor : obj
+axiom Person : Type
+axiom Taylor : Person
 
-axiom EatsSaladsRegularly : obj → Prop
-axiom VeryConscious : obj → Prop
-axiom GrewUpHealthConscious : obj → Prop
-axiom FulfillsDailyNutrition : obj → Prop
-axiom DisregardsPhysicalWellbeing : obj → Prop
-axiom VisitsGymDaily : obj → Prop
+axiom EatSaladsRegularly : Person → Prop
+axiom VeryConscious : Person → Prop
+axiom GrewUpHCH : Person → Prop
+axiom FulfillDailyNutrition : Person → Prop
+axiom DisregardWellbeing : Person → Prop
+axiom VisitGymDaily : Person → Prop
 
--- All people who eat salads regularly are very conscious about their health and eating habits.
-axiom A1 : ∀ x : obj, EatsSaladsRegularly x → VeryConscious x
--- All people who grew up in health-conscious childhood homes eat salads regularly.
-axiom A2 : ∀ x : obj, GrewUpHealthConscious x → EatsSaladsRegularly x
--- All people who fulfill their daily nutritional intakes grew up in health-conscious childhood homes.
-axiom A3 : ∀ x : obj, FulfillsDailyNutrition x → GrewUpHealthConscious x
--- All people who disregard their physical well-being are not very conscious about their health and eating habits.
-axiom A4 : ∀ x : obj, DisregardsPhysicalWellbeing x → ¬ VeryConscious x
--- If people visit the gym at least once a day, then they always fulfill their daily nutritional intakes.
-axiom A5 : ∀ x : obj, VisitsGymDaily x → FulfillsDailyNutrition x
--- Taylor either (grew up health-conscious ∧ disregards well-being) or (neither).
-axiom A6 : (GrewUpHealthConscious Taylor ∧ DisregardsPhysicalWellbeing Taylor) ∨
-            (¬ GrewUpHealthConscious Taylor ∧ ¬ DisregardsPhysicalWellbeing Taylor)
+-- Rules
+axiom R1 : ∀ x : Person, EatSaladsRegularly x → VeryConscious x
+axiom R2 : ∀ x : Person, GrewUpHCH x → EatSaladsRegularly x
+axiom R3 : ∀ x : Person, FulfillDailyNutrition x → GrewUpHCH x
+axiom R4 : ∀ x : Person, DisregardWellbeing x → ¬ VeryConscious x
+axiom R5 : ∀ x : Person, VisitGymDaily x → FulfillDailyNutrition x
 
-theorem taylor_neither_grew_nor_visits :
-  ¬ GrewUpHealthConscious Taylor ∧ ¬ VisitsGymDaily Taylor := by
-  -- From growing up health-conscious, Taylor would be very conscious.
-  have hVfromG : ∀ x, GrewUpHealthConscious x → VeryConscious x :=
-    fun x hg => A1 x (A2 x hg)
-  -- Cannot have both grew up health-conscious and disregards physical well-being.
-  have hnotGD : ¬ (GrewUpHealthConscious Taylor ∧ DisregardsPhysicalWellbeing Taylor) := by
+-- Taylor's specific information
+axiom T :
+  (GrewUpHCH Taylor ∧ DisregardWellbeing Taylor) ∨
+  (¬GrewUpHCH Taylor ∧ ¬DisregardWellbeing Taylor)
+
+theorem taylor_neither_hch_nor_gym_daily :
+  ¬GrewUpHCH Taylor ∧ ¬VisitGymDaily Taylor := by
+  -- First, show the first disjunct is impossible
+  have not_left : ¬(GrewUpHCH Taylor ∧ DisregardWellbeing Taylor) := by
     intro h
-    have hg := h.left
-    have hd := h.right
-    have v : VeryConscious Taylor := hVfromG Taylor hg
-    have nv : ¬ VeryConscious Taylor := A4 Taylor hd
-    exact nv v
-  -- From the exclusive-style disjunction, deduce neither.
-  have hneitherGD : ¬ GrewUpHealthConscious Taylor ∧ ¬ DisregardsPhysicalWellbeing Taylor := by
-    cases A6 with
-    | inl hgd => exact False.elim (hnotGD hgd)
-    | inr hneither => exact hneither
-  have hnotG : ¬ GrewUpHealthConscious Taylor := hneitherGD.left
-  -- Visiting gym daily would imply grew up health-conscious.
-  have hGymImpG : VisitsGymDaily Taylor → GrewUpHealthConscious Taylor :=
-    fun hvisit => A3 Taylor (A5 Taylor hvisit)
-  -- Hence Taylor does not visit the gym daily.
-  have hnotGym : ¬ VisitsGymDaily Taylor := by
-    intro hvisit
-    have hg : GrewUpHealthConscious Taylor := hGymImpG hvisit
-    exact hnotG hg
-  exact And.intro hnotG hnotGym
+    have h_hch : GrewUpHCH Taylor := h.left
+    have h_dis : DisregardWellbeing Taylor := h.right
+    have h_eat : EatSaladsRegularly Taylor := R2 Taylor h_hch
+    have h_vc  : VeryConscious Taylor := R1 Taylor h_eat
+    have h_not_vc : ¬ VeryConscious Taylor := R4 Taylor h_dis
+    exact h_not_vc h_vc
+  -- From the exclusive-style info, deduce the second disjunct
+  have not_hch_and_not_dis : ¬GrewUpHCH Taylor ∧ ¬DisregardWellbeing Taylor := by
+    cases T with
+    | inl h =>
+      have contra : False := not_left h
+      exact False.elim contra
+    | inr h => exact h
+  have not_hch : ¬GrewUpHCH Taylor := not_hch_and_not_dis.left
+  -- Gym daily would imply HCH, contradicting ¬HCH
+  have not_gym : ¬VisitGymDaily Taylor := by
+    intro hGym
+    have h_fulfill : FulfillDailyNutrition Taylor := R5 Taylor hGym
+    have h_hch : GrewUpHCH Taylor := R3 Taylor h_fulfill
+    exact not_hch h_hch
+  exact And.intro not_hch not_gym
 </lean>
 
 ANSWER: True

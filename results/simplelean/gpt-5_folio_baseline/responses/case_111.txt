@@ -1,46 +1,38 @@
 <lean>
 axiom obj : Type
-
--- Entities
 axiom Picuris : obj
 axiom Juan : obj
-axiom HardingMine : obj
 
--- Predicates
 axiom MountainRange : obj → Prop
-axiom InNM : obj → Prop
-axiom InTX : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
 axiom Visited : obj → obj → Prop
 axiom Mine : obj → Prop
 axiom LocatedIn : obj → obj → Prop
 axiom Donated : obj → Prop
 
--- Facts from the context
-axiom Picuris_is_range : MountainRange Picuris
-axiom Picuris_in_NM_or_TX : InNM Picuris ∨ InTX Picuris
-axiom Juan_visited_Picuris : Visited Juan Picuris
-axiom Harding_is_mine : Mine HardingMine
-axiom Harding_located_in_Picuris : LocatedIn HardingMine Picuris
-axiom Harding_donated : Donated HardingMine
-axiom no_TX_range_has_donated_mine :
-  ∀ x : obj, MountainRange x ∧ InTX x → ¬ ∃ m : obj, Mine m ∧ LocatedIn m x ∧ Donated m
+-- The Picuris Mountains are a mountain range in New Mexico or Texas.
+axiom A1 : MountainRange Picuris
+axiom A2 : InNewMexico Picuris ∨ InTexas Picuris
 
--- Goal: Juan visited a mountain range in New Mexico
-theorem juan_visited_nm_range : ∃ r : obj, MountainRange r ∧ InNM r ∧ Visited Juan r := by
-  -- First, show Picuris is not in Texas using the donated mine contradiction
-  have not_in_TX : ¬ InTX Picuris := by
-    intro hTX
-    have h_no := no_TX_range_has_donated_mine Picuris ⟨Picuris_is_range, hTX⟩
-    have h_ex : ∃ m, Mine m ∧ LocatedIn m Picuris ∧ Donated m := by
-      exact ⟨HardingMine, ⟨Harding_is_mine, ⟨Harding_located_in_Picuris, Harding_donated⟩⟩⟩
-    exact h_no h_ex
-  -- From (InNM Picuris ∨ InTX Picuris) and ¬ InTX Picuris, deduce InNM Picuris
-  have in_NM : InNM Picuris := by
-    cases Picuris_in_NM_or_TX with
-    | inl hnm => exact hnm
-    | inr htx => exact False.elim (not_in_TX htx)
-  -- Conclude the existential claim with Picuris as witness
-  exact ⟨Picuris, ⟨Picuris_is_range, ⟨in_NM, Juan_visited_Picuris⟩⟩⟩
+-- Juan de Onate visited the Picuris Mountains.
+axiom A3 : Visited Juan Picuris
+
+-- There exists a mine in the Picuris Mountains that was donated (the Harding Pegmatite Mine).
+axiom A4 : ∃ m : obj, Mine m ∧ LocatedIn m Picuris ∧ Donated m
+
+-- There are no mountain ranges in Texas that have mines that have been donated.
+axiom A5 : ∀ r : obj, MountainRange r ∧ InTexas r → ¬ (∃ m : obj, Mine m ∧ LocatedIn m r ∧ Donated m)
+
+-- Claim: Juan de Onate visited a mountain range in New Mexico.
+theorem visited_NM : ∃ r : obj, MountainRange r ∧ InNewMexico r ∧ Visited Juan r := by
+  have not_texas : ¬ InTexas Picuris := by
+    intro htex
+    have h := A5 Picuris (And.intro A1 htex)
+    exact h A4
+  have hnm : InNewMexico Picuris :=
+    Or.elim A2 (fun nm => nm) (fun tx => False.elim (not_texas tx))
+  exact Exists.intro Picuris (And.intro A1 (And.intro hnm A3))
 </lean>
 
 ANSWER: True

@@ -1,4 +1,6 @@
 <lean>
+open Classical
+
 axiom Person : Type
 axiom Michael : Person
 axiom Peter : Person
@@ -6,42 +8,43 @@ axiom Windy : Person
 
 axiom Man : Person → Prop
 axiom Taller : Person → Person → Prop
-axiom CanBlock : Person → Person → Prop
-axiom JumpsWhenShooting : Person → Prop
+axiom Block : Person → Person → Prop
+axiom Jump : Person → Prop
+axiom Shooter : Person → Prop
 axiom GreatShooter : Person → Prop
-axiom InMichaelClass : Person → Prop
 
 -- If a man is taller than another man, the taller one can block the other's shooting.
-axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom R_block_from_taller : ∀ x y : Person, Man x → Man y → Taller x y → Block x y
 
--- Michael is a man who is taller than everyone else in his class.
-axiom M1 : Man Michael
-axiom M2 : ∀ x, InMichaelClass x → Taller Michael x
+-- Transitivity of "taller than"
+axiom R_taller_trans : ∀ x y z : Person, Taller x y → Taller y z → Taller x z
 
--- Transitivity of taller
-axiom Ttrans : ∀ x y z, Taller x y → Taller y z → Taller x z
+-- Facts about specific people
+axiom Michael_man : Man Michael
+-- Michael is taller than everyone else in his class (not needed for this proof)
 
--- Peter is a man who is taller than Michael.
-axiom P1 : Man Peter
-axiom P2 : Taller Peter Michael
+axiom Peter_man : Man Peter
+axiom Peter_taller_Michael : Taller Peter Michael
 
 -- Michael can block any shooting from a person as long as the person does not jump when shooting.
-axiom Mblock_rule : ∀ p, ¬ JumpsWhenShooting p → CanBlock Michael p
+axiom Michael_blocks_if_not_jump : ∀ y : Person, ¬ Jump y → Block Michael y
 
 -- Michael cannot block Windy's shooting.
-axiom NotBlockWindy : ¬ CanBlock Michael Windy
+axiom Michael_cannot_block_Windy : ¬ Block Michael Windy
 
 -- Every shooter who can jump when shooting is a great shooter.
-axiom JumpImpliesGreat : ∀ p, JumpsWhenShooting p → GreatShooter p
+axiom jumpers_are_great : ∀ x : Person, Shooter x → Jump x → GreatShooter x
 
-open Classical
+-- Windy is a shooter (implied by talking about Windy's shooting).
+axiom Windy_shooter : Shooter Windy
 
-theorem windy_great : GreatShooter Windy := by
-  have hjump : JumpsWhenShooting Windy := by
-    by_contra h
-    have hb : CanBlock Michael Windy := Mblock_rule Windy h
-    exact NotBlockWindy hb
-  exact JumpImpliesGreat Windy hjump
+theorem windy_is_great : GreatShooter Windy := by
+  -- From Michael blocking all non-jumpers and not blocking Windy, Windy must be able to jump
+  have hj : Jump Windy := by
+    by_contra hnj
+    have hblock : Block Michael Windy := Michael_blocks_if_not_jump Windy hnj
+    exact Michael_cannot_block_Windy hblock
+  exact jumpers_are_great Windy Windy_shooter hj
 </lean>
 
 ANSWER: True
@@ -58,42 +61,45 @@ axiom Windy : Person
 
 axiom Man : Person → Prop
 axiom Taller : Person → Person → Prop
-axiom CanBlock : Person → Person → Prop
-axiom JumpsWhenShooting : Person → Prop
+axiom Block : Person → Person → Prop
+axiom Jump : Person → Prop
+axiom Shooter : Person → Prop
 axiom GreatShooter : Person → Prop
-axiom InMichaelClass : Person → Prop
 
 -- If a man is taller than another man, the taller one can block the other's shooting.
-axiom R1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom R_block_from_taller : ∀ x y : Person, Man x → Man y → Taller x y → Block x y
 
--- Michael is a man who is taller than everyone else in his class.
-axiom M1 : Man Michael
-axiom M2 : ∀ x, InMichaelClass x → Taller Michael x
+-- Transitivity of "taller than"
+axiom R_taller_trans : ∀ x y z : Person, Taller x y → Taller y z → Taller x z
 
--- Transitivity of taller
-axiom Ttrans : ∀ x y z, Taller x y → Taller y z → Taller x z
+-- Facts about specific people
+axiom Michael_man : Man Michael
+-- Michael is taller than everyone else in his class (not modeled explicitly)
 
--- Peter is a man who is taller than Michael.
-axiom P1 : Man Peter
-axiom P2 : Taller Peter Michael
+axiom Peter_man : Man Peter
+axiom Peter_taller_Michael : Taller Peter Michael
 
 -- Michael can block any shooting from a person as long as the person does not jump when shooting.
-axiom Mblock_rule : ∀ p, ¬ JumpsWhenShooting p → CanBlock Michael p
+axiom Michael_blocks_if_not_jump : ∀ y : Person, ¬ Jump y → Block Michael y
 
 -- Michael cannot block Windy's shooting.
-axiom NotBlockWindy : ¬ CanBlock Michael Windy
+axiom Michael_cannot_block_Windy : ¬ Block Michael Windy
 
 -- Every shooter who can jump when shooting is a great shooter.
-axiom JumpImpliesGreat : ∀ p, JumpsWhenShooting p → GreatShooter p
+axiom jumpers_are_great : ∀ x : Person, Shooter x → Jump x → GreatShooter x
 
-theorem windy_great : GreatShooter Windy := by
-  have hjump : JumpsWhenShooting Windy := by
-    by_cases h : JumpsWhenShooting Windy
-    · exact h
-    ·
-      have hb : CanBlock Michael Windy := Mblock_rule Windy h
-      exact False.elim (NotBlockWindy hb)
-  exact JumpImpliesGreat Windy hjump
+-- Windy is a shooter.
+axiom Windy_shooter : Shooter Windy
+
+theorem windy_is_great : GreatShooter Windy :=
+by
+  have hj : Jump Windy :=
+    Or.elim (Classical.em (Jump Windy))
+      (fun hj => hj)
+      (fun hnj =>
+        False.elim (Michael_cannot_block_Windy (Michael_blocks_if_not_jump Windy hnj))
+      )
+  exact jumpers_are_great Windy Windy_shooter hj
 </lean>
 
 ANSWER: True

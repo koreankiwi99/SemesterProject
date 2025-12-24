@@ -1,0 +1,106 @@
+<lean>
+axiom obj : Type
+axiom Amy : obj
+axiom practiced_chords : obj → Prop
+axiom develop_muscle_memory : obj → Prop
+axiom play_simple_songs : obj → Prop
+axiom learning_music_theory : obj → Prop
+axiom knowledge_song_structure : obj → Prop
+
+axiom R1 : ∀ p : obj, practiced_chords p → develop_muscle_memory p
+axiom R2 : ∀ p : obj, develop_muscle_memory p → play_simple_songs p
+axiom R3 : ∀ p : obj, practiced_chords p ∨ learning_music_theory p
+axiom R4 : ∀ p : obj, learning_music_theory p → knowledge_song_structure p
+
+theproof: ¬play_simple_songs Amy → knowledge_song_structure Amy :=
+  fun h : ¬play_simple_songs Amy =>
+  have no_memory : ¬develop_muscle_memory Amy := 
+    fun hm : develop_muscle_memory Amy => h (R2 Amy hm)
+  have no_practice : ¬practiced_chords Amy := 
+    fun hp : practiced_chords Amy => no_memory (R1 Amy hp)
+  have must_learn : learning_music_theory Amy := 
+    Or.elim (R3 Amy) 
+      (fun h_practice : practiced_chords Amy => False.elim (no_practice h_practice))
+      (fun h_learn : learning_music_theory Amy => h_learn)
+  show knowledge_song_structure Amy from R4 Amy must_learn
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Amy : obj
+axiom practiced_chords : obj → Prop
+axiom develop_muscle_memory : obj → Prop
+axiom play_simple_songs : obj → Prop
+axiom learning_music_theory : obj → Prop
+axiom knowledge_song_structure : obj → Prop
+
+axiom R1 : ∀ p : obj, practiced_chords p → develop_muscle_memory p
+axiom R2 : ∀ p : obj, develop_muscle_memory p → play_simple_songs p
+axiom R3 : ∀ p : obj, practiced_chords p ∨ learning_music_theory p
+axiom R4 : ∀ p : obj, learning_music_theory p → knowledge_song_structure p
+
+theorem answer : ¬play_simple_songs Amy → knowledge_song_structure Amy := by
+  intro h
+  have no_memory := mt (R2 Amy) h
+  have no_practice := mt (R1 Amy) no_memory
+  cases' R3 Amy with h_practice h_learn
+  · contradiction
+  · exact R4 Amy h_learn
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to the use of `cases'` which is not a valid tactic in Lean 4. Additionally, `mt` is not a tactic but a function, and its usage in tactic mode was incorrect. The corrected proof uses explicit case handling with `cases` and manually resolves contradictions.
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom obj : Type
+axiom Amy : obj
+axiom practiced_chords : obj → Prop
+axiom develop_muscle_memory : obj → Prop
+axiom play_simple_songs : obj → Prop
+axiom learning_music_theory : obj → Prop
+axiom knowledge_song_structure : obj → Prop
+
+axiom R1 : ∀ p : obj, practiced_chords p → develop_muscle_memory p
+axiom R2 : ∀ p : obj, develop_muscle_memory p → play_simple_songs p
+axiom R3 : ∀ p : obj, practiced_chords p ∨ learning_music_theory p
+axiom R4 : ∀ p : obj, learning_music_theory p → knowledge_song_structure p
+
+theorem answer : ¬play_simple_songs Amy → knowledge_song_structure Amy := by
+  intro h  -- Assume Amy cannot play simple songs
+  have no_memory : ¬develop_muscle_memory Amy := 
+    fun hm => h (R2 Amy hm)  -- Contrapositive of R2
+  have no_practice : ¬practiced_chords Amy := 
+    fun hp => no_memory (R1 Amy hp)  -- Contrapositive of R1
+  cases R3 Amy with  -- Case split on practice/theory disjunction
+  | inl hp => exact False.elim (no_practice hp)  -- Contradiction: practice but not practicing
+  | inr hl => exact R4 Amy hl  -- Directly get song structure knowledge
+</lean>
+
+ANSWER: True
+
+**Explanation of proof:**
+1. We assume Amy cannot play simple songs (`¬play_simple_songs Amy`)
+2. Using contrapositives on rules R2 and R1, we derive:
+   - Amy has not developed muscle memory (`no_memory`)
+   - Amy does not practice chords (`no_practice`)
+3. By axiom R3, Amy either practices chords or learns music theory
+4. In the left branch (practice chords):
+   - We get a contradiction between `hp` (she practices) and `no_practice` (she doesn't practice)
+   - `False.elim` resolves this by proving anything (including our goal)
+5. In the right branch (learns theory):
+   - R4 directly gives our conclusion: knowledge of song structure
+
+The conclusion follows validly from the premises.

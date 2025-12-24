@@ -1,0 +1,108 @@
+Based on the context and statement, I translate the reasoning into Lean code. The key is to represent the premises and show that from "Mary did not stock up" we can derive "prices went up". The reasoning uses case analysis and contradiction:
+
+1. **Premise Translation**:  
+   - "If supermarket has a sale, people stock up" → `Sale → ∀ x, StockUp x`  
+   - "Making a list implies planning" → `∀ x, MakeList x → Plan x`  
+   - "Sale ∨ no one plans" (simplified from disjunction) → `Sale ∨ (∀ x, ¬ Plan x)`  
+   - "Payday causes list-making" → `Payday → ∀ x, MakeList x`  
+   - "Payday ∨ prices up" → `Payday ∨ PricesUp`  
+
+2. **Proof Strategy**:  
+   - Assume `¬ StockUp Mary` (given).  
+   - Use `Payday ∨ PricesUp` (T5).  
+     - **Case 1**: `PricesUp` → Immediate conclusion.  
+     - **Case 2**: `Payday` → Leads to contradiction:  
+       - Payday forces everyone to make lists (`∀ x, MakeList x`).  
+       - Thus everyone plans (`∀ x, Plan x`).  
+       - This refutes `∀ x, ¬ Plan x` in T3, forcing `Sale`.  
+       - Sale forces `∀ x, StockUp x`, contradicting `¬ StockUp Mary`.  
+   - Hence, `Payday` is impossible, so `PricesUp` must hold.  
+
+<lean>
+variable obj : Type
+variable Mary : obj
+variable Sale : Prop
+variable StockUp : obj → Prop
+variable MakeList : obj → Prop
+variable Plan : obj → Prop
+variable Payday : Prop
+variable PricesUp : Prop
+
+axiom T1 : Sale → ∀ x, StockUp x
+axiom T2 : ∀ x, MakeList x → Plan x
+axiom T3 : Sale ∨ (∀ x, ¬ Plan x)
+axiom T4 : Payday → ∀ x, MakeList x
+axiom T5 : Payday ∨ PricesUp
+axiom A : ¬ StockUp Mary  -- Additional assumption
+
+theorem prices_up : PricesUp := by
+  cases T5 with
+  | inr p => exact p  -- If PricesUp is true, we're done
+  | inl h =>         -- If Payday is true:
+    have all_make_list : ∀ x, MakeList x := T4 h
+    have all_plan : ∀ x, Plan x := fun x => T2 x (all_make_list x)
+    have not_all_no_plan : ¬ (∀ x, ¬ Plan x) := fun H => H Mary (all_plan Mary)
+    cases T3 with
+    | inl sale =>
+      have all_stock : ∀ x, StockUp x := T1 sale
+      exact absurd (all_stock Mary) A  -- Contradiction: Mary stocks up vs doesn't
+    | inr no_plan =>
+      exact absurd no_plan not_all_no_plan  -- Contradiction: everyone plans vs doesn't plan
+</lean>
+
+**Conclusion**: The proof shows `PricesUp` follows necessarily from the premises and `¬ StockUp Mary`. Thus, the answer is:
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the variables were declared using `variable` instead of `axiom`, causing scoping issues. In Lean, `variable` creates implicit parameters, making the theorem polymorphic over `PricesUp`, which is not desired. Using `axiom` fixes this by declaring concrete propositions and predicates.
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+axiom Sale : Prop
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+axiom T1 : Sale → ∀ x, StockUp x
+axiom T2 : ∀ x, MakeList x → Plan x
+axiom T3 : Sale ∨ (∀ x, ¬ Plan x)
+axiom T4 : Payday → ∀ x, MakeList x
+axiom T5 : Payday ∨ PricesUp
+axiom A : ¬ StockUp Mary
+
+theorem prices_up : PricesUp := by
+  cases T5 with
+  | inr p => exact p
+  | inl h => 
+    have all_make_list : ∀ x, MakeList x := T4 h
+    have all_plan : ∀ x, Plan x := fun x => T2 x (all_make_list x)
+    have not_all_no_plan : ¬ (∀ x, ¬ Plan x) := fun H => H Mary (all_plan Mary)
+    cases T3 with
+    | inl sale => 
+      have all_stock : ∀ x, StockUp x := T1 sale
+      exact absurd (all_stock Mary) A
+    | inr no_plan => 
+      exact absurd no_plan not_all_no_plan
+</lean>
+
+**Proof Explanation**:  
+1. Start with disjunction `T5` (Payday ∨ PricesUp):  
+   - If `PricesUp` (right case), we're done.  
+   - If `Payday` (left case):  
+     - `T4` forces everyone to make lists (`∀ x, MakeList x`)  
+     - `T2` implies everyone plans (`∀ x, Plan x`)  
+2. Now consider disjunction `T3` (Sale ∨ ∀x ¬Plan x):  
+   - If `Sale`: `T1` forces stocking up, contradicting `¬StockUp Mary`  
+   - If `∀x ¬Plan x`: contradicts `∀x Plan x` derived earlier  
+3. Both branches under `Payday` lead to contradiction, so `Payday` must be false, leaving `PricesUp` as the only possibility.
+
+ANSWER: True

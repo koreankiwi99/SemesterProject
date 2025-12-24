@@ -1,0 +1,64 @@
+The context and question are translated into Lean by defining the necessary types and propositions. The key elements are:
+- `Person` as a type representing people
+- `mary` as a specific person
+- Propositions: `sale` (supermarket has a sale), `payday` (payday was this week), `pricesUp` (prices went up)
+- Predicates: `StockUp p` (person p stocks up), `MakesList p` (p makes a list), `PlansWhatToBuy p` (p plans purchases)
+
+Axioms capture the context:
+1. Sale causes universal stocking up: `sale → ∀ p, StockUp p`
+2. Making a list implies planning: `∀ p, MakesList p → PlansWhatToBuy p`
+3. Sale or not everyone plans: `sale ∨ ¬(∀ p, PlansWhatToBuy p)`
+4. Payday causes universal list-making: `payday → ∀ p, MakesList p`
+5. Payday or price increase (or both): `payday ∨ pricesUp`
+
+The theorem: If Mary didn't stock up, then prices went up (`¬StockUp mary → pricesUp`).
+
+Proof sketch:
+- Assume Mary didn't stock up (`¬StockUp mary`).
+- By axiom 1, this implies no sale (`¬sale`).
+- By axiom 3, since no sale, not everyone plans (`¬∀ p, PlansWhatToBuy p`).
+- If payday occurred (per axiom 4), everyone would make lists, hence everyone plans (axiom 2), contradicting the previous step. Thus, payday didn't occur (`¬payday`).
+- By axiom 5, since no payday, prices must have gone up (`pricesUp`).
+
+The Lean proof formalizes this reasoning using case analysis and contradiction.
+
+<lean>
+axiom Person : Type
+axiom mary : Person
+axiom sale : Prop
+axiom payday : Prop
+axiom pricesUp : Prop
+axiom StockUp : Person → Prop
+axiom MakesList : Person → Prop
+axiom PlansWhatToBuy : Person → Prop
+
+axiom T1 : sale → ∀ p, StockUp p
+axiom T2 : ∀ p, MakesList p → PlansWhatToBuy p
+axiom T3 : sale ∨ ¬ (∀ p, PlansWhatToBuy p)
+axiom T4 : payday → ∀ p, MakesList p
+axiom T5 : payday ∨ pricesUp
+
+theorem price_increase_if_mary_not_stockup : ¬ StockUp mary → pricesUp :=
+  fun h_mary_not_stockup : ¬ StockUp mary =>
+  have h_no_sale : ¬ sale := by
+    intro h_sale
+    have h_mary_stockup : StockUp mary := T1 h_sale mary
+    contradiction
+  have h_not_all_plan : ¬ (∀ p, PlansWhatToBuy p) := by
+    cases T3 with
+    | inl h_sale => contradiction
+    | inr h_not_all_plan => exact h_not_all_plan
+  have h_no_payday : ¬ payday := by
+    intro h_pd
+    have h_all_make_list : ∀ p, MakesList p := T4 h_pd
+    have h_all_plan : ∀ p, PlansWhatToBuy p := by
+      intro p
+      exact T2 p (h_all_make_list p)
+    contradiction
+  show pricesUp from
+    match T5 with
+    | Or.inl h_pd => absurd h_pd h_no_payday
+    | Or.inr h_pu => h_pu
+</lean>
+
+ANSWER: Yes

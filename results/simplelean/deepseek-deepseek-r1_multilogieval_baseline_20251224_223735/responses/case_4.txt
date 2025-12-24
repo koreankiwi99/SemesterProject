@@ -1,0 +1,68 @@
+The context provides the following logical structure:
+- If they invest in marketing (M), they gain more customers (C).
+- If they gain more customers (C), sales increase (S).
+- Therefore, M → C → S, implying M → S.
+- Either marketing focus (M) or increased production costs (P) or both occurred (M ∨ P).
+- Sales did not increase last quarter (¬S).
+
+Given ¬S and M → S, it follows that ¬M (contraposition). With ¬M and M ∨ P, by disjunctive syllogism, P must be true. Thus, production costs increased.
+
+Lean formalization and proof:
+
+<lean>
+axiom M : Prop
+axiom C : Prop
+axiom S : Prop
+axiom P : Prop
+axiom A1 : M → C
+axiom A2 : C → S
+axiom A3 : M ∨ P
+axiom not_S : ¬S
+
+theorem production_costs_increased : P := by
+  have h : M → S := fun hM => A2 (A1 hM)
+  cases A3 with
+  | inl hM => contradiction   -- M leads to S, contradicting not_S
+  | inr hP => exact hP        -- P directly holds
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `contradiction` tactic couldn't automatically detect the contradiction in the `inl` case. We need to explicitly derive `S` from `M` to create a direct contradiction with `¬S`. Here's the corrected Lean proof:
+
+<lean>
+axiom M : Prop
+axiom C : Prop
+axiom S : Prop
+axiom P : Prop
+axiom A1 : M → C
+axiom A2 : C → S
+axiom A3 : M ∨ P
+axiom not_S : ¬S
+
+theorem production_costs_increased : P := by
+  have h : M → S := fun hM => A2 (A1 hM)
+  cases A3 with
+  | inl hM => 
+      have s : S := h hM
+      exact absurd s not_S
+  | inr hP => exact hP
+</lean>
+
+**Explanation of Fix:**
+1. In the `inl` case (where `M` is true), we explicitly derive `S` via `h hM`
+2. `absurd s not_S` creates the needed contradiction by showing both `S` and `¬S`
+3. This forces the case to conclude `P` via explosion principle (ex falso quodlibet)
+
+**Logical Reasoning:**
+- `M → S` (transitive chain from A1 and A2)
+- `¬S` (premise)
+- `¬M` (modus tollens: ¬S → ¬M)
+- `M ∨ P` (premise)
+- `P` (disjunctive syllogism: ¬M ∧ (M ∨ P) → P)
+
+ANSWER: Yes

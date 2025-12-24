@@ -1,0 +1,83 @@
+<lean>
+axiom Person : Type
+axiom Emma : Person
+axiom LearnBasicChords : Person → Prop
+axiom PlaySimpleSongs : Person → Prop
+axiom EntertainFriends : Person → Prop
+axiom TakeLessons : Person → Prop
+axiom GainMusicTheory : Person → Prop
+
+-- Axioms from context
+axiom A1 : ∀ p : Person, LearnBasicChords p → PlaySimpleSongs p
+axiom A2 : ∀ p : Person, PlaySimpleSongs p → EntertainFriends p
+axiom A3 : ∀ p : Person, LearnBasicChords p ∨ TakeLessons p
+axiom A4 : ∀ p : Person, TakeLessons p → GainMusicTheory p
+
+-- Given fact about Emma
+axiom EmmaFact : ¬ EntertainFriends Emma
+
+theorem EmmaGainsTheory : GainMusicTheory Emma := by
+  -- Prove Emma doesn't know basic chords by contradiction
+  have h1 : ¬ LearnBasicChords Emma := by
+    intro hBC
+    have hSongs := A1 Emma hBC
+    have hEntertain := A2 Emma hSongs
+    contradiction
+
+  -- From A3 and ¬LearnBasicChords, she must take lessons
+  have h2 : TakeLessons Emma := by
+    cases A3 Emma with
+    | inl hBC => contradiction
+    | inr hLessons => exact hLessons
+
+  -- Apply A4 to get the result
+  exact A4 Emma h2
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `contradiction` tactic couldn't automatically resolve the contradiction between `hEntertain` (EntertainFriends Emma) and the axiom `EmmaFact` (¬EntertainFriends Emma). To fix this, we explicitly applied `EmmaFact` to `hEntertain` to derive a contradiction. The rest of the proof remains valid.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom Emma : Person
+axiom LearnBasicChords : Person → Prop
+axiom PlaySimpleSongs : Person → Prop
+axiom EntertainFriends : Person → Prop
+axiom TakeLessons : Person → Prop
+axiom GainMusicTheory : Person → Prop
+
+-- Axioms from context
+axiom A1 : ∀ p : Person, LearnBasicChords p → PlaySimpleSongs p
+axiom A2 : ∀ p : Person, PlaySimpleSongs p → EntertainFriends p
+axiom A3 : ∀ p : Person, LearnBasicChords p ∨ TakeLessons p
+axiom A4 : ∀ p : Person, TakeLessons p → GainMusicTheory p
+
+-- Given fact about Emma
+axiom EmmaFact : ¬ EntertainFriends Emma
+
+theorem EmmaGainsTheory : GainMusicTheory Emma := by
+  -- Prove Emma doesn't know basic chords by showing it leads to contradiction
+  have h1 : ¬ LearnBasicChords Emma := by
+    intro hBC
+    have hSongs : PlaySimpleSongs Emma := A1 Emma hBC
+    have hEntertain : EntertainFriends Emma := A2 Emma hSongs
+    exact EmmaFact hEntertain  -- Explicit contradiction
+
+  -- By disjunctive syllogism: since she didn't learn chords, she took lessons
+  have h2 : TakeLessons Emma := by
+    cases A3 Emma with
+    | inl hBC => contradiction  -- h1 and hBC contradict
+    | inr hLessons => exact hLessons
+
+  -- Lessons imply music theory knowledge
+  exact A4 Emma h2
+</lean>
+
+ANSWER: Yes

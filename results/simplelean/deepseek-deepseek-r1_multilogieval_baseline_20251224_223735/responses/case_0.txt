@@ -1,0 +1,76 @@
+<lean>
+axiom Person : Type
+axiom P : Person
+axiom SaveAggressively : Person → Prop
+axiom AffordDownPayment : Person → Prop
+axiom ImproveCredit : Person → Prop
+axiom QualifyMortgage : Person → Prop
+axiom BuyDreamHome : Person → Prop
+
+axiom A1 : ∀ p, SaveAggressively p → AffordDownPayment p
+axiom A2 : ∀ p, ImproveCredit p → QualifyMortgage p
+axiom A3 : ∀ p, SaveAggressively p ∨ ImproveCredit p
+axiom A4 : ∀ p, QualifyMortgage p → BuyDreamHome p
+axiom given : ¬ AffordDownPayment P
+
+theorem dream_home_result : BuyDreamHome P := by
+  have cases := A3 P
+  cases cases with
+  | inl save =>
+    have afford := A1 P save
+    contradiction
+  | inr improve =>
+    have qualify := A2 P improve
+    exact A4 P qualify
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `contradiction` tactic couldn't automatically resolve the contradiction in the first case branch. The context contained:
+- `afford : AffordDownPayment P`
+- `given : ¬ AffordDownPayment P`
+
+But `contradiction` didn't handle this automatically. We fix it by explicitly:
+1. Using `exfalso` to change the goal to `False`
+2. Applying the contradiction `given afford` (which proves `False`)
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Person : Type
+axiom P : Person
+axiom SaveAggressively : Person → Prop
+axiom AffordDownPayment : Person → Prop
+axiom ImproveCredit : Person → Prop
+axiom QualifyMortgage : Person → Prop
+axiom BuyDreamHome : Person → Prop
+
+axiom A1 : ∀ p, SaveAggressively p → AffordDownPayment p
+axiom A2 : ∀ p, ImproveCredit p → QualifyMortgage p
+axiom A3 : ∀ p, SaveAggressively p ∨ ImproveCredit p
+axiom A4 : ∀ p, QualifyMortgage p → BuyDreamHome p
+axiom given : ¬ AffordDownPayment P
+
+theorem dream_home_result : BuyDreamHome P := by
+  have cases := A3 P
+  cases cases with
+  | inl save =>
+    have afford := A1 P save
+    exfalso
+    exact given afford
+  | inr improve =>
+    have qualify := A2 P improve
+    exact A4 P qualify
+</lean>
+
+**Proof explanation:**
+- Since P couldn't afford a down payment (`given`)
+- If P saved aggressively (first case), we'd get a contradiction (A1 forces down payment affordability)
+- Thus P must have improved their credit (second case)
+- By A2 → A4, P buys their dream home
+
+ANSWER: Yes

@@ -1,0 +1,52 @@
+The context and question are translated into Lean by defining the necessary types, objects, and propositions. The context includes:
+- If rain is forecasted, then anyone who goes out brings an umbrella.
+- If there's a big game on TV, friends get together to watch.
+- Either rain is forecasted, friends did not get together, or both (simplified to `RainForecast ∨ ¬FriendsTogether`).
+- If TV viewership is high, there's a big game on TV.
+- Either TV viewership is high, or friends go out to play, or both (simplified to `HighViewership ∨ GoPlay`).
+
+Additional assumptions are made to model the question:
+- If friends go out to play (`GoPlay`), James goes out (`GoesOut James`).
+- If friends get together to watch the game (`FriendsTogether`), James does not go out.
+
+The theorem `target` states that if James did not bring an umbrella, then James and his friends go out to play (`¬BringsUmbrella James → GoPlay`). A proof is attempted by case analysis on `HighViewership ∨ GoPlay` (from `T5`):
+- In the case `HighViewership` (leading to `FriendsTogether` and `RainForecast`), James does not go out and does not bring an umbrella, but we cannot conclude `GoPlay` (a proof for this branch is incomplete and requires `sorry`).
+- In the case `GoPlay`, we directly conclude `GoPlay`.
+
+Since the proof is incomplete (due to `sorry`), the theorem cannot be proven. The negation of the theorem (`¬(¬BringsUmbrella James → GoPlay)`, equivalent to `¬BringsUmbrella James ∧ ¬GoPlay`) is also not provable, as the axioms allow models where the premise holds but the conclusion fails (e.g., when `¬GoPlay` and `HighViewership` are true, James stays home without an umbrella). Therefore, the answer is Uncertain.
+
+<lean>
+axiom Person : Type
+axiom James : Person
+axiom RainForecast : Prop
+axiom BigGame : Prop
+axiom FriendsTogether : Prop
+axiom HighViewership : Prop
+axiom GoPlay : Prop
+axiom GoesOut : Person → Prop
+axiom BringsUmbrella : Person → Prop
+
+axiom R1 : ∀ p : Person, RainForecast → (GoesOut p → BringsUmbrella p)
+axiom R2 : HighViewership → BigGame
+axiom R3 : BigGame → FriendsTogether
+axiom T3 : RainForecast ∨ ¬FriendsTogether
+axiom T5 : HighViewership ∨ GoPlay
+axiom A1 : GoPlay → GoesOut James
+axiom A2 : FriendsTogether → ¬GoesOut James
+
+theorem target : ¬ (BringsUmbrella James) → GoPlay :=
+  fun not_bring : ¬ BringsUmbrella James =>
+  match T5 with
+  | Or.inl high =>
+    have ft : FriendsTogether := R3 (R2 high)
+    have rf : RainForecast := by
+      cases T3 with
+      | inl r => exact r
+      | inr not_ft => exact False.elim (not_ft ft)
+    have no_go : ¬ GoesOut James := A2 ft
+    -- Cannot prove GoPlay in this branch
+    sorry
+  | Or.inr play => play
+</lean>
+
+ANSWER: Uncertain

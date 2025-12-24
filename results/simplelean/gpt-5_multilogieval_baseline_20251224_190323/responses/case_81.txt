@@ -1,0 +1,41 @@
+<lean>
+axiom Person : Type
+axiom Amy : Person
+
+-- Predicates
+axiom PracticedDaily : Person → Prop
+axiom MuscleMemory : Person → Prop
+axiom CanPlaySimpleSongs : Person → Prop
+axiom CanPlayAnySongs : Person → Prop
+axiom LearnedMusicTheory : Person → Prop
+axiom KnowledgeSongStructure : Person → Prop
+axiom AnalyzeComposition : Person → Prop
+
+-- Rules from the context
+axiom R1 : ∀ x : Person, PracticedDaily x → MuscleMemory x
+axiom R2 : ∀ x : Person, MuscleMemory x → CanPlaySimpleSongs x
+-- Simple songs are songs
+axiom R3 : ∀ x : Person, CanPlaySimpleSongs x → CanPlayAnySongs x
+-- Either practicing daily or learning music theory (for the person in question)
+axiom D1 : PracticedDaily Amy ∨ LearnedMusicTheory Amy
+-- Learning theory gives knowledge about song structure
+axiom R4 : ∀ x : Person, LearnedMusicTheory x → KnowledgeSongStructure x
+-- Knowledge about song structure enables analysis (not needed for the conclusion)
+axiom R5 : ∀ x : Person, KnowledgeSongStructure x → AnalyzeComposition x
+
+-- From the assumptions, if Amy cannot play any songs yet, she has knowledge about song structure
+theorem amy_knows_if_cannot_play : ¬CanPlayAnySongs Amy → KnowledgeSongStructure Amy :=
+  fun hNotAny =>
+    -- From ¬(can play any songs) and (practice → simple → any), we get ¬practiced
+    have hNotPracticed : ¬PracticedDaily Amy :=
+      fun hP => hNotAny (R3 Amy (R2 Amy (R1 Amy hP)))
+    -- From (practiced ∨ learned theory) and ¬practiced, we conclude learned theory
+    have hLearned : LearnedMusicTheory Amy :=
+      Or.elim D1
+        (fun hP => False.elim (hNotPracticed hP))
+        (fun hL => hL)
+    -- Therefore, knowledge about song structure
+    show KnowledgeSongStructure Amy from R4 Amy hLearned
+</lean>
+
+ANSWER: Yes

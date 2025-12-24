@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+
+axiom Monday : Prop
+axiom Quiz : Prop
+
+axiom DoWell : obj → Prop
+axiom StudiedHard : obj → Prop
+axiom GoodAtMath : obj → Prop
+
+-- If it is Monday, then there is a quiz.
+axiom monday_implies_quiz : Monday → Quiz
+-- If someone does well on the quiz, then they studied hard.
+axiom doWell_implies_studied : ∀ x : obj, DoWell x → StudiedHard x
+-- Someone who is good at math does well on quizzes.
+axiom good_implies_doWell : ∀ x : obj, GoodAtMath x → DoWell x
+-- Either it is Monday, or they did not study hard, or it is Monday and they did not study hard.
+axiom disj : Monday ∨ ¬StudiedHard Alex ∨ (Monday ∧ ¬StudiedHard Alex)
+
+-- From "no quiz" we can derive "not Monday"
+theorem no_quiz_implies_not_monday : ¬Quiz → ¬Monday :=
+  fun hNoQ hMon => hNoQ (monday_implies_quiz hMon)
+
+-- From the disjunction and ¬Monday, derive ¬StudiedHard Alex
+theorem not_monday_implies_not_studied : ¬Monday → ¬StudiedHard Alex := by
+  intro hNotMon
+  -- disj : Monday ∨ (¬StudiedHard Alex ∨ (Monday ∧ ¬StudiedHard Alex))
+  cases disj with
+  | inl hMon =>
+      exact False.elim (hNotMon hMon)
+  | inr h =>
+      cases h with
+      | inl hNotStudied =>
+          exact hNotStudied
+      | inr hMonAndNotStudied =>
+          exact hMonAndNotStudied.right
+
+-- If there was no quiz, then Alex is not good at math.
+theorem no_quiz_implies_not_good : ¬Quiz → ¬GoodAtMath Alex := by
+  intro hNoQ
+  have hNotMon : ¬Monday := no_quiz_implies_not_monday hNoQ
+  have hNotStudied : ¬StudiedHard Alex := not_monday_implies_not_studied hNotMon
+  have hNotDoWell : ¬DoWell Alex := by
+    intro hDoWell
+    exact hNotStudied (doWell_implies_studied Alex hDoWell)
+  intro hGood
+  exact hNotDoWell (good_implies_doWell Alex hGood)
+</lean>
+
+ANSWER: No

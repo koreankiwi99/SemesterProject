@@ -1,0 +1,42 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom WatersAdequately : obj → Prop
+axiom BloomsBrightly : obj → Prop
+axiom AttractsMoreBeesButterflies : obj → Prop
+axiom UsesOrganicFertilizers : obj → Prop
+axiom SoilQualityImproves : obj → Prop
+axiom PlantsGrowHealthier : obj → Prop
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, WatersAdequately x → BloomsBrightly x
+axiom R2 : ∀ x : obj, BloomsBrightly x → AttractsMoreBeesButterflies x
+axiom R3 : ∀ x : obj, WatersAdequately x ∨ UsesOrganicFertilizers x
+axiom R4 : ∀ x : obj, UsesOrganicFertilizers x → SoilQualityImproves x
+axiom R5 : ∀ x : obj, SoilQualityImproves x → PlantsGrowHealthier x
+
+-- Interpret "soil high quality" as "soil quality improves"
+def SoilHighQuality (x : obj) : Prop := SoilQualityImproves x
+
+theorem john_soil_high_quality_of_not_attracts :
+  ¬ AttractsMoreBeesButterflies John → SoilHighQuality John := by
+  intro hNotAttr
+  -- From not attracting, deduce not blooming (contrapositive)
+  have hNotBloom : ¬ BloomsBrightly John := by
+    intro hBloom
+    exact hNotAttr (R2 John hBloom)
+  -- From not blooming, deduce not adequately watering (contrapositive)
+  have hNotWater : ¬ WatersAdequately John := by
+    intro hWater
+    exact hNotBloom (R1 John hWater)
+  -- From the disjunction and not watering, deduce uses organic fertilizers
+  have hUses : UsesOrganicFertilizers John := by
+    have hdisj : WatersAdequately John ∨ UsesOrganicFertilizers John := R3 John
+    exact Or.elim hdisj (fun hW => False.elim (hNotWater hW)) (fun hO => hO)
+  -- Using organic fertilizers implies soil quality improves, i.e., high quality
+  have hImprove : SoilQualityImproves John := R4 John hUses
+  exact hImprove
+</lean>
+
+ANSWER: Yes

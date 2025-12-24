@@ -61,3 +61,23 @@ def load_multilogieval(depths: list, logic_types: list) -> list:
                     })
 
     return cases
+
+
+def load_multilogieval_sampled(data_file: str) -> list:
+    """Load sampled MultiLogiEval dataset from JSON file."""
+    with open(data_file, 'r') as f:
+        data = json.load(f)
+
+    cases = []
+    for sample in data:
+        cases.append({
+            'id': sample.get('id'),
+            'context': sample.get('context', ''),
+            'question': sample.get('question', ''),
+            'ground_truth': sample.get('answer', '').lower(),
+            'logic_type': sample.get('logic', 'fol'),
+            'depth': sample.get('depth', ''),
+            'rule': sample.get('rule', '')
+        })
+
+    return cases

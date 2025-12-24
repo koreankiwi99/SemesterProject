@@ -30,7 +30,7 @@ from utils.prompts import (
     load_prompt, format_system_prompt, format_user_prompt,
     get_answer_format, get_answer_format_str
 )
-from utils.datasets import load_folio, load_multilogieval
+from utils.datasets import load_folio, load_multilogieval, load_multilogieval_sampled
 
 
 # Prompt paths
@@ -229,7 +229,8 @@ async def run_experiment(
     depths: Optional[list] = None,
     logic_types: Optional[list] = None,
     resume_dir: Optional[str] = None,
-    cases_file: Optional[str] = None
+    cases_file: Optional[str] = None,
+    data_file: Optional[str] = None
 ):
     """Run SimpleLean experiment."""
     load_dotenv()
@@ -239,6 +240,8 @@ async def run_experiment(
     print(f"Loading {dataset} dataset...")
     if dataset == "folio":
         cases = load_folio()
+    elif data_file:
+        cases = load_multilogieval_sampled(data_file)
     else:
         depths = depths or ["d4", "d5"]
         logic_types = logic_types or ["fol", "nm", "pl"]
@@ -334,6 +337,7 @@ def main():
     parser.add_argument('--logic_types', default='fol,nm,pl')
     parser.add_argument('--resume', default=None)
     parser.add_argument('--cases_file', default=None, help='JSONL file with case indices to run')
+    parser.add_argument('--data_file', default=None, help='JSON file with sampled data')
 
     args = parser.parse_args()
 
@@ -348,7 +352,8 @@ def main():
         depths=[d.strip() for d in args.depths.split(',')],
         logic_types=[lt.strip() for lt in args.logic_types.split(',')],
         resume_dir=args.resume,
-        cases_file=args.cases_file
+        cases_file=args.cases_file,
+        data_file=args.data_file
     ))
 
 

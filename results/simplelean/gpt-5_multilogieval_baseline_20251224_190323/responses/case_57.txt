@@ -1,0 +1,47 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+axiom Sale : Prop
+axiom MonthStart : Prop
+axiom BuyMore : Person → Prop
+axiom Shopping : Person → Prop
+axiom GotEverything : Person → Prop
+axiom FavoriteSoldOut : Person → Prop
+
+axiom R_sale_buy : ∀ x : Person, Sale → BuyMore x
+axiom R_shop_all : ∀ x : Person, Shopping x → GotEverything x
+axiom D_sale_or_notget : Sale ∨ ¬ GotEverything John ∨ (Sale ∧ ¬ GotEverything John)
+axiom R_month_shop : ∀ x : Person, MonthStart → Shopping x
+axiom D_month_or_sold : MonthStart ∨ FavoriteSoldOut John ∨ (MonthStart ∧ FavoriteSoldOut John)
+
+axiom John_not_buy : ¬ BuyMore John
+
+theorem john_cereal_sold_out : FavoriteSoldOut John := by
+  -- From John not buying more and "Sale → BuyMore", deduce no sale
+  have h_not_sale : ¬ Sale := by
+    intro hS
+    have : BuyMore John := R_sale_buy John hS
+    exact John_not_buy this
+  -- From the disjunction about sale/not-get and ¬Sale, deduce ¬GotEverything John
+  have h_not_get : ¬ GotEverything John := by
+    cases D_sale_or_notget with
+    | inl hS => exact False.elim (h_not_sale hS)
+    | inr h =>
+      cases h with
+      | inl hng => exact hng
+      | inr hSandng =>
+        have hS : Sale := hSandng.left
+        exact False.elim (h_not_sale hS)
+  -- Use the month-start/sold-out disjunction
+  cases D_month_or_sold with
+  | inl hMonth =>
+      have hShop : Shopping John := R_month_shop John hMonth
+      have hGet : GotEverything John := R_shop_all John hShop
+      exact False.elim (h_not_get hGet)
+  | inr h =>
+      cases h with
+      | inl hSold => exact hSold
+      | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Yes

@@ -1,0 +1,53 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom Student : obj → Prop
+axiom GoParty : obj → Prop
+axiom Friday : Prop
+axiom WatchGame : obj → Prop
+axiom FinishHW : obj → Prop
+axiom StudyEveryday : obj → Prop
+axiom PlanWell : obj → Prop
+
+axiom SJames : Student James
+
+-- If it is Friday night, then students are going to the party
+axiom R1 : ∀ x : obj, Student x → (Friday → GoParty x)
+-- If students finish all their homework, then they can watch the game
+axiom R2 : ∀ x : obj, Student x → (FinishHW x → WatchGame x)
+-- Either it is Friday night, or students are not watching the game
+axiom R3 : ∀ x : obj, Student x → (Friday ∨ ¬WatchGame x)
+-- If students study everyday, they finish all their homework
+axiom R4 : ∀ x : obj, Student x → (StudyEveryday x → FinishHW x)
+-- If someone plans their schedule well, then they can study everyday
+axiom R5 : ∀ x : obj, PlanWell x → StudyEveryday x
+
+-- Given: James is not going to the party
+axiom HnotGo : ¬ GoParty James
+
+theorem james_not_plan_well : ¬ PlanWell James := by
+  have hStudent : Student James := SJames
+  have hFriImpGo : Friday → GoParty James := (R1 James) hStudent
+  have hNotFri : ¬Friday := by
+    intro hFri
+    exact HnotGo (hFriImpGo hFri)
+  have hDisj : Friday ∨ ¬WatchGame James := (R3 James) hStudent
+  have hNotWatch : ¬WatchGame James := by
+    cases hDisj with
+    | inl hFri => exact False.elim (hNotFri hFri)
+    | inr hNWatch => exact hNWatch
+  have hFHimpWG : FinishHW James → WatchGame James := (R2 James) hStudent
+  have hNotFinish : ¬FinishHW James := by
+    intro hFH
+    exact hNotWatch (hFHimpWG hFH)
+  have hStudyImpFinish : StudyEveryday James → FinishHW James := (R4 James) hStudent
+  have hNotStudy : ¬StudyEveryday James := by
+    intro hStudy
+    exact hNotFinish (hStudyImpFinish hStudy)
+  have hPlanImpStudy : PlanWell James → StudyEveryday James := (R5 James)
+  intro hPlan
+  exact hNotStudy (hPlanImpStudy hPlan)
+</lean>
+
+ANSWER: No

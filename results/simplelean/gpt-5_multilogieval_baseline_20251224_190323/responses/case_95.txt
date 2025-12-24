@@ -1,0 +1,43 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom ClearsUp : Prop
+axiom GameOn : Prop
+axiom FansCheer : Prop
+axiom ExcitingNight : Prop
+
+axiom FinishesErrands : Person → Prop
+axiom MeetsFriends : Person → Prop
+
+-- If the weather clears up, the baseball game will go on.
+axiom R1 : ClearsUp → GameOn
+-- If someone finishes their errands, they'll meet friends for dinner.
+axiom R2 : ∀ x : Person, FinishesErrands x → MeetsFriends x
+-- Either it will clear up, or Mary's errands will get done (or both).
+axiom R3 : ClearsUp ∨ FinishesErrands Mary
+-- If the game is on, fans will get to cheer.
+axiom R4 : GameOn → FansCheer
+-- If fans get to cheer, it will be an exciting night at the ballpark.
+axiom R5 : FansCheer → ExcitingNight
+
+-- If Mary did not meet her friends for dinner, was it an exciting night at the ballpark?
+theorem exciting_night_if_mary_did_not_meet :
+  (¬ MeetsFriends Mary) → ExcitingNight := by
+  intro hNotMeet
+  -- From ¬Meets(Mary) and (Finishes → Meets), we get ¬Finishes(Mary)
+  have hNotFinish : ¬ FinishesErrands Mary := by
+    intro hFin
+    exact hNotMeet (R2 Mary hFin)
+  -- From ClearsUp ∨ Finishes(Mary) and ¬Finishes(Mary), we get ClearsUp
+  have hClear : ClearsUp := by
+    cases R3 with
+    | inl hC => exact hC
+    | inr hFin => exact False.elim (hNotFinish hFin)
+  -- Chain to get ExcitingNight
+  have hGame : GameOn := R1 hClear
+  have hCheer : FansCheer := R4 hGame
+  exact R5 hCheer
+</lean>
+
+ANSWER: Yes

@@ -1,0 +1,43 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom FinishesEarly : obj → Prop
+axiom LongLunch : obj → Prop
+axiom Recharged : obj → Prop
+axiom Productive : obj → Prop
+axiom BringsTreats : obj → Prop
+axiom Birthday : Prop
+
+-- If someone finishes early, they can take a long lunch
+axiom R1 : ∀ x : obj, FinishesEarly x → LongLunch x
+-- If it's a birthday, then everyone brings treats
+axiom R2 : Birthday → ∀ x : obj, BringsTreats x
+-- Either everyone finishes early, or it's a birthday (or both)
+axiom R3 : (∀ x : obj, FinishesEarly x) ∨ Birthday
+-- If someone takes a long lunch, they'll be recharged
+axiom R4 : ∀ x : obj, LongLunch x → Recharged x
+-- If someone is recharged, they'll have a very productive afternoon
+axiom R5 : ∀ x : obj, Recharged x → Productive x
+
+-- Given: John did not bring in treats
+axiom NotBringJohn : ¬ BringsTreats John
+
+theorem john_productive : Productive John := by
+  -- From NotBringJohn and R2, derive ¬Birthday
+  have nb : ¬Birthday := by
+    intro b
+    have allBring := R2 b
+    have jt : BringsTreats John := allBring John
+    exact NotBringJohn jt
+  -- From R3 and ¬Birthday, deduce everyone finished early
+  have allE : ∀ x : obj, FinishesEarly x :=
+    Or.elim R3 (fun all => all) (fun b => False.elim (nb b))
+  -- Chain implications for John
+  have eJ : FinishesEarly John := allE John
+  have llJ : LongLunch John := R1 John eJ
+  have rJ : Recharged John := R4 John llJ
+  exact R5 John rJ
+</lean>
+
+ANSWER: Yes

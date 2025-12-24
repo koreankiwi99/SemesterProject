@@ -1,0 +1,87 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom Hungry : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom AteDinnerLastNight : obj → Prop
+
+axiom UseStove : Prop
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R2 : ∀ x : obj, MakePancakes x → UseStove
+-- Either the stove was on, or they did not use the stove.
+axiom R3 : StoveOn ∨ ¬UseStove
+-- If someone is hungry, they make pancakes.
+axiom R4 : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R5 : ¬AteDinnerLastNight Sam → Hungry Sam
+
+theorem sam_ate_given_kitchen_not_hot : ¬KitchenHot → AteDinnerLastNight Sam := by
+  intro hNotHot
+  have hNotOn : ¬StoveOn := fun hOn => hNotHot (R1 hOn)
+  have hNotUsed : ¬UseStove :=
+    Or.elim R3
+      (fun hOn => False.elim (hNotOn hOn))
+      (fun hNotUse => hNotUse)
+  have hNotPancakesSam : ¬MakePancakes Sam := fun hmp => hNotUsed (R2 Sam hmp)
+  have hNotHungrySam : ¬Hungry Sam := fun hh => hNotPancakesSam (R4 Sam hh)
+  classical
+  have hAte : AteDinnerLastNight Sam := by
+    by_contra hNotAte
+    exact hNotHungrySam (R5 hNotAte)
+  exact hAte
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom Hungry : obj → Prop
+axiom MakePancakes : obj → Prop
+axiom AteDinnerLastNight : obj → Prop
+
+axiom UseStove : Prop
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R2 : ∀ x : obj, MakePancakes x → UseStove
+-- Either the stove was on, or they did not use the stove.
+axiom R3 : StoveOn ∨ ¬UseStove
+-- If someone is hungry, they make pancakes.
+axiom R4 : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R5 : ¬AteDinnerLastNight Sam → Hungry Sam
+
+theorem sam_ate_given_kitchen_not_hot : ¬KitchenHot → AteDinnerLastNight Sam := by
+  intro hNotHot
+  have hNotOn : ¬StoveOn := fun hOn => hNotHot (R1 hOn)
+  have hNotUsed : ¬UseStove :=
+    Or.elim R3
+      (fun hOn => False.elim (hNotOn hOn))
+      (fun hNotUse => hNotUse)
+  classical
+  have disj : AteDinnerLastNight Sam ∨ ¬AteDinnerLastNight Sam := Classical.em (AteDinnerLastNight Sam)
+  exact disj.elim
+    (fun hAte => hAte)
+    (fun hNotAte =>
+      have hHungry : Hungry Sam := R5 hNotAte
+      have hMp : MakePancakes Sam := R4 Sam hHungry
+      have hUse : UseStove := R2 Sam hMp
+      False.elim (hNotUsed hUse))
+</lean>
+
+ANSWER: Yes

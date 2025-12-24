@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom R1 : ∀ x : obj, Sale → StockUp x
+-- If someone makes a shopping list, then they plan what to buy.
+axiom R2 : ∀ x : obj, MakeList x → Plan x
+-- Either the store has a sale, or people don't all plan what to buy, or there's a sale and not all plan.
+axiom R3 : Sale ∨ (¬ ∀ x : obj, Plan x) ∨ (Sale ∧ (¬ ∀ x : obj, Plan x))
+-- If payday was this week, then people make a shopping list.
+axiom R4 : ∀ x : obj, Payday → MakeList x
+-- Either it was payday this week, or prices went up recently, or both.
+axiom R5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+theorem mary_not_stockup_then_pricesup : (¬ StockUp Mary) → PricesUp := by
+  intro hnot
+  -- From ¬StockUp Mary and Sale → StockUp Mary, deduce ¬Sale
+  have hnsale : ¬ Sale := by
+    intro hsale
+    have : StockUp Mary := R1 Mary hsale
+    exact hnot this
+  -- From Payday, everyone makes a list, hence everyone plans
+  have hpay_allplan : Payday → ∀ x : obj, Plan x := by
+    intro hpay
+    intro x
+    have : MakeList x := R4 x hpay
+    exact R2 x this
+  -- From R3 and ¬Sale, deduce ¬ ∀ x, Plan x
+  have hnot_allplan : ¬ ∀ x : obj, Plan x := by
+    cases R3 with
+    | inl hsale => exact False.elim (hnsale hsale)
+    | inr rest =>
+      cases rest with
+      | inl h => exact h
+      | inr h =>
+        exact h.right
+  -- Therefore ¬Payday (since Payday → ∀x Plan x, but not ∀x Plan x)
+  have hnot_payday : ¬ Payday := by
+    intro hpay
+    have hall : ∀ x : obj, Plan x := hpay_allplan hpay
+    exact hnot_allplan hall
+  -- Use R5 and ¬Payday to conclude PricesUp
+  have hprice : PricesUp := by
+    cases R5 with
+    | inl hpay => exact False.elim (hnot_payday hpay)
+    | inr rest =>
+      cases rest with
+      | inl hpr => exact hpr
+      | inr hppr => exact hppr.right
+  exact hprice
+</lean>
+
+ANSWER: Yes

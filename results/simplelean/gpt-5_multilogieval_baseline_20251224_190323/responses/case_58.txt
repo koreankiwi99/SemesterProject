@@ -1,0 +1,56 @@
+<lean>
+axiom obj : Type
+axiom AddsSalt : obj → Prop
+axiom Stir : obj → Prop
+axiom Taste : obj → Prop
+axiom PrepareSalad : obj → Prop
+axiom Savory : Prop
+axiom Thickens : Prop
+
+axiom R_add_savory : ∀ x : obj, AddsSalt x → Savory
+axiom R_stir_thick : ∀ x : obj, Stir x → Thickens
+axiom Law_salt_thick : (∃ x : obj, AddsSalt x) ∨ ¬Thickens ∨ ((∃ x : obj, AddsSalt x) ∧ ¬Thickens)
+axiom R_taste_stir : ∀ x : obj, Taste x → Stir x
+axiom Law_taste_salad : (∃ x : obj, Taste x) ∨ (∃ x : obj, PrepareSalad x) ∨ ((∃ x : obj, Taste x) ∧ (∃ x : obj, PrepareSalad x))
+
+theorem salad_prepared (hns : ¬ Savory) : ∃ x : obj, PrepareSalad x := by
+  -- from ¬Savory, derive ¬∃ AddsSalt
+  have hNoSalt : ¬ (∃ x : obj, AddsSalt x) := by
+    intro h
+    cases h with
+    | intro x hx =>
+      exact hns (R_add_savory x hx)
+  -- from Law_salt_thick and hNoSalt, get ¬Thickens
+  have hNotThick : ¬ Thickens := by
+    cases Law_salt_thick with
+    | inl hSalt =>
+      exact False.elim (hNoSalt hSalt)
+    | inr h' =>
+      cases h' with
+      | inl hnot =>
+        exact hnot
+      | inr hboth =>
+        exact hboth.right
+  -- (∃ Taste) → Thickens
+  have taste_to_thick : (∃ x : obj, Taste x) → Thickens := by
+    intro h
+    cases h with
+    | intro x hx =>
+      exact R_stir_thick x (R_taste_stir x hx)
+  -- so ¬∃ Taste
+  have hNoTaste : ¬ (∃ x : obj, Taste x) := by
+    intro h
+    exact hNotThick (taste_to_thick h)
+  -- from Law_taste_salad and hNoTaste, deduce ∃ PrepareSalad
+  cases Law_taste_salad with
+  | inl hTaste =>
+    exact False.elim (hNoTaste hTaste)
+  | inr h' =>
+    cases h' with
+    | inl hSalad =>
+      exact hSalad
+    | inr hBoth =>
+      exact False.elim (hNoTaste hBoth.left)
+</lean>
+
+ANSWER: Yes

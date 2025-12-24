@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+axiom SpillsFood : obj → Prop
+axiom NotablyTidy : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoesOutFrequently : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValuesOrderAndSpotlessness : obj → Prop
+axiom FamilyPrioritizesOrderAndSpotlessness : obj → Prop
+
+-- Context axioms
+axiom A1 : ∀ x : obj, SpillsFood x → ¬NotablyTidy x
+axiom A2 : ∀ x : obj, (ClumsyFoodie x ∧ GoesOutFrequently x) → SpillsFood x
+axiom A3 : ∀ x : obj, Cleanly x → NotablyTidy x
+axiom A4 : ∀ x : obj, ValuesOrderAndSpotlessness x → Cleanly x
+axiom A5 : ∀ x : obj, FamilyPrioritizesOrderAndSpotlessness x → ValuesOrderAndSpotlessness x
+axiom A6 : (SpillsFood Peter ∧ Cleanly Peter) ∨ (¬SpillsFood Peter ∧ ¬Cleanly Peter)
+
+-- Theorem: Peter is either both (clumsy foodie and goes out frequently) and family prioritizes order, 
+-- or neither (clumsy foodie and goes out frequently) nor family prioritizes order.
+theorem peter_case : 
+    ((ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ FamilyPrioritizesOrderAndSpotlessness Peter) ∨ 
+    (¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter) ∧ ¬FamilyPrioritizesOrderAndSpotlessness Peter) := by
+  -- Case split on A6
+  cases A6 with
+  | inl h1 => 
+    -- Case 1: SpillsFood Peter and Cleanly Peter
+    have spills : SpillsFood Peter := h1.1
+    have clean : Cleanly Peter := h1.2
+    -- From A1: SpillsFood implies not notably tidy
+    have not_tidy : ¬NotablyTidy Peter := A1 Peter spills
+    -- From A3: Cleanly implies notably tidy
+    have tidy : NotablyTidy Peter := A3 Peter clean
+    -- Contradiction: tidy and not_tidy
+    contradiction
+  | inr h2 => 
+    -- Case 2: ¬SpillsFood Peter and ¬Cleanly Peter
+    have not_spills : ¬SpillsFood Peter := h2.1
+    have not_clean : ¬Cleanly Peter := h2.2
+    -- Show that Peter is not a clumsy foodie who goes out frequently
+    have not_clumsy_goes : ¬(ClumsyFoodie Peter ∧ GoesOutFrequently Peter) := by
+      intro h
+      have spills : SpillsFood Peter := A2 Peter h
+      contradiction
+    -- Show that Peter's family does not prioritize order and spotlessness
+    have not_family : ¬FamilyPrioritizesOrderAndSpotlessness Peter := by
+      intro h
+      have values : ValuesOrderAndSpotlessness Peter := A5 Peter h
+      have clean : Cleanly Peter := A4 Peter values
+      contradiction
+    -- Both conditions hold for the second disjunct
+    exact Or.inr ⟨not_clumsy_goes, not_family⟩
+</lean>
+
+ANSWER: True
+
+The analysis shows:
+1. The first case of A6 (Peter spills food and is cleanly) leads to a contradiction due to conflicting requirements about tidiness (A1 and A3).
+2. Thus, only the second case holds: Peter does not spill food and is not cleanly.
+3. From ¬SpillsFood and A2, Peter cannot be both a clumsy foodie and go out frequently.
+4. From ¬Cleanly and the chain A5→A4, Peter's family cannot prioritize order and spotlessness.
+5. Therefore, the second disjunct of the theorem holds: Peter is neither a clumsy foodie who goes out frequently nor does his family prioritize order/spotlessness.
+
+The theorem is provable in Lean, so the answer is True.

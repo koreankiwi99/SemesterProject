@@ -1,0 +1,47 @@
+The reasoning involves determining if Juan de Onate visited a mountain range in New Mexico based on the given context. The key points are:
+
+1. The Picuris Mountains are in New Mexico or Texas.
+2. Juan de Onate visited the Picuris Mountains.
+3. The Harding Pegmatite Mine (located in the Picuris Mountains) was donated.
+4. No mountain ranges in Texas have donated mines.
+
+From (3) and (4), if the Picuris Mountains were in Texas, they could not have a donated mine. However, the mine was donated, so the Picuris Mountains cannot be in Texas. Therefore, by (1), they must be in New Mexico. Since Juan de Onate visited the Picuris Mountains (2), he visited a mountain range in New Mexico.
+
+The Lean formalization captures this logic:
+
+<lean>
+axiom State : Type
+axiom NewMexico : State
+axiom Texas : State
+
+axiom MountainRange : Type
+axiom Mine : Type
+
+axiom Picuris : MountainRange
+axiom HardingPegmatite : Mine
+
+axiom inState : MountainRange → State → Prop
+axiom located_in_mountain : Mine → MountainRange → Prop
+axiom visited : MountainRange → Prop
+axiom donated : Mine → Prop
+
+axiom A1 : inState Picuris NewMexico ∨ inState Picuris Texas
+axiom A2 : visited Picuris
+axiom A3 : located_in_mountain HardingPegmatite Picuris ∧ donated HardingPegmatite
+axiom A4 : ∀ (m : MountainRange), inState m Texas → ∀ (mine : Mine), located_in_mountain mine m → ¬ donated mine
+
+theorem juan_visited_new_mexico : ∃ mr, inState mr NewMexico ∧ visited mr := by
+  have : inState Picuris NewMexico := by
+    cases A1 with
+    | inl h => exact h
+    | inr h =>
+        have no_donated : ∀ mine, located_in_mountain mine Picuris → ¬ donated mine := A4 Picuris h
+        have h_in := A3.left
+        have h_donated := A3.right
+        exact absurd h_donated (no_donated HardingPegmatite h_in)
+  exact ⟨Picuris, this, A2⟩
+</lean>
+
+The theorem proves there exists a mountain range in New Mexico visited by Juan de Onate (Picuris), so the statement is true.
+
+ANSWER: True

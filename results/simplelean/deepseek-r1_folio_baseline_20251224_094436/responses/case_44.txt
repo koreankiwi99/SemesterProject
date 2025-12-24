@@ -1,0 +1,63 @@
+The reasoning follows the given context to determine the truth value of the statement about Coco Gauff. The key steps are:
+
+1. Coco Gauff is at Roland Garros 2022 (given).
+2. All tennis players at Roland Garros 2022 are either female or male (given).
+3. Considering the cases:
+   - If Coco is female: 
+     - All female tennis players at RG2022 lost to Iga Świątek, so Coco lost to Iga.
+     - Anyone who lost to Iga is ranked highly by WTA.
+     - Anyone ranked highly by WTA is an active player.
+     - Thus, Coco is both a player who lost to Iga and an active player.
+   - If Coco is male:
+     - All male tennis players at RG2022 lost to Rafael Nadal, so Coco lost to Nadal.
+     - The implication states that if Coco is ranked highly or lost to Nadal, then Coco cannot be male and at RG2022. But since Coco is at RG2022, this implies Coco is not male—a contradiction.
+     - Thus, the male case is impossible.
+4. Therefore, Coco must be female, and the statement "Coco is not both lost to Iga and active" is false.
+
+<lean>
+axiom obj : Type
+axiom coco : obj
+axiom RankedHigh : obj → Prop
+axiom ActivePlayer : obj → Prop
+axiom LostToIga : obj → Prop
+axiom Female : obj → Prop
+axiom Male : obj → Prop
+axiom AtRG2022 : obj → Prop
+axiom LostToNadal : obj → Prop
+
+-- If ranked highly by WTA then active player
+axiom A1 : ∀ x, RankedHigh x → ActivePlayer x
+-- Lost to Iga implies ranked highly
+axiom A2 : ∀ x, LostToIga x → RankedHigh x
+-- Female and at RG2022 implies lost to Iga
+axiom A3 : ∀ x, AtRG2022 x → Female x → LostToIga x
+-- At RG2022 implies female or male
+axiom A4 : ∀ x, AtRG2022 x → Female x ∨ Male x
+-- Male and at RG2022 implies lost to Nadal
+axiom A5 : ∀ x, AtRG2022 x → Male x → LostToNadal x
+-- If Coco is ranked highly or lost to Nadal, then not male and at RG2022.
+-- Since AtRG2022 coco, simplifies to not male.
+axiom A6 : (RankedHigh coco ∨ LostToNadal coco) → ¬ Male coco
+-- Coco is at RG2022
+axiom A7 : AtRG2022 coco
+
+-- Proving Coco both lost to Iga and is active
+theorem coco_case : LostToIga coco ∧ ActivePlayer coco := by
+  -- Coco is either female or male
+  have gender_cases := A4 coco A7
+  cases gender_cases with
+  | inl h_female => 
+    -- Female case: lost to Iga
+    have lost : LostToIga coco := A3 coco A7 h_female
+    have high : RankedHigh coco := A2 _ lost
+    have active : ActivePlayer coco := A1 _ high
+    exact ⟨lost, active⟩
+  | inr h_male =>
+    -- Male case: leads to contradiction
+    have nadal : LostToNadal coco := A5 coco A7 h_male
+    -- Trigger axiom A6: since LostToNadal, the premise holds
+    have not_male := A6 (Or.inr nadal)
+    contradiction   -- h_male contradicts not_male
+</lean>
+
+ANSWER: False

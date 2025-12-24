@@ -45,26 +45,22 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 ### Gaming Cases Analysis
 
-**GPT-5 bidir_true (4 gaming cases):**
+**All gaming cases across conditions:**
 
-| Case | GT | Issue | Verdict |
-|------|-----|-------|---------|
-| 70 | Uncertain | Added `axiom A5_stock : Stock KO` not in premises | **GAMING** |
-| 83 | False | Vacuous truth (antecedent False) | **Debatable** |
-| 89 | Uncertain | Valid chain reasoning | **Model correct** |
-| 202 | Uncertain | Valid inference from premises | **Model correct** |
+| Case | GT | GPT-5 BL | GPT-5 BT | DS-R1 BL | DS-R1 BT | Issue | Verdict |
+|------|-----|----------|----------|----------|----------|-------|---------|
+| 41 | False | GAME | ok | GAME | GAME | Valid proof via contradiction | **Model correct** |
+| 70 | Uncertain | GAME | GAME | ok | GAME | Invented axiom (Stock subset) | **GAMING** |
+| 83 | False | GAME | GAME | GAME | GAME | Vacuous truth | **Debatable** |
+| 89 | Uncertain | GAME | GAME | GAME | GAME | Valid chain reasoning | **Model correct** |
+| 202 | Uncertain | GAME | GAME | GAME | GAME | Valid inference | **Model correct** |
 
-**DeepSeek-R1 bidir_true (5 gaming cases):**
+**Observations:**
+- GPT-5 bidir_true fixed Case 41 (5→4 gaming)
+- DeepSeek-R1 baseline got Case 70 correct, but bidir_true introduced it (4→5)
+- **bidir_false: 0 gaming for both models**
 
-| Case | GT | Issue | Verdict |
-|------|-----|-------|---------|
-| 41 | False | Contradiction in Zaha case forces Kelly; valid proof | **Model correct** |
-| 70 | Uncertain | Added `MatureStock_subset` axiom not in premises | **GAMING** |
-| 83 | False | Vacuous truth (antecedent False) | **Debatable** |
-| 89 | Uncertain | Valid chain: reads → knowledge → smarter | **Model correct** |
-| 202 | Uncertain | Braga is club + loaned to Braga → loaned to club | **Model correct** |
-
-**Conclusion:** Both models have only 1 true gaming case (Case 70), 1 debatable (Case 83), rest are dataset issues.
+**Conclusion:** Only 1 true gaming case (Case 70), 1 debatable (Case 83), 3 dataset issues (Cases 41, 89, 202).
 
 ### Key Findings
 

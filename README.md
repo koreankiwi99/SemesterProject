@@ -45,6 +45,8 @@ Bidirectional verification revealed 7 cases where **both True AND False were pro
 
 ### Gaming Cases Analysis
 
+**Definition:** Gaming = Lean verification passed + wrong answer (model "proved" an incorrect statement)
+
 **All gaming cases across conditions:**
 
 | Case | GT | GPT-5 BL | GPT-5 BT | DS-R1 BL | DS-R1 BT | Issue | Verdict |

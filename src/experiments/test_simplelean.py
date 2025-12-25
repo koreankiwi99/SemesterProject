@@ -281,9 +281,17 @@ async def run_experiment(
     lean_server = create_lean_server()
     semaphore = asyncio.Semaphore(concurrency)
 
-    # Initialize saver
+    # Initialize saver - use new directory structure: results/{dataset}/{model}/{condition}
+    model_clean = model.replace("/", "-").replace("deepseek-deepseek", "deepseek")
+    if "deepseek" in model_clean.lower():
+        model_dir = "deepseek"
+    elif "gpt" in model_clean.lower():
+        model_dir = "gpt-5"
+    else:
+        model_dir = model_clean
+
     saver_kwargs = {
-        "output_dir": "results/simplelean",
+        "output_dir": f"results/{dataset}/{model_dir}",
         "dataset": dataset,
         "model": model,
         "condition": condition,

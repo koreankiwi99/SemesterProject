@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+
+axiom AddsSalt : Person → Prop
+axiom Stirs : Person → Prop
+axiom Tastes : Person → Prop
+axiom PrepareSalad : Person → Prop
+
+axiom Savory : Prop
+axiom Thickens : Prop
+
+-- If someone adds salt, the stew becomes savory
+axiom A1 : ∀ x : Person, AddsSalt x → Savory
+-- If someone stirs continuously, the stew thickens perfectly
+axiom A2 : ∀ x : Person, Stirs x → Thickens
+-- Either someone adds salt or the stew does not thicken, or both
+axiom A3 : (∃ x : Person, AddsSalt x) ∨ (¬ Thickens) ∨ ((∃ x : Person, AddsSalt x) ∧ (¬ Thickens))
+-- If someone tastes the stew, then they stir it continuously
+axiom A4 : ∀ x : Person, Tastes x → Stirs x
+-- Either someone tastes the stew, or someone prepares a salad, or both
+axiom A5 : (∃ x : Person, Tastes x) ∨ (∃ x : Person, PrepareSalad x) ∨ ((∃ x : Person, Tastes x) ∧ (∃ x : Person, PrepareSalad x))
+
+theorem salad_from_not_savory (hNotSav : ¬ Savory) : ∃ x : Person, PrepareSalad x := by
+  -- From ¬Savory, deduce no one adds salt
+  have not_addsalt : ¬ ∃ x : Person, AddsSalt x := by
+    intro hExists
+    have hSav : Savory := Exists.elim hExists (fun x hx => A1 x hx)
+    exact hNotSav hSav
+  -- From the unwritten law and not_addsalt, deduce the stew does not thicken
+  have not_thick : ¬ Thickens := by
+    apply Or.elim A3
+    · intro hExist
+      exact False.elim (not_addsalt hExist)
+    · intro h
+      apply Or.elim h
+      · intro hnt; exact hnt
+      · intro hBoth; exact hBoth.right
+  -- Tasting implies thickening, so no one tastes
+  have taste_implies_thick : ∀ x : Person, Tastes x → Thickens := by
+    intro x
+    intro hTx
+    exact A2 x (A4 x hTx)
+  have not_exists_taste : ¬ ∃ x : Person, Tastes x := by
+    intro h
+    exact Exists.elim h (fun x hx => not_thick (taste_implies_thick x hx))
+  -- From the final disjunction and ¬∃ tastes, deduce ∃ prepares salad
+  apply Or.elim A5
+  · intro hTaste
+    exact False.elim (not_exists_taste hTaste)
+  · intro hRest
+    apply Or.elim hRest
+    · intro hSalad; exact hSalad
+    · intro hBoth; exact hBoth.right
+</lean>
+
+ANSWER: Yes

@@ -1,0 +1,94 @@
+The reasoning shows that from the premises and James not going to the party, we can conclude James did not plan his schedule well. The proof uses contrapositives and disjunction elimination:
+
+1. ¬Party James (given)
+2. Friday → Party James → ¬Friday
+3. Friday ∨ ¬WatchGame James → ¬WatchGame James (from 2)
+4. Homework James → WatchGame James → ¬Homework James (from 3)
+5. StudyEveryday James → Homework James → ¬StudyEveryday James (from 4)
+6. PlanSchedule James → StudyEveryday James → ¬PlanSchedule James (from 5)
+
+Thus, ¬PlanSchedule James is provable.
+
+<lean>
+axiom obj : Type
+axiom James : obj
+axiom Friday : Prop
+axiom Party : obj → Prop
+axiom Homework : obj → Prop
+axiom WatchGame : obj → Prop
+axiom StudyEveryday : obj → Prop
+axiom PlanSchedule : obj → Prop
+
+axiom R1 : Friday → Party James
+axiom R2 : ∀ x, Homework x → WatchGame x
+axiom R3 : Friday ∨ ¬ WatchGame James
+axiom R4 : ∀ x, StudyEveryday x → Homework x
+axiom R5 : ∀ x, PlanSchedule x → StudyEveryday x
+axiom T1 : ¬ Party James
+
+theorem no_plan : ¬ PlanSchedule James := by
+  intro h
+  have study : StudyEveryday James := R5 James h
+  have homework : Homework James := R4 James study
+  have watch : WatchGame James := R2 James homework
+  have not_friday : ¬ Friday := by
+    intro f
+    have party : Party James := R1 f
+    contradiction
+  cases R3 with
+  | inl friday => contradiction
+  | inr no_watch => contradiction
+
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+I analyzed the errors in the previous Lean code. The `contradiction` tactic failed because it requires both a proposition and its negation to be present in the context, but in the `not_friday` proof block, while we had `Party James` (from `R1 f`), we also needed to explicitly reference the axiom `T1 : ¬ Party James` to create the contradiction.
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom James : obj
+axiom Friday : Prop
+axiom Party : obj → Prop
+axiom Homework : obj → Prop
+axiom WatchGame : obj → Prop
+axiom StudyEveryday : obj → Prop
+axiom PlanSchedule : obj → Prop
+
+axiom R1 : Friday → Party James
+axiom R2 : ∀ x, Homework x → WatchGame x
+axiom R3 : Friday ∨ ¬ WatchGame James
+axiom R4 : ∀ x, StudyEveryday x → Homework x
+axiom R5 : ∀ x, PlanSchedule x → StudyEveryday x
+axiom T1 : ¬ Party James
+
+theorem no_plan : ¬ PlanSchedule James := by
+  intro h
+  have study : StudyEveryday James := R5 James h
+  have homework : Homework James := R4 James study
+  have watch : WatchGame James := R2 James homework
+  have not_friday : ¬ Friday := by
+    intro f
+    have party : Party James := R1 f
+    exact T1 party  -- Explicit contradiction using T1
+  cases R3 with
+  | inl friday => exact not_friday friday
+  | inr no_watch => exact no_watch watch
+</lean>
+
+Changes made:
+1. Replaced `contradiction` in the `not_friday` block with `exact T1 party` to explicitly show the contradiction between `Party James` and `¬ Party James`
+2. Maintained the same logical structure but made the contradiction explicit
+
+The proof now successfully shows that James did not plan his schedule well, given that:
+- James not going to the party implies it's not Friday
+- Since it's not Friday, the disjunction forces James not watching the game
+- This chain of implications leads back to James not planning his schedule
+
+ANSWER: Yes

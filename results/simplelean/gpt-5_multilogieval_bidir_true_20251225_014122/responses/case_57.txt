@@ -1,0 +1,43 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom Sale : Prop
+axiom BeginMonth : Prop
+axiom BuyMore : Person → Prop
+axiom Grocery : Person → Prop
+axiom AllList : Person → Prop
+axiom SoldOut : Person → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom R1 : ∀ p : Person, Sale → BuyMore p
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom R2 : ∀ p : Person, Grocery p → AllList p
+-- Either the store has a sale, or they (John) did not get everything on their list,
+-- or there was a sale and they still did not get all their groceries.
+axiom R3 : Sale ∨ ¬ AllList John ∨ (Sale ∧ ¬ AllList John)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom R4 : ∀ p : Person, BeginMonth → Grocery p
+-- Either it is the beginning of the month, or their (John's) favorite cereal is sold out, or both.
+axiom R5 : BeginMonth ∨ SoldOut John ∨ (BeginMonth ∧ SoldOut John)
+
+theorem john_cereal_soldout : ¬ BuyMore John → SoldOut John := by
+  intro hNotBuy
+  -- From "Sale → BuyMore John" and "¬BuyMore John", get "¬Sale"
+  have hNotSale : ¬ Sale := mt (R1 John) hNotBuy
+  -- From R3 and ¬Sale, deduce ¬AllList John
+  have hNotAll : ¬ AllList John := by
+    rcases R3 with hSale | hNotAll | hBoth
+    · exact (fun _ => False.elim (hNotSale hSale))
+    · exact hNotAll
+    · exact (fun _ => False.elim (hNotSale hBoth.left))
+  -- Use R5; any case yields SoldOut John
+  rcases R5 with hBM | hSO | hBoth
+  · have hGro : Grocery John := R4 John hBM
+    have hAll : AllList John := R2 John hGro
+    exact False.elim (hNotAll hAll)
+  · exact hSO
+  · exact hBoth.right
+</lean>
+
+ANSWER: Yes

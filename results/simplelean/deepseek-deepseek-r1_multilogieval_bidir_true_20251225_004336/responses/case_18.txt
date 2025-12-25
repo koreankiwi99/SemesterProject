@@ -1,0 +1,113 @@
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+axiom Impress : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibility : Employee → Prop
+axiom Experience : Employee → Prop
+axiom LeadTeam : Employee → Prop
+
+axiom premise1 : ∀ e : Employee, Impress e → Promotion e
+axiom premise2 : ∀ e : Employee, ExtraResponsibility e → Experience e
+axiom premise3 : ∀ e : Employee, Impress e ∨ ExtraResponsibility e
+axiom premise4 : ∀ e : Employee, Experience e → LeadTeam e
+axiom not_promoted : ¬ Promotion Sam
+
+theorem assigned_team : LeadTeam Sam := by
+  have h1 := premise3 Sam
+  have h2 := premise1 Sam
+  have h3 := premise2 Sam
+  have h4 := premise4 Sam
+  cases h1 with
+  | inl imp =>
+    -- If Sam impressed the manager, he would be promoted (contradiction)
+    contradiction
+  | inr ex =>
+    -- Sam took on extra responsibilities, leading to experience and team leadership
+    exact h4 (h3 ex)
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic requires both a proposition and its negation to be present in the context. In the original code, when Sam impressed the manager (`Impress Sam`), we had:
+- `h2 : Impress Sam → Promotion Sam`
+- `imp : Impress Sam`
+- `not_promoted : ¬ Promotion Sam`
+
+But we never actually derived `Promotion Sam` from `h2` and `imp`. The fix is to explicitly derive a contradiction by first obtaining `Promotion Sam` via `h2 imp`, making the contradiction explicit.
+
+Here is the corrected Lean 4 code:
+
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+axiom Impress : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibility : Employee → Prop
+axiom Experience : Employee → Prop
+axiom LeadTeam : Employee → Prop
+
+axiom premise1 : ∀ e : Employee, Impress e → Promotion e
+axiom premise2 : ∀ e : Employee, ExtraResponsibility e → Experience e
+axiom premise3 : ∀ e : Employee, Impress e ∨ ExtraResponsibility e
+axiom premise4 : ∀ e : Employee, Experience e → LeadTeam e
+axiom not_promoted : ¬ Promotion Sam
+
+theorem assigned_team : LeadTeam Sam := by
+  have h1 := premise3 Sam   -- Sam either impressed or took extra work
+  have h2 := premise1 Sam   -- If impressed then promoted
+  have h3 := premise2 Sam   -- If extra work then experience
+  have h4 := premise4 Sam   -- If experience then lead team
+  cases h1 with
+  | inl imp => 
+    have promoted := h2 imp  -- Sam is promoted if he impressed
+    contradiction            -- Contradiction with not_promoted
+  | inr ex => 
+    have experience := h3 ex -- Sam gains experience
+    exact h4 experience      -- Therefore leads team
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic requires a direct contradiction between two hypotheses, but the contradiction between `promoted` and `not_promoted` wasn't being used to close the goal. To fix this, we explicitly use `False.elim` with the contradiction to prove the goal (since anything follows from false).
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom Employee : Type
+axiom Sam : Employee
+axiom Impress : Employee → Prop
+axiom Promotion : Employee → Prop
+axiom ExtraResponsibility : Employee → Prop
+axiom Experience : Employee → Prop
+axiom LeadTeam : Employee → Prop
+
+axiom premise1 : ∀ e : Employee, Impress e → Promotion e
+axiom premise2 : ∀ e : Employee, ExtraResponsibility e → Experience e
+axiom premise3 : ∀ e : Employee, Impress e ∨ ExtraResponsibility e
+axiom premise4 : ∀ e : Employee, Experience e → LeadTeam e
+axiom not_promoted : ¬ Promotion Sam
+
+theorem assigned_team : LeadTeam Sam := by
+  have h1 := premise3 Sam   -- Sam either impressed or took extra work
+  have h2 := premise1 Sam   -- If impressed then promoted
+  have h3 := premise2 Sam   -- If extra work then experience
+  have h4 := premise4 Sam   -- If experience then lead team
+  cases h1 with
+  | inl imp => 
+    have promoted := h2 imp  -- Sam is promoted
+    exact False.elim (not_promoted promoted)  -- Explicit contradiction handling
+  | inr ex => 
+    have experience := h3 ex -- Sam gains experience
+    exact h4 experience      -- Therefore leads team
+</lean>
+
+ANSWER: Yes

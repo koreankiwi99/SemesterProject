@@ -1,0 +1,50 @@
+<lean>
+axiom Person : Type
+axiom Exam : Type
+axiom Alex : Person
+axiom Biology : Exam
+axiom History : Exam
+
+axiom StudiedHard : Person → Exam → Prop
+axiom Confident : Person → Exam → Prop
+axiom DidWell : Person → Exam → Prop
+axiom Satisfied : Person → Exam → Prop
+
+axiom SevereWeather : Prop
+axiom ClassCanceledDueToWeather : Prop
+
+-- If someone studies hard for an exam, they will feel confident.
+axiom A1 : ∀ x : Person, ∀ e : Exam, StudiedHard x e → Confident x e
+-- If a student feels confident about the material, they will do well.
+axiom A2 : ∀ x : Person, ∀ e : Exam, Confident x e → DidWell x e
+-- If a student performs well on an exam, they will be satisfied.
+axiom A3 : ∀ x : Person, ∀ e : Exam, DidWell x e → Satisfied x e
+
+-- If there is severe weather in the forecast, schools cancel class.
+axiom A4 : SevereWeather → ClassCanceledDueToWeather
+-- Either Alex studied for biology, or class was not canceled due to the weather.
+axiom A5 : StudiedHard Alex Biology ∨ ¬ ClassCanceledDueToWeather
+
+-- From severe weather, deduce Alex studied hard for biology.
+theorem studied_bio_from_weather : SevereWeather → StudiedHard Alex Biology :=
+by
+  intro hs
+  have hcancel : ClassCanceledDueToWeather := A4 hs
+  have hnotnot : ¬ (¬ ClassCanceledDueToWeather) := by
+    intro hnot
+    exact hnot hcancel
+  exact Or.elim A5 (fun hstud => hstud) (fun hnot => False.elim (hnotnot hnot))
+
+-- From severe weather, deduce Alex was satisfied with his biology exam.
+theorem satisfied_bio_from_weather : SevereWeather → Satisfied Alex Biology :=
+by
+  intro hs
+  have hstud : StudiedHard Alex Biology := studied_bio_from_weather hs
+  have hconf : Confident Alex Biology := A1 Alex Biology hstud
+  have hwell : DidWell Alex Biology := A2 Alex Biology hconf
+  exact A3 Alex Biology hwell
+
+-- Cannot prove: SevereWeather → Satisfied Alex History (no link from biology to history provided)
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,90 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+axiom WeatherNice : obj → Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+axiom A1 : ∀ x : obj, WeatherNice x → RelaxOutside x
+axiom A2 : ∀ x : obj, ReadBooks x → PackedEnough x
+axiom A3 : ∀ x : obj, WeatherNice x ∨ ¬ PackedEnough x ∨ (WeatherNice x ∧ ¬ PackedEnough x)
+axiom A4 : ∀ x : obj, Prepared x → ReadBooks x
+
+theorem JakeNotPrepared : ¬ RelaxOutside Jake → ¬ Prepared Jake := by
+  intro h1 -- Assume ¬ RelaxOutside Jake
+  have h2 := A1 Jake -- Apply A1 to Jake: WeatherNice Jake → RelaxOutside Jake
+  have h3 := h2 -- Duplicate for contrapositive
+  contrapose! h3 -- Contrapositive gives ¬ RelaxOutside Jake → ¬ WeatherNice Jake
+  have h4 := A3 Jake -- Apply A3 to Jake: WeatherNice Jake ∨ ¬ PackedEnough Jake ∨ (WeatherNice Jake ∧ ¬ PackedEnough Jake)
+  cases h4 with
+  | inl h5 => -- Case 1: WeatherNice Jake
+    exfalso -- Contradiction since h3 gives ¬ WeatherNice Jake
+    exact h3 h5
+  | inr h5 =>
+    cases h5 with
+    | inl h6 => -- Case 2: ¬ PackedEnough Jake
+      have h7 := A2 Jake -- Apply A2 to Jake: ReadBooks Jake → PackedEnough Jake
+      have h8 := h7 -- Duplicate for contrapositive
+      contrapose! h8 -- Contrapositive: ¬ PackedEnough Jake → ¬ ReadBooks Jake
+      have h9 := A4 Jake -- Apply A4 to Jake: Prepared Jake → ReadBooks Jake
+      contrapose! h9 -- Contrapositive: ¬ ReadBooks Jake → ¬ Prepared Jake
+      exact h9 (h8 h6)
+    | inr h6 => -- Case 3: WeatherNice Jake ∧ ¬ PackedEnough Jake
+      exfalso -- Contradiction again from h3
+      exact h3 h6.1
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error in the original code occurred because the theorem was attempting to prove the negation of the desired conclusion. After re-evaluating the context, we need to prove that if Jake cannot relax outside, then he is prepared (¬ RelaxOutside Jake → Prepared Jake). However, the premises actually lead to the opposite conclusion.
+
+The key steps are:
+1. From ¬ RelaxOutside Jake and A1, we derive ¬ WeatherNice Jake
+2. From A3, we get cases: WeatherNice Jake (contradiction), or ¬ PackedEnough Jake, or both
+3. The ¬ PackedEnough Jake case leads to ¬ ReadBooks Jake (via A2 contrapositive)
+4. Then to ¬ Prepared Jake (via A4 contrapositive)
+5. This directly contradicts the goal of proving Prepared Jake
+
+Thus, we cannot prove Prepared Jake under these premises. The Lean code demonstrates this by having an unresolved goal in the critical case.
+
+<lean>
+axiom obj : Type
+axiom Jake : obj
+axiom WeatherNice : obj → Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+axiom A1 : ∀ x : obj, WeatherNice x → RelaxOutside x
+axiom A2 : ∀ x : obj, ReadBooks x → PackedEnough x
+axiom A3 : ∀ x : obj, WeatherNice x ∨ ¬ PackedEnough x ∨ (WeatherNice x ∧ ¬ PackedEnough x)
+axiom A4 : ∀ x : obj, Prepared x → ReadBooks x
+
+theorem JakePrepared : ¬ RelaxOutside Jake → Prepared Jake := by
+  intro h1  -- Assume ¬RelaxOutside Jake
+  have h2 : ¬WeatherNice Jake := by
+    intro wn
+    have relax := A1 Jake wn
+    exact h1 relax
+  have h3 := A3 Jake
+  cases h3 with
+  | inl wn => exact False.elim (h2 wn)  -- Contradiction from weather nice
+  | inr h4 =>
+    cases h4 with
+    | inl np =>  -- Case: ¬PackedEnough Jake
+      have h5 : ReadBooks Jake → False := fun rb => np (A2 Jake rb)
+      have h6 : Prepared Jake → False := fun p => h5 (A4 Jake p)
+      -- Stuck: need Prepared Jake but have proof it's false
+      admit
+    | inr both => 
+      exact False.elim (h2 both.1)  -- Weather nice component gives contradiction
+</lean>
+
+ANSWER: Failure

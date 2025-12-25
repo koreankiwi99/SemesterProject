@@ -1,0 +1,47 @@
+The reasoning context is formalized in Lean. The key steps are:
+
+1. From `pests_invade`, we derive `some_crops_destroyed` using axiom T2.
+2. Axiom T3 states: `enough_water ∨ ¬some_crops_destroyed ∨ (enough_water ∧ some_crops_destroyed)`. With `some_crops_destroyed` true, the middle disjunct `¬some_crops_destroyed` is false. The remaining disjuncts both imply `enough_water` (either directly or via conjunction).
+3. Thus, `enough_water` must hold.
+4. From `enough_water` and T1, we get `grow_well`.
+5. From `grow_well` and T4, we get `bountiful`.
+6. From `bountiful` and T5, we get `good_profit`.
+
+Therefore, under the assumption `pests_invade`, we derive `good_profit`. This means we **cannot prove** that if pests invaded, the farmer did NOT make good profit (i.e., we cannot prove `pests_invade → ¬good_profit`). The attempt to prove the negation fails.
+
+<lean>
+axiom enough_water : Prop
+axiom grow_well : Prop
+axiom pests_invade : Prop
+axiom some_crops_destroyed : Prop
+axiom bountiful : Prop
+axiom good_profit : Prop
+
+axiom T1 : enough_water → grow_well
+axiom T2 : pests_invade → some_crops_destroyed
+axiom T3 : enough_water ∨ ¬some_crops_destroyed ∨ (enough_water ∧ some_crops_destroyed)
+axiom T4 : grow_well → bountiful
+axiom T5 : bountiful → good_profit
+
+-- Attempt to prove: pests_invade → ¬good_profit (fails)
+theorem disprove : ¬(pests_invade → ¬good_profit) :=
+  fun h_neg : pests_invade → ¬good_profit =>
+    let h_invade : pests_invade := by admit  -- We assume pests_invade exists for the proof attempt
+    have h_destroyed : some_crops_destroyed := T2 h_invade
+    have h_water : enough_water := by
+      cases T3 with
+      | inl h => exact h
+      | inr h_or => 
+          cases h_or with
+          | inl not_destroyed => contradiction  -- Contradiction with h_destroyed
+          | inr h_and => exact h_and.1
+    have h_grow : grow_well := T1 h_water
+    have h_bountiful : bountiful := T4 h_grow
+    have h_profit : good_profit := T5 h_bountiful
+    have h_no_profit : ¬good_profit := h_neg h_invade
+    show False from h_no_profit h_profit
+-- Proof fails at `admit` since we cannot construct `pests_invade` without additional context
+-- More fundamentally: We derived `good_profit` under `pests_invade`, so negation is unprovable
+</lean>
+
+ANSWER: Failure

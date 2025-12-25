@@ -1,0 +1,37 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom HungryMorning : obj → Prop
+axiom MakesPancakes : obj → Prop
+axiom UsesStove : obj → Prop
+
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R_on_hot : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R_pancake_use : ∀ x : obj, MakesPancakes x → UsesStove x
+-- Either the stove was on, or they did not use the stove (for any person).
+axiom R_on_or_not_use : ∀ x : obj, StoveOn ∨ ¬UsesStove x
+-- If someone is hungry, they make pancakes.
+axiom R_hungry_pancake : ∀ x : obj, HungryMorning x → MakesPancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom NotEatDinnerLastNight : obj → Prop
+axiom R_sam_hungry : NotEatDinnerLastNight Sam → HungryMorning Sam
+
+-- From "the kitchen did not get hot", conclude Sam ate dinner last night.
+theorem sam_ate_dinner_last_night : ¬KitchenHot → ¬NotEatDinnerLastNight Sam := by
+  intro notHot
+  intro sam_no_dinner
+  have sam_hungry : HungryMorning Sam := R_sam_hungry sam_no_dinner
+  have sam_pancakes : MakesPancakes Sam := R_hungry_pancake Sam sam_hungry
+  have sam_use : UsesStove Sam := R_pancake_use Sam sam_pancakes
+  have on_or_notuse : StoveOn ∨ ¬UsesStove Sam := R_on_or_not_use Sam
+  have stove_on : StoveOn := Or.elim on_or_notuse (fun h => h) (fun hnot => False.elim (hnot sam_use))
+  have hot : KitchenHot := R_on_hot stove_on
+  exact notHot hot
+</lean>
+
+ANSWER: Yes

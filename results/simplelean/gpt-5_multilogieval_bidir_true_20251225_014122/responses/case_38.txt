@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom Mike : obj
+
+axiom Gas : obj → Prop
+axiom DriveLong : obj → Prop
+axiom SeeSights : obj → Prop
+axiom Scenic : obj → Prop
+axiom LovesRoadTrips : obj → Prop
+
+-- If the car has gas, then they can drive long distances
+axiom A1 : ∀ x : obj, Gas x → DriveLong x
+-- If they see the sights, then they are taking a scenic route
+axiom A2 : ∀ x : obj, SeeSights x → Scenic x
+-- Either the car has gas, or they are not taking the scenic route, or both gas and not scenic
+axiom A3 : Gas Mike ∨ ¬Scenic Mike ∨ (Gas Mike ∧ ¬Scenic Mike)
+-- If someone loves road trips, they take the scenic route and see the sights
+axiom A4 : ∀ x : obj, LovesRoadTrips x → Scenic x ∧ SeeSights x
+
+-- From the premises we can actually derive that if Mike cannot drive long distances, then Mike does not love road trips
+theorem cannot_drive_implies_not_love : ¬DriveLong Mike → ¬LovesRoadTrips Mike := by
+  intro hndl
+  -- From ¬DriveLong and (Gas → DriveLong), deduce ¬Gas
+  have hngas : ¬Gas Mike := by
+    intro hgas
+    exact hndl (A1 Mike hgas)
+  -- From the disjunction and ¬Gas, deduce ¬Scenic
+  have hnsc : ¬Scenic Mike := by
+    cases A3 with
+    | inl hgas =>
+        exact False.elim (hngas hgas)
+    | inr h =>
+        cases h with
+        | inl hnsc => exact hnsc
+        | inr hboth =>
+            exact False.elim (hngas hboth.left)
+  -- From (Loves → Scenic ∧ SeeSights), we have (Loves → Scenic), so ¬Scenic implies ¬Loves
+  intro hLove
+  have hsc : Scenic Mike := by
+    have hpair := A4 Mike hLove
+    exact hpair.left
+  exact hnsc hsc
+
+-- Therefore, we cannot prove LovesRoadTrips Mike from ¬DriveLong Mike.
+-- In fact, we derived the opposite implication above.
+</lean>
+
+ANSWER: Failure

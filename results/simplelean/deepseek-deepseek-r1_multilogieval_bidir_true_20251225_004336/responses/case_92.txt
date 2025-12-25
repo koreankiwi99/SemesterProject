@@ -1,0 +1,38 @@
+ANSWER: Yes
+
+<lean>
+axiom obj : Type
+axiom Farmer : obj
+axiom Field : obj
+axiom EnoughWater : obj → Prop
+axiom PestsInvade : obj → Prop
+axiom PestsDamage : obj → Prop
+axiom GrowWell : obj → Prop
+axiom Bountiful : obj → Prop
+axiom GoodProfit : obj → Prop
+
+-- If the field gets enough water, the crops will grow well.
+axiom A1 : ∀ x : obj, EnoughWater x → GrowWell x
+-- If pests invade the field, some crops will be destroyed.
+axiom A2 : ∀ x : obj, PestsInvade x → PestsDamage x
+-- Either the farmer watered adequately, or pests did not damage crops, or the field got enough water but pests still damaged crops.
+axiom A3 : ∀ x : obj, EnoughWater x ∨ ¬PestsDamage x ∨ (EnoughWater x ∧ PestsDamage x)
+-- If crops grow well, the harvest will be bountiful.
+axiom A4 : ∀ x : obj, GrowWell x → Bountiful x
+-- If the harvest is bountiful, the farmer will make good profit.
+axiom A5 : ∀ x : obj, Bountiful x → GoodProfit x
+
+theorem profit_if_pests : ∀ x : obj, PestsInvade x → GoodProfit x := by
+  intro x hInvade
+  -- By A2, pests invasion leads to pest damage.
+  have hDamage : PestsDamage x := A2 x hInvade
+  -- By A3, we have three cases: enough water, no pest damage, or enough water with pest damage.
+  have h3 : EnoughWater x ∨ ¬PestsDamage x ∨ (EnoughWater x ∧ PestsDamage x) := A3 x
+  rcases h3 with (hWater | hNoDamage | ⟨hWater, hDamage'⟩)
+  -- Case 1: Enough water. Apply A1 and A4, A5 to get GoodProfit.
+  { exact A5 x (A4 x (A1 x hWater)) }
+  -- Case 2: No pest damage. Contradicts hDamage from A2.
+  { contradiction }
+  -- Case 3: Enough water and pest damage. Apply A1, A4, A5 again.
+  { exact A5 x (A4 x (A1 x hWater)) }
+</lean>

@@ -1,0 +1,89 @@
+The context provides logical premises about business strategies. Let's model this in Lean and attempt to prove that Alex did **not** expand his business, given that he didn't attract more customers.
+
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertiseCleverly : obj → Prop
+axiom OfferDiscounts : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom T1 : ∀ x, AdvertiseCleverly x → AttractMoreCustomers x
+axiom T2 : ∀ x, OfferDiscounts x → IncreaseSales x
+axiom T3 : ∀ x, AdvertiseCleverly x ∨ OfferDiscounts x
+axiom T4 : ∀ x, IncreaseSales x → ExpandBusiness x
+axiom Given : ¬AttractMoreCustomers Alex
+
+-- Attempt to prove ¬ExpandBusiness Alex
+theorem goal : ¬ExpandBusiness Alex := by
+  -- We know Alex didn't attract more customers (Given)
+  -- From T1: If Alex advertised cleverly, he'd attract customers (contradiction with Given)
+  have no_advertise : ¬AdvertiseCleverly Alex := fun h => Given (T1 Alex h)
+  -- From T3: Alex must offer discounts since he didn't advertise cleverly
+  have must_offer : OfferDiscounts Alex := by
+    cases T3 Alex
+    · contradiction
+    · assumption
+  -- From T2: Offering discounts implies increased sales
+  have increased_sales : IncreaseSales Alex := T2 Alex must_offer
+  -- From T4: Increased sales imply business expansion
+  have expands : ExpandBusiness Alex := T4 Alex increased_sales
+  -- We now have ExpandBusiness Alex, contradicting the goal ¬ExpandBusiness Alex
+  contradiction
+</lean>
+
+The proof fails because the premises actually **force** Alex to expand his business:
+1. No attract more customers → No clever advertising (contrapositive of T1)
+2. No clever advertising → Must offer discounts (from disjunction T3)
+3. Offer discounts → Increased sales (T2)
+4. Increased sales → Business expansion (T4)
+
+Since we derived `ExpandBusiness Alex`, we cannot prove its negation.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was used incorrectly. The context contained `expands : ExpandBusiness Alex` and the goal was `¬ExpandBusiness Alex`, but these don't directly contradict each other since `¬P` is equivalent to `P → False`. The proof should have assumed `ExpandBusiness Alex` and derived `False`, but this is impossible because the premises actually prove `ExpandBusiness Alex`.
+
+Here's the corrected Lean code showing that we can prove `ExpandBusiness Alex`, making it impossible to prove the negation:
+
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom AdvertiseCleverly : obj → Prop
+axiom OfferDiscounts : obj → Prop
+axiom AttractMoreCustomers : obj → Prop
+axiom IncreaseSales : obj → Prop
+axiom ExpandBusiness : obj → Prop
+
+axiom T1 : ∀ x, AdvertiseCleverly x → AttractMoreCustomers x
+axiom T2 : ∀ x, OfferDiscounts x → IncreaseSales x
+axiom T3 : ∀ x, AdvertiseCleverly x ∨ OfferDiscounts x
+axiom T4 : ∀ x, IncreaseSales x → ExpandBusiness x
+axiom Given : ¬AttractMoreCustomers Alex
+
+-- Proof that Alex expands his business
+theorem Alex_expands : ExpandBusiness Alex := by
+  have no_advertise : ¬AdvertiseCleverly Alex := fun h => Given (T1 Alex h)
+  have must_offer : OfferDiscounts Alex := by
+    cases T3 Alex with
+    | inl adv => contradiction  -- contradicts no_advertise
+    | inr off => exact off
+  exact T4 Alex (T2 Alex must_offer)
+
+-- Cannot prove ¬ExpandBusiness Alex since we proved ExpandBusiness Alex
+</lean>
+
+The premises force Alex to expand his business:
+1. No attracted customers → No clever advertising (contrapositive of T1)
+2. No clever advertising → Must offer discounts (from disjunction T3)
+3. Offering discounts → Increased sales (T2)
+4. Increased sales → Business expansion (T4)
+
+Since we've proven `ExpandBusiness Alex`, we cannot prove its negation.
+
+ANSWER: Failure

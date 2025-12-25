@@ -1,0 +1,147 @@
+The context and statement are translated into Lean as follows. The goal is to prove that Mary did not learn new methods and mediums (i.e., `¬ LearnNewMethods Mary`). However, the premises lead to the conclusion that Mary *did* learn new methods, making it impossible to prove the negation.
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+axiom PracticedOften : obj → Prop
+axiom TechniqueImproves : obj → Prop
+axiom StandOut : obj → Prop
+axiom TookArtClass : obj → Prop
+axiom LearnNewMethods : obj → Prop
+
+axiom practice_imp_technique : ∀ x, PracticedOften x → TechniqueImproves x
+axiom technique_imp_standout : ∀ x, TechniqueImproves x → StandOut x
+axiom practice_or_class : ∀ x, PracticedOften x ∨ TookArtClass x
+axiom class_imp_learn : ∀ x, TookArtClass x → LearnNewMethods x
+axiom mary_not_standout : ¬ StandOut Mary
+
+-- Attempt to prove ¬LearnNewMethods Mary (i.e., Mary did NOT learn new methods)
+theorem disprove_learn_new : ¬ LearnNewMethods Mary :=
+  -- Assume Mary learned new methods and derive contradiction? 
+  -- But premises show she must have learned, so negation is unprovable.
+  fun hLearn : LearnNewMethods Mary => 
+  -- First, show Mary's technique did not improve (from ¬StandOut and technique_imp_standout)
+  have no_tech : ¬ TechniqueImproves Mary := 
+    fun hTech : TechniqueImproves Mary => 
+    mary_not_standout (technique_imp_standout Mary hTech)
+  -- Then, show Mary did not practice often (from no_tech and practice_imp_technique)
+  have no_practice : ¬ PracticedOften Mary := 
+    fun hPractice : PracticedOften Mary => 
+    no_tech (practice_imp_technique Mary hPractice)
+  -- By practice_or_class, Mary must have taken an art class
+  have took_class : TookArtClass Mary := 
+    Or.elim (practice_or_class Mary) 
+      (fun hPractice => False.elim (no_practice hPractice)) 
+      (fun hClass => hClass)
+  -- Thus, Mary learned new methods (from class_imp_learn)
+  have learned : LearnNewMethods Mary := class_imp_learn Mary took_class
+  -- But hLearn is the assumption that LearnNewMethods Mary holds, so no contradiction.
+  -- We cannot derive False here because the premises force learned to be true.
+  -- This shows ¬LearnNewMethods Mary is unprovable (contradiction would require ¬hLearn, but learned is true).
+  learned -- This is a term of type LearnNewMethods Mary, not False.
+-- The above proof fails to construct a contradiction. Instead, it confirms LearnNewMethods Mary.
+</lean>
+
+The Lean code demonstrates:
+1. `mary_not_standout` implies `¬ TechniqueImproves Mary` (contrapositive of `technique_imp_standout`).
+2. `¬ TechniqueImproves Mary` implies `¬ PracticedOften Mary` (contrapositive of `practice_imp_technique`).
+3. `¬ PracticedOften Mary` and `practice_or_class Mary` force `TookArtClass Mary`.
+4. `TookArtClass Mary` implies `LearnNewMethods Mary` (by `class_imp_learn`).
+
+Thus, `LearnNewMethods Mary` holds, and `¬ LearnNewMethods Mary` cannot be proven. The attempt to prove the negation fails.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+To resolve the type mismatch error, we need to demonstrate that assuming `LearnNewMethods Mary` leads to a contradiction. However, the premises force `LearnNewMethods Mary` to hold regardless of the assumption. Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+axiom PracticedOften : obj → Prop
+axiom TechniqueImproves : obj → Prop
+axiom StandOut : obj → Prop
+axiom TookArtClass : obj → Prop
+axiom LearnNewMethods : obj → Prop
+
+axiom practice_imp_technique : ∀ x, PracticedOften x → TechniqueImproves x
+axiom technique_imp_standout : ∀ x, TechniqueImproves x → StandOut x
+axiom practice_or_class : ∀ x, PracticedOften x ∨ TookArtClass x
+axiom class_imp_learn : ∀ x, TookArtClass x → LearnNewMethods x
+axiom mary_not_standout : ¬ StandOut Mary
+
+theorem disprove_learn_new : ¬ LearnNewMethods Mary := by
+  intro hLearn
+  -- From Mary's artwork not standing out, her technique did not improve
+  have no_tech := mary_not_standout  ∘ technique_imp_standout Mary
+  -- Thus, she did not practice often
+  have no_practice := no_tech ∘ practice_imp_technique Mary
+  -- Therefore, she must have taken an art class
+  cases practice_or_class Mary with
+  | inl hPractice => contradiction  -- Contradiction with no_practice
+  | inr hClass =>
+    -- She learned new methods from the class
+    have learned := class_imp_learn Mary hClass
+    -- Now we have both hLearn and learned as proofs of LearnNewMethods Mary
+    -- This is a direct contradiction (A ∧ ¬A)
+    contradiction
+</lean>
+
+**Final Explanation:**
+
+The corrected code uses `contradiction` to handle the case where `hLearn` (assumed `¬LearnNewMethods Mary`) conflicts with the derived `learned` (proof of `LearnNewMethods Mary`). However, the premises ensure that `learned` is always true when `Mary`'s artwork doesn't stand out, making `hLearn` (`¬LearnNewMethods Mary`) impossible. Lean's `contradiction` tactic detects this inconsistency, but since the premises logically enforce `LearnNewMethods Mary`, the negation **cannot** be proven. 
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the `contradiction` tactic was used incorrectly. The premises imply that Mary *did* learn new methods, so assuming she didn't (to try to prove ¬LearnNewMethods) cannot lead to a contradiction. The corrected analysis shows:
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+axiom PracticedOften : obj → Prop
+axiom TechniqueImproves : obj → Prop
+axiom StandOut : obj → Prop
+axiom TookArtClass : obj → Prop
+axiom LearnNewMethods : obj → Prop
+
+axiom practice_imp_technique : ∀ x, PracticedOften x → TechniqueImproves x
+axiom technique_imp_standout : ∀ x, TechniqueImproves x → StandOut x
+axiom practice_or_class : ∀ x, PracticedOften x ∨ TookArtClass x
+axiom class_imp_learn : ∀ x, TookArtClass x → LearnNewMethods x
+axiom mary_not_standout : ¬ StandOut Mary
+
+-- Prove that Mary MUST have learned new methods
+theorem must_learn : LearnNewMethods Mary := by
+  -- If technique improves, artwork stands out → but Mary's didn't → technique didn't improve
+  have no_tech : ¬ TechniqueImproves Mary := 
+    fun hTech => mary_not_standout (technique_imp_standout Mary hTech)
+  -- If practiced often, technique improves → didn't practice often
+  have no_practice : ¬ PracticedOften Mary := 
+    fun hPractice => no_tech (practice_imp_technique Mary hPractice)
+  -- Must have taken art class (since no practice)
+  have took_class : TookArtClass Mary := by
+    cases practice_or_class Mary
+    case inl h => exact False.elim (no_practice h)
+    case inr h => exact h
+  -- Therefore learned new methods
+  exact class_imp_learn Mary took_class
+
+-- Since must_learn proves LearnNewMethods Mary, we CANNOT prove ¬LearnNewMethods Mary
+</lean>
+
+**Explanation:**  
+1. `mary_not_standout` and `technique_imp_standout` imply ¬TechniqueImproves Mary  
+2. ¬TechniqueImproves Mary and `practice_imp_technique` imply ¬PracticedOften Mary  
+3. ¬PracticedOften Mary and `practice_or_class` force TookArtClass Mary  
+4. `class_imp_learn` then proves LearnNewMethods Mary  
+
+Thus, ¬LearnNewMethods Mary is false and cannot be proven.
+
+ANSWER: Failure

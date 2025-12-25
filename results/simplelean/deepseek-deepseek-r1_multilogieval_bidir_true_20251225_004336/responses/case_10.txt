@@ -1,0 +1,84 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom StudiesHard : obj → Prop
+axiom GoodGrades : obj → Prop
+axiom Participates : obj → Prop
+axiom MakesNewFriends : obj → Prop
+axiom Invited : obj → Prop
+
+-- If studied hard, get good grades
+axiom A1 : ∀ x, StudiesHard x → GoodGrades x
+-- If participates, makes new friends
+axiom A2 : ∀ x, Participates x → MakesNewFriends x
+-- Student (Alex) studied hard or participated
+axiom A3 : StudiesHard Alex ∨ Participates Alex
+-- If makes new friends, gets invited
+axiom A4 : ∀ x, MakesNewFriends x → Invited x
+-- Alex did not get good grades
+axiom A5 : ¬ GoodGrades Alex
+
+theorem alex_invited : Invited Alex := by
+  -- Use case analysis on A3 (Alex studied hard or participated)
+  cases A3 with
+  | inl studied_hard => 
+    -- If Alex studied hard, must have good grades (A1)
+    have good_grades : GoodGrades Alex := A1 Alex studied_hard
+    -- Contradiction with A5 (no good grades)
+    contradiction
+  | inr participated =>
+    -- Alex participated, so makes new friends (A2)
+    have new_friends : MakesNewFriends Alex := A2 Alex participated
+    -- Therefore, Alex gets invited (A4)
+    exact A4 Alex new_friends
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `contradiction` tactic failed to recognize the contradiction in the `inl` branch. The goal was `Invited Alex`, not `False`, so we need to explicitly derive a contradiction and then use ex falso quodlibet. Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom Alex : obj
+axiom StudiesHard : obj → Prop
+axiom GoodGrades : obj → Prop
+axiom Participates : obj → Prop
+axiom MakesNewFriends : obj → Prop
+axiom Invited : obj → Prop
+
+axiom A1 : ∀ x, StudiesHard x → GoodGrades x
+axiom A2 : ∀ x, Participates x → MakesNewFriends x
+axiom A3 : StudiesHard Alex ∨ Participates Alex
+axiom A4 : ∀ x, MakesNewFriends x → Invited x
+axiom A5 : ¬ GoodGrades Alex
+
+theorem alex_invited : Invited Alex := by
+  cases A3 with
+  | inl studied_hard => 
+    have good_grades : GoodGrades Alex := A1 Alex studied_hard
+    -- Derive explicit contradiction
+    have false : False := A5 good_grades
+    -- Use ex falso to prove any goal
+    exact False.elim false
+  | inr participated =>
+    have new_friends : MakesNewFriends Alex := A2 Alex participated
+    exact A4 Alex new_friends
+</lean>
+
+ANSWER: Yes
+
+**Explanation of the fix:**
+1. In the `inl` branch (where Alex studied hard):
+   - We first derive `good_grades : GoodGrades Alex` using axiom A1
+   - We then explicitly construct `false : False` by applying `A5` (¬GoodGrades Alex) to `good_grades`
+   - Finally, we use `False.elim false` to prove the goal `Invited Alex` (since ex falso quodlibet allows deriving any proposition from false)
+
+2. The `inr` branch remains unchanged as it was correct:
+   - Participation leads to new friends (A2)
+   - New friends lead to invitations (A4)
+
+The proof now successfully shows that Alex gets invited to social events through the participation path, while the study path leads to a contradiction with the given premise that Alex didn't get good grades.

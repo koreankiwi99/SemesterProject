@@ -1,0 +1,78 @@
+The context describes a specific student and their actions. We define propositions for the student's attributes and actions. The key points are:
+- If the student studies diligently, they excel academically (StudyDiligently → ExcelAcademically)
+- If they participate actively, they gain leadership skills (ParticipateActively → LeadershipSkills)
+- The student either studies diligently or participates actively (StudyDiligently ∨ ParticipateActively)
+- Leadership implies selection as class prefect (LeadershipSkills → SelectedAsPrefect)
+- Given premise: ¬ExcelAcademically
+
+We prove that despite not excelling academically (meaning they didn't study diligently), they must have participated actively (due to the disjunction). This leads to leadership skills and thus selection as prefect.
+
+<lean>
+axiom StudyDiligently : Prop
+axiom ExcelAcademically : Prop
+axiom ParticipateActively : Prop
+axiom LeadershipSkills : Prop
+axiom SelectedAsPrefect : Prop
+
+axiom A1 : StudyDiligently → ExcelAcademically
+axiom A2 : ParticipateActively → LeadershipSkills
+axiom A3 : StudyDiligently ∨ ParticipateActively
+axiom A4 : LeadershipSkills → SelectedAsPrefect
+
+axiom given : ¬ ExcelAcademically
+
+theorem chosen : SelectedAsPrefect := by
+  cases A3 with
+  | inl study =>
+    have excel := A1 study
+    contradiction  -- Contradicts given ¬ExcelAcademically
+  | inr participate =>
+    have leader := A2 participate
+    exact A4 leader
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the compilation error, I found that the `contradiction` tactic failed because it couldn't automatically detect the global axiom `given` in the local context. Here's the corrected proof using explicit false elimination:
+
+<lean>
+axiom StudyDiligently : Prop
+axiom ExcelAcademically : Prop
+axiom ParticipateActively : Prop
+axiom LeadershipSkills : Prop
+axiom SelectedAsPrefect : Prop
+
+axiom A1 : StudyDiligently → ExcelAcademically
+axiom A2 : ParticipateActively → LeadershipSkills
+axiom A3 : StudyDiligently ∨ ParticipateActively
+axiom A4 : LeadershipSkills → SelectedAsPrefect
+
+axiom given : ¬ ExcelAcademically
+
+theorem chosen : SelectedAsPrefect := by
+  cases A3 with
+  | inl study =>
+      have excel : ExcelAcademically := A1 study
+      exact False.elim (given excel)  -- Explicit contradiction
+  | inr participate =>
+      have leader : LeadershipSkills := A2 participate
+      exact A4 leader
+</lean>
+
+The proof works because:
+1. By disjunction elimination (`A3`), we consider both cases
+2. In the diligent study case:
+   - We derive academic excellence (`excel`)
+   - This directly contradicts `given ¬ExcelAcademically`
+   - Using `False.elim` explicitly resolves this contradiction
+3. In the active participation case:
+   - We derive leadership skills
+   - Which directly implies selection as prefect via `A4`
+
+Since the lack of academic excellence forces us into the participation case (where leadership and selection follow), we can conclude the student was selected as prefect.
+
+ANSWER: Yes

@@ -1,0 +1,86 @@
+The context and statement are translated into Lean axioms. The goal is to prove that Jesse did not become more flexible and less prone to injury (i.e., ¬(Flexible Jesse ∧ LessInjuryProne Jesse)). However, from the premises:
+
+1. If sprinting, then running improves (T1).
+2. If stretching classes, then flexible and less injury prone (T2).
+3. Jesse either sprinted or took stretching classes (or both) (T3).
+4. Running did not improve for Jesse (T4).
+
+Using T4 and T1, we deduce Jesse did not sprint. Then, from T3, Jesse must have taken stretching classes. By T2, Jesse became flexible and less injury prone. Thus, we cannot prove the negation of the conclusion.
+
+<lean>
+axiom obj : Type
+axiom Jesse : obj
+axiom Sprinting : obj → Prop
+axiom RunningImproved : obj → Prop
+axiom StretchingClasses : obj → Prop
+axiom Flexible : obj → Prop
+axiom LessInjuryProne : obj → Prop
+
+axiom T1 : ∀ x, Sprinting x → RunningImproved x
+axiom T2 : ∀ x, StretchingClasses x → Flexible x ∧ LessInjuryProne x
+axiom T3 : Sprinting Jesse ∨ StretchingClasses Jesse
+axiom T4 : ¬ RunningImproved Jesse
+
+-- Attempt to prove ¬(Flexible Jesse ∧ LessInjuryProne Jesse)
+theorem not_flexible_injury : ¬(Flexible Jesse ∧ LessInjuryProne Jesse) := by
+  -- Assume Jesse is flexible and less injury prone
+  intro h
+  -- We know Jesse did not sprint because if they did, running would improve (T1), contradicting T4
+  have no_sprint : ¬ Sprinting Jesse := by
+    intro sprint
+    have run_imp : RunningImproved Jesse := T1 Jesse sprint
+    contradiction
+  -- From T3, since Jesse didn't sprint, they must have taken stretching classes
+  have stretch : StretchingClasses Jesse := by
+    cases T3 with
+    | inl sprint => contradiction
+    | inr stretch => exact stretch
+  -- By T2, stretching classes imply flexible and less injury prone
+  have flex_inj : Flexible Jesse ∧ LessInjuryProne Jesse := T2 Jesse stretch
+  -- But this contradicts our assumption h? Wait, no: flex_inj is exactly what we assumed.
+  -- In fact, flex_inj proves the positive, so we cannot contradict h.
+  -- This shows we cannot prove the negation.
+  -- Instead, we see that flex_inj is provable, so ¬(Flexible Jesse ∧ LessInjuryProne Jesse) is false.
+  contradiction -- This line fails because flex_inj matches h
+  -- Therefore, the proof attempt fails.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `contradiction` tactic was used when there was no actual contradiction. The axioms imply that Jesse must have taken stretching classes (since sprinting is impossible given the lack of running improvement), which directly leads to Jesse becoming more flexible and less prone to injury. Therefore, the negation of this conclusion cannot be proven.
+
+Here is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Jesse : obj
+axiom Sprinting : obj → Prop
+axiom RunningImproved : obj → Prop
+axiom StretchingClasses : obj → Prop
+axiom Flexible : obj → Prop
+axiom LessInjuryProne : obj → Prop
+
+axiom T1 : ∀ x, Sprinting x → RunningImproved x
+axiom T2 : ∀ x, StretchingClasses x → Flexible x ∧ LessInjuryProne x
+axiom T3 : Sprinting Jesse ∨ StretchingClasses Jesse
+axiom T4 : ¬ RunningImproved Jesse
+
+-- Proof that Jesse took stretching classes
+theorem stretch : StretchingClasses Jesse := by
+  cases T3
+  case inl sprint => 
+    have : RunningImproved Jesse := T1 Jesse sprint
+    exact False.elim (T4 this)
+  case inr sc => exact sc
+
+-- Proof that Jesse is flexible and less injury prone
+theorem flex_inj : Flexible Jesse ∧ LessInjuryProne Jesse := T2 Jesse stretch
+
+-- Cannot prove ¬(Flexible Jesse ∧ LessInjuryProne Jesse) since we have a proof of the positive
+</lean>
+
+ANSWER: Failure

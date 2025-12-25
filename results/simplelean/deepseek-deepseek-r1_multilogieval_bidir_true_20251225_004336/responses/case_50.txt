@@ -1,0 +1,78 @@
+The reasoning is structured as follows:  
+- **Premise**: Sprinting frequently improves running form and stamina (T1).  
+- **Premise**: Jesse did not improve running form and stamina (given).  
+- **Premise**: Jesse either sprinted frequently, took stretching classes, or both (T4).  
+- **Premise**: Taking stretching classes leads to being more flexible and less prone to injury (T3).  
+
+From the fact that Jesse's running did not improve, we infer that Jesse could not have been sprinting frequently (otherwise, by T1, running would improve, contradicting the given). Thus, by T4, Jesse must have taken stretching classes. Then, by T3, Jesse became more flexible and less prone to injury.  
+
+Lean proof:  
+<lean>
+axiom obj : Type
+axiom Jesse : obj
+axiom SprintFrequently : obj → Prop
+axiom RunningImproves : obj → Prop
+axiom TakeStretching : obj → Prop
+axiom FlexibleAndLessInjury : obj → Prop
+
+axiom T1 : ∀ x : obj, SprintFrequently x → RunningImproves x
+axiom T3 : ∀ x : obj, TakeStretching x → FlexibleAndLessInjury x
+axiom T4 : ∀ x : obj, SprintFrequently x ∨ TakeStretching x
+axiom not_running_improves : ¬ RunningImproves Jesse
+
+theorem jesse_flexible : FlexibleAndLessInjury Jesse := by
+  cases (T4 Jesse) with
+  | inl sprint => 
+      have running_improved := T1 Jesse sprint
+      contradiction
+  | inr stretch => 
+      exact T3 Jesse stretch
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was not sufficient to close the goal in the first case of the proof. When Jesse is sprinting frequently:
+1. We derive `RunningImproves Jesse` from `T1`
+2. This contradicts the axiom `not_running_improves`
+3. The goal `FlexibleAndLessInjury Jesse` remains to be proven
+
+To fix this, we need to explicitly:
+1. Create a `False` hypothesis from the contradiction
+2. Use `False.elim` to resolve any goal from false evidence
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Jesse : obj
+axiom SprintFrequently : obj → Prop
+axiom RunningImproves : obj → Prop
+axiom TakeStretching : obj → Prop
+axiom FlexibleAndLessInjury : obj → Prop
+
+axiom T1 : ∀ x : obj, SprintFrequently x → RunningImproves x
+axiom T3 : ∀ x : obj, TakeStretching x → FlexibleAndLessInjury x
+axiom T4 : ∀ x : obj, SprintFrequently x ∨ TakeStretching x
+axiom not_running_improves : ¬ RunningImproves Jesse
+
+theorem jesse_flexible : FlexibleAndLessInjury Jesse := by
+  cases (T4 Jesse) with
+  | inl sprint => 
+      have running_improved : RunningImproves Jesse := T1 Jesse sprint
+      have false_evidence : False := not_running_improves running_improved
+      exact False.elim false_evidence
+  | inr stretch => 
+      exact T3 Jesse stretch
+</lean>
+
+ANSWER: Yes
+
+**Explanation of the proof:**
+- The disjunction in `T4` gives us two cases
+- **Sprinting case**: Leads to contradiction with `not_running_improves`, so we eliminate with `False.elim`
+- **Stretching case**: Directly applies `T3` to prove the goal
+- Since both cases lead to the conclusion (either via contradiction or direct proof), we've successfully proven the statement

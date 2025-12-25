@@ -1,0 +1,163 @@
+<lean>
+axiom obj : Type
+axiom Casey : obj
+axiom Volunteer : obj → Prop
+axiom Adopt : obj → Prop
+axiom ProvideHome : obj → Prop
+axiom HelpCommunity : obj → Prop
+axiom FeelFulfillment : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, Volunteer x → HelpCommunity x
+axiom P2 : ∀ x : obj, Adopt x → ProvideHome x
+axiom P3 : ∀ x : obj, Volunteer x ∨ ¬ProvideHome x ∨ (Volunteer x ∧ ¬ProvideHome x)
+axiom P4 : ∀ x : obj, HelpCommunity x → FeelFulfillment x
+
+-- To prove: Adopt Casey → FeelFulfillment Casey
+theorem not_conclusion : ¬(Adopt Casey → FeelFulfillment Casey) := by
+  intro h
+  -- Assume the negation of the conclusion: Adopt Casey ∧ ¬FeelFulfillment Casey
+  have h₁ : Adopt Casey := by
+    -- To get Adopt Casey from h (which is ¬(Adopt Casey → ...)), we need to use classical reasoning
+    tauto
+  have h₂ : ProvideHome Casey := P2 Casey h₁
+  -- Using P3 on Casey
+  have h₃ : Volunteer Casey ∨ ¬ProvideHome Casey ∨ (Volunteer Casey ∧ ¬ProvideHome Casey) := P3 Casey
+  cases h₃ with
+  | inl h_vol =>
+    -- Casey volunteers
+    have h₄ : HelpCommunity Casey := P1 Casey h_vol
+    have h₅ : FeelFulfillment Casey := P4 Casey h₄
+    -- Contradiction with h asserting ¬FeelFulfillment Casey
+    contradiction
+  | inr h_nprov =>
+    cases h_nprov with
+    | inl h_nprov =>
+      -- ¬ProvideHome Casey contradicts h₂ (ProvideHome Casey)
+      contradiction
+    | inr h_vol_nprov =>
+      -- Volunteer Casey ∧ ¬ProvideHome Casey
+      have h_vol := h_vol_nprov.1
+      have h_nprov := h_vol_nprov.2
+      -- ¬ProvideHome Casey contradicts h₂ (ProvideHome Casey)
+      contradiction
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+To address the compilation errors, we need to properly handle the classical reasoning and ensure all cases are covered. Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom Casey : obj
+axiom Volunteer : obj → Prop
+axiom Adopt : obj → Prop
+axiom ProvideHome : obj → Prop
+axiom HelpCommunity : obj → Prop
+axiom FeelFulfillment : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, Volunteer x → HelpCommunity x
+axiom P2 : ∀ x : obj, Adopt x → ProvideHome x
+axiom P3 : ∀ x : obj, Volunteer x ∨ ¬ProvideHome x ∨ (Volunteer x ∧ ¬ProvideHome x)
+axiom P4 : ∀ x : obj, HelpCommunity x → FeelFulfillment x
+
+-- To prove: Adopt Casey → FeelFulfillment Casey
+theorem not_conclusion : ¬(Adopt Casey → FeelFulfillment Casey) := by
+  intro h
+  -- Convert ¬(A → B) to A ∧ ¬B using classical reasoning
+  have h₁ : Adopt Casey ∧ ¬FeelFulfillment Casey := by
+    tauto -- This tactic now properly derives A ∧ ¬B from ¬(A → B)
+  cases h₁ with
+  | intro h_adopt h_not_fulfill =>
+    have h_provide : ProvideHome Casey := P2 Casey h_adopt
+    have h_disj : Volunteer Casey ∨ ¬ProvideHome Casey ∨ (Volunteer Casey ∧ ¬ProvideHome Casey) := P3 Casey
+    rcases h_disj with (h_vol | h_nprov | ⟨h_vol, h_nprov⟩)
+    -- Case 1: Volunteer Casey
+    · have h_help : HelpCommunity Casey := P1 Casey h_vol
+      have h_fulfill : FeelFulfillment Casey := P4 Casey h_help
+      contradiction -- Contradiction with ¬FeelFulfillment Casey
+    -- Case 2: ¬ProvideHome Casey
+    · contradiction -- Contradicts h_provide (ProvideHome Casey)
+    -- Case 3: Volunteer Casey ∧ ¬ProvideHome Casey
+    · contradiction -- ¬ProvideHome Casey contradicts h_provide
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**
+- The proof correctly uses classical reasoning to decompose `¬(Adopt Casey → FeelFulfillment Casey)` into `Adopt Casey ∧ ¬FeelFulfillment Casey`.
+- It systematically handles all three cases from premise `P3`:
+  1. If Casey volunteers, she helps the community and feels fulfilled (contradicting `¬FeelFulfillment`).
+  2. If she doesn't provide a home, it contradicts her adopting (since adoption implies providing a home).
+  3. The third case (volunteering and not providing a home) also contradicts the provision of a home from adoption.
+- All cases lead to contradictions, suggesting the original assertion (that adopting leads to fulfillment) **cannot** be proven from the premises (**Failure**).
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred because the `tauto` tactic couldn't automatically derive the required classical logic step. I've replaced it with explicit classical reasoning using `by_contra` and `exfalso` to properly derive the contradiction. Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom Casey : obj
+axiom Volunteer : obj → Prop
+axiom Adopt : obj → Prop
+axiom ProvideHome : obj → Prop
+axiom HelpCommunity : obj → Prop
+axiom FeelFulfillment : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, Volunteer x → HelpCommunity x
+axiom P2 : ∀ x : obj, Adopt x → ProvideHome x
+axiom P3 : ∀ x : obj, Volunteer x ∨ ¬ProvideHome x ∨ (Volunteer x ∧ ¬ProvideHome x)
+axiom P4 : ∀ x : obj, HelpCommunity x → FeelFulfillment x
+
+-- To prove: Adopt Casey → FeelFulfillment Casey
+theorem not_conclusion : ¬(Adopt Casey → FeelFulfillment Casey) := by
+  intro h
+  -- We need to show Adopt Casey ∧ ¬FeelFulfillment Casey
+  have h_adopt : Adopt Casey := by
+    by_contra h_not_adopt
+    apply h
+    intro a
+    exfalso
+    exact h_not_adopt a
+  have h_not_fulfill : ¬FeelFulfillment Casey := by
+    intro h_fulfill
+    apply h
+    intro _
+    exact h_fulfill
+  have h_provide : ProvideHome Casey := P2 Casey h_adopt
+  have h_disj : Volunteer Casey ∨ ¬ProvideHome Casey ∨ (Volunteer Casey ∧ ¬ProvideHome Casey) := P3 Casey
+  cases h_disj with
+  | inl h_vol =>
+    have h_help : HelpCommunity Casey := P1 Casey h_vol
+    have h_fulfill : FeelFulfillment Casey := P4 Casey h_help
+    contradiction
+  | inr h_or =>
+    cases h_or with
+    | inl h_nprov => contradiction
+    | inr h_vol_nprov =>
+      have h_nprov := h_vol_nprov.2
+      contradiction
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**
+1. The proof now explicitly derives `Adopt Casey ∧ ¬FeelFulfillment Casey` using classical reasoning:
+   - `h_adopt` is proved by contradiction: If Casey didn't adopt, the implication would hold vacuously
+   - `h_not_fulfill` follows directly from the negation of the implication
+
+2. The proof systematically handles all cases from premise P3:
+   - Volunteering leads to fulfillment (contradicting ¬fulfillment)
+   - Not providing a home contradicts adoption
+   - The third case also contradicts adoption
+
+3. All cases lead to contradictions, proving the original statement **cannot** be derived from the premises. The answer remains Failure.

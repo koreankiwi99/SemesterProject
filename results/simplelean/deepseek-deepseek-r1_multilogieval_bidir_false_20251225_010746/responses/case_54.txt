@@ -1,0 +1,88 @@
+The context provides several premises and the additional information that the crowd did not start cheering loudly (¬C). The goal is to determine if there was a lot of booing (B). Specifically, we attempt to prove that there was no booing (¬B) from the premises. 
+
+The premises are:
+1. If the team scores early (S), then the crowd gets pumped up (P): S → P
+2. If the crowd gets pumped up (P), then they start cheering loudly (C): P → C
+3. Either the team scores early (S), or they play their rival team (R), or both: S ∨ R
+4. If the crowd is pumped up (P), then there will be a lot of booing (B): P → B
+Given: ¬C (the crowd did not start cheering loudly)
+
+From ¬C and P → C (premise 2), we derive ¬P via modus tollens. From ¬P and S → P (premise 1), we derive ¬S via modus tollens. Using ¬S and S ∨ R (premise 3), we derive R. However, we have no premise linking R or other factors to B. Premise 4 (P → B) only tells us that if P is true, then B is true; since P is false, we cannot determine B's truth value. Thus, ¬B cannot be proven.
+
+<lean>
+axiom S : Prop  -- team scores early
+axiom P : Prop  -- crowd gets pumped up
+axiom C : Prop  -- crowd cheers loudly
+axiom R : Prop  -- play rival team
+axiom B : Prop  -- lot of booing
+
+axiom A1 : S → P
+axiom A2 : P → C
+axiom A3 : S ∨ R
+axiom A4 : P → B
+axiom given : ¬C  -- given that crowd did not cheer loudly
+
+-- Attempt to prove ¬B
+theorem not_booing : ¬B :=
+  by
+    intro b  -- assume B
+    have np : ¬P := fun p => given (A2 p)  -- ¬P from A2 and given ¬C
+    have ns : ¬S := fun s => np (A1 s)     -- ¬S from A1 and ¬P
+    have r : R :=                          -- R from A3 and ¬S
+      cases A3 with
+      | inl s => exact False.elim (ns s)
+      | inr r => exact r
+    -- At this point, we have R, ¬S, ¬P, and B (from assumption)
+    -- But there is no contradiction or way to derive ¬B
+    -- Premise A4 (P→B) is not violated because P is false
+    -- No other premises relate R or B to a contradiction
+    -- Cannot complete the proof
+    sorry  -- Proof fails here; ¬B is not provable
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect syntax within the `have` tactic block. The `cases` tactic must be used at the top level of the tactic proof, not nested inside a `have` expression. The corrected code properly structures the proof using `cases` directly in the tactic block.
+
+<lean>
+axiom S : Prop  -- team scores early
+axiom P : Prop  -- crowd gets pumped up
+axiom C : Prop  -- crowd cheers loudly
+axiom R : Prop  -- play rival team
+axiom B : Prop  -- lot of booing
+
+axiom A1 : S → P
+axiom A2 : P → C
+axiom A3 : S ∨ R
+axiom A4 : P → B
+axiom given : ¬C  -- given that crowd did not cheer loudly
+
+theorem not_booing : ¬B :=
+by
+  intro hB  -- assume B is true
+  have np : ¬P := fun p => given (A2 p)  -- ¬P from ¬C and A2
+  have ns : ¬S := fun s => np (A1 s)     -- ¬S from ¬P and A1
+  cases A3 with  -- case analysis on S ∨ R
+  | inl s => 
+      exact ns s  -- contradiction: S and ¬S
+  | inr r => 
+      -- Here we have R, but no premises relate R to B or ¬B
+      -- A4 (P→B) is vacuously true since ¬P holds
+      -- No contradiction can be derived from hB (B) and current knowledge
+      sorry      -- proof fails in this branch
+</lean>
+
+**Analysis of provability:**
+- From `¬C` and `A2: P → C`, we derive `¬P`.
+- From `¬P` and `A1: S → P`, we derive `¬S`.
+- From `A3: S ∨ R` and `¬S`, we derive `R` in the right branch.
+- Premise `A4: P → B` is satisfied since `¬P` makes the implication hold vacuously.
+- **No premises** connect `R` (playing rival team) to `B` (booing) or `¬B`.
+- The assumption `B` (from `intro hB`) does not contradict any premises when `¬P` and `R` hold.
+- Thus, `¬B` **cannot be proven** from the given axioms.
+
+ANSWER: Failure

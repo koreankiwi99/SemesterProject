@@ -1,0 +1,67 @@
+The goal is to prove that if Mary did not meet her friends for dinner, then it was not an exciting night at the ballpark. The premises are:
+
+1. If weather clears, the baseball game goes on: `Clear → GameOn`
+2. If someone finishes errands, they meet friends: `∀x, ErrandsDone x → MeetFriends x`
+3. Either weather clears, or someone's errands are done (or both): `Clear ∨ (∃x, ErrandsDone x)`
+4. If game is on, fans cheer: `GameOn → Cheer`
+5. If fans cheer, it is exciting: `Cheer → Exciting`
+
+Assuming `¬MeetFriends Mary`, we derive `¬ErrandsDone Mary` (from premise 2). Premise 3 requires `Clear` or `∃x, ErrandsDone x`. Since Mary's errands are not done, there might be another person whose errands are done. Thus, we cannot conclude `Clear` from `¬∃x, ErrandsDone x` (as existence is not refuted). If `¬Clear` and errands are done by someone else, the game might not be on (as premise 1 is only an implication, not an equivalence). Thus, `Exciting` might not hold. However, we cannot prove `¬Exciting` under `¬MeetFriends Mary` because:
+- If `Clear` holds, `Exciting` follows.
+- If `∃x, ErrandsDone x` (for someone else), `Exciting` may not hold, but the premises don't force `¬Exciting` without additional assumptions about game conditions.
+
+Therefore, `¬Exciting` cannot be proven from the premises and the assumption.
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+axiom Clear : Prop
+axiom GameOn : Prop
+axiom ErrandsDone : obj → Prop
+axiom MeetFriends : obj → Prop
+axiom Cheer : Prop
+axiom Exciting : Prop
+
+axiom P1 : Clear → GameOn
+axiom P2 : ∀ (x : obj), ErrandsDone x → MeetFriends x
+axiom P3 : Clear ∨ (∃ x, ErrandsDone x)
+axiom P4 : GameOn → Cheer
+axiom P5 : Cheer → Exciting
+
+theorem prove_negation : ¬MeetFriends Mary → ¬Exciting :=
+  fun (h_no_meet : ¬MeetFriends Mary) =>
+    -- From P2, Mary didn't meet friends implies she didn't finish errands.
+    have h_errands_mary : ¬ErrandsDone Mary := 
+      fun h_errands => h_no_meet (P2 Mary h_errands)
+    -- P3: Clear or someone's errands are done.
+    have h_clear_or_errands : Clear ∨ (∃ x, ErrandsDone x) := P3
+    -- Case 1: Clear → GameOn → Cheer → Exciting (contradicts ¬Exciting?).
+    -- Case 2: ∃x, ErrandsDone x. But we only know ¬ErrandsDone Mary, not ¬∃x.
+    -- If ∃x (other than Mary) with errands done, this doesn't force ¬Clear or ¬GameOn.
+    -- Thus, we cannot prove ¬Exciting.
+    by
+      cases h_clear_or_errands with
+      | inl h_clear =>
+          have h_game : GameOn := P1 h_clear
+          have h_cheer : Cheer := P4 h_game
+          have h_exciting : Exciting := P5 h_cheer
+          -- We have Exciting, but need ¬Exciting → contradiction.
+          -- However, no contradiction with premises, only with the goal.
+          -- Cannot proceed further as Exciting is true here.
+          -- Must show ¬Exciting is impossible in this branch? No.
+          -- Therefore, cannot prove ¬Exciting.
+          admit
+      | inr h_errands_exists =>
+          -- h_errands_exists : ∃ x, ErrandsDone x
+          -- But we don't know if the game is on, since Clear may be false.
+          -- P1 only says Clear implies GameOn, not the converse.
+          -- The game might be on for other reasons, or not.
+          -- If GameOn, then Exciting (contradicts ¬Exciting).
+          -- If ¬GameOn, then ¬Cheer and ¬Exciting, which would satisfy.
+          -- But we cannot prove ¬GameOn from the premises.
+          -- Thus, we cannot conclude ¬Exciting.
+          admit
+      -- Both branches cannot definitively prove ¬Exciting.
+</lean>
+
+ANSWER: Failure

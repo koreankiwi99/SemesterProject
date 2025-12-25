@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom Bob : obj
+
+-- Predicates
+axiom Rotates : obj → Prop            -- rotates crops well
+axiom Organic : obj → Prop            -- uses organic methods
+axiom Healthy : obj → Prop            -- has healthy crops
+axiom Nutrients : obj → Prop          -- maintains soil nutrients
+axiom OneWithNature : obj → Prop      -- is one with nature
+
+-- Contextual rules
+axiom R1 : ∀ x : obj, Organic x → Healthy x
+axiom R2 : ∀ x : obj, Rotates x → Nutrients x
+axiom R3 : ∀ x : obj, (¬ Healthy x) ∨ (¬ Nutrients x)
+axiom R4 : ∀ x : obj, OneWithNature x → Organic x
+
+-- Statement premise: Bob rotates his crops well.
+axiom BobRotates : Rotates Bob
+
+-- From the context we can derive that rotating implies not healthy (under the global disjunction),
+-- then not organic, and thus not one with nature.
+theorem not_healthy_of_rotates : Rotates Bob → ¬ Healthy Bob := by
+  intro r
+  have n : Nutrients Bob := R2 Bob r
+  have h : (¬ Healthy Bob) ∨ (¬ Nutrients Bob) := R3 Bob
+  cases h with
+  | inl hnh =>
+      exact hnh
+  | inr hnn =>
+      intro hb
+      exact hnn n
+
+theorem not_organic_of_rotates : Rotates Bob → ¬ Organic Bob := by
+  intro r
+  have nh : ¬ Healthy Bob := not_healthy_of_rotates r
+  intro ho
+  exact nh (R1 Bob ho)
+
+theorem not_one_with_nature_of_rotates : Rotates Bob → ¬ OneWithNature Bob := by
+  intro r
+  have no : ¬ Organic Bob := not_organic_of_rotates r
+  intro own
+  exact no (R4 Bob own)
+
+-- Consequence for Bob given he rotates:
+theorem bob_not_one_with_nature : ¬ OneWithNature Bob := by
+  exact not_one_with_nature_of_rotates BobRotates
+</lean>
+
+ANSWER: Failure

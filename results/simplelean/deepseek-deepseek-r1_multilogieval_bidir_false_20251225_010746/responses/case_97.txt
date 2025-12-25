@@ -1,0 +1,148 @@
+The context describes a scenario at school with specific conditions and outcomes. The premises are:
+
+1. Substitute teacher leads to students goofing off.
+2. Pizza served in cafeteria leads to hyper kids.
+3. Either substitute, pizza, or both occur.
+4. Goofing off leads to not learning much.
+5. Not learning much leads to lots of homework.
+
+The statement to evaluate is: "If kids are not hyper, then did the students have lots of homework?" which translates to the logical conditional: ¬Hyper → LotsOfHomework.
+
+However, the task requires attempting to prove the negation of this conclusion (that the answer is "No"), meaning we must try to prove: ¬(¬Hyper → LotsOfHomework), which is equivalent to ¬Hyper ∧ ¬LotsOfHomework.
+
+Using the premises:
+- From ¬Hyper and axiom A2 (Pizza → Hyper), we derive ¬Pizza by modus tollens.
+- From ¬Pizza and axiom A3 (Sub ∨ Pizza), we derive Substitute.
+- From Substitute and axiom A1 (Substitute → GoofOff), we derive GoofOff.
+- From GoofOff and axiom A4 (GoofOff → ¬LearnMuch), we derive ¬LearnMuch.
+- From ¬LearnMuch and axiom A5 (¬LearnMuch → LotsOfHomework), we derive LotsOfHomework.
+
+This shows that ¬Hyper implies LotsOfHomework, proving the conditional ¬Hyper → LotsOfHomework is true. Therefore, we cannot prove its negation (¬Hyper ∧ ¬LotsOfHomework). The attempt to prove the answer "No" fails.
+
+<lean>
+axiom obj : Type
+constant Day : obj
+axiom Substitute : obj → Prop
+axiom ServesPizza : obj → Prop
+axiom GoofOff : obj → Prop
+axiom Hyper : obj → Prop
+axiom LearnMuch : obj → Prop
+axiom LotsOfHomework : obj → Prop
+constant today : obj
+axiom A1 : Substitute today → GoofOff today
+axiom A2 : ServesPizza today → Hyper today
+axiom A3 : Substitute today ∨ ServesPizza today
+axiom A4 : GoofOff today → ¬ LearnMuch today
+axiom A5 : ¬ LearnMuch today → LotsOfHomework today
+
+-- Attempt to prove ¬Hyper today ∧ ¬LotsOfHomework today (to refute the conditional)
+theorem impossible : ¬(¬Hyper today ∧ ¬LotsOfHomework today) := by
+  intro ⟨notHyper, noHW⟩
+  have notPizza : ¬ServesPizza today := fun pizza => notHyper (A2 pizza)
+  have sub : Substitute today := by cases A3 with
+    | inl s => exact s
+    | inr p => exact (notPizza p).elim
+  have goof : GoofOff today := A1 sub
+  have noLearn : ¬LearnMuch today := A4 goof
+  have hw : LotsOfHomework today := A5 noLearn
+  exact noHW hw
+
+-- The conditional ¬Hyper today → LotsOfHomework today holds
+theorem holds : ¬Hyper today → LotsOfHomework today := by
+  intro notHyper
+  have notPizza : ¬ServesPizza today := fun pizza => notHyper (A2 pizza)
+  have sub : Substitute today := by cases A3 with
+    | inl s => exact s
+    | inr p => exact absurd p notPizza
+  exact A5 (A4 (A1 sub))
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the original code incorrectly declared `obj : Type` and then used `Day : obj`, which caused universe level inconsistencies. The corrected approach defines a specific type `Day` and a constant `today` of that type, ensuring all predicates are properly typed.
+
+The goal is to prove that the answer to "If kids will not be hyper, did the students have lots of homework?" is "No". This requires proving the negation of the implication ¬Hyper → LotsOfHomework, equivalent to ¬Hyper ∧ ¬LotsOfHomework. However, from the axioms:
+1. ¬Hyper implies ¬ServesPizza (by contraposition of A2)
+2. ¬ServesPizza implies Substitute (from A3 via disjunction)
+3. Substitute implies GoofOff (A1)
+4. GoofOff implies ¬LearnMuch (A4)
+5. ¬LearnMuch implies LotsOfHomework (A5)
+
+Thus ¬Hyper → LotsOfHomework holds, making it impossible to prove its negation. The Lean code reflects this by including a proof of the implication and noting the inability to prove the negation.
+
+<lean>
+constant Day : Type
+constant today : Day
+axiom Substitute : Day → Prop
+axiom ServesPizza : Day → Prop
+axiom GoofOff : Day → Prop
+axiom Hyper : Day → Prop
+axiom LearnMuch : Day → Prop
+axiom LotsOfHomework : Day → Prop
+axiom A1 : Substitute today → GoofOff today
+axiom A2 : ServesPizza today → Hyper today
+axiom A3 : Substitute today ∨ ServesPizza today
+axiom A4 : GoofOff today → ¬ LearnMuch today
+axiom A5 : ¬ LearnMuch today → LotsOfHomework today
+
+-- Proof that ¬Hyper implies LotsOfHomework
+theorem hyper_neg_implies_hw : ¬Hyper today → LotsOfHomework today := by
+  intro notHyper
+  have notPizza : ¬ServesPizza today := fun pizza => notHyper (A2 pizza)
+  have sub : Substitute today := by 
+    cases A3 with
+    | inl s => exact s
+    | inr p => exact absurd p notPizza
+  have goof : GoofOff today := A1 sub
+  have noLearn : ¬LearnMuch today := A4 goof
+  exact A5 noLearn
+
+-- Attempt to prove ¬(¬Hyper → LotsOfHomework) fails because:
+-- ¬(¬Hyper → LotsOfHomework) ≡ ¬Hyper ∧ ¬LotsOfHomework
+-- But hyper_neg_implies_hw shows ¬Hyper → LotsOfHomework, so 
+-- ¬Hyper ∧ ¬LotsOfHomework would be a contradiction.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were resolved by adjusting the proof tactics and ensuring proper syntax. Specifically, the `absurd` tactic was replaced with `False.elim` for handling contradictions, and the proof structure was refined.
+
+The Lean code proves that if the kids are not hyper, then they must have lots of homework. Therefore, it is impossible to prove the negation (that they do not have lots of homework when not hyper), resulting in "Failure".
+
+<lean>
+axiom Day : Type
+axiom today : Day
+axiom Substitute : Day → Prop
+axiom ServesPizza : Day → Prop
+axiom GoofOff : Day → Prop
+axiom Hyper : Day → Prop
+axiom LearnMuch : Day → Prop
+axiom LotsOfHomework : Day → Prop
+
+axiom A1 : Substitute today → GoofOff today
+axiom A2 : ServesPizza today → Hyper today
+axiom A3 : Substitute today ∨ ServesPizza today
+axiom A4 : GoofOff today → ¬ LearnMuch today
+axiom A5 : ¬ LearnMuch today → LotsOfHomework today
+
+theorem hyper_neg_implies_hw : ¬Hyper today → LotsOfHomework today := by
+  intro notHyper
+  have notPizza : ¬ServesPizza today := fun pizza => notHyper (A2 pizza)
+  cases A3 with
+  | inl s => 
+      have goof := A1 s
+      have noLearn := A4 goof
+      exact A5 noLearn
+  | inr p => 
+      exact False.elim (notPizza p)
+</lean>
+
+ANSWER: Failure

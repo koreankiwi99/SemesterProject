@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+axiom MadeFriends : obj → Prop
+axiom Enjoy : obj → Prop
+axiom JoinClub : obj → Prop
+axiom Busy : obj → Prop
+axiom Outgoing : obj → Prop
+axiom Introduced : obj → Prop
+
+axiom R1 : ∀ x : obj, MadeFriends x → Enjoy x
+axiom R2 : ∀ x : obj, JoinClub x → Busy x
+axiom R3 : ∀ x : obj, Outgoing x → JoinClub x
+axiom R4 : ∀ x : obj, Introduced x → Outgoing x
+axiom R5 : ∀ x : obj, MadeFriends x ∨ ¬ Busy x
+
+-- We cannot prove Introduced Mark from ¬ Enjoy Mark with the given axioms.
+-- In fact, we can derive the opposite: ¬ Enjoy Mark → ¬ Introduced Mark.
+theorem not_introduced_of_not_enjoy : ¬ Enjoy Mark → ¬ Introduced Mark := by
+  intro hNotEnjoy
+  -- From MadeFriends → Enjoy, get ¬ Enjoy → ¬ MadeFriends
+  have hNotMF : ¬ MadeFriends Mark := by
+    intro hMF
+    exact hNotEnjoy (R1 Mark hMF)
+  -- From MadeFriends ∨ ¬ Busy and ¬ MadeFriends, deduce ¬ Busy
+  have hOr : MadeFriends Mark ∨ ¬ Busy Mark := R5 Mark
+  have hNotBusy : ¬ Busy Mark := by
+    cases hOr with
+    | inl hMF =>
+      exact False.elim (hNotMF hMF)
+    | inr hNB =>
+      exact hNB
+  -- From JoinClub → Busy and ¬ Busy, deduce ¬ JoinClub
+  have hNotJoin : ¬ JoinClub Mark := by
+    intro hJ
+    exact hNotBusy (R2 Mark hJ)
+  -- From Outgoing → JoinClub and ¬ JoinClub, deduce ¬ Outgoing
+  have hNotOut : ¬ Outgoing Mark := by
+    intro hOut
+    exact hNotJoin (R3 Mark hOut)
+  -- From Introduced → Outgoing and ¬ Outgoing, deduce ¬ Introduced
+  intro hIntro
+  exact hNotOut (R4 Mark hIntro)
+
+-- The desired statement would be:
+-- theorem target : ¬ Enjoy Mark → Introduced Mark := by
+--   -- Cannot be derived from the given axioms.
+--   admit
+</lean>
+
+ANSWER: Failure

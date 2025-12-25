@@ -1,0 +1,55 @@
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom AlarmWentOff : Person → Prop
+axiom TimeToGetReady : Person → Prop
+axiom LateForSchool : Person → Prop
+axiom MissedBus : Person → Prop
+axiom GotUpLate : Person → Prop
+axiom WentToBedLate : Person → Prop
+
+-- If the alarm went off, then it was time to get ready.
+axiom A1 : ∀ p : Person, AlarmWentOff p → TimeToGetReady p
+-- If they missed the bus, then they'd be late for school.
+axiom A2 : ∀ p : Person, MissedBus p → LateForSchool p
+-- Either the alarm went off, or they weren't late for school.
+axiom A3 : ∀ p : Person, AlarmWentOff p ∨ ¬ LateForSchool p
+-- If they got up late, then they miss the bus.
+axiom A4 : ∀ p : Person, GotUpLate p → MissedBus p
+-- If they went to bed late, then they get up late.
+axiom A5 : ∀ p : Person, WentToBedLate p → GotUpLate p
+
+-- John knows it is not the time to get ready (we take this as the fact ¬ TimeToGetReady John).
+axiom John_not_time : ¬ TimeToGetReady John
+
+-- From the premises we can derive that John did NOT go to bed late.
+theorem not_bed_late_John : ¬ WentToBedLate John := by
+  -- First, show the alarm did not go off for John.
+  have hNotAlarm : ¬ AlarmWentOff John := by
+    intro hAlarm
+    have hTime : TimeToGetReady John := A1 John hAlarm
+    exact John_not_time hTime
+  -- From A3 and ¬Alarm, deduce John was not late.
+  have hNotLate : ¬ LateForSchool John := by
+    have hOr := A3 John
+    cases hOr with
+    | inl hAlarm => exact False.elim (hNotAlarm hAlarm)
+    | inr hNL => exact hNL
+  -- From A2 and ¬Late, deduce John did not miss the bus.
+  have hNotMiss : ¬ MissedBus John := by
+    intro hMiss
+    have hLate : LateForSchool John := A2 John hMiss
+    exact hNotLate hLate
+  -- From A4 and ¬Miss, deduce John did not get up late.
+  have hNotUp : ¬ GotUpLate John := by
+    intro hUp
+    exact hNotMiss (A4 John hUp)
+  -- From A5 and ¬Up, deduce John did not go to bed late.
+  intro hBedLate
+  exact hNotUp (A5 John hBedLate)
+
+-- We cannot prove WentToBedLate John from the given axioms; in fact, we proved its negation above.
+</lean>
+
+ANSWER: Failure

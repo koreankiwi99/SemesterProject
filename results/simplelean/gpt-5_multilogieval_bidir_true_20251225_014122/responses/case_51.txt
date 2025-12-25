@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+
+-- If the supermarket has a sale, then people (including Mary) will stock up
+axiom R1 : ∀ x : obj, Sale → StockUp x
+-- If someone makes a shopping list, then they plan what to buy
+axiom R2 : ∀ x : obj, MakeList x → Plan x
+-- Either the store has a sale, or people (Mary) don't plan what to buy, or there's a sale and they don't plan
+axiom R3 : (Sale ∨ ¬ Plan Mary) ∨ (Sale ∧ ¬ Plan Mary)
+-- If payday was this week, then people (Mary) make a shopping list
+axiom R4 : ∀ x : obj, Payday → MakeList x
+-- Either it was payday this week, or prices went up recently
+axiom R5 : Payday ∨ PricesUp
+
+theorem mary_prices_up : (¬ StockUp Mary) → PricesUp := by
+  intro hNotG
+  -- From ¬(StockUp Mary) and Sale → StockUp Mary, deduce ¬Sale
+  have hNotS : ¬ Sale := by
+    intro s
+    have g : StockUp Mary := R1 Mary s
+    exact hNotG g
+  -- Simplify the tri-disjunction to Sale ∨ ¬Plan Mary
+  have hS_or_notP : Sale ∨ ¬ Plan Mary := by
+    cases R3 with
+    | inl h => exact h
+    | inr h => exact Or.inr h.right
+  -- From ¬Sale and (Sale ∨ ¬Plan Mary), deduce ¬Plan Mary
+  have hNotP : ¬ Plan Mary := by
+    cases hS_or_notP with
+    | inl s =>
+        have f : False := hNotS s
+        exact fun _ => False.elim f
+    | inr notP => exact notP
+  -- From ¬Plan Mary and (Payday → MakeList → Plan), deduce ¬Payday
+  have hNotPayday : ¬ Payday := by
+    intro w
+    have ml : MakeList Mary := R4 Mary w
+    have p : Plan Mary := R2 Mary ml
+    exact hNotP p
+  -- From ¬Payday and (Payday ∨ PricesUp), deduce PricesUp
+  cases R5 with
+  | inl w => exact False.elim (hNotPayday w)
+  | inr u => exact u
+</lean>
+
+ANSWER: Yes

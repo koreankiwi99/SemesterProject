@@ -1,0 +1,69 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+
+axiom SnowOnGround : Prop
+axiom BelowFreezing : Prop
+axiom EnoughSnow : Prop
+
+axiom LovesWinter : Person → Prop
+axiom BuildsSnowmen : Person → Prop
+
+-- If the temperature dropped below freezing, then there would be snow on the ground.
+axiom R1 : BelowFreezing → SnowOnGround
+
+-- If someone builds a snowman, that means there is enough snow.
+axiom R2 : ∀ x : Person, BuildsSnowmen x → EnoughSnow
+
+-- Either it was below freezing, or there was not enough snow, or both below freezing and not enough snow.
+axiom R3 : BelowFreezing ∨ ¬EnoughSnow ∨ (BelowFreezing ∧ ¬EnoughSnow)
+
+-- If someone loves winter, then they build snowmen.
+axiom R4 : ∀ x : Person, LovesWinter x → BuildsSnowmen x
+
+-- From no snow on the ground, it is not below freezing (contrapositive of R1).
+theorem noSnow_implies_notBelow : ¬SnowOnGround → ¬BelowFreezing :=
+by
+  intro hNoSnow
+  intro hBelow
+  exact hNoSnow (R1 hBelow)
+
+-- From no snow on the ground, there is not enough snow.
+theorem noSnow_implies_notEnough : ¬SnowOnGround → ¬EnoughSnow :=
+by
+  intro hNoSnow
+  have hNotBelow : ¬BelowFreezing := noSnow_implies_notBelow hNoSnow
+  -- Case analysis on the disjunction R3
+  cases R3 with
+  | inl hBelow =>
+      exact False.elim (hNotBelow hBelow)
+  | inr h =>
+      cases h with
+      | inl hNotEnough =>
+          exact hNotEnough
+      | inr hBoth =>
+          exact hBoth.right
+
+-- Contrapositive of R2: if not enough snow then nobody builds a snowman.
+theorem notEnough_implies_notBuild : ¬EnoughSnow → ∀ x : Person, ¬BuildsSnowmen x :=
+by
+  intro hNotEnough
+  intro x
+  intro hBuild
+  exact hNotEnough (R2 x hBuild)
+
+-- From no snow on the ground, Mary does not love winter.
+theorem noSnow_implies_notLove_Mary : ¬SnowOnGround → ¬LovesWinter Mary :=
+by
+  intro hNoSnow
+  have hNotEnough : ¬EnoughSnow := noSnow_implies_notEnough hNoSnow
+  intro hLove
+  have hBuild : BuildsSnowmen Mary := R4 Mary hLove
+  have hEnough : EnoughSnow := R2 Mary hBuild
+  exact hNotEnough hEnough
+
+-- Therefore, we cannot prove that from no snow on the ground, Mary loves winter.
+-- the statement ¬SnowOnGround → LovesWinter Mary is not derivable; in fact, its negation holds as above.
+</lean>
+
+ANSWER: Failure

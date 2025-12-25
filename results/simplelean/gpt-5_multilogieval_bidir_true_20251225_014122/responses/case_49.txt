@@ -1,0 +1,59 @@
+<lean>
+axiom Wet : Prop            -- The driveway is wet
+axiom Rained : Prop         -- It rained recently
+axiom Washed : Prop         -- Someone washed their car
+axiom WaterUsed : Prop      -- Water was used (on car/driveway)
+axiom HoseUncoiled : Prop   -- The hose is uncoiled
+axiom SpongeSoapy : Prop    -- The sponge is soapy
+
+-- If the driveway is wet, then it must have rained recently.
+axiom A1 : Wet → Rained
+
+-- If someone washed their car, then they used water.
+axiom A2 : Washed → WaterUsed
+
+-- Either the driveway is wet, or no water was used, or the driveway is wet even though no water was used.
+axiom A3 : Wet ∨ ¬WaterUsed ∨ (Wet ∧ ¬WaterUsed)
+
+-- If the hose is uncoiled, it means someone was washing their car.
+axiom A4 : HoseUncoiled → Washed
+
+-- Either the hose is uncoiled, or the sponge is soapy.
+axiom A5 : HoseUncoiled ∨ SpongeSoapy
+
+-- It didn't rain recently.
+axiom NR : ¬Rained
+
+theorem sponge_soapy : SpongeSoapy := by
+  -- From ¬Rained and (Wet → Rained), derive ¬Wet
+  have hNotWet : ¬Wet := by
+    intro hW
+    exact NR (A1 hW)
+  -- From the trilemma and ¬Wet, derive ¬WaterUsed
+  have hNotWaterUsed : ¬WaterUsed := by
+    apply Or.elim A3
+    · intro hW
+      exact False.elim (hNotWet hW)
+    · intro hrest
+      apply Or.elim hrest
+      · intro hnw
+        exact hnw
+      · intro hpair
+        exact And.right hpair
+  -- HoseUncoiled → WaterUsed (by transitivity through Washed)
+  have hHU_to_WU : HoseUncoiled → WaterUsed := by
+    intro hHU
+    exact A2 (A4 hHU)
+  -- Hence ¬HoseUncoiled by modus tollens with ¬WaterUsed
+  have hNotHU : ¬HoseUncoiled := by
+    intro hHU
+    exact hNotWaterUsed (hHU_to_WU hHU)
+  -- From (HoseUncoiled ∨ SpongeSoapy) and ¬HoseUncoiled, deduce SpongeSoapy
+  apply Or.elim A5
+  · intro hHU
+    exact False.elim (hNotHU hHU)
+  · intro hSS
+    exact hSS
+</lean>
+
+ANSWER: Yes

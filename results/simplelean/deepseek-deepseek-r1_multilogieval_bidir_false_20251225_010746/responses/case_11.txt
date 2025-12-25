@@ -1,0 +1,142 @@
+<lean>
+axiom Project : Type
+axiom student : Project
+axiom nice_display : Project → Prop
+axiom judges_impressed : Project → Prop
+axiom thorough_research : Project → Prop
+axiom experts_serious : Project → Prop
+axiom award : Project → Prop
+
+axiom A1 : ∀ p : Project, nice_display p → judges_impressed p
+axiom A2 : ∀ p : Project, thorough_research p → experts_serious p
+axiom A3 : ∀ p : Project, nice_display p ∨ thorough_research p
+axiom A4 : ∀ p : Project, experts_serious p → award p
+
+axiom given : ¬judges_impressed student
+
+-- Attempt to prove the project did NOT receive an award (¬award student)
+theorem disprove_award : ¬award student := by
+  -- We know: ¬judges_impressed student (given)
+  have h1 : ¬nice_display student := fun hnd => given (A1 student hnd)
+  -- From A3: nice_display student ∨ thorough_research student
+  have h2 : thorough_research student := by
+    cases A3 student
+    · intro nd; contradiction  -- contradicts h1 (¬nice_display)
+    · exact id
+  -- Now: thorough_research → experts_serious → award
+  have h3 : experts_serious student := A2 student h2
+  have h4 : award student := A4 student h3
+  -- We have award student, but need to prove False for ¬award student
+  intro na
+  apply na h4  -- Contradiction: award student and ¬award student
+
+-- But wait: the proof shows award student is true, so ¬award student leads to contradiction.
+-- However, this theorem is actually proving False? Let's check:
+-- We have constructed a proof of ¬award student that leads to a contradiction.
+-- This means the axioms imply award student, so ¬award student is unprovable.
+-- Therefore, we cannot complete the proof.
+
+-- Revised: Since we derived award student above, ¬award student is impossible.
+-- Thus the attempted proof fails. We remove the theorem and indicate failure.
+
+-- Final analysis: We can prove award student, so we cannot prove ¬award student.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the errors, I found that the previous Lean code had several issues:
+1. In the `cases` tactic, the branches were not properly handling the disjunction cases
+2. The `id` function was incorrectly used instead of the disjunction value
+3. The proof structure for contradiction was mismanaged
+
+Here's the corrected code that properly handles the logic:
+
+<lean>
+axiom Project : Type
+axiom student : Project
+axiom nice_display : Project → Prop
+axiom judges_impressed : Project → Prop
+axiom thorough_research : Project → Prop
+axiom experts_serious : Project → Prop
+axiom award : Project → Prop
+
+axiom A1 : ∀ p : Project, nice_display p → judges_impressed p
+axiom A2 : ∀ p : Project, thorough_research p → experts_serious p
+axiom A3 : ∀ p : Project, nice_display p ∨ thorough_research p
+axiom A4 : ∀ p : Project, experts_serious p → award p
+
+axiom given : ¬judges_impressed student
+
+-- Attempt to prove ¬award student
+theorem disprove_award : ¬award student := by
+  have h1 : ¬nice_display student := fun nd => given (A1 student nd)
+  have h2 : thorough_research student := by
+    cases A3 student with
+    | inl nd => exact False.elim (h1 nd)  -- Contradiction: nd and h1
+    | inr tr => exact tr                 -- Use the disjunct
+  have h3 : experts_serious student := A2 student h2
+  have h4 : award student := A4 student h3
+  intro na
+  exact na h4  -- Contradiction: na claims ¬award but h4 proves award
+
+-- However, we get a warning: unused variable `na` in the last tactic
+-- This indicates a flaw: the proof actually shows award student must be true
+-- Therefore, ¬award student cannot be proven
+</lean>
+
+The code now compiles but the proof of `¬award student` is invalid because:
+1. We derive `thorough_research student` from the disjunction
+2. This leads to `experts_serious student` and `award student`
+3. Thus `¬award student` leads to a contradiction
+4. But this means the axioms imply `award student` must be true
+5. Therefore, we cannot prove `¬award student`
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the errors, I found the key issue: The proof attempt for `¬award student` was flawed because we can actually prove `award student` from the axioms. Here's the corrected Lean code:
+
+<lean>
+axiom Project : Type
+axiom student : Project
+axiom nice_display : Project → Prop
+axiom judges_impressed : Project → Prop
+axiom thorough_research : Project → Prop
+axiom experts_serious : Project → Prop
+axiom award : Project → Prop
+
+axiom A1 : ∀ p : Project, nice_display p → judges_impressed p
+axiom A2 : ∀ p : Project, thorough_research p → experts_serious p
+axiom A3 : ∀ p : Project, nice_display p ∨ thorough_research p
+axiom A4 : ∀ p : Project, experts_serious p → award p
+
+axiom given : ¬judges_impressed student
+
+-- Prove award student first
+theorem project_awarded : award student := by
+  have h1 : ¬nice_display student := fun nd => given (A1 student nd)
+  have h2 : thorough_research student := by
+    cases A3 student with
+    | inl nd => exact False.elim (h1 nd)  -- Contradiction from nice_display
+    | inr tr => exact tr                 -- Use thorough_research case
+  exact A4 student (A2 student h2)       -- Chain: research → serious → award
+
+-- Since we proved award student, we cannot prove ¬award student
+</lean>
+
+Explanation:
+1. We first show `¬nice_display student` using the given that judges weren't impressed
+2. Using the disjunction (A3), we prove `thorough_research student`:
+   - The "nice display" case leads to contradiction
+   - The "thorough research" case is directly used
+3. We then chain the axioms: thorough research → experts serious → award
+4. Since we've proven `award student`, we cannot prove its negation
+
+ANSWER: Failure

@@ -1,0 +1,52 @@
+The reasoning is structured to determine if the statement "Mary did not stock up on groceries" implies "prices went up at the supermarket recently" based on the given context. The formalization in Lean uses the following elements:
+
+- **Person** as a type for individuals, with **mary** as a constant.
+- **Sale**, **Payday**, **PriceUp** as propositions about the supermarket.
+- **StockUp**, **MakesList**, **Plans** as predicates over **Person**.
+
+The axioms correspond to the premises:
+1. If there's a sale, everyone stocks up: `Sale → ∀ x, StockUp x`
+2. Making a list implies planning: `∀ x, MakesList x → Plans x`
+3. Sale or not everyone plans: `Sale ∨ ¬ (∀ x, Plans x)`
+4. Payday implies everyone makes a list: `Payday → ∀ x, MakesList x`
+5. Payday or price increase (or both): `Payday ∨ PriceUp`
+
+Given that Mary did not stock up (`¬ StockUp mary`), the proof proceeds as follows:
+- **Step 1**: If there were a sale, Mary would stock up (Axiom 1). Contradiction with `¬ StockUp mary`, so `¬ Sale`.
+- **Step 2**: From `¬ Sale` and Axiom 3, `¬ (∀ x, Plans x)` (not everyone plans).
+- **Step 3**: If payday occurred, everyone would make a list (Axiom 4) and thus everyone would plan (Axiom 2). But `¬ (∀ x, Plans x)`, so `¬ Payday`.
+- **Step 4**: From `¬ Payday` and Axiom 5, `PriceUp` must hold.
+
+Thus, the conclusion **PriceUp** follows from the premises and the assumption about Mary.
+
+<lean>
+axiom Person : Type
+axiom mary : Person
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PriceUp : Prop
+axiom StockUp : Person → Prop
+axiom MakesList : Person → Prop
+axiom Plans : Person → Prop
+
+axiom A1 : Sale → ∀ x, StockUp x
+axiom A2 : ∀ x, MakesList x → Plans x
+axiom A3 : Sale ∨ ¬ (∀ x, Plans x)
+axiom A4 : Payday → ∀ x, MakesList x
+axiom A5 : Payday ∨ PriceUp
+
+theorem price_increase (h_mary : ¬ StockUp mary) : PriceUp :=
+  have no_sale : ¬ Sale := fun h_sale => h_mary (A1 h_sale mary)
+  have not_all_plan : ¬ (∀ x, Plans x) := by
+    cases A3 with
+    | inl h_sale => contradiction
+    | inr h => exact h
+  have no_payday : ¬ Payday := fun h_payday =>
+    have all_make_list : ∀ x, MakesList x := A4 h_payday
+    have all_plan : ∀ x, Plans x := fun x => A2 x (all_make_list x)
+    not_all_plan all_plan
+  show PriceUp from
+    Or.resolve_left A5 no_payday
+</lean>
+
+ANSWER: Yes

@@ -1,0 +1,50 @@
+<lean>
+axiom person : Type
+axiom John : person
+
+axiom CloseToLunch : Prop
+axiom CoworkersHungry : person → Prop
+axiom PreparedWell : person → Prop
+axiom ReadyForMeeting : person → Prop
+axiom Diligent : person → Prop
+
+-- If it is close to lunchtime, then their coworkers would be hungry (for John)
+axiom A1 : CloseToLunch → CoworkersHungry John
+-- If they prepared well for the presentation, then they would be ready for the meeting (for John)
+axiom A2 : PreparedWell John → ReadyForMeeting John
+-- Either it is close to lunchtime, or they are not ready, or both
+axiom A3 : CloseToLunch ∨ ¬ ReadyForMeeting John ∨ (CloseToLunch ∧ ¬ ReadyForMeeting John)
+-- Everyone: if someone is diligent, they prepare well
+axiom A4 : ∀ x : person, Diligent x → PreparedWell x
+
+-- From not hungry coworkers, deduce not ready
+theorem notHungry_implies_notReady : (¬ CoworkersHungry John) → (¬ ReadyForMeeting John) := by
+  intro nh
+  -- derive ¬ CloseToLunch
+  have ncl : ¬ CloseToLunch := by
+    intro cl
+    have h : CoworkersHungry John := A1 cl
+    exact nh h
+  -- use the disjunction to obtain ¬ ReadyForMeeting
+  have tri := A3
+  cases tri with
+  | inl cl =>
+      exact fun r => False.elim (ncl cl)
+  | inr rest =>
+      cases rest with
+      | inl nready => exact nready
+      | inr both =>
+          exact both.right
+
+-- From not hungry coworkers, deduce not diligent (contrary to the queried implication)
+theorem notHungry_implies_notDiligent : (¬ CoworkersHungry John) → (¬ Diligent John) := by
+  intro nh
+  have nready : ¬ ReadyForMeeting John := notHungry_implies_notReady nh
+  have nprep : ¬ PreparedWell John := by
+    intro prep
+    exact nready (A2 prep)
+  intro dj
+  exact nprep (A4 John dj)
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,44 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom FinishesEarly : obj → Prop
+axiom LongLunch : obj → Prop
+axiom Recharged : obj → Prop
+axiom Productive : obj → Prop
+axiom BringTreats : obj → Prop
+axiom Birthday : Prop
+
+-- If someone finishes ahead of schedule, they can take a long lunch.
+axiom R1 : ∀ x : obj, FinishesEarly x → LongLunch x
+-- If it's a coworker's birthday, people will bring in treats.
+axiom R2 : Birthday → ∀ x : obj, BringTreats x
+-- Either John's project gets done early, or it's a birthday, or both.
+axiom R3 : FinishesEarly John ∨ Birthday
+-- If someone takes a long lunch, they'll come back recharged.
+axiom R4 : ∀ x : obj, LongLunch x → Recharged x
+-- If someone comes back recharged, they'll have a very productive afternoon.
+axiom R5 : ∀ x : obj, Recharged x → Productive x
+
+theorem john_productive_from_not_treats : ¬ BringTreats John → Productive John :=
+by
+  intro hnot
+  -- From "Birthday → everyone brings treats", get ¬Birthday from ¬BringTreats John
+  have hnotB : ¬ Birthday := by
+    intro hb
+    have hbr : BringTreats John := (R2 hb) John
+    exact hnot hbr
+  -- From (FinishesEarly John ∨ Birthday) and ¬Birthday, get FinishesEarly John
+  have hFE : FinishesEarly John := by
+    cases R3 with
+    | inl h => exact h
+    | inr hb =>
+      have : False := hnotB hb
+      exact False.elim this
+  -- Chain implications to conclude Productive John
+  have hLL : LongLunch John := R1 John hFE
+  have hRec : Recharged John := R4 John hLL
+  exact R5 John hRec
+</lean>
+
+ANSWER: Yes

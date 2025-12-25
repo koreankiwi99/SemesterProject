@@ -1,0 +1,53 @@
+The reasoning involves proving that James did not plan his schedule well given that he is not going to the party. The axioms are derived from the context:
+
+1. If it's Friday, all students go to the party.
+2. If a student finishes homework, they watch the game.
+3. Either it's Friday or no student watches the game.
+4. If a student studies everyday, they finish homework.
+5. If someone plans their schedule well, they study everyday.
+
+Given James is a student and not going to the party, we deduce:
+- It cannot be Friday (otherwise James would go to the party).
+- Since it's not Friday, no student watches the game (from disjunction).
+- James doesn't watch the game.
+- James didn't finish homework (otherwise he'd watch the game).
+- James didn't study everyday (otherwise he'd finish homework).
+- Therefore, James did not plan his schedule well.
+
+<lean>
+axiom obj : Type
+axiom Friday : Prop
+axiom James : obj
+axiom Student : obj → Prop
+axiom GoesToParty : obj → Prop
+axiom FinishHomework : obj → Prop
+axiom WatchGame : obj → Prop
+axiom StudyEveryday : obj → Prop
+axiom PlanScheduleWell : obj → Prop
+
+axiom T_student : Student James
+axiom not_going : ¬GoesToParty James
+axiom R1 : Friday → (∀ x, Student x → GoesToParty x)
+axiom R2 : ∀ x, Student x → (FinishHomework x → WatchGame x)
+axiom R3 : Friday ∨ (∀ x, Student x → ¬WatchGame x)
+axiom R4 : ∀ x, Student x → (StudyEveryday x → FinishHomework x)
+axiom R5 : ∀ x, PlanScheduleWell x → StudyEveryday x
+
+theorem no_plan : ¬PlanScheduleWell James :=
+  fun h_plan : PlanScheduleWell James =>
+  have h_study : StudyEveryday James := R5 James h_plan
+  have h_homework : FinishHomework James := R4 James T_student h_study
+  have h_watch : WatchGame James := R2 James T_student h_homework
+  have not_friday : ¬Friday :=
+    fun h_fri : Friday =>
+    have h_goes : GoesToParty James := R1 h_fri James T_student
+    not_going h_goes
+  have h_no_watch : ∀ x, Student x → ¬WatchGame x :=
+    Or.elim R3
+      (fun h_fri : Friday => False.elim (not_friday h_fri))
+      (fun h : ∀ x, Student x → ¬WatchGame x => h)
+  have h_no_james_watch : ¬WatchGame James := h_no_watch James T_student
+  h_no_james_watch h_watch
+</lean>
+
+ANSWER: No

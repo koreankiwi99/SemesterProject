@@ -1,0 +1,73 @@
+The reasoning involves proving that if the kids did not go for a swim, then the players had smiles on their faces. The key steps are:
+1. From "if swimming pool is open, kids swim" (A2) and "kids did not swim" (¬KidsSwim), we get that the pool is not open (¬PoolOpen) by contraposition.
+2. From "either no rain or pool open" (A3) and ¬PoolOpen, we get that it did not rain (¬Rain) by disjunctive syllogism.
+3. From "if no rain, game scheduled" (A1) and ¬Rain, we get the game was scheduled (GameScheduled).
+4. From "if game scheduled, players enjoy" (A4) and GameScheduled, we get they enjoyed (EnjoyPlaying).
+5. From "if enjoy, smiles" (A5) and EnjoyPlaying, we get smiles (Smiles).
+
+Thus, ¬KidsSwim → Smiles is provable.
+
+<lean>
+axiom Rain : Prop
+axiom PoolOpen : Prop
+axiom KidsSwim : Prop
+axiom GameScheduled : Prop
+axiom EnjoyPlaying : Prop
+axiom Smiles : Prop
+
+axiom A1 : ¬Rain → GameScheduled
+axiom A2 : PoolOpen → KidsSwim
+axiom A3 : ¬Rain ∨ PoolOpen
+axiom A4 : GameScheduled → EnjoyPlaying
+axiom A5 : EnjoyPlaying → Smiles
+
+theorem players_smile : ¬KidsSwim → Smiles :=
+fun h : ¬KidsSwim =>
+have h1 : ¬PoolOpen := by
+  intro h2 : PoolOpen
+  have h3 : KidsSwim := A2 h2
+  contradiction
+have h2 : ¬Rain := by
+  cases A3 with
+  | inl no_rain => exact no_rain
+  | inr open_pool => contradiction
+have h3 : GameScheduled := A1 h2
+have h4 : EnjoyPlaying := A4 h3
+show Smiles from A5 h4
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to the way the contradiction was handled in the `have h1` and `have h2` blocks. The `contradiction` tactic wasn't able to resolve the goals automatically. The corrected code uses explicit function applications to handle the contradictions.
+
+<lean>
+axiom Rain : Prop
+axiom PoolOpen : Prop
+axiom KidsSwim : Prop
+axiom GameScheduled : Prop
+axiom EnjoyPlaying : Prop
+axiom Smiles : Prop
+
+axiom A1 : ¬Rain → GameScheduled
+axiom A2 : PoolOpen → KidsSwim
+axiom A3 : ¬Rain ∨ PoolOpen
+axiom A4 : GameScheduled → EnjoyPlaying
+axiom A5 : EnjoyPlaying → Smiles
+
+theorem players_smile : ¬KidsSwim → Smiles :=
+fun h : ¬KidsSwim =>
+have h1 : ¬PoolOpen := fun hPool => h (A2 hPool)
+have h2 : ¬Rain := by
+  cases A3 with
+  | inl no_rain => exact no_rain
+  | inr open_pool => exact False.elim (h1 open_pool)
+have h3 : GameScheduled := A1 h2
+have h4 : EnjoyPlaying := A4 h3
+A5 h4
+</lean>
+
+ANSWER: Yes

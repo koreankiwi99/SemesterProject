@@ -1,0 +1,31 @@
+Based on the context, we model the scenario in Lean. The key is the per-person disjunction: for each person, either they finish early or it's a birthday (or both). If John didn't bring treats, we can prove it's not a birthday (since birthdays require everyone to bring treats). Thus, John must have finished early, leading to a productive afternoon via the chain of rules.
+
+<lean>
+axiom Person : Type
+axiom John : Person
+axiom FinishesEarly : Person → Prop
+axiom CanTakeLongLunch : Person → Prop
+axiom office_birthday : Prop
+axiom BringsTreats : Person → Prop
+axiom Recharged : Person → Prop
+axiom ProductiveAfternoon : Person → Prop
+
+axiom A1 : ∀ p : Person, FinishesEarly p → CanTakeLongLunch p
+axiom A2 : office_birthday → ∀ p : Person, BringsTreats p
+axiom A3 : ∀ p : Person, FinishesEarly p ∨ office_birthday
+axiom A4 : ∀ p : Person, CanTakeLongLunch p → Recharged p
+axiom A5 : ∀ p : Person, Recharged p → ProductiveAfternoon p
+
+theorem productive_afternoon : ¬ BringsTreats John → ProductiveAfternoon John :=
+  fun h_no_treats : ¬ BringsTreats John =>
+  have h_no_birthday : ¬ office_birthday :=
+    fun h_bday : office_birthday => 
+    h_no_treats (A2 h_bday John)
+  have h_finishes_early : FinishesEarly John := 
+    Or.resolve_right (A3 John) h_no_birthday
+  have h_lunch : CanTakeLongLunch John := A1 John h_finishes_early
+  have h_recharged : Recharged John := A4 John h_lunch
+  show ProductiveAfternoon John from A5 John h_recharged
+</lean>
+
+ANSWER: Yes

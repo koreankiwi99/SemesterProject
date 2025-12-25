@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom NiceWeather : Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, they can relax outside.
+axiom R1 : ∀ x : obj, NiceWeather → RelaxOutside x
+-- If they read books, they packed enough.
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both.
+axiom R3 : ∀ x : obj, NiceWeather ∨ ¬ PackedEnough x ∨ (NiceWeather ∧ ¬ PackedEnough x)
+-- If someone is prepared, they read books.
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- From "Jake cannot relax outside" we can derive "Jake is not prepared".
+theorem not_prepared_of_not_relax : ¬ RelaxOutside Jake → ¬ Prepared Jake := by
+  intro hNotRelax
+  -- From "NiceWeather → Relax" and "¬Relax", get "¬NiceWeather".
+  have hNotNice : ¬ NiceWeather := by
+    intro hNice
+    have hRelax : RelaxOutside Jake := R1 Jake hNice
+    exact hNotRelax hRelax
+  -- Use the disjunction to get "¬PackedEnough Jake".
+  have hDisj : NiceWeather ∨ ¬ PackedEnough Jake ∨ (NiceWeather ∧ ¬ PackedEnough Jake) := R3 Jake
+  have hNotPacked : ¬ PackedEnough Jake := by
+    cases hDisj with
+    | inl hNice =>
+        exact False.elim (hNotNice hNice)
+    | inr hOr =>
+        cases hOr with
+        | inl hNP => exact hNP
+        | inr hAnd => exact hAnd.right
+  -- Prepared → Read → PackedEnough, contradicting ¬PackedEnough.
+  intro hPrep
+  have hRead : ReadBooks Jake := R4 Jake hPrep
+  have hPacked : PackedEnough Jake := R2 Jake hRead
+  exact hNotPacked hPacked
+
+-- Therefore, the statement "if Jake cannot relax outside, then he is prepared" is not derivable.
+-- In fact, we derived its negation: (¬ RelaxOutside Jake) → ¬ Prepared Jake.
+</lean>
+
+ANSWER: Failure

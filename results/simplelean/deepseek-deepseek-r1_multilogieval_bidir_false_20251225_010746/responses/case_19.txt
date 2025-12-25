@@ -1,0 +1,79 @@
+<lean>
+axiom GreatService : Prop
+axiom ReputationGrows : Prop
+axiom HostEvents : Prop
+axiom MoreCustomers : Prop
+axiom RevenueImproves : Prop
+
+axiom A1 : GreatService → ReputationGrows
+axiom A2 : HostEvents → MoreCustomers
+axiom A3 : GreatService ∨ HostEvents
+axiom A4 : MoreCustomers → RevenueImproves
+
+axiom T1 : ¬GreatService
+
+-- Attempt to prove ¬RevenueImproves
+theorem revenue_not_improve : ¬RevenueImproves := 
+  by
+    -- We have ¬GreatService (T1) and GreatService ∨ HostEvents (A3)
+    cases A3 with
+    | inl gs => contradiction  -- Contradiction with T1
+    | inr he => 
+        -- When HostEvents is true, MoreCustomers follows (A2)
+        have mc : MoreCustomers := A2 he
+        -- Then RevenueImproves follows (A4)
+        have ri : RevenueImproves := A4 mc
+        -- We now need to prove ¬RevenueImproves, but we have ri : RevenueImproves
+        -- This creates a contradiction only if we assume ¬RevenueImproves, but we don't have that
+        -- We cannot complete the proof of ¬RevenueImproves because we derived RevenueImproves
+        -- Thus the proof fails
+        admit  -- Cannot prove ¬RevenueImproves here
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the `contradiction` tactic in the first branch didn't automatically detect that `GreatService` and `¬GreatService` form a contradiction. This is fixed by explicitly deriving `False` using `T1 gs`. 
+
+However, even after fixing this, the proof fails in the second branch because:
+1. When `HostEvents` is true, we derive `RevenueImproves`
+2. We cannot prove `¬RevenueImproves` (revenue didn't improve) when we have evidence that revenue improved
+
+The premises imply that revenue must have improved since:
+- Service quality decreased (`¬GreatService`)
+- The store must host events (from `GreatService ∨ HostEvents` and `¬GreatService`)
+- Hosting events leads to more customers and improved revenue
+
+Thus we cannot prove the revenue didn't improve.
+
+<lean>
+axiom GreatService : Prop
+axiom ReputationGrows : Prop
+axiom HostEvents : Prop
+axiom MoreCustomers : Prop
+axiom RevenueImproves : Prop
+
+axiom A1 : GreatService → ReputationGrows
+axiom A2 : HostEvents → MoreCustomers
+axiom A3 : GreatService ∨ HostEvents
+axiom A4 : MoreCustomers → RevenueImproves
+
+axiom T1 : ¬GreatService
+
+-- Attempt to prove ¬RevenueImproves
+theorem revenue_not_improve : ¬RevenueImproves := 
+by
+  cases A3 with
+  | inl gs => 
+      exact False.elim (T1 gs)  -- Explicit contradiction
+  | inr he => 
+      have mc : MoreCustomers := A2 he
+      have ri : RevenueImproves := A4 mc
+      -- Cannot prove ¬RevenueImproves here
+      admit
+</lean>
+
+ANSWER: Failure

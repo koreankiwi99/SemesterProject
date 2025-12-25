@@ -1,0 +1,44 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+axiom StartsNewWorkout : Person → Prop
+axiom Motivated : Person → Prop
+axiom GymCloses : Prop
+axiom CannotFollowRoutine : Person → Prop
+axiom Frustrated : Person → Prop
+axiom IndulgeUnhealthySnacks : Person → Prop
+
+-- If someone starts a new workout, they become motivated
+axiom A1 : ∀ (p : Person), StartsNewWorkout p → Motivated p
+-- Gym closure causes James to lose routine (context-specific "they" refers to James)
+axiom A2 : GymCloses → CannotFollowRoutine James
+-- James either started workout or gym closed (or both)
+axiom A3 : StartsNewWorkout James ∨ GymCloses
+-- Routine failure causes frustration
+axiom A4 : ∀ (p : Person), CannotFollowRoutine p → Frustrated p
+-- Frustration causes unhealthy snacks
+axiom A5 : ∀ (p : Person), Frustrated p → IndulgeUnhealthySnacks p
+
+-- Given premise: James is not motivated
+axiom NotMotivatedJames : ¬ Motivated James
+
+-- Prove James indulged in unhealthy snacks
+theorem JamesIndulged : IndulgeUnhealthySnacks James := by
+  -- Show James didn't start new workout (contraposition of A1)
+  have NoStart : ¬ StartsNewWorkout James := 
+    fun h_start : StartsNewWorkout James => 
+    NotMotivatedJames (A1 James h_start)
+  -- From disjunction A3, since left branch (start) is false, gym must have closed
+  cases A3 with
+  | inl start => contradiction  -- contradicts NoStart
+  | inr closed =>
+      -- Gym closed → James can't follow routine (A2)
+      have CannotFollow : CannotFollowRoutine James := A2 closed
+      -- Routine failure → James frustrated (A4)
+      have Frust : Frustrated James := A4 James CannotFollow
+      -- Frustration → James indulges (A5)
+      exact A5 James Frust
+
+</lean>
+
+ANSWER: Yes

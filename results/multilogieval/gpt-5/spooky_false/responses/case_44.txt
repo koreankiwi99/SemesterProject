@@ -1,0 +1,150 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom PlantsGarden : obj → Prop
+axiom NeedsWater : obj → Prop
+axiom NeedsCare : obj → Prop
+axiom Drought : Prop
+axiom WateringBan : Prop
+axiom NotWatered : obj → Prop
+axiom GardenFails : obj → Prop
+
+-- If someone plants a garden, they will need to water and care for the plants.
+axiom R1 : ∀ x : obj, PlantsGarden x → (NeedsWater x ∧ NeedsCare x)
+-- If there is a drought, there will be a ban on watering gardens.
+axiom R2 : Drought → WateringBan
+-- Either they plant a garden, or there is a drought, or both.
+axiom R3 : PlantsGarden Mark ∨ Drought
+-- If there is a watering ban, the plants will not get enough water.
+axiom R4 : WateringBan → ∀ x : obj, NotWatered x
+-- If the plants don't get watered, the garden will fail to thrive.
+axiom R5 : ∀ x : obj, NotWatered x → GardenFails x
+
+-- Given: Mark did not need to care for garden plants.
+axiom G1 : ¬NeedsCare Mark
+
+-- From the given and R1, Mark did not plant a garden.
+lemma not_plants_mark : ¬PlantsGarden Mark := by
+  intro hplant
+  have hcare : NeedsCare Mark := (R1 Mark hplant).right
+  exact G1 hcare
+
+-- From the disjunction and not_plants_mark, we obtain drought.
+lemma drought_holds : Drought := by
+  cases R3 with
+  | inl hplant =>
+      have : False := not_plants_mark hplant
+      exact this.elim
+  | inr hd => exact hd
+
+-- Therefore, Mark's garden fails to thrive.
+theorem mark_garden_fails : GardenFails Mark := by
+  have hban : WateringBan := R2 drought_holds
+  have hnotw_all := R4 hban
+  have hnotw_mark : NotWatered Mark := hnotw_all Mark
+  exact R5 Mark hnotw_mark
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom PlantsGarden : obj → Prop
+axiom NeedsWater : obj → Prop
+axiom NeedsCare : obj → Prop
+axiom Drought : Prop
+axiom WateringBan : Prop
+axiom NotWatered : obj → Prop
+axiom GardenFails : obj → Prop
+
+-- If someone plants a garden, they will need to water and care for the plants.
+axiom R1 : ∀ x : obj, PlantsGarden x → (NeedsWater x ∧ NeedsCare x)
+-- If there is a drought, there will be a ban on watering gardens.
+axiom R2 : Drought → WateringBan
+-- Either they plant a garden, or there is a drought, or both.
+axiom R3 : PlantsGarden Mark ∨ Drought
+-- If there is a watering ban, the plants will not get enough water.
+axiom R4 : WateringBan → ∀ x : obj, NotWatered x
+-- If the plants don't get watered, the garden will fail to thrive.
+axiom R5 : ∀ x : obj, NotWatered x → GardenFails x
+
+-- Given: Mark did not need to care for garden plants.
+axiom G1 : ¬NeedsCare Mark
+
+-- From the given and R1, Mark did not plant a garden.
+lemma not_plants_mark : ¬PlantsGarden Mark := by
+  intro hplant
+  exact G1 ((R1 Mark hplant).right)
+
+-- From the disjunction and not_plants_mark, we obtain drought.
+lemma drought_holds : Drought := by
+  exact Or.resolve_left R3 not_plants_mark
+
+-- Therefore, Mark's garden fails to thrive.
+theorem mark_garden_fails : GardenFails Mark := by
+  have hban : WateringBan := R2 drought_holds
+  have hnotw_mark : NotWatered Mark := (R4 hban) Mark
+  exact R5 Mark hnotw_mark
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom PlantsGarden : obj → Prop
+axiom NeedsWater : obj → Prop
+axiom NeedsCare : obj → Prop
+axiom Drought : Prop
+axiom WateringBan : Prop
+axiom NotEnoughWater : obj → Prop
+axiom NotWatered : obj → Prop
+axiom GardenFails : obj → Prop
+
+-- If someone plants a garden, they will need to water and care for the plants.
+axiom R1 : ∀ x : obj, PlantsGarden x → (NeedsWater x ∧ NeedsCare x)
+-- If there is a drought, there will be a ban on watering gardens.
+axiom R2 : Drought → WateringBan
+-- Either they plant a garden, or there is a drought, or both.
+axiom R3 : PlantsGarden Mark ∨ Drought
+-- If there is a watering ban, the plants will not get enough water.
+axiom R4 : WateringBan → ∀ x : obj, NotEnoughWater x
+-- If the plants don't get watered, the garden will fail to thrive.
+axiom R5 : ∀ x : obj, NotWatered x → GardenFails x
+
+-- Given: Mark did not need to care for garden plants.
+axiom G1 : ¬NeedsCare Mark
+
+-- From the given and R1, Mark did not plant a garden.
+theorem not_plants_mark : ¬PlantsGarden Mark := by
+  intro hplant
+  have hpair : NeedsWater Mark ∧ NeedsCare Mark := R1 Mark hplant
+  have hcare : NeedsCare Mark := And.right hpair
+  exact G1 hcare
+
+-- From the disjunction and not_plants_mark, we obtain drought.
+theorem drought_holds : Drought := by
+  exact Or.resolve_left R3 not_plants_mark
+
+-- Therefore, a watering ban holds.
+theorem watering_ban_holds : WateringBan := R2 drought_holds
+
+-- Under the ban, Mark's plants do not get enough water (which is weaker than "not watered").
+theorem mark_not_enough_water : NotEnoughWater Mark := by
+  have h := R4 watering_ban_holds
+  exact h Mark
+</lean>
+
+ANSWER: Failure

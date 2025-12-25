@@ -1,0 +1,67 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom GoShop : obj → Prop
+axiom GetAll : obj → Prop
+axiom BeginMonth : Prop
+axiom SoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom A1 : ∀ x : obj, Sale → BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom A2 : ∀ x : obj, GoShop x → GetAll x
+-- Either the store has a sale, or John did not get everything on his list, or there was a sale and he still did not get all his groceries.
+axiom A3 : Sale ∨ ¬GetAll John ∨ (Sale ∧ ¬GetAll John)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom A4 : ∀ x : obj, BeginMonth → GoShop x
+-- Either it is the beginning of the month, or John's favorite cereal is sold out, or both.
+axiom A5 : BeginMonth ∨ SoldOut John ∨ (BeginMonth ∧ SoldOut John)
+
+-- Given for this query: John did not buy more items.
+axiom NBJ : ¬BuyMore John
+
+theorem john_cereal_soldout : SoldOut John :=
+by
+  -- ¬Sale from NBJ and A1
+  have not_sale : ¬Sale :=
+    fun s => NBJ (A1 John s)
+  -- BeginMonth → GetAll John
+  have begin_getall : BeginMonth → GetAll John :=
+    fun b => A2 John (A4 John b)
+  -- BeginMonth → Sale using A3 and that under BeginMonth we have GetAll John
+  have begin_sale : BeginMonth → Sale :=
+    fun b =>
+      let g : GetAll John := begin_getall b
+      show Sale from
+        by
+          have h := A3
+          apply Or.elim h
+          · intro hs; exact hs
+          · intro hr
+            apply Or.elim hr
+            · intro hnot
+              exact False.elim (hnot g)
+            · intro hpair
+              have hnot : ¬GetAll John := And.right hpair
+              exact False.elim (hnot g)
+  -- Therefore ¬BeginMonth
+  have not_begin : ¬BeginMonth :=
+    fun b => not_sale (begin_sale b)
+  -- From A5 and ¬BeginMonth, conclude SoldOut John
+  have h5 := A5
+  apply Or.elim h5
+  · intro hb
+    exact False.elim (not_begin hb)
+  · intro hr
+    apply Or.elim hr
+    · intro hs
+      exact hs
+    · intro hbhs
+      have hb := And.left hbhs
+      exact False.elim (not_begin hb)
+</lean>
+
+ANSWER: Yes

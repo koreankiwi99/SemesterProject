@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+-- Predicates
+axiom CloseToLunch : Prop
+axiom CoworkersHungry : obj → Prop
+axiom PreparedWell : obj → Prop
+axiom ReadyForMeeting : obj → Prop
+axiom Diligent : obj → Prop
+
+-- Premises
+-- If it is close to lunchtime, then coworkers are hungry (for anyone)
+axiom LunchHungryRule : ∀ x : obj, CloseToLunch → CoworkersHungry x
+-- If someone prepared well, then they are ready for the meeting
+axiom PrepImpliesReady : ∀ x : obj, PreparedWell x → ReadyForMeeting x
+-- Either it is close to lunchtime, or John is not ready, or it is close and John is not ready
+axiom DisjCertainty : CloseToLunch ∨ ¬ReadyForMeeting John ∨ (CloseToLunch ∧ ¬ReadyForMeeting John)
+-- Everyone understands: if someone is diligent, they prepare well
+axiom DiligentImpliesPrepared : ∀ x : obj, Diligent x → PreparedWell x
+
+-- Additional consistent facts to capture the scenario
+axiom NotCloseToLunch : ¬CloseToLunch
+axiom JohnsCoworkersNotHungry : ¬CoworkersHungry John
+
+-- Goal: prove the negation of the statement
+-- "If John's coworkers are not hungry, then he is diligent"
+theorem not_if_notHungry_then_diligent : ¬(¬CoworkersHungry John → Diligent John) :=
+by
+  -- Derive ¬ReadyForMeeting John from the disjunction and ¬CloseToLunch
+  have notReady : ¬ReadyForMeeting John :=
+    by
+      cases DisjCertainty with
+      | inl hLunch =>
+          exact (fun _ => False.elim (NotCloseToLunch hLunch))
+      | inr h =>
+          cases h with
+          | inl hNotReady => exact hNotReady
+          | inr hBoth => exact hBoth.right
+  -- Derive ¬PreparedWell John from ¬Ready and (PreparedWell → Ready)
+  have notPrepared : ¬PreparedWell John :=
+    by
+      intro hPrep
+      exact notReady (PrepImpliesReady John hPrep)
+  -- Derive ¬Diligent John from ¬Prepared and (Diligent → Prepared)
+  have notDiligent : ¬Diligent John :=
+    by
+      intro hDil
+      exact notPrepared (DiligentImpliesPrepared John hDil)
+  -- Now refute the implication using antecedent true and consequent false
+  intro himp
+  exact notDiligent (himp JohnsCoworkersNotHungry)
+</lean>
+
+ANSWER: No

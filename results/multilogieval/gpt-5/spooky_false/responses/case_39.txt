@@ -1,0 +1,57 @@
+<lean>
+axiom Person : Type
+axiom Alex : Person
+
+axiom Monday : Prop
+axiom Quiz : Prop
+
+axiom Good : Person → Prop
+axiom StudiedHard : Person → Prop
+axiom DidWell : Person → Prop
+axiom HopedDoWell : Person → Prop
+
+-- If it was Monday, then there would be a quiz.
+axiom A1 : Monday → Quiz
+
+-- If they do well on the quiz, then they studied hard.
+axiom A2 : ∀ x : Person, DidWell x → StudiedHard x
+
+-- Someone who is good at math does well on quizzes.
+axiom A3 : ∀ x : Person, Good x → DidWell x
+
+-- They were sure that either it was Monday, or they did not study hard, or it was Monday and they did not study hard.
+axiom A4 : Monday ∨ ¬StudiedHard Alex ∨ (Monday ∧ ¬StudiedHard Alex)
+
+-- They hoped to do well on the quiz (irrelevant to logical consequence).
+axiom A5 : HopedDoWell Alex
+
+-- Some derived facts (useful but insufficient to refute the implication):
+theorem good_implies_studied_Alex : Good Alex → StudiedHard Alex := by
+  intro g
+  have dw : DidWell Alex := A3 Alex g
+  exact A2 Alex dw
+
+theorem not_studied_implies_not_good_Alex : ¬StudiedHard Alex → ¬Good Alex := by
+  intro ns
+  intro g
+  exact ns (good_implies_studied_Alex g)
+
+theorem monday_or_not_good_Alex : Monday ∨ ¬Good Alex := by
+  have h : Monday ∨ ¬StudiedHard Alex := by
+    cases A4 with
+    | inl m => exact Or.inl m
+    | inr rest =>
+      cases rest with
+      | inl ns => exact Or.inr ns
+      | inr both => exact Or.inl both.left
+  cases h with
+  | inl m => exact Or.inl m
+  | inr ns => exact Or.inr (not_studied_implies_not_good_Alex ns)
+
+theorem quiz_or_not_good_Alex : Quiz ∨ ¬Good Alex := by
+  cases monday_or_not_good_Alex with
+  | inl m => exact Or.inl (A1 m)
+  | inr ng => exact Or.inr ng
+</lean>
+
+ANSWER: Failure

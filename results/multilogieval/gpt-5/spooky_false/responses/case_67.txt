@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom StoveOn : Prop
+axiom KitchenHot : Prop
+axiom MakePancakes : obj → Prop
+axiom UseStove : obj → Prop
+axiom Hungry : obj → Prop
+axiom AteDinner : obj → Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove.
+axiom R2 : ∀ x : obj, MakePancakes x → UseStove x
+-- Either the stove was on, or they did not use the stove (for any person).
+axiom R3 : ∀ x : obj, StoveOn ∨ ¬UseStove x
+-- If someone is hungry, they make pancakes.
+axiom R4 : ∀ x : obj, Hungry x → MakePancakes x
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R5 : ¬AteDinner Sam → Hungry Sam
+
+-- From "The kitchen did not get hot" we can derive "¬¬(Sam ate dinner last night)".
+theorem not_not_ate_if_kitchen_not_hot : ¬KitchenHot → ¬¬AteDinner Sam := by
+  intro notHot
+  -- From not hot and (StoveOn → KitchenHot), get ¬StoveOn.
+  have notStove : ¬StoveOn := by
+    intro hOn
+    exact notHot (R1 hOn)
+  -- From (StoveOn ∨ ¬UseStove Sam) and ¬StoveOn, get ¬UseStove Sam.
+  have notUse : ¬UseStove Sam := by
+    have disj := R3 Sam
+    cases disj with
+    | inl hOn =>
+        intro _
+        exact notStove hOn
+    | inr h =>
+        exact h
+  -- From (MakePancakes Sam → UseStove Sam) and ¬UseStove Sam, get ¬MakePancakes Sam.
+  have notPanc : ¬MakePancakes Sam := by
+    intro hp
+    exact notUse (R2 Sam hp)
+  -- From (Hungry Sam → MakePancakes Sam) and ¬MakePancakes Sam, get ¬Hungry Sam.
+  have notHungry : ¬Hungry Sam := by
+    intro hh
+    exact notPanc (R4 Sam hh)
+  -- From (¬AteDinner Sam → Hungry Sam) and ¬Hungry Sam, get ¬¬AteDinner Sam.
+  intro notEat
+  exact notHungry (R5 notEat)
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom PracticedHard : obj → Prop
+axiom PlayWell : obj → Prop
+axiom PickedStart : obj → Prop
+axiom Talented : obj → Prop
+axiom NaturalTalent : obj → Prop
+axiom TopYouth : obj → Prop
+
+-- If someone practiced hard, then they would play well.
+axiom A1 : ∀ x : obj, PracticedHard x → PlayWell x
+-- If someone is picked to start, then they are talented.
+axiom A2 : ∀ x : obj, PickedStart x → Talented x
+-- Either they practiced hard, or they are not talented.
+axiom A3 : ∀ x : obj, PracticedHard x ∨ ¬Talented x
+-- If someone has natural talent, then they get picked to start.
+axiom A4 : ∀ x : obj, NaturalTalent x → PickedStart x
+-- If someone was a top youth player, then they have natural talent.
+axiom A5 : ∀ x : obj, TopYouth x → NaturalTalent x
+
+-- From being a top youth player, one plays well.
+theorem topYouth_implies_playWell : ∀ x : obj, TopYouth x → PlayWell x := by
+  intro x
+  intro hTY
+  have hNat : NaturalTalent x := A5 x hTY
+  have hPick : PickedStart x := A4 x hNat
+  have hTal : Talented x := A2 x hPick
+  have disj : PracticedHard x ∨ ¬Talented x := A3 x
+  have nnTal : ¬¬Talented x := by
+    intro nTal
+    exact nTal hTal
+  have hPH : PracticedHard x := by
+    cases disj with
+    | inl hph => exact hph
+    | inr nTal =>
+      have contra : False := nnTal nTal
+      exact False.elim contra
+  exact A1 x hPH
+
+-- Contrapositive for James: if James did not play well, then he was not a top youth player.
+theorem not_playWell_implies_not_topYouth_James : ¬PlayWell James → ¬TopYouth James := by
+  intro hNotPW
+  intro hTY
+  have hPW : PlayWell James := topYouth_implies_playWell James hTY
+  exact hNotPW hPW
+
+-- Assuming the questioned implication, we can only derive ¬¬PlayWell James (not a contradiction).
+theorem questioned_implication_gives_notnotPW :
+  (¬PlayWell James → TopYouth James) → ¬¬PlayWell James := by
+  intro hImp
+  intro hNotPW
+  have hTY : TopYouth James := hImp hNotPW
+  have hNotTY : ¬TopYouth James := not_playWell_implies_not_topYouth_James hNotPW
+  exact hNotTY hTY
+</lean>
+
+ANSWER: Failure

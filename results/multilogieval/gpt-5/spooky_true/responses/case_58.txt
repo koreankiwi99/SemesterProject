@@ -1,0 +1,63 @@
+<lean>
+axiom obj : Type
+
+axiom AddsSalt : obj → Prop
+axiom Stirs : obj → Prop
+axiom Tastes : obj → Prop
+axiom PrepareSalad : obj → Prop
+
+axiom Savory : Prop
+axiom Thickens : Prop
+
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+axiom R2 : ∀ x : obj, Stirs x → Thickens
+axiom L1 : (∃ x : obj, AddsSalt x) ∨ (¬ Thickens) ∨ ((∃ x : obj, AddsSalt x) ∧ (¬ Thickens))
+axiom R3 : ∀ x : obj, Tastes x → Stirs x
+axiom Secret : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PrepareSalad x) ∨ ((∃ x : obj, Tastes x) ∧ (∃ x : obj, PrepareSalad x))
+
+theorem salad_from_not_savory : ¬ Savory → ∃ x : obj, PrepareSalad x := by
+  intro hnsav
+  have hnoAdd : ¬ ∃ x : obj, AddsSalt x := by
+    intro hex
+    cases hex with
+    | intro x hx =>
+      have hsav : Savory := R1 x hx
+      exact hnsav hsav
+  have hB_or_AandB : (¬ Thickens) ∨ ((∃ x : obj, AddsSalt x) ∧ (¬ Thickens)) := by
+    cases L1 with
+    | inl hA =>
+      have : False := hnoAdd hA
+      exact this.elim
+    | inr hrest =>
+      exact hrest
+  have hnotThick : ¬ Thickens := by
+    cases hB_or_AandB with
+    | inl hB => exact hB
+    | inr hAandB => exact hAandB.right
+  have hnoStir : ¬ ∃ x : obj, Stirs x := by
+    intro hex
+    cases hex with
+    | intro x hx =>
+      have ht : Thickens := R2 x hx
+      exact hnotThick ht
+  have hnoTaste : ¬ ∃ x : obj, Tastes x := by
+    intro hex
+    cases hex with
+    | intro x hx =>
+      have hs : Stirs x := R3 x hx
+      have : ∃ x : obj, Stirs x := ⟨x, hs⟩
+      exact hnoStir this
+  have hS_or_TandS : (∃ x : obj, PrepareSalad x) ∨ ((∃ x : obj, Tastes x) ∧ (∃ x : obj, PrepareSalad x)) := by
+    cases Secret with
+    | inl hT =>
+      have : False := hnoTaste hT
+      exact this.elim
+    | inr hrest =>
+      exact hrest
+  cases hS_or_TandS with
+  | inl hS => exact hS
+  | inr hTS =>
+    exact hTS.right
+</lean>
+
+ANSWER: Yes

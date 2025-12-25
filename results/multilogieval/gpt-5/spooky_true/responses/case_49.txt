@@ -1,0 +1,50 @@
+<lean>
+axiom WetDriveway : Prop
+axiom RainedRecently : Prop
+axiom WashedCar : Prop
+axiom HoseUncoiled : Prop
+axiom SpongeSoapy : Prop
+axiom UsedWaterOnDriveway : Prop
+
+-- If the driveway is wet, then it must have rained recently.
+axiom A1 : WetDriveway → RainedRecently
+-- If someone washed their car, then they used water on the driveway.
+axiom A2 : WashedCar → UsedWaterOnDriveway
+-- Either the driveway is wet, or no one washed their car, or the driveway is wet even though no one washed their car.
+axiom A3 : WetDriveway ∨ ¬ WashedCar ∨ (WetDriveway ∧ ¬ WashedCar)
+-- If the hose is uncoiled, it means someone was washing their car.
+axiom A4 : HoseUncoiled → WashedCar
+-- Either the hose is uncoiled, or the sponge is soapy, or both.
+axiom A5 : HoseUncoiled ∨ SpongeSoapy ∨ (HoseUncoiled ∧ SpongeSoapy)
+
+theorem sponge_soapy_of_no_rain : ¬ RainedRecently → SpongeSoapy := by
+  intro hNoRain
+  -- From not rain and (Wet → Rain), get not wet
+  have hNotWet : ¬ WetDriveway := by
+    intro hWet
+    exact hNoRain (A1 hWet)
+  -- From the trichotomy about wet/washed, and not wet, deduce not washed
+  have hNotWashed : ¬ WashedCar := by
+    cases A3 with
+    | inl hWet =>
+        exact False.elim (hNotWet hWet)
+    | inr h =>
+        cases h with
+        | inl hNW => exact hNW
+        | inr hConj => exact hConj.right
+  -- From (Hose → Washed) and not washed, get not hose
+  have hNotHose : ¬ HoseUncoiled := by
+    intro hHose
+    exact hNotWashed (A4 hHose)
+  -- From the trichotomy about hose/sponge, and not hose, deduce sponge soapy
+  have hSponge : SpongeSoapy := by
+    cases A5 with
+    | inl hHose => exact False.elim (hNotHose hHose)
+    | inr h =>
+        cases h with
+        | inl hSp => exact hSp
+        | inr hConj => exact hConj.right
+  exact hSponge
+</lean>
+
+ANSWER: Yes

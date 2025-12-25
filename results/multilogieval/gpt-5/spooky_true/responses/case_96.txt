@@ -1,0 +1,48 @@
+<lean>
+axiom Person : Type
+axiom Exam : Type
+
+axiom Alex : Person
+axiom Biology : Exam
+axiom History : Exam
+
+-- Predicates
+axiom StudiedHard : Person → Exam → Prop
+axiom ConfidentOnExam : Person → Exam → Prop
+axiom SevereWeatherForecast : Prop
+axiom ClassCanceledDueToWeather : Prop
+axiom DoesWellOnExam : Person → Exam → Prop
+axiom SatisfiedWithHardWork : Person → Prop
+axiom SatisfiedWithPerformanceOnExam : Person → Exam → Prop
+
+-- Premises
+axiom P1 : ∀ p e, StudiedHard p e → ConfidentOnExam p e
+-- P2 is intentionally weak ("may cancel") and does not give a usable implication
+-- of cancellation from severe weather in this classical setting.
+axiom P3 : StudiedHard Alex Biology ∨ ¬ ClassCanceledDueToWeather
+axiom P4 : ∀ p e, ConfidentOnExam p e → DoesWellOnExam p e
+axiom P5 : ∀ p e, DoesWellOnExam p e → SatisfiedWithHardWork p
+
+-- From the disjunction and an actual cancellation, we can deduce Alex studied for Biology.
+theorem studied_bio_if_canceled : ClassCanceledDueToWeather → StudiedHard Alex Biology :=
+fun hCancel =>
+  Or.elim P3
+    (fun hStudy => hStudy)
+    (fun hNotCancel => False.elim (hNotCancel hCancel))
+
+-- Chaining gives: if class was canceled, Alex is satisfied with his hard work.
+theorem canceled_implies_satisfied_hard_work : ClassCanceledDueToWeather → SatisfiedWithHardWork Alex :=
+fun hCancel =>
+  let hStudy := studied_bio_if_canceled hCancel
+  let hConf := P1 Alex Biology hStudy
+  let hWell := P4 Alex Biology hConf
+  P5 Alex Biology hWell
+
+-- Note: There is no way, from the given premises, to derive that
+-- SevereWeatherForecast implies SatisfiedWithPerformanceOnExam Alex History.
+-- We lack (1) that severe weather entails actual cancellation,
+-- (2) any link from Biology to History, and
+-- (3) any premise connecting "satisfied with hard work" to "satisfied with performance on the history exam".
+</lean>
+
+ANSWER: Failure

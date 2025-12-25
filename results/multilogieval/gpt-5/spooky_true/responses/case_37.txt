@@ -1,0 +1,53 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom Nice : Prop                      -- the weather is nice
+axiom RelaxOutside : obj → Prop        -- can relax outside
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then they can relax outside.
+axiom R1 : ∀ x : obj, Nice → RelaxOutside x
+-- If they read books, they packed enough.
+axiom R2 : ∀ x : obj, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both.
+axiom R3 : ∀ x : obj, Nice ∨ ¬ PackedEnough x ∨ (Nice ∧ ¬ PackedEnough x)
+-- If someone is prepared, they read books.
+axiom R4 : ∀ x : obj, Prepared x → ReadBooks x
+
+-- From "cannot relax outside" we derive "not prepared" for Jake.
+theorem not_prepared_of_not_relax : ¬ RelaxOutside Jake → ¬ Prepared Jake := by
+  intro hNotRelax
+  -- From ¬Relax we get ¬Nice (contrapositive of R1)
+  have hNotNice : ¬ Nice := by
+    intro hNice
+    have hRelax : RelaxOutside Jake := R1 Jake hNice
+    exact hNotRelax hRelax
+  -- Use the disjunction to derive ¬PackedEnough Jake
+  have hDisj : Nice ∨ ¬ PackedEnough Jake ∨ (Nice ∧ ¬ PackedEnough Jake) := R3 Jake
+  have hNotPacked : ¬ PackedEnough Jake := by
+    cases hDisj with
+    | inl hNice =>
+      -- Contradiction with ¬Nice; from False define any function PackedEnough → False
+      have contra : False := hNotNice hNice
+      intro _; exact contra
+    | inr rest =>
+      cases rest with
+      | inl hNP =>
+        exact hNP
+      | inr hNiceAndNP =>
+        exact And.right hNiceAndNP
+  -- Prepared → PackedEnough (via ReadBooks)
+  have hPrepImpPacked : Prepared Jake → PackedEnough Jake := by
+    intro hPrep
+    have hRead : ReadBooks Jake := R4 Jake hPrep
+    exact R2 Jake hRead
+  -- Contradict Prepared using ¬PackedEnough
+  intro hPrep
+  have hPacked : PackedEnough Jake := hPrepImpPacked hPrep
+  exact hNotPacked hPacked
+</lean>
+
+ANSWER: Failure

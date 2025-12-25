@@ -1,0 +1,61 @@
+<lean>
+axiom Person : Type
+axiom AddsSalt : Person → Prop
+axiom Stirs : Person → Prop
+axiom Tastes : Person → Prop
+axiom Salad : Person → Prop
+
+axiom Savory : Prop
+axiom Thickens : Prop
+
+-- If someone adds salt, the stew becomes savory.
+axiom R1 : ∀ x : Person, AddsSalt x → Savory
+-- If someone stirs continuously, the stew thickens perfectly.
+axiom R2 : ∀ x : Person, Stirs x → Thickens
+-- Unwritten law: either someone adds salt, or the stew does not thicken perfectly,
+-- or both someone adds salt and the stew doesn't thicken perfectly.
+axiom Law1 :
+  (∃ x : Person, AddsSalt x) ∨ ¬Thickens ∨ ((∃ x : Person, AddsSalt x) ∧ ¬Thickens)
+-- If someone tastes the stew, they stir it continuously.
+axiom R3 : ∀ x : Person, Tastes x → Stirs x
+-- Secret: either someone tastes the stew, or someone prepares a salad, or both.
+axiom Secret :
+  (∃ x : Person, Tastes x) ∨ (∃ x : Person, Salad x) ∨ ((∃ x : Person, Tastes x) ∧ (∃ x : Person, Salad x))
+
+-- From "the stew is not savory", we can derive that someone prepared a salad.
+theorem salad_exists_from_not_savory : ¬Savory → ∃ x : Person, Salad x := by
+  intro hNotSav
+  -- No one added salt.
+  have hNoAdd : ¬(∃ x : Person, AddsSalt x) := by
+    intro h
+    cases h with
+    | intro w hw =>
+      have : Savory := R1 w hw
+      exact hNotSav this
+  -- Therefore, by the unwritten law, the stew does not thicken perfectly.
+  have hNotThick : ¬Thickens := by
+    cases Law1 with
+    | inl hAdd => exact False.elim (hNoAdd hAdd)
+    | inr h =>
+      cases h with
+      | inl hNT => exact hNT
+      | inr hBoth => exact hBoth.right
+  -- Hence, no one tasted the stew (since tasting would force thickening).
+  have hNoTaste : ¬(∃ x : Person, Tastes x) := by
+    intro h
+    cases h with
+    | intro t ht =>
+      have : Thickens := R2 t (R3 t ht)
+      exact hNotThick this
+  -- Using the secret, it follows that someone prepared a salad.
+  have : ∃ x : Person, Salad x := by
+    cases Secret with
+    | inl hTaste => exact False.elim (hNoTaste hTaste)
+    | inr h =>
+      cases h with
+      | inl hSal => exact hSal
+      | inr hBoth => exact hBoth.right
+  exact this
+</lean>
+
+ANSWER: Failure

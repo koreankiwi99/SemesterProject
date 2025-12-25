@@ -1,0 +1,87 @@
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom CloseToDinner : obj → Prop
+axiom StartCooking : obj → Prop
+axiom GoShopping : obj → Prop
+axiom MakeDinner : obj → Prop
+axiom FridgeEmpty : obj → Prop
+axiom PantryEmpty : obj → Prop
+
+axiom A1 : ∀ x : obj, CloseToDinner x → StartCooking x
+axiom A2 : ∀ x : obj, GoShopping x → MakeDinner x
+axiom A3 : ∀ x : obj, CloseToDinner x ∨ ¬ MakeDinner x
+axiom A4 : ∀ x : obj, FridgeEmpty x → GoShopping x
+axiom A5 : ∀ x : obj, PantryEmpty x → FridgeEmpty x
+
+lemma notPantry_of_notMake : ∀ x : obj, ¬ MakeDinner x → ¬ PantryEmpty x :=
+  fun x hnotM =>
+    let notShop : ¬ GoShopping x := fun hs => hnotM (A2 x hs)
+    let notFridge : ¬ FridgeEmpty x := fun hf => notShop (A4 x hf)
+    fun hp => notFridge (A5 x hp)
+
+lemma close_of_make : ∀ x : obj, MakeDinner x → CloseToDinner x :=
+  fun x hM =>
+    Or.elim (A3 x)
+      (fun hC => hC)
+      (fun hnotM => False.elim (hnotM hM))
+
+lemma start_of_make : ∀ x : obj, MakeDinner x → StartCooking x :=
+  fun x hM => A1 x (close_of_make x hM)
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Sam : obj
+
+axiom CloseToDinner : obj → Prop
+axiom StartCooking : obj → Prop
+axiom GoShopping : obj → Prop
+axiom MakeDinner : obj → Prop
+axiom FridgeEmpty : obj → Prop
+axiom PantryEmpty : obj → Prop
+
+axiom A1 : ∀ x : obj, CloseToDinner x → StartCooking x
+axiom A2 : ∀ x : obj, GoShopping x → MakeDinner x
+axiom A3 : ∀ x : obj, CloseToDinner x ∨ ¬ MakeDinner x
+axiom A4 : ∀ x : obj, FridgeEmpty x → GoShopping x
+axiom A5 : ∀ x : obj, PantryEmpty x → FridgeEmpty x
+
+theorem close_of_make : ∀ x : obj, MakeDinner x → CloseToDinner x := by
+  intro x hM
+  have h := A3 x
+  cases h with
+  | inl hC => exact hC
+  | inr hnotM => exact False.elim (hnotM hM)
+
+theorem start_of_make : ∀ x : obj, MakeDinner x → StartCooking x := by
+  intro x hM
+  exact A1 x (close_of_make x hM)
+
+theorem notPantry_of_notMake : ∀ x : obj, ¬ MakeDinner x → ¬ PantryEmpty x := by
+  intro x hnotM
+  intro hPantry
+  have hf : FridgeEmpty x := A5 x hPantry
+  have hs : GoShopping x := A4 x hf
+  have hM : MakeDinner x := A2 x hs
+  exact hnotM hM
+
+theorem start_of_pantry : ∀ x : obj, PantryEmpty x → StartCooking x := by
+  intro x hP
+  have hf : FridgeEmpty x := A5 x hP
+  have hs : GoShopping x := A4 x hf
+  have hM : MakeDinner x := A2 x hs
+  exact start_of_make x hM
+
+theorem pantry_implies_start_Sam : PantryEmpty Sam → StartCooking Sam := by
+  exact start_of_pantry Sam
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,123 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom GoShop : obj → Prop
+axiom GetAll : obj → Prop
+axiom BeginMonth : Prop
+axiom SoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom R1 : Sale → ∀ x : obj, BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom R2 : ∀ x : obj, GoShop x → GetAll x
+-- Either the store has a sale, or they did not get everything on their list, or there was a sale and they still did not get all their groceries.
+axiom R3 : ∀ x : obj, Sale ∨ ¬GetAll x ∨ (Sale ∧ ¬GetAll x)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom R4 : ∀ x : obj, BeginMonth → GoShop x
+-- Either it is the beginning of the month, or their favorite cereal is sold out, or both.
+axiom R5 : ∀ x : obj, BeginMonth ∨ SoldOut x ∨ (BeginMonth ∧ SoldOut x)
+
+-- Given: John did not buy more items.
+axiom H_notBuyJohn : ¬BuyMore John
+
+-- From the above, we can actually prove that John's favorite cereal was sold out.
+lemma not_sale : ¬Sale := by
+  intro hS
+  have hAll := R1 hS
+  have hBMJ := hAll John
+  exact H_notBuyJohn hBMJ
+
+lemma john_not_getall : ¬GetAll John := by
+  have h := R3 John
+  cases h with
+  | inl hS =>
+      exact False.elim (not_sale hS)
+  | inr h2 =>
+      cases h2 with
+      | inl hNotGA => exact hNotGA
+      | inr hSandNot =>
+          exact hSandNot.right
+
+lemma not_begin : ¬BeginMonth := by
+  intro hB
+  have hGS : GoShop John := R4 John hB
+  have hGA : GetAll John := R2 John hGS
+  exact john_not_getall hGA
+
+theorem soldout_john : SoldOut John := by
+  have h := R5 John
+  cases h with
+  | inl hB => exact False.elim (not_begin hB)
+  | inr h2 =>
+      cases h2 with
+      | inl hSO => exact hSO
+      | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom GoShop : obj → Prop
+axiom GetAll : obj → Prop
+axiom BeginMonth : Prop
+axiom SoldOut : obj → Prop
+
+-- If the store has a sale, then people will buy more items.
+axiom R1 : Sale → ∀ x : obj, BuyMore x
+-- If someone goes grocery shopping, then they will get everything on their list.
+axiom R2 : ∀ x : obj, GoShop x → GetAll x
+-- Either the store has a sale, or they did not get everything on their list, or there was a sale and they still did not get all their groceries.
+axiom R3 : ∀ x : obj, Sale ∨ ¬GetAll x ∨ (Sale ∧ ¬GetAll x)
+-- If it is the beginning of the month, then people go grocery shopping.
+axiom R4 : ∀ x : obj, BeginMonth → GoShop x
+-- Either it is the beginning of the month, or their favorite cereal is sold out, or both.
+axiom R5 : ∀ x : obj, BeginMonth ∨ SoldOut x ∨ (BeginMonth ∧ SoldOut x)
+
+-- Given: John did not buy more items.
+axiom H_notBuyJohn : ¬BuyMore John
+
+theorem not_sale : ¬Sale := by
+  intro hS
+  have hBMJ : BuyMore John := (R1 hS) John
+  exact H_notBuyJohn hBMJ
+
+theorem john_not_getall : ¬GetAll John := by
+  have h := R3 John
+  cases h with
+  | inl hS =>
+      exact False.elim (not_sale hS)
+  | inr h2 =>
+      cases h2 with
+      | inl hNotGA => exact hNotGA
+      | inr hSandNot =>
+          exact hSandNot.right
+
+theorem not_begin : ¬BeginMonth := by
+  intro hB
+  have hGS : GoShop John := R4 John hB
+  have hGA : GetAll John := R2 John hGS
+  exact john_not_getall hGA
+
+theorem soldout_john : SoldOut John := by
+  have h := R5 John
+  cases h with
+  | inl hB => exact False.elim (not_begin hB)
+  | inr h2 =>
+      cases h2 with
+      | inl hSO => exact hSO
+      | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Failure

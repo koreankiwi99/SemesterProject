@@ -1,0 +1,47 @@
+<lean>
+axiom Person : Type
+axiom Mary : Person
+axiom They : Person → Prop
+axiom LearnedBotany : Person → Prop
+axiom UnderstandsPlantNeeds : Person → Prop
+axiom PlantsThrived : Person → Prop
+axiom SoughtAdvice : Person → Prop
+
+-- If they learned about botany, they would understand plant needs.
+axiom R1 : ∀ x : Person, They x → (LearnedBotany x → UnderstandsPlantNeeds x)
+-- If they understood plant needs, they could grow thriving plants.
+axiom R2 : ∀ x : Person, They x → (UnderstandsPlantNeeds x → PlantsThrived x)
+-- Either they learned about botany, or they sought advice from experienced gardeners (or both).
+axiom R3 : ∀ x : Person, They x → (LearnedBotany x ∨ SoughtAdvice x)
+
+-- Mary is one of "they".
+axiom Mary_in_group : They Mary
+-- Mary's plants did not thrive.
+axiom NotThrived : ¬ PlantsThrived Mary
+
+-- From the premises, we can derive that Mary sought advice.
+theorem mary_sought_advice : SoughtAdvice Mary := by
+  have h1 : LearnedBotany Mary → UnderstandsPlantNeeds Mary := by
+    intro hLB
+    have : LearnedBotany Mary → UnderstandsPlantNeeds Mary := R1 Mary Mary_in_group
+    exact this hLB
+  have h2 : UnderstandsPlantNeeds Mary → PlantsThrived Mary := by
+    intro hUN
+    have : UnderstandsPlantNeeds Mary → PlantsThrived Mary := R2 Mary Mary_in_group
+    exact this hUN
+  have hLT : LearnedBotany Mary → PlantsThrived Mary := by
+    intro hLB
+    exact h2 (h1 hLB)
+  have hNotLB : ¬ LearnedBotany Mary := by
+    intro hLB
+    have hT : PlantsThrived Mary := hLT hLB
+    exact NotThrived hT
+  have hDisj : LearnedBotany Mary ∨ SoughtAdvice Mary := R3 Mary Mary_in_group
+  cases hDisj with
+  | inl hLB =>
+      exact False.elim (hNotLB hLB)
+  | inr hSA =>
+      exact hSA
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,40 @@
+<lean>
+axiom obj : Type
+axiom Person : obj
+
+-- Predicates
+axiom SavedAggressively : obj → Prop
+axiom ImprovedCredit : obj → Prop
+axiom AffordDownPayment : obj → Prop
+axiom QualifiedMortgage : obj → Prop
+axiom BuyDreamHome : obj → Prop
+
+-- Premises for this specific person
+axiom save_implies_afford : SavedAggressively Person → AffordDownPayment Person
+axiom improve_implies_qualify : ImprovedCredit Person → QualifiedMortgage Person
+axiom qualify_implies_buy : QualifiedMortgage Person → BuyDreamHome Person
+axiom save_or_improve : SavedAggressively Person ∨ ImprovedCredit Person
+axiom not_afford : ¬AffordDownPayment Person
+
+-- From the premises and the fact they could not afford a down payment, we can still derive they buy their dream home.
+theorem person_buys : BuyDreamHome Person := by
+  -- From (SavedAggressively → AffordDownPayment) and ¬AffordDownPayment, derive ¬SavedAggressively (modus tollens)
+  have not_saved : ¬SavedAggressively Person := by
+    intro hs
+    have h_afford : AffordDownPayment Person := save_implies_afford hs
+    exact not_afford h_afford
+  -- From (SavedAggressively ∨ ImprovedCredit) and ¬SavedAggressively, derive ImprovedCredit
+  have h_improved : ImprovedCredit Person := by
+    cases save_or_improve with
+    | inl hs =>
+        have f : False := not_saved hs
+        exact False.elim f
+    | inr hi =>
+        exact hi
+  -- Chain implications to get the purchase
+  have h_qual : QualifiedMortgage Person := improve_implies_qualify h_improved
+  have h_buy : BuyDreamHome Person := qualify_implies_buy h_qual
+  exact h_buy
+</lean>
+
+ANSWER: Failure

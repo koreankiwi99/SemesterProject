@@ -1,0 +1,45 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+
+axiom WeekendComing : Prop
+axiom Relax : obj → Prop
+axiom FinishTasks : obj → Prop
+axiom ClearMind : obj → Prop
+axiom Organized : obj → Prop
+axiom TodoList : obj → Prop
+
+-- If it is the weekend coming up, then they (Alex) would relax.
+axiom R_weekend_relax : WeekendComing → Relax Alex
+-- If someone finishes their tasks, then they have a clear mind.
+axiom R_finish_clear : ∀ x : obj, FinishTasks x → ClearMind x
+-- Either the weekend was coming, or they did not have a clear mind (for Alex).
+axiom R_weekendor_notclear : WeekendComing ∨ ¬ ClearMind Alex
+-- If someone is organized, then they finish their tasks.
+axiom R_org_finish : ∀ x : obj, Organized x → FinishTasks x
+-- If they made a to-do list, then they are organized.
+axiom R_todo_org : ∀ x : obj, TodoList x → Organized x
+
+-- From "Alex does not relax this weekend" we can derive that Alex did not make a to-do list.
+theorem not_todo_from_not_relax : (¬ Relax Alex) → (¬ TodoList Alex) := by
+  intro hNotRelax
+  -- From ¬Relax and WeekendComing → Relax, we get ¬WeekendComing.
+  have hNotWeekend : ¬ WeekendComing := by
+    intro hW
+    exact hNotRelax (R_weekend_relax hW)
+  -- From (WeekendComing ∨ ¬ClearMind Alex) and ¬WeekendComing, get ¬ClearMind Alex.
+  have hNotClear : ¬ ClearMind Alex := by
+    cases R_weekendor_notclear with
+    | inl hW =>
+      have hf : False := hNotWeekend hW
+      exact (fun _ => False.elim hf)
+    | inr hNC => exact hNC
+  -- Now show ¬TodoList Alex via contrapositive chain:
+  intro hTodo
+  apply hNotClear
+  have hOrg : Organized Alex := R_todo_org Alex hTodo
+  have hFin : FinishTasks Alex := R_org_finish Alex hOrg
+  exact R_finish_clear Alex hFin
+</lean>
+
+ANSWER: Failure

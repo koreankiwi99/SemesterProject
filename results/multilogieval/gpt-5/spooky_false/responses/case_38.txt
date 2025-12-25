@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Mike : obj
+
+axiom Gas : obj → Prop
+axiom DriveLong : obj → Prop
+axiom Scenic : obj → Prop
+axiom SeeSights : obj → Prop
+axiom Loves : obj → Prop
+
+-- If the car has gas, then they can drive long distances.
+axiom R1 : ∀ x : obj, Gas x → DriveLong x
+-- If they see the sights, then they are taking a scenic route.
+axiom R2 : ∀ x : obj, SeeSights x → Scenic x
+-- Either the car had gas, or they were not taking the scenic route, 
+-- or the car had gas and they were not taking the scenic route (for Mike).
+axiom D : Gas Mike ∨ ¬Scenic Mike ∨ (Gas Mike ∧ ¬Scenic Mike)
+-- If someone loves road trips, they take the scenic route to see the sights.
+axiom R3 : ∀ x : obj, Loves x → Scenic x ∧ SeeSights x
+
+theorem not_gas_of_not_drive : ¬DriveLong Mike → ¬Gas Mike := by
+  intro hndl
+  intro hgas
+  have hdl : DriveLong Mike := R1 Mike hgas
+  exact hndl hdl
+
+theorem loves_to_scenic : ∀ x : obj, Loves x → Scenic x := by
+  intro x
+  intro hl
+  have hs : Scenic x ∧ SeeSights x := R3 x hl
+  exact hs.left
+
+theorem not_loves_of_not_scenic : ∀ x : obj, ¬Scenic x → ¬Loves x := by
+  intro x
+  intro hnsc
+  intro hl
+  have hs : Scenic x := loves_to_scenic x hl
+  exact hnsc hs
+
+theorem not_scenic_of_not_gas : ¬Gas Mike → ¬Scenic Mike := by
+  intro ng
+  have h := D
+  cases h with
+  | inl hg =>
+    have : False := ng hg
+    exact False.elim this
+  | inr h2 =>
+    cases h2 with
+    | inl hnsc => exact hnsc
+    | inr hboth => exact hboth.right
+
+-- From "cannot drive long distances", we can derive "does not love road trips".
+theorem not_loves_from_not_drive : ¬DriveLong Mike → ¬Loves Mike := by
+  intro hndl
+  have ng : ¬Gas Mike := not_gas_of_not_drive hndl
+  have hnsc : ¬Scenic Mike := not_scenic_of_not_gas ng
+  have h := not_loves_of_not_scenic Mike hnsc
+  exact h
+</lean>
+
+ANSWER: Failure

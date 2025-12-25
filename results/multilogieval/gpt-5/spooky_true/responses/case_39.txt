@@ -1,0 +1,55 @@
+<lean>
+axiom Person : Type
+axiom Alex : Person
+
+axiom Monday : Prop
+axiom Quiz : Prop
+
+axiom DoWell : Person → Prop
+axiom StudiedHard : Person → Prop
+axiom GoodAtMath : Person → Prop
+
+-- If it was Monday, then there would be a quiz.
+axiom Monday_implies_Quiz : Monday → Quiz
+
+-- If they do well on the quiz, then they studied hard.
+axiom DoWell_implies_StudiedHard : DoWell Alex → StudiedHard Alex
+
+-- Either it was Monday, or they did not study hard, or it was Monday and they did not study hard.
+axiom Sure_disjunction : Monday ∨ (¬StudiedHard Alex ∨ (Monday ∧ ¬StudiedHard Alex))
+
+-- Someone who is good at math does well on quizzes.
+axiom Good_implies_DoWell : ∀ x : Person, GoodAtMath x → DoWell x
+
+-- From no quiz, we can derive that Alex is not good at math (contrary to the queried conclusion).
+theorem no_quiz_implies_not_good : ¬Quiz → ¬GoodAtMath Alex := by
+  intro hNoQuiz
+  intro hGood
+  -- From ¬Quiz and (Monday → Quiz), deduce ¬Monday.
+  have hNotMonday : ¬Monday := by
+    intro hMon
+    have hQ : Quiz := Monday_implies_Quiz hMon
+    exact hNoQuiz hQ
+  -- From the disjunction and ¬Monday, deduce ¬StudiedHard Alex.
+  have hNotStudied : ¬StudiedHard Alex := by
+    cases Sure_disjunction with
+    | inl hMon =>
+      exact False.elim (hNotMonday hMon)
+    | inr h =>
+      cases h with
+      | inl hNotS =>
+        exact hNotS
+      | inr hMonAndNot =>
+        have hMon : Monday := And.left hMonAndNot
+        exact False.elim (hNotMonday hMon)
+  -- From DoWell → StudiedHard and ¬StudiedHard, deduce ¬DoWell.
+  have hNotDoWell : ¬DoWell Alex := by
+    intro hDW
+    have hSH : StudiedHard Alex := DoWell_implies_StudiedHard hDW
+    exact hNotStudied hSH
+  -- But GoodAtMath Alex → DoWell Alex, contradiction.
+  have hDW' : DoWell Alex := Good_implies_DoWell Alex hGood
+  exact hNotDoWell hDW'
+</lean>
+
+ANSWER: Failure

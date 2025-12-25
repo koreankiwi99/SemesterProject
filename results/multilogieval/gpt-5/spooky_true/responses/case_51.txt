@@ -1,0 +1,55 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom PricesUp : Prop
+axiom Payday : Prop
+
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom R_sale_stock : ∀ x : obj, Sale → StockUp x
+-- If someone makes a shopping list, then they plan what to buy.
+axiom R_list_plan : ∀ x : obj, MakeList x → Plan x
+-- Either the store has a sale, or people (not everyone) plan what to buy fails, or there's a sale and not everyone plans.
+axiom H_disj : Sale ∨ ¬(∀ x : obj, Plan x) ∨ (Sale ∧ ¬(∀ x : obj, Plan x))
+-- If payday was this week, then people make a shopping list.
+axiom R_payday_lists : Payday → ∀ x : obj, MakeList x
+-- Either it was payday this week, or prices went up recently.
+axiom H_payday_or_prices : Payday ∨ PricesUp
+
+theorem mary_prices_up : (¬ StockUp Mary) → PricesUp := by
+  intro hNotStock
+  -- From not stocking up, deduce no sale.
+  have hNotSale : ¬ Sale := by
+    intro hSale
+    have hStockMary : StockUp Mary := (R_sale_stock Mary) hSale
+    exact hNotStock hStockMary
+  -- Case split on (Payday ∨ PricesUp)
+  cases H_payday_or_prices with
+  | inl hPayday =>
+      -- From payday, everyone makes a list, hence everyone plans.
+      have allMake : ∀ x : obj, MakeList x := R_payday_lists hPayday
+      have allPlan : ∀ x : obj, Plan x := fun x => (R_list_plan x) (allMake x)
+      -- Use the disjunction to force Sale (since the "not everyone plans" disjunct is false).
+      have hSale : Sale := by
+        cases H_disj with
+        | inl s => exact s
+        | inr rest =>
+          cases rest with
+          | inl notAll =>
+              have fals : False := notAll allPlan
+              exact False.elim fals
+          | inr s_and_not =>
+              exact s_and_not.left
+      -- Contradiction with ¬Sale; thus PricesUp by explosion.
+      have fals2 : False := hNotSale hSale
+      exact False.elim fals2
+  | inr hPrices =>
+      exact hPrices
+</lean>
+
+ANSWER: Yes

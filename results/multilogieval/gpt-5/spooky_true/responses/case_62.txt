@@ -1,0 +1,43 @@
+<lean>
+axiom Person : Type
+axiom Mark : Person
+
+axiom MadeFriends : Person → Prop
+axiom Enjoy : Person → Prop
+axiom JoinsClub : Person → Prop
+axiom Busy : Person → Prop
+axiom Outgoing : Person → Prop
+axiom Introduced : Person → Prop
+
+-- Premises from the text
+axiom P1 : ∀ x : Person, MadeFriends x → Enjoy x
+axiom P2 : ∀ x : Person, JoinsClub x → Busy x
+axiom P3 : ∀ x : Person, MadeFriends x ∨ ¬ Busy x
+axiom P4 : ∀ x : Person, Outgoing x → JoinsClub x
+axiom P5 : ∀ x : Person, Introduced x → Outgoing x
+
+-- From the premises we can prove the opposite: if Mark did not enjoy, then he did not introduce himself.
+theorem not_enjoy_implies_not_introduced : ¬ Enjoy Mark → ¬ Introduced Mark := by
+  intro hNotEnjoy
+  intro hIntro
+  -- Introduced -> Outgoing -> JoinsClub -> Busy
+  have hBusy : Busy Mark := by
+    have hOut : Outgoing Mark := P5 Mark hIntro
+    have hJoin : JoinsClub Mark := P4 Mark hOut
+    exact P2 Mark hJoin
+  -- From ¬Enjoy and (MadeFriends -> Enjoy), get ¬MadeFriends
+  have hNotMade : ¬ MadeFriends Mark := by
+    intro hMade
+    have hEnjoy : Enjoy Mark := P1 Mark hMade
+    exact hNotEnjoy hEnjoy
+  -- From (MadeFriends ∨ ¬Busy) and ¬MadeFriends, deduce ¬Busy
+  have hNotBusy : ¬ Busy Mark := by
+    have disj := P3 Mark
+    cases disj with
+    | inl hMade => exact False.elim (hNotMade hMade)
+    | inr hNB => exact hNB
+  -- Contradiction: Busy and ¬Busy
+  exact hNotBusy hBusy
+</lean>
+
+ANSWER: Failure

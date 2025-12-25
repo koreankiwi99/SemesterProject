@@ -1,0 +1,44 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom Student : obj → Prop
+axiom Friday : Prop
+axiom Party : obj → Prop
+axiom FinishHW : obj → Prop
+axiom WatchGame : obj → Prop
+axiom StudyEveryday : obj → Prop
+axiom PlanWell : obj → Prop
+
+-- Premises
+axiom Jstudent : Student James
+axiom R1 : ∀ x : obj, Student x → (Friday → Party x)                 -- If it is Friday night, students go to the party
+axiom R2 : ∀ x : obj, FinishHW x → WatchGame x                      -- If they finish all homework, they can watch the game
+axiom R3 : ∀ x : obj, Friday ∨ ¬WatchGame x                         -- Either it is Friday night, or they are not watching the game
+axiom R4 : ∀ x : obj, Student x → (StudyEveryday x → FinishHW x)    -- If they study everyday, they finish all homework
+axiom R5 : ∀ x : obj, PlanWell x → StudyEveryday x                  -- If someone plans well, they can study everyday
+
+-- Given claim to evaluate includes: James is not going to the party
+axiom NotPartyJames : ¬Party James
+
+theorem james_not_plan : ¬PlanWell James := by
+  intro p
+  -- From Friday → Party James and ¬Party James, deduce ¬Friday
+  have hFriImpParty : Friday → Party James := R1 James Jstudent
+  have hNotFri : ¬Friday := by
+    intro f
+    exact NotPartyJames (hFriImpParty f)
+  -- From Friday ∨ ¬WatchGame James and ¬Friday, deduce ¬WatchGame James
+  have hDisj : Friday ∨ ¬WatchGame James := R3 James
+  have hNotWatch : ¬WatchGame James := by
+    cases hDisj with
+    | inl f => exact False.elim (hNotFri f)
+    | inr nw => exact nw
+  -- From Plan → Study → Finish → Watch, contradict ¬Watch
+  have s : StudyEveryday James := R5 James p
+  have f : FinishHW James := R4 James Jstudent s
+  have w : WatchGame James := R2 James f
+  exact hNotWatch w
+</lean>
+
+ANSWER: No

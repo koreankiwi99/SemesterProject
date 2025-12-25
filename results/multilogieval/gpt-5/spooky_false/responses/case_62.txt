@@ -1,0 +1,49 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+axiom MadeFriends : obj → Prop
+axiom Enjoy : obj → Prop
+axiom JoinClub : obj → Prop
+axiom Busy : obj → Prop
+axiom Outgoing : obj → Prop
+axiom Introduced : obj → Prop
+
+-- If someone made friends, then they would enjoy school.
+axiom A1 : ∀ x : obj, MadeFriends x → Enjoy x
+-- If someone joins a club, then they will be busy.
+axiom A2 : ∀ x : obj, JoinClub x → Busy x
+-- Either they made friends, or they are not busy.
+axiom A3 : ∀ x : obj, MadeFriends x ∨ ¬Busy x
+-- If someone is outgoing, then they would join a club.
+axiom A4 : ∀ x : obj, Outgoing x → JoinClub x
+-- If someone introduced themselves to classmates, then they are outgoing.
+axiom A5 : ∀ x : obj, Introduced x → Outgoing x
+
+theorem introduced_busy : ∀ x : obj, Introduced x → Busy x := by
+  intro x hx
+  exact A2 x (A4 x (A5 x hx))
+
+theorem introduced_friends : ∀ x : obj, Introduced x → MadeFriends x := by
+  intro x hx
+  have hb : Busy x := introduced_busy x hx
+  have hdisj : MadeFriends x ∨ ¬Busy x := A3 x
+  cases hdisj with
+  | inl hf => exact hf
+  | inr hnb => exact False.elim (hnb hb)
+
+theorem introduced_enjoy : ∀ x : obj, Introduced x → Enjoy x := by
+  intro x hx
+  exact A1 x (introduced_friends x hx)
+
+theorem notEnjoy_notIntroduced : ∀ x : obj, ¬Enjoy x → ¬Introduced x := by
+  intro x hne hx
+  exact hne (introduced_enjoy x hx)
+
+-- From the premises, the target implication would imply ¬¬Enjoy Mark (but not a contradiction).
+theorem implication_implies_notnot_enjoy : (¬Enjoy Mark → Introduced Mark) → ¬¬Enjoy Mark := by
+  intro himp hne
+  exact hne (introduced_enjoy Mark (himp hne))
+</lean>
+
+ANSWER: Failure

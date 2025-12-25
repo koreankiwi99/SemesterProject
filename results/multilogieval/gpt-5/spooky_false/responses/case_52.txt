@@ -1,0 +1,69 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom RainForecast : Prop
+axiom BringUmbrella : obj → Prop
+axiom BigGameOnTV : Prop
+axiom FriendsGetTogether : Prop
+axiom HighViewership : Prop
+axiom GoPlay : Prop
+
+-- If the forecast predicts rain, people will bring an umbrella (for any person).
+axiom A1 : ∀ x : obj, RainForecast → BringUmbrella x
+-- If there is a big game on TV, then friends will get together to watch it.
+axiom A2 : BigGameOnTV → FriendsGetTogether
+-- Either rain is forecasted, or friends did not get together to watch, or both.
+axiom A3 : (RainForecast ∨ ¬FriendsGetTogether) ∨ (RainForecast ∧ ¬FriendsGetTogether)
+-- If the TV viewership is high, then there is a big game on TV.
+axiom A4 : HighViewership → BigGameOnTV
+-- Either the TV viewership is high, or they go out to play, or both.
+axiom A5 : (HighViewership ∨ GoPlay) ∨ (HighViewership ∧ GoPlay)
+
+-- From "James did not bring an umbrella" we can derive "they go out to play".
+theorem james_not_umbrella_implies_go_play : ¬BringUmbrella James → GoPlay := by
+  intro hNotUmb
+  -- From A5, get HighViewership ∨ GoPlay
+  have hv_or_play : HighViewership ∨ GoPlay := by
+    cases A5 with
+    | inl hv_or_play =>
+        exact hv_or_play
+    | inr hv_and_play =>
+        exact Or.inr hv_and_play.right
+  -- Map HighViewership to FriendsGetTogether, so we get FriendsGetTogether ∨ GoPlay
+  have gt_or_play : FriendsGetTogether ∨ GoPlay := by
+    cases hv_or_play with
+    | inl hv =>
+        have bg : BigGameOnTV := A4 hv
+        have gt : FriendsGetTogether := A2 bg
+        exact Or.inl gt
+    | inr gp =>
+        exact Or.inr gp
+  -- From A3, get RainForecast ∨ ¬FriendsGetTogether
+  have rf_or_notgt : RainForecast ∨ ¬FriendsGetTogether := by
+    cases A3 with
+    | inl rf_or_notgt =>
+        exact rf_or_notgt
+    | inr rf_and_notgt =>
+        exact Or.inr rf_and_notgt.right
+  -- From ¬BringUmbrella James and A1, get ¬RainForecast
+  have not_rain : ¬RainForecast := by
+    intro hrain
+    have umb : BringUmbrella James := A1 James hrain
+    exact hNotUmb umb
+  -- From (RainForecast ∨ ¬FriendsGetTogether) and ¬RainForecast, get ¬FriendsGetTogether
+  have not_gt : ¬FriendsGetTogether := by
+    cases rf_or_notgt with
+    | inl hrain =>
+        exact False.elim (not_rain hrain)
+    | inr hnotgt =>
+        exact hnotgt
+  -- From (FriendsGetTogether ∨ GoPlay) and ¬FriendsGetTogether, get GoPlay
+  cases gt_or_play with
+  | inl hgt =>
+      exact False.elim (not_gt hgt)
+  | inr gp =>
+      exact gp
+</lean>
+
+ANSWER: Failure

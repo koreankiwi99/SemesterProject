@@ -1,0 +1,40 @@
+<lean>
+axiom obj : Type
+axiom Jane : obj
+
+axiom Exercises : obj → Prop
+axiom EatsWell : obj → Prop
+axiom Fit : obj → Prop
+axiom Energetic : obj → Prop
+axiom ValuesWellness : obj → Prop
+
+-- Premises from the context
+axiom H1 : ∀ x : obj, Exercises x → Fit x
+axiom H2 : ∀ x : obj, EatsWell x → Energetic x
+axiom H3 : ¬ ∀ x : obj, Fit x ∨ Energetic x
+axiom H4 : ∀ x : obj, ValuesWellness x → Exercises x
+
+-- Fact about Jane
+axiom Jane_eats : EatsWell Jane
+
+open Classical
+
+-- From the premises, the mayor's conclusion follows (via contraposition)
+theorem mayor_conclusion : ∃ x : obj, ¬ Exercises x ∨ ¬ EatsWell x :=
+by
+  classical
+  have hx : ∃ x : obj, ¬ (Fit x ∨ Energetic x) :=
+    not_forall.mp H3
+  rcases hx with ⟨x, hxne⟩
+  have hnf : ¬ Fit x := fun hf => hxne (Or.inl hf)
+  have hne : ¬ Energetic x := fun he => hxne (Or.inr he)
+  have hnex : ¬ Exercises x := fun hex => hnf (H1 x hex)
+  have hnew : ¬ EatsWell x := fun hew => hne (H2 x hew)
+  exact ⟨x, Or.inl hnex⟩
+
+-- From "Jane eats nutritious foods," we can derive she is energetic,
+-- but nothing links this to "values wellness."
+theorem jane_energetic : Energetic Jane := H2 Jane Jane_eats
+</lean>
+
+ANSWER: Failure

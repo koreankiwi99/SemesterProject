@@ -1,0 +1,43 @@
+<lean>
+axiom obj : Type
+axiom Jake : obj
+
+axiom Nice : obj → Prop
+axiom RelaxOutside : obj → Prop
+axiom ReadBooks : obj → Prop
+axiom PackedEnough : obj → Prop
+axiom Prepared : obj → Prop
+
+-- If the weather is nice, then they can relax outside.
+axiom A1 : Nice Jake → RelaxOutside Jake
+-- If they read books, that means they packed enough.
+axiom A2 : ReadBooks Jake → PackedEnough Jake
+-- Either the weather was nice, or they did not pack enough, or both.
+axiom A3 : Nice Jake ∨ (¬PackedEnough Jake ∨ (Nice Jake ∧ ¬PackedEnough Jake))
+-- If someone is prepared, they read books.
+axiom A4 : Prepared Jake → ReadBooks Jake
+
+-- From "Jake cannot relax outside" we can derive "Jake is not prepared".
+theorem not_prepared_if_cannot_relax : ¬RelaxOutside Jake → ¬Prepared Jake := by
+  intro hNotRelax
+  -- From ¬Relax and (Nice → Relax) we get ¬Nice
+  have hNotNice : ¬Nice Jake := by
+    intro hNice
+    have hRelax : RelaxOutside Jake := A1 hNice
+    exact hNotRelax hRelax
+  -- From the trichotomy and ¬Nice, we deduce ¬PackedEnough
+  have hNotPacked : ¬PackedEnough Jake := by
+    cases A3 with
+    | inl hNice =>
+      exact False.elim (hNotNice hNice)
+    | inr hRest =>
+      cases hRest with
+      | inl hNP => exact hNP
+      | inr hAnd => exact hAnd.right
+  -- Prepared → ReadBooks → PackedEnough, contradicting ¬PackedEnough
+  intro hPrepared
+  have hPacked : PackedEnough Jake := A2 (A4 hPrepared)
+  exact hNotPacked hPacked
+</lean>
+
+ANSWER: Failure

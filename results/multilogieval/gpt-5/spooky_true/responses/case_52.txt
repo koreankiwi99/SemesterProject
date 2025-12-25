@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom Umbrella : obj → Prop
+axiom Rain : Prop
+axiom BigGame : Prop
+axiom FriendsGather : Prop
+axiom HighView : Prop
+axiom PlayOut : Prop
+
+-- If the forecast predicts rain, then people will bring an umbrella.
+axiom R1 : Rain → ∀ x : obj, Umbrella x
+-- If there is a big game on TV, then friends will get together to watch it.
+axiom R2 : BigGame → FriendsGather
+-- Either rain is forecasted, or friends did not get together, or both (rain and not together).
+axiom D1 : Rain ∨ ¬FriendsGather ∨ (Rain ∧ ¬FriendsGather)
+-- If the TV viewership is high, then there is a big game on TV.
+axiom R3 : HighView → BigGame
+-- Either the TV viewership is high, or they all decide to go play out, or both.
+axiom D2 : HighView ∨ PlayOut ∨ (HighView ∧ PlayOut)
+
+theorem james_no_umbrella_implies_playout (hJU : ¬Umbrella James) : PlayOut := by
+  -- From ¬Umbrella James and R1, conclude ¬Rain
+  have notRain : ¬Rain := by
+    intro r
+    have allUmb : ∀ x : obj, Umbrella x := R1 r
+    have uj : Umbrella James := allUmb James
+    exact hJU uj
+  -- From D1 and ¬Rain, conclude ¬FriendsGather
+  have notFriends : ¬FriendsGather := by
+    rcases D1 with hR | hNotG | hRandNotG
+    · exact False.elim (notRain hR)
+    · exact hNotG
+    · exact hRandNotG.right
+  -- From ¬FriendsGather and (HighView → BigGame → FriendsGather), conclude ¬HighView
+  have notHigh : ¬HighView := by
+    intro hv
+    have bg : BigGame := R3 hv
+    have g : FriendsGather := R2 bg
+    exact notFriends g
+  -- From D2, derive HighView ∨ PlayOut
+  have high_or_play : HighView ∨ PlayOut := by
+    rcases D2 with hH | hP | hHP
+    · exact Or.inl hH
+    · exact Or.inr hP
+    · exact Or.inl hHP.left
+  -- Using ¬HighView, conclude PlayOut
+  cases high_or_play with
+  | inl hv => exact False.elim (notHigh hv)
+  | inr p  => exact p
+</lean>
+
+ANSWER: Yes

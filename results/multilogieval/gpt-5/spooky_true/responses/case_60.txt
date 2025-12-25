@@ -1,0 +1,54 @@
+<lean>
+axiom Alarm : Prop
+axiom Ready : Prop
+axiom Late : Prop
+axiom MissedBus : Prop
+axiom GotUpLate : Prop
+axiom WentToBedLate : Prop
+
+-- Premises from the context
+axiom Alarm_implies_Ready : Alarm → Ready
+axiom MissedBus_implies_Late : MissedBus → Late
+axiom Alarm_or_notLate : Alarm ∨ ¬Late
+axiom GotUpLate_implies_MissedBus : GotUpLate → MissedBus
+axiom WentToBedLate_implies_GotUpLate : WentToBedLate → GotUpLate
+
+-- Assumption from the statement: John knows it is not the time to get ready (we take this as ¬Ready)
+axiom John_knows_not_Ready : ¬Ready
+
+-- From ¬Ready, derive ¬WentToBedLate
+theorem not_bed_late_of_not_ready (hNotReady : ¬Ready) : ¬WentToBedLate := by
+  -- ¬Alarm
+  have hNotAlarm : ¬Alarm := by
+    intro hA
+    apply hNotReady
+    exact Alarm_implies_Ready hA
+  -- ¬Late
+  have hNotLate : ¬Late := by
+    cases Alarm_or_notLate with
+    | inl hA =>
+      have : False := hNotAlarm hA
+      exact False.elim this
+    | inr hnLate =>
+      exact hnLate
+  -- ¬MissedBus
+  have hNotMissedBus : ¬MissedBus := by
+    intro hM
+    have hL : Late := MissedBus_implies_Late hM
+    exact hNotLate hL
+  -- ¬GotUpLate
+  have hNotGotUpLate : ¬GotUpLate := by
+    intro hU
+    apply hNotMissedBus
+    exact GotUpLate_implies_MissedBus hU
+  -- ¬WentToBedLate
+  intro hBedLate
+  apply hNotGotUpLate
+  exact WentToBedLate_implies_GotUpLate hBedLate
+
+-- Concrete conclusion for John
+theorem john_did_not_go_to_bed_late : ¬WentToBedLate :=
+  not_bed_late_of_not_ready John_knows_not_Ready
+</lean>
+
+ANSWER: Failure

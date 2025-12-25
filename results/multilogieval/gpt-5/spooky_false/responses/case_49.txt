@@ -1,0 +1,67 @@
+<lean>
+axiom Rain : Prop
+axiom WetDriveway : Prop
+axiom WashedCar : Prop
+axiom WaterOnDriveway : Prop
+axiom WaterOnCar : Prop
+axiom HoseUncoiled : Prop
+axiom SpongeSoapy : Prop
+
+-- Premises
+axiom P1 : WetDriveway → Rain
+axiom P2 : WashedCar → WaterOnDriveway
+axiom P3 : WetDriveway ∨ (¬WaterOnCar ∨ (WetDriveway ∧ ¬WaterOnCar))
+axiom P4 : HoseUncoiled → WashedCar
+axiom P5 : HoseUncoiled ∨ (SpongeSoapy ∨ (HoseUncoiled ∧ SpongeSoapy))
+
+-- From "¬Rain" we can derive "¬WetDriveway"
+theorem not_wet_of_not_rain : ¬Rain → ¬WetDriveway := by
+  intro hnr
+  intro hw
+  apply hnr
+  exact P1 hw
+
+-- From "¬Rain" and the disjunction, we can derive "¬WaterOnCar"
+theorem not_water_on_car_of_not_rain : ¬Rain → ¬WaterOnCar := by
+  intro hnr
+  have hNotWet : ¬WetDriveway := by
+    intro hw
+    apply hnr
+    exact P1 hw
+  have hdisj := P3
+  refine Or.elim hdisj ?hWetCase ?hRightCase
+  · intro hw
+    intro hWOC
+    exact False.elim (hNotWet hw)
+  · intro h
+    refine Or.elim h ?hNoWOC ?hWetAndNoWOC
+    · intro hNo
+      exact hNo
+    · intro hwAndNo
+      exact And.right hwAndNo
+
+-- From "¬SpongeSoapy" and the disjunction, we can derive "HoseUncoiled"
+theorem uncoiled_of_not_sponge : ¬SpongeSoapy → HoseUncoiled := by
+  intro hns
+  have h := P5
+  refine Or.elim h ?hU ?hMid
+  · intro hu
+    exact hu
+  · intro mid
+    refine Or.elim mid ?hS ?hBoth
+    · intro hs
+      exact False.elim (hns hs)
+    · intro hb
+      exact And.left hb
+
+theorem washed_of_not_sponge : ¬SpongeSoapy → WashedCar := by
+  intro hns
+  have hu : HoseUncoiled := uncoiled_of_not_sponge hns
+  exact P4 hu
+
+theorem water_on_driveway_of_not_sponge : ¬SpongeSoapy → WaterOnDriveway := by
+  intro hns
+  exact P2 (washed_of_not_sponge hns)
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,41 @@
+<lean>
+axiom Person : Type
+axiom Mark : Person
+
+axiom PlantsGarden : Person → Prop
+axiom NeedWater : Person → Prop
+axiom NeedCare : Person → Prop
+
+axiom Drought : Prop
+axiom WateringBan : Prop
+
+axiom NotEnoughWater : Person → Prop
+axiom GardenFail : Person → Prop
+
+-- If someone plants a garden, they need to water and care for the plants.
+axiom H1 : ∀ p : Person, PlantsGarden p → (NeedWater p ∧ NeedCare p)
+-- If there is a drought, there is a watering ban.
+axiom H2 : Drought → WateringBan
+-- Either Mark plants a garden or there is a drought.
+axiom H3 : PlantsGarden Mark ∨ Drought
+-- If there is a watering ban, then for any person, their plants won't get enough water.
+axiom H4 : WateringBan → ∀ p : Person, NotEnoughWater p
+-- If the plants don't get watered enough, the garden will fail to thrive.
+axiom H5 : ∀ p : Person, NotEnoughWater p → GardenFail p
+
+-- Given: Mark did not need to care for garden plants.
+theorem mark_garden_failed (NC : ¬ NeedCare Mark) : GardenFail Mark := by
+  have pg_to_nc : PlantsGarden Mark → NeedCare Mark :=
+    fun pg => (H1 Mark pg).right
+  have not_pg : ¬ PlantsGarden Mark :=
+    fun pg => NC (pg_to_nc pg)
+  have d : Drought := by
+    cases H3 with
+    | inl pg => exact False.elim (not_pg pg)
+    | inr d => exact d
+  have wb : WateringBan := H2 d
+  have new : NotEnoughWater Mark := (H4 wb) Mark
+  exact H5 Mark new
+</lean>
+
+ANSWER: Yes

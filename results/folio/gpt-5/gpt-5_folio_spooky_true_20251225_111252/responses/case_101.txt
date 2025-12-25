@@ -1,0 +1,108 @@
+<lean>
+axiom obj : Type
+
+axiom MultipleBirth : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainsOftenAboutAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom BabyBornInMultipleBirth : obj → Prop
+
+axiom Luke : obj
+
+-- Premises
+-- 1. People who are born in a multiple birth with siblings spend a lot of time with their siblings.
+axiom A1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+-- 2. If people have siblings who were born together, then they were born in a multiple birth.
+axiom A2 : ∀ x : obj, HasSiblingsBornTogether x → MultipleBirth x
+-- 3. If people complain often about annoying siblings, then they have siblings who were born together.
+axiom A3 : ∀ x : obj, ComplainsOftenAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+-- 4. If people live at home, then they do not live with strangers.
+axiom A4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+-- 5. If people spend a lot of time with their siblings, then they often live at home.
+axiom A5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+-- 6. Luke either is a baby born in a multiple birth and lives with strangers,
+--    or is not a baby born in a multiple birth and does not live with strangers.
+axiom L1 : (BabyBornInMultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬ BabyBornInMultipleBirth Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Semantic bridge: being a baby born in a multiple birth implies being born in a multiple birth.
+axiom A6 : ∀ x : obj, BabyBornInMultipleBirth x → MultipleBirth x
+
+-- Derived facts (do not yield the target conclusion)
+lemma no_babyMB_with_strangers : ∀ x : obj, ¬ (BabyBornInMultipleBirth x ∧ LiveWithStrangers x) := by
+  intro x
+  intro h
+  cases h with
+  | intro hb hs =>
+    have mb : MultipleBirth x := A6 x hb
+    have st : SpendTimeWithSiblings x := A1 x mb
+    have home : LiveAtHome x := A5 x st
+    have notS : ¬ LiveWithStrangers x := A4 x home
+    exact notS hs
+
+lemma luke_not_first_branch : ¬ (BabyBornInMultipleBirth Luke ∧ LiveWithStrangers Luke) :=
+  no_babyMB_with_strangers Luke
+
+lemma luke_second_branch : ¬ BabyBornInMultipleBirth Luke ∧ ¬ LiveWithStrangers Luke := by
+  have nf := luke_not_first_branch
+  cases L1 with
+  | inl h =>
+    exact False.elim (nf h)
+  | inr h =>
+    exact h
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+axiom MultipleBirth : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+axiom ComplainsOftenAboutAnnoyingSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom BabyBornInMultipleBirth : obj → Prop
+
+axiom Luke : obj
+
+-- Premises
+axiom A1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom A2 : ∀ x : obj, HasSiblingsBornTogether x → MultipleBirth x
+axiom A3 : ∀ x : obj, ComplainsOftenAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom A4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom A5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+axiom L1 : (BabyBornInMultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬ BabyBornInMultipleBirth Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Semantic bridge
+axiom A6 : ∀ x : obj, BabyBornInMultipleBirth x → MultipleBirth x
+
+-- The first branch in L1 is impossible for any person
+theorem no_babyMB_with_strangers : ∀ x : obj, ¬ (BabyBornInMultipleBirth x ∧ LiveWithStrangers x) := by
+  intro x
+  intro h
+  have hb : BabyBornInMultipleBirth x := And.left h
+  have hs : LiveWithStrangers x := And.right h
+  have mb : MultipleBirth x := A6 x hb
+  have st : SpendTimeWithSiblings x := A1 x mb
+  have home : LiveAtHome x := A5 x st
+  have notS : ¬ LiveWithStrangers x := A4 x home
+  exact notS hs
+
+theorem luke_not_first_branch : ¬ (BabyBornInMultipleBirth Luke ∧ LiveWithStrangers Luke) :=
+  no_babyMB_with_strangers Luke
+
+theorem luke_second_branch : ¬ BabyBornInMultipleBirth Luke ∧ ¬ LiveWithStrangers Luke := by
+  have nf := luke_not_first_branch
+  exact Or.elim L1
+    (fun h => False.elim (nf h))
+    (fun h => h)
+</lean>
+
+ANSWER: Failure

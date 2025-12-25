@@ -1,0 +1,114 @@
+<lean>
+axiom obj : Type
+axiom Harry : obj
+
+axiom Invertebrate : obj → Prop
+axiom Vertebrate : obj → Prop
+axiom Backbone : obj → Prop
+axiom ReproMF : obj → Prop
+axiom Bee : obj → Prop
+axiom QueenBee : obj → Prop
+
+-- Animals are either invertebrates or vertebrates.
+axiom A1 : ∀ x : obj, Invertebrate x ∨ Vertebrate x
+-- All animals with backbones reproduce by male-and-female mating.
+axiom A2 : ∀ x : obj, Backbone x → ReproMF x
+-- All vertebrate animals have a backbone.
+axiom A3 : ∀ x : obj, Vertebrate x → Backbone x
+-- All bees do not reproduce by male-and-female mating.
+axiom A4 : ∀ x : obj, Bee x → ¬ ReproMF x
+-- All queen bees are bees.
+axiom A5 : ∀ x : obj, QueenBee x → Bee x
+-- Harry is a bee.
+axiom A6 : Bee Harry
+
+-- From Bee Harry and the reproduction/backbone facts, Harry does not have a backbone.
+lemma not_backbone_Harry : ¬ Backbone Harry := by
+  intro hb
+  have r : ReproMF Harry := A2 Harry hb
+  have nr : ¬ ReproMF Harry := A4 Harry A6
+  exact nr r
+
+-- From "all vertebrates have backbones", Harry is not a vertebrate.
+lemma not_vertebrate_Harry : ¬ Vertebrate Harry := by
+  intro hv
+  have hb : Backbone Harry := A3 Harry hv
+  exact not_backbone_Harry hb
+
+-- Therefore, the antecedent (both or neither) holds via the "neither" case.
+lemma antecedent_holds :
+  (Vertebrate Harry ∧ Backbone Harry) ∨ (¬ Vertebrate Harry ∧ ¬ Backbone Harry) := by
+  apply Or.inr
+  constructor
+  · exact not_vertebrate_Harry
+  · exact not_backbone_Harry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Harry : obj
+
+axiom Invertebrate : obj → Prop
+axiom Vertebrate : obj → Prop
+axiom Backbone : obj → Prop
+axiom ReproMF : obj → Prop
+axiom Bee : obj → Prop
+axiom QueenBee : obj → Prop
+
+-- Animals are either invertebrates or vertebrates.
+axiom A1 : ∀ x : obj, Invertebrate x ∨ Vertebrate x
+-- All animals with backbones reproduce by male-and-female mating.
+axiom A2 : ∀ x : obj, Backbone x → ReproMF x
+-- All vertebrate animals have a backbone.
+axiom A3 : ∀ x : obj, Vertebrate x → Backbone x
+-- All bees do not reproduce by male-and-female mating.
+axiom A4 : ∀ x : obj, Bee x → ¬ ReproMF x
+-- All queen bees are bees.
+axiom A5 : ∀ x : obj, QueenBee x → Bee x
+-- Harry is a bee.
+axiom A6 : Bee Harry
+
+-- From Bee Harry and the reproduction/backbone facts, Harry does not have a backbone.
+theorem not_backbone_Harry : ¬ Backbone Harry := by
+  intro hb
+  have r : ReproMF Harry := (A2 Harry) hb
+  have nr : ¬ ReproMF Harry := (A4 Harry) A6
+  exact nr r
+
+-- From "all vertebrates have backbones", Harry is not a vertebrate.
+theorem not_vertebrate_Harry : ¬ Vertebrate Harry := by
+  intro hv
+  have hb : Backbone Harry := (A3 Harry) hv
+  exact not_backbone_Harry hb
+
+-- Therefore, the antecedent (both or neither) holds via the "neither" case.
+theorem antecedent_holds :
+  (Vertebrate Harry ∧ Backbone Harry) ∨ (¬ Vertebrate Harry ∧ ¬ Backbone Harry) := by
+  apply Or.inr
+  constructor
+  · exact not_vertebrate_Harry
+  · exact not_backbone_Harry
+
+-- From the disjunction "invertebrate or vertebrate" and not_vertebrate, we get invertebrate.
+theorem invertebrate_Harry : Invertebrate Harry := by
+  have h := A1 Harry
+  cases h with
+  | inl hinv => exact hinv
+  | inr hver =>
+    have : False := not_vertebrate_Harry hver
+    exact False.elim this
+
+-- Hence the consequent "¬ Invertebrate Harry ∧ ¬ QueenBee Harry" is false.
+theorem not_consequent : ¬ (¬ Invertebrate Harry ∧ ¬ QueenBee Harry) := by
+  intro hconj
+  have hni : ¬ Invertebrate Harry := hconj.left
+  exact hni invertebrate_Harry
+</lean>
+
+ANSWER: Failure

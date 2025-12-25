@@ -1,0 +1,56 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom Sale : Prop
+axiom BuyMore : obj → Prop
+axiom Grocery : obj → Prop
+axiom GotAll : obj → Prop
+axiom BeginMonth : Prop
+axiom SoldOut : obj → Prop
+
+axiom R1 : ∀ x : obj, Sale → BuyMore x
+axiom R2 : ∀ x : obj, Grocery x → GotAll x
+axiom D1 : Sale ∨ ¬GotAll John ∨ (Sale ∧ ¬GotAll John)
+axiom R3 : ∀ x : obj, BeginMonth → Grocery x
+axiom D2 : BeginMonth ∨ SoldOut John ∨ (BeginMonth ∧ SoldOut John)
+
+axiom H0 : ¬BuyMore John
+
+-- Cannot prove ¬SoldOut John from given axioms.
+-- In fact, from the premises and H0 we can derive SoldOut John.
+
+theorem soldout_john : SoldOut John := by
+  -- First, show John did not get everything on his list
+  have h_not_gotall : ¬GotAll John := by
+    cases D1 with
+    | inl hSale =>
+      intro _
+      exact H0 (R1 John hSale)
+    | inr h =>
+      cases h with
+      | inl hNot =>
+        exact hNot
+      | inr hBoth =>
+        exact hBoth.right
+  -- From not getting everything, he did not go grocery shopping
+  have h_not_grocery : ¬Grocery John := by
+    intro g
+    exact h_not_gotall (R2 John g)
+  -- Thus it was not the beginning of the month
+  have h_not_begin : ¬BeginMonth := by
+    intro b
+    exact h_not_grocery (R3 John b)
+  -- Use the month/cereal disjunction to conclude cereal was sold out
+  cases D2 with
+  | inl hb =>
+    exact False.elim (h_not_begin hb)
+  | inr h =>
+    cases h with
+    | inl hs =>
+      exact hs
+    | inr hBoth =>
+      exact hBoth.right
+</lean>
+
+ANSWER: Failure

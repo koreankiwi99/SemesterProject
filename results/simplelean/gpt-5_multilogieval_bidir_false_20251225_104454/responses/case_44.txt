@@ -1,0 +1,46 @@
+<lean>
+axiom obj : Type
+axiom Mark : obj
+
+-- Predicates
+axiom PlantsGarden : obj → Prop
+axiom NeedWater : obj → Prop
+axiom NeedCare : obj → Prop
+axiom Drought : Prop
+axiom WateringBan : Prop
+axiom NotEnoughWater : obj → Prop
+axiom GardenFail : obj → Prop
+
+-- Rules from the context
+axiom R1 : ∀ x : obj, PlantsGarden x → (NeedWater x ∧ NeedCare x)
+axiom R2 : Drought → WateringBan
+axiom R3 : PlantsGarden Mark ∨ Drought
+axiom R4 : WateringBan → NotEnoughWater Mark
+axiom R5 : NotEnoughWater Mark → GardenFail Mark
+
+-- Statement to evaluate: Mark did not need to care for garden plants.
+axiom H1 : ¬NeedCare Mark
+
+-- From the premises we can actually derive that Mark's garden failed to thrive.
+theorem garden_fail : GardenFail Mark := by
+  -- Derive Drought using R3 and H1
+  have d : Drought := by
+    have h := R3
+    cases h with
+    | inl hpg =>
+        have hc : NeedCare Mark := by
+          have hconj := R1 Mark hpg
+          exact And.right hconj
+        exact False.elim (H1 hc)
+    | inr hd => exact hd
+  -- Watering ban follows from drought
+  have wb : WateringBan := R2 d
+  -- Not enough water for Mark's plants
+  have ne : NotEnoughWater Mark := R4 wb
+  -- Therefore the garden fails to thrive
+  exact R5 ne
+
+-- Cannot prove ¬GardenFail Mark from given axioms; in fact GardenFail Mark is derivable.
+</lean>
+
+ANSWER: Failure

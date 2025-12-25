@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+axiom James : obj
+
+axiom Started : obj → Prop
+axiom Motivated : obj → Prop
+axiom Follow : obj → Prop
+axiom Frustrated : obj → Prop
+axiom Snacks : obj → Prop
+
+axiom GymClosed : Prop
+
+-- If someone starts a new workout routine, they will be motivated to keep it up.
+axiom R1 : ∀ x : obj, Started x → Motivated x
+-- If the gym closes for renovations, then they can't follow their routine.
+axiom R2 : GymClosed → ∀ x : obj, ¬Follow x
+-- Either they started a new workout, or the gym was closed, or both.
+axiom R3 : Started James ∨ GymClosed
+-- If they couldn't follow their routine, they would feel frustrated.
+axiom R4 : ∀ x : obj, ¬Follow x → Frustrated x
+-- If they felt frustrated, they might indulge in some unhealthy snacks.
+axiom R5 : ∀ x : obj, Frustrated x → Snacks x
+
+-- Statement to evaluate: James was not motivated to workout.
+axiom NotMotivatedJames : ¬Motivated James
+
+-- From the above, we can derive that James indulged in unhealthy snacks.
+theorem not_started_James : ¬Started James := by
+  intro hS
+  have hM : Motivated James := R1 James hS
+  exact NotMotivatedJames hM
+
+theorem gym_closed : GymClosed := by
+  cases R3 with
+  | inl hS =>
+      exact False.elim (not_started_James hS)
+  | inr hClosed =>
+      exact hClosed
+
+theorem cannot_follow_James : ¬Follow James := by
+  have hClosed : GymClosed := gym_closed
+  have hAll : ∀ x : obj, ¬Follow x := R2 hClosed
+  exact hAll James
+
+theorem frustrated_James : Frustrated James := by
+  exact R4 James cannot_follow_James
+
+theorem snacks_James : Snacks James := by
+  exact R5 James frustrated_James
+
+-- Cannot prove ¬Snacks James from given axioms; in fact, Snacks James is derivable.
+</lean>
+
+ANSWER: Failure

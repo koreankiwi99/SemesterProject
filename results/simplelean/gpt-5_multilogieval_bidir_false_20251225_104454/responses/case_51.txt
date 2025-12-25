@@ -1,0 +1,71 @@
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom Sale : Prop
+axiom StockUp : obj → Prop
+axiom MakeList : obj → Prop
+axiom Plan : obj → Prop
+axiom Payday : Prop
+axiom PricesUp : Prop
+
+-- If the supermarket has a sale, then people will stock up on groceries.
+axiom A1 : Sale → ∀ x : obj, StockUp x
+-- If someone makes a shopping list, then they plan what to buy.
+axiom A2 : ∀ x : obj, MakeList x → Plan x
+-- Either the store has a sale, or people don't plan what to buy, or there's a sale but they don't plan ahead.
+axiom A3 : Sale ∨ (∀ x : obj, ¬Plan x) ∨ (Sale ∧ (∀ x : obj, ¬Plan x))
+-- If payday was this week, then people make a shopping list.
+axiom A4 : Payday → ∀ x : obj, MakeList x
+-- Either it was payday this week, or prices went up recently, or both.
+axiom A5 : Payday ∨ PricesUp ∨ (Payday ∧ PricesUp)
+
+-- From the premises we can derive: (¬StockUp Mary) → PricesUp
+theorem not_stockup_implies_prices_up : (¬StockUp Mary) → PricesUp := by
+  intro hNS
+  -- From ¬StockUp Mary and Sale → StockUp Mary, we get ¬Sale
+  have hNotSale : ¬Sale := by
+    intro hSale
+    have hAll : ∀ x : obj, StockUp x := A1 hSale
+    have hMary : StockUp Mary := hAll Mary
+    exact hNS hMary
+  -- From the disjunction A3 and ¬Sale, derive ∀x ¬Plan x
+  have hAllNotPlan : ∀ x : obj, ¬Plan x := by
+    cases A3 with
+    | inl hSale =>
+        exact False.elim (hNotSale hSale)
+    | inr rest =>
+        cases rest with
+        | inl hNP => exact hNP
+        | inr hBoth =>
+            have hSale : Sale := And.left hBoth
+            exact False.elim (hNotSale hSale)
+  -- From ∀x ¬Plan x and (MakeList → Plan), derive ∀x ¬MakeList x
+  have hAllNotMakeList : ∀ x : obj, ¬MakeList x := by
+    intro x
+    intro hML
+    have hPl : Plan x := A2 x hML
+    have hNP : ¬Plan x := hAllNotPlan x
+    exact hNP hPl
+  -- From Payday → ∀x MakeList x and ∀x ¬MakeList x, derive ¬Payday
+  have hNotPayday : ¬Payday := by
+    intro hPay
+    have hAllML : ∀ x : obj, MakeList x := A4 hPay
+    have hMLMary : MakeList Mary := hAllML Mary
+    have hNMLMary : ¬MakeList Mary := hAllNotMakeList Mary
+    exact hNMLMary hMLMary
+  -- From A5 and ¬Payday, derive PricesUp
+  cases A5 with
+  | inl hPayday =>
+      exact False.elim (hNotPayday hPayday)
+  | inr rest =>
+      cases rest with
+      | inl hPricesUp => exact hPricesUp
+      | inr hBoth =>
+          have hPayday : Payday := And.left hBoth
+          exact False.elim (hNotPayday hPayday)
+
+-- Cannot prove ¬((¬StockUp Mary) → PricesUp) from given axioms, since the implication above is derivable.
+</lean>
+
+ANSWER: Failure

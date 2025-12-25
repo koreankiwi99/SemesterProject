@@ -1,0 +1,53 @@
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom Hungry : Person → Prop
+axiom MakePancakes : Person → Prop
+axiom AteDinnerLastNight : Person → Prop
+
+axiom StoveOn : Prop
+axiom UseStove : Prop
+axiom KitchenHot : Prop
+
+-- If the stove is on, the kitchen gets hot.
+axiom R1 : StoveOn → KitchenHot
+-- If someone makes pancakes, they use the stove (global).
+axiom R2 : ∀ p : Person, MakePancakes p → UseStove
+-- Either the stove was on, or they did not use the stove.
+axiom R3 : StoveOn ∨ ¬UseStove
+-- If someone is hungry, they make pancakes.
+axiom R4 : ∀ p : Person, Hungry p → MakePancakes p
+-- If Sam did not eat dinner last night, he was hungry this morning.
+axiom R5 : ¬AteDinnerLastNight Sam → Hungry Sam
+
+-- Assumption from the statement: The kitchen did not get hot.
+axiom T1 : ¬KitchenHot
+
+-- From the given context and ¬KitchenHot, we can derive ¬¬(Sam ate dinner last night).
+-- This shows we cannot prove ¬(Sam ate dinner last night); indeed we get its double negation.
+theorem not_not_ate : ¬¬AteDinnerLastNight Sam := by
+  intro hNotAte
+  -- From ¬Ate ⇒ Hungry ⇒ Makes pancakes ⇒ Uses stove
+  have hHungry : Hungry Sam := R5 hNotAte
+  have hMake : MakePancakes Sam := R4 Sam hHungry
+  have hUse : UseStove := R2 Sam hMake
+  -- From ¬KitchenHot and (StoveOn → KitchenHot), derive ¬StoveOn
+  have hNotOn : ¬StoveOn := by
+    intro hOn
+    have : KitchenHot := R1 hOn
+    exact T1 this
+  -- From (StoveOn ∨ ¬UseStove) and ¬StoveOn, derive ¬UseStove
+  have hNotUse : ¬UseStove := by
+    cases R3 with
+    | inl hOn =>
+      exact False.elim (hNotOn hOn)
+    | inr h =>
+      exact h
+  -- Contradiction: UseStove and ¬UseStove
+  exact hNotUse hUse
+
+-- Cannot prove ¬AteDinnerLastNight Sam from given axioms (indeed we derived ¬¬AteDinnerLastNight Sam).
+</lean>
+
+ANSWER: Failure

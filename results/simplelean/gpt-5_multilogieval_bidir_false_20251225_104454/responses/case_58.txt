@@ -1,0 +1,58 @@
+<lean>
+axiom obj : Type
+axiom AddsSalt : obj → Prop
+axiom Stirs : obj → Prop
+axiom Tastes : obj → Prop
+axiom PreparesSalad : obj → Prop
+
+axiom Savory : Prop
+axiom Thickens : Prop
+
+-- If someone adds salt, the stew becomes savory
+axiom R1 : ∀ x : obj, AddsSalt x → Savory
+-- If someone stirs continuously, the stew thickens perfectly
+axiom R2 : ∀ x : obj, Stirs x → Thickens
+-- Either someone adds salt, or the stew does not thicken perfectly, or both
+axiom R3 : (∃ x : obj, AddsSalt x) ∨ ¬Thickens ∨ ((∃ x : obj, AddsSalt x) ∧ ¬Thickens)
+-- If someone tastes the stew, then they stir it continuously
+axiom R4 : ∀ x : obj, Tastes x → Stirs x
+-- Either someone tastes the stew, or someone prepares a salad, or both
+axiom R5 : (∃ x : obj, Tastes x) ∨ (∃ x : obj, PreparesSalad x) ∨ ((∃ x : obj, Tastes x) ∧ (∃ x : obj, PreparesSalad x))
+
+-- From ¬Savory, we can actually prove that someone prepared a salad
+theorem salad_from_not_savory : ¬Savory → ∃ x : obj, PreparesSalad x := by
+  intro hns
+  -- No one adds salt (else Savory)
+  have hNoAdd : ¬∃ x : obj, AddsSalt x := by
+    intro hExists
+    cases hExists with
+    | intro w hw =>
+      have hsav : Savory := R1 w hw
+      exact hns hsav
+  -- Therefore, from R3, the stew does not thicken
+  have hNotThick : ¬Thickens := by
+    cases R3 with
+    | inl hAdd =>
+      exact False.elim (hNoAdd hAdd)
+    | inr h2 =>
+      cases h2 with
+      | inl hNT => exact hNT
+      | inr hBoth => exact hBoth.right
+  -- Hence no one tastes (since tasting would force thickening)
+  have hNoTaste : ¬∃ x : obj, Tastes x := by
+    intro hTex
+    have hThick : Thickens := by
+      cases hTex with
+      | intro w hw =>
+        exact R2 w (R4 w hw)
+    exact hNotThick hThick
+  -- From R5 and ¬∃ Tastes, we conclude ∃ PreparesSalad
+  cases R5 with
+  | inl hTex => exact False.elim (hNoTaste hTex)
+  | inr h2 =>
+    cases h2 with
+    | inl hSal => exact hSal
+    | inr hBoth => exact hBoth.right
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Alex : obj
+
+-- Propositions about the day and the quiz
+axiom Monday : Prop
+axiom Quiz : Prop
+
+-- Properties about a person
+axiom DoWell : obj → Prop
+axiom StudiedHard : obj → Prop
+axiom GoodAtMath : obj → Prop
+
+-- Axioms from the context
+axiom A1 : Monday → Quiz
+axiom A2 : ∀ x : obj, DoWell x → StudiedHard x
+axiom A3 : Monday ∨ ¬StudiedHard Alex ∨ (Monday ∧ ¬StudiedHard Alex)
+axiom A4 : ∀ x : obj, GoodAtMath x → DoWell x
+
+-- From no quiz, we can derive that Alex is not good at math
+theorem not_good_of_no_quiz : ¬Quiz → ¬GoodAtMath Alex := by
+  intro hNoQuiz
+  -- From Monday → Quiz and ¬Quiz, we get ¬Monday
+  have hNotMon : ¬Monday := by
+    intro hMon
+    exact hNoQuiz (A1 hMon)
+  -- Reduce the given disjunction to Monday ∨ ¬StudiedHard Alex
+  have hDisjReduced : Monday ∨ ¬StudiedHard Alex := by
+    cases A3 with
+    | inl hMon => exact Or.inl hMon
+    | inr hTail =>
+      cases hTail with
+      | inl hNotStud => exact Or.inr hNotStud
+      | inr hMonAndNotStud => exact Or.inl hMonAndNotStud.left
+  -- From ¬Monday and the reduced disjunction, conclude ¬StudiedHard Alex
+  have hNotStud : ¬StudiedHard Alex := by
+    cases hDisjReduced with
+    | inl hMon => exact False.elim (hNotMon hMon)
+    | inr hNotStud => exact hNotStud
+  -- If Alex were good at math, then Alex would study hard, contradiction
+  intro hGood
+  have hDoWell : DoWell Alex := A4 Alex hGood
+  have hStud : StudiedHard Alex := A2 Alex hDoWell
+  exact hNotStud hStud
+
+-- The target to negate is (¬Quiz → GoodAtMath Alex).
+-- From the axioms we can show (¬Quiz → ¬GoodAtMath Alex) (as above),
+-- but we cannot derive ¬Quiz itself, so we cannot prove ¬(¬Quiz → GoodAtMath Alex).
+-- Hence, the requested negation is not derivable from the given premises.
+</lean>
+
+ANSWER: Failure

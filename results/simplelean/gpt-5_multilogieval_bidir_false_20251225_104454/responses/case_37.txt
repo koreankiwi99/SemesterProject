@@ -1,0 +1,47 @@
+<lean>
+axiom Person : Type
+axiom Jake : Person
+
+axiom Nice : Prop                     -- the weather is nice
+axiom Relax : Person → Prop           -- can relax outside
+axiom ReadBooks : Person → Prop       -- reads books
+axiom PackedEnough : Person → Prop    -- packed enough
+axiom Prepared : Person → Prop        -- is prepared
+
+-- If the weather is nice, then one can relax outside.
+axiom R1 : ∀ x : Person, Nice → Relax x
+-- If someone reads books, then they packed enough.
+axiom R2 : ∀ x : Person, ReadBooks x → PackedEnough x
+-- Either the weather is nice, or they did not pack enough, or both.
+axiom R3 : ∀ x : Person, Nice ∨ ¬PackedEnough x ∨ (Nice ∧ ¬PackedEnough x)
+-- If someone is prepared, then they read books.
+axiom R4 : ∀ x : Person, Prepared x → ReadBooks x
+
+-- From the assumption (¬Relax Jake → Prepared Jake), we can derive ¬¬Relax Jake,
+-- but this does not yield a contradiction with the given axioms, so we cannot prove the negation
+-- of the queried implication from the premises.
+theorem from_implication_we_get_notnot_relax :
+  ((¬Relax Jake) → Prepared Jake) → ¬¬Relax Jake :=
+by
+  intro h
+  intro hnR
+  have hprep : Prepared Jake := h hnR
+  have hread : ReadBooks Jake := R4 Jake hprep
+  have hpack : PackedEnough Jake := R2 Jake hread
+  have disj := R3 Jake
+  have hNice : Nice := by
+    cases disj with
+    | inl hN => exact hN
+    | inr h2 =>
+      cases h2 with
+      | inl hNotPack => exact False.elim (hNotPack hpack)
+      | inr hBoth =>
+        cases hBoth with
+        | intro hN hNotPack => exact False.elim (hNotPack hpack)
+  have hRelax : Relax Jake := R1 Jake hNice
+  exact hnR hRelax
+
+-- Cannot prove ¬((¬Relax Jake) → Prepared Jake) from the given axioms.
+</lean>
+
+ANSWER: Failure

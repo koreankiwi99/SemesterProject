@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Hachi : obj
+
+axiom Film : obj → Prop
+axiom AppropriateAllAges : obj → Prop
+axiom ChildNoGuidance : obj → Prop
+axiom ExcessiveEroticViolent : obj → Prop
+axiom GeneralAudience : obj → Prop
+axiom FamilyFriendlyAnimated : obj → Prop
+axiom FrozenSeries : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, AppropriateAllAges x → ChildNoGuidance x
+axiom P2 : ∀ x : obj, ExcessiveEroticViolent x → ¬ChildNoGuidance x
+axiom P3 : ∀ x : obj, GeneralAudience x → AppropriateAllAges x
+axiom P4 : ∀ x : obj, FamilyFriendlyAnimated x → GeneralAudience x
+axiom P5 : ∀ x : obj, FrozenSeries x → FamilyFriendlyAnimated x
+axiom Hachi_is_film : Film Hachi
+axiom Hachi_either_FFA_or_AFA : FamilyFriendlyAnimated Hachi ∨ AppropriateAllAges Hachi
+
+-- Derived facts
+theorem Hachi_AFA : AppropriateAllAges Hachi := by
+  cases Hachi_either_FFA_or_AFA with
+  | inl hffa =>
+      have hga : GeneralAudience Hachi := P4 Hachi hffa
+      exact P3 Hachi hga
+  | inr hafa =>
+      exact hafa
+
+theorem Hachi_CG : ChildNoGuidance Hachi := by
+  exact P1 Hachi Hachi_AFA
+
+theorem Hachi_not_EVC : ¬ExcessiveEroticViolent Hachi := by
+  intro hEVC
+  have h_not_CG : ¬ChildNoGuidance Hachi := P2 Hachi hEVC
+  exact h_not_CG Hachi_CG
+
+-- The statement to evaluate
+def Statement : Prop :=
+  (ExcessiveEroticViolent Hachi ∧ FrozenSeries Hachi) ∨
+  (¬ExcessiveEroticViolent Hachi ∧ ¬FrozenSeries Hachi)
+
+-- We can show the statement is equivalent to ¬FrozenSeries Hachi (since we proved ¬EVC for Hachi)
+theorem statement_iff_notFrozen : Statement ↔ ¬FrozenSeries Hachi := by
+  apply Iff.intro
+  · intro h
+    cases h with
+    | inl h1 =>
+        have : False := Hachi_not_EVC h1.left
+        exact False.elim this
+    | inr h2 =>
+        exact h2.right
+  · intro h_not_Frozen
+    apply Or.inr
+    apply And.intro
+    · exact Hachi_not_EVC
+    · exact h_not_Frozen
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,103 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom Baby : obj → Prop
+axiom MultipleBirth : obj → Prop
+axiom SibsBornTogether : obj → Prop
+axiom Complain : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+
+axiom R1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom R2 : ∀ x : obj, SibsBornTogether x → MultipleBirth x
+axiom R3 : ∀ x : obj, Complain x → SibsBornTogether x
+axiom R4 : ∀ x : obj, LiveAtHome x → ¬LiveWithStrangers x
+axiom R5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+
+-- Luke either is a baby born in a multiple birth and lives with strangers,
+-- or is not (a baby born in a multiple birth) and does not live with strangers
+axiom R6 : (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬LiveWithStrangers Luke)
+
+theorem spend_implies_not_strangers : ∀ x : obj, SpendTimeWithSiblings x → ¬LiveWithStrangers x := by
+  intro x
+  intro hSpend
+  have hHome : LiveAtHome x := R5 x hSpend
+  exact R4 x hHome
+
+theorem left_disjunct_impossible : (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) → False := by
+  intro h
+  have hBM : Baby Luke ∧ MultipleBirth Luke := And.left h
+  have hStr : LiveWithStrangers Luke := And.right h
+  have hMB : MultipleBirth Luke := And.right hBM
+  have hSpend : SpendTimeWithSiblings Luke := R1 Luke hMB
+  have hNoStr : ¬LiveWithStrangers Luke := spend_implies_not_strangers Luke hSpend
+  exact hNoStr hStr
+
+theorem luke_does_not_live_with_strangers : ¬LiveWithStrangers Luke := by
+  have h := R6
+  cases h with
+  | inl hl =>
+      have contra : False := left_disjunct_impossible hl
+      exact False.elim contra
+  | inr hr =>
+      exact And.right hr
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom Baby : obj → Prop
+axiom MultipleBirth : obj → Prop
+axiom SibsBornTogether : obj → Prop
+axiom Complain : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+
+axiom R1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom R2 : ∀ x : obj, SibsBornTogether x → MultipleBirth x
+axiom R3 : ∀ x : obj, Complain x → SibsBornTogether x
+axiom R4 : ∀ x : obj, LiveAtHome x → ¬LiveWithStrangers x
+axiom R5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+
+-- Luke either is a baby born in a multiple birth and lives with strangers,
+-- or is not (a baby born in a multiple birth) and does not live with strangers
+axiom R6 : (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨ (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬LiveWithStrangers Luke)
+
+theorem spend_implies_not_strangers : ∀ x : obj, SpendTimeWithSiblings x → ¬LiveWithStrangers x := by
+  intro x
+  intro hSpend
+  have hHome : LiveAtHome x := R5 x hSpend
+  exact R4 x hHome
+
+theorem left_disjunct_impossible : (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) → False := by
+  intro h
+  have hMB : MultipleBirth Luke := And.left (And.right h)
+  have hStr : LiveWithStrangers Luke := And.right (And.right h)
+  have hSpend : SpendTimeWithSiblings Luke := R1 Luke hMB
+  have hNoStr : ¬LiveWithStrangers Luke := spend_implies_not_strangers Luke hSpend
+  exact hNoStr hStr
+
+theorem right_disjunct_true : (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬LiveWithStrangers Luke) := by
+  have h := R6
+  cases h with
+  | inl hl =>
+      have contra : False := left_disjunct_impossible hl
+      exact False.elim contra
+  | inr hr =>
+      exact hr
+
+theorem luke_does_not_live_with_strangers : ¬LiveWithStrangers Luke :=
+  And.right right_disjunct_true
+</lean>
+
+ANSWER: Failure

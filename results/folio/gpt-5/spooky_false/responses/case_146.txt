@@ -1,0 +1,49 @@
+<lean>
+axiom Person : Type
+
+axiom Vladimir : Person
+axiom Ekaterina : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024USPres : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwanCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024USPres x
+axiom P2 : ∀ x : Person, USCitizen x → CanRegisterUS x
+axiom P3 : ∀ x : Person, USCitizen x ∨ TaiwanCitizen x
+axiom P4 : ∀ x : Person, RussianOfficial x → ¬TaiwanCitizen x
+axiom P5a : ¬TaiwanCitizen Vladimir
+axiom P5b : ¬ManagerGazprom Vladimir
+axiom P6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Russian officials must be US citizens (from P3 and P4)
+theorem official_US_citizen : ∀ x : Person, RussianOfficial x → USCitizen x := by
+  intro x hx
+  have hnotTW : ¬TaiwanCitizen x := P4 x hx
+  have hdisj : USCitizen x ∨ TaiwanCitizen x := P3 x
+  cases hdisj with
+  | inl hUS => exact hUS
+  | inr hTW =>
+    have : False := hnotTW hTW
+    exact False.elim this
+
+-- Ekaterina can participate in the 2024 US presidential election
+theorem Ekaterina_can_participate : CanParticipate2024USPres Ekaterina := by
+  cases P6 with
+  | inl hreg =>
+    exact P1 Ekaterina hreg
+  | inr hro =>
+    have hUS : USCitizen Ekaterina := official_US_citizen Ekaterina hro
+    have hreg : CanRegisterUS Ekaterina := P2 Ekaterina hUS
+    exact P1 Ekaterina hreg
+
+-- Target statement holds: she can participate or is a Gazprom manager
+theorem target : CanParticipate2024USPres Ekaterina ∨ ManagerGazprom Ekaterina := by
+  exact Or.inl Ekaterina_can_participate
+</lean>
+
+ANSWER: Failure

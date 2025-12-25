@@ -1,0 +1,63 @@
+<lean>
+axiom obj : Type
+
+-- Predicates for categories
+axiom Supervised : obj → Prop
+axiom Unsupervised : obj → Prop
+axiom Reinforcement : obj → Prop
+
+-- Predicate for being a machine learning algorithm
+axiom MLAlg : obj → Prop
+
+-- Predicate for being used to train the SOTA text summarization model
+axiom UsedForSOTA : obj → Prop
+
+-- Predicate for requiring labeled data
+axiom RequiresLabels : obj → Prop
+
+-- Premises
+-- 1) ML algorithms can be categorized as supervised, unsupervised, or reinforcement
+axiom categorization : ∀ x : obj, MLAlg x → Supervised x ∨ Unsupervised x ∨ Reinforcement x
+
+-- 2) Unsupervised algorithms do not require labeled data
+axiom unsup_no_labels : ∀ x : obj, Unsupervised x → ¬RequiresLabels x
+
+-- 3) Reinforcement learning is not used to train the SOTA model
+axiom rl_not_used : ∀ x : obj, UsedForSOTA x → ¬Reinforcement x
+
+-- 4) The ML algorithm for training text summarization models requires labeled data
+axiom used_requires_labels : ∀ x : obj, UsedForSOTA x → RequiresLabels x
+
+-- 5) There is a particular ML algorithm A used to train the SOTA model
+axiom A : obj
+axiom A_is_ml : MLAlg A
+axiom A_used : UsedForSOTA A
+
+-- From premises, we can prove the algorithm used is supervised
+theorem not_unsup_A : ¬Unsupervised A := by
+  intro hUnsup
+  have hNoLab : ¬RequiresLabels A := unsup_no_labels A hUnsup
+  have hReq : RequiresLabels A := used_requires_labels A A_used
+  exact hNoLab hReq
+
+theorem not_rl_A : ¬Reinforcement A := rl_not_used A A_used
+
+theorem supervised_A : Supervised A := by
+  have hdisj : Supervised A ∨ Unsupervised A ∨ Reinforcement A := categorization A A_is_ml
+  cases hdisj with
+  | inl hSup => exact hSup
+  | inr hrest =>
+    cases hrest with
+    | inl hUnsup =>
+      have : False := not_unsup_A hUnsup
+      exact False.elim this
+    | inr hRl =>
+      have : False := not_rl_A hRl
+      exact False.elim this
+
+-- Hence, supervised learning is used to train the SOTA model
+theorem supervised_used_exists : ∃ x : obj, UsedForSOTA x ∧ Supervised x :=
+  Exists.intro A (And.intro A_used supervised_A)
+</lean>
+
+ANSWER: Failure

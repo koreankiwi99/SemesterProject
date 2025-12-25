@@ -1,0 +1,129 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+
+-- Predicates/relations
+axiom Man : obj → Prop
+axiom Taller : obj → obj → Prop
+axiom CanBlock : obj → obj → Prop
+axiom Jumps : obj → Prop
+axiom Shooter : obj → Prop
+axiom Great : obj → Prop
+axiom InMClass : obj → Prop  -- "in Michael's class"
+
+-- Premises
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom P1 : ∀ x y : obj, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man who is taller than everyone else in his class.
+axiom P2m : Man Michael
+axiom P2t : ∀ y : obj, InMClass y → Taller Michael y
+
+-- Transitivity of "taller than".
+axiom P3 : ∀ x y z : obj, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom P4m : Man Peter
+axiom P4t : Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom P5 : ∀ y : obj, ¬ Jumps y → CanBlock Michael y
+
+-- Michael cannot block Windy's shooting.
+axiom P6 : ¬ CanBlock Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom P7 : ∀ y : obj, Shooter y ∧ Jumps y → Great y
+
+-- From "Windy's shooting" we model that Windy is a shooter.
+axiom P8 : Shooter Windy
+
+open Classical
+
+-- A derivable fact: Windy must be able to jump when shooting (otherwise Michael would block).
+theorem windy_jumps : Jumps Windy :=
+by
+  have himp : ¬ Jumps Windy → CanBlock Michael Windy := P5 Windy
+  have hnot : ¬ CanBlock Michael Windy := P6
+  by_contra hnj
+  have hcb : CanBlock Michael Windy := himp hnj
+  exact hnot hcb
+
+-- Hence Windy is a great shooter (not used for the target conclusion, but derivable).
+theorem windy_great : Great Windy :=
+by
+  apply P7 Windy
+  apply And.intro
+  · exact P8
+  · exact windy_jumps
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Michael : obj
+axiom Peter : obj
+axiom Windy : obj
+
+-- Predicates/relations
+axiom Man : obj → Prop
+axiom Taller : obj → obj → Prop
+axiom CanBlock : obj → obj → Prop
+axiom Jumps : obj → Prop
+axiom Shooter : obj → Prop
+axiom Great : obj → Prop
+axiom InMClass : obj → Prop  -- "in Michael's class"
+
+-- Premises
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom P1 : ∀ x y : obj, Man x → Man y → Taller x y → CanBlock x y
+
+-- Michael is a man who is taller than everyone else in his class.
+axiom P2m : Man Michael
+axiom P2t : ∀ y : obj, InMClass y → Taller Michael y
+
+-- Transitivity of "taller than".
+axiom P3 : ∀ x y z : obj, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom P4m : Man Peter
+axiom P4t : Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom P5 : ∀ y : obj, ¬ Jumps y → CanBlock Michael y
+
+-- Michael cannot block Windy's shooting.
+axiom P6 : ¬ CanBlock Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom P7 : ∀ y : obj, Shooter y ∧ Jumps y → Great y
+
+-- From "Windy's shooting" we model that Windy is a shooter.
+axiom P8 : Shooter Windy
+
+-- Derivable consequences
+theorem windy_jumps : Jumps Windy :=
+by
+  have hcontra : ¬ ¬ Jumps Windy := fun hnj => P6 (P5 Windy hnj)
+  exact Classical.byContradiction (fun h => hcontra h)
+
+theorem windy_great : Great Windy :=
+by
+  exact P7 Windy (And.intro P8 windy_jumps)
+
+theorem peter_blocks_michael : CanBlock Peter Michael :=
+  P1 Peter Michael P4m P2m P4t
+</lean>
+
+ANSWER: Failure

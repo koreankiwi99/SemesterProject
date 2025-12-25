@@ -1,0 +1,105 @@
+<lean>
+axiom Building : Type
+axiom Person : Type
+axiom Animal : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom TheOliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Cat : Animal → Prop
+axiom Pet : Animal → Prop
+axiom Owns : Person → Animal → Prop
+axiom AllowedMoveInWith : Person → Animal → Building → Prop
+axiom WillRent : Person → Building → Prop
+
+axiom MonthlyRent : Building → Nat
+axiom SecDeposit : Building → Nat
+
+-- Pets are allowed in some managed buildings.
+axiom A1 : ∃ b : Building, Managed b ∧ AllowsPets b
+-- A deposit is required to rent an apartment in a managed building. (not explicitly formalized; deposit exists)
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom A2 : ∀ b : Building, Managed b → SecDeposit b >= MonthlyRent b
+-- Fluffy is Tom's cat.
+axiom A3 : Owns Tom Fluffy ∧ Cat Fluffy
+-- Cats are pets.
+axiom A4 : ∀ a : Animal, Cat a → Pet a
+-- The Olive Garden is a managed building.
+axiom A5 : Managed TheOliveGarden
+-- The monthly rent at the Olive Garden is $2000.
+axiom A6 : MonthlyRent TheOliveGarden = 2000
+-- $2000 is more than $1500.
+axiom A7 : 2000 > 1500
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy, and the security deposit is no more than $1500.
+axiom A8 : ∀ b : Building, Managed b → AllowedMoveInWith Tom Fluffy b → SecDeposit b <= 1500 → WillRent Tom b
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom A9 : ∀ p : Person, ∀ a : Animal, ∀ b : Building, Managed b → AllowsPets b → Pet a → AllowedMoveInWith p a b
+
+-- Useful derived fact: Fluffy is a pet.
+lemma Fluffy_is_pet : Pet Fluffy :=
+  A4 Fluffy (And.right A3)
+
+-- What we could prove if The Olive Garden allows pets.
+theorem allowed_if_OG_allows_pets : AllowsPets TheOliveGarden → AllowedMoveInWith Tom Fluffy TheOliveGarden := by
+  intro hAllow
+  exact A9 Tom Fluffy TheOliveGarden A5 hAllow Fluffy_is_pet
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Building : Type
+axiom Person : Type
+axiom Animal : Type
+
+axiom Tom : Person
+axiom Fluffy : Animal
+axiom TheOliveGarden : Building
+
+axiom Managed : Building → Prop
+axiom AllowsPets : Building → Prop
+axiom Cat : Animal → Prop
+axiom Pet : Animal → Prop
+axiom Owns : Person → Animal → Prop
+axiom AllowedMoveInWith : Person → Animal → Building → Prop
+axiom WillRent : Person → Building → Prop
+
+axiom MonthlyRent : Building → Nat
+axiom SecDeposit : Building → Nat
+
+-- Pets are allowed in some managed buildings.
+axiom A1 : ∃ b : Building, Managed b ∧ AllowsPets b
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom A2 : ∀ b : Building, Managed b → SecDeposit b >= MonthlyRent b
+-- Fluffy is Tom's cat.
+axiom A3 : Owns Tom Fluffy ∧ Cat Fluffy
+-- Cats are pets.
+axiom A4 : ∀ a : Animal, Cat a → Pet a
+-- The Olive Garden is a managed building.
+axiom A5 : Managed TheOliveGarden
+-- The monthly rent at the Olive Garden is $2000.
+axiom A6 : MonthlyRent TheOliveGarden = 2000
+-- $2000 is more than $1500.
+axiom A7 : 2000 > 1500
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy, and the security deposit is no more than $1500.
+axiom A8 : ∀ b : Building, Managed b → AllowedMoveInWith Tom Fluffy b → SecDeposit b <= 1500 → WillRent Tom b
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom A9 : ∀ p : Person, ∀ a : Animal, ∀ b : Building, Managed b → AllowsPets b → Pet a → AllowedMoveInWith p a b
+
+-- From managed + allows-pets at The Olive Garden, we'd get the desired allowance.
+theorem allowed_if_OG_allows_pets :
+  AllowsPets TheOliveGarden → AllowedMoveInWith Tom Fluffy TheOliveGarden := by
+  intro hAllow
+  have hCat : Cat Fluffy := And.right A3
+  have hPet : Pet Fluffy := A4 Fluffy hCat
+  exact A9 Tom Fluffy TheOliveGarden A5 hAllow hPet
+</lean>
+
+ANSWER: Failure

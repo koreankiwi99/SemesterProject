@@ -1,0 +1,53 @@
+<lean>
+axiom Alg : Type
+axiom Model : Type
+
+axiom Sota : Model
+
+axiom ML : Alg → Prop
+axiom Used : Alg → Model → Prop
+axiom Supervised : Alg → Prop
+axiom Unsupervised : Alg → Prop
+axiom Reinforcement : Alg → Prop
+axiom RequiresLabeled : Alg → Prop
+
+-- Machine Learning algorithms can be categorized as supervised, unsupervised, or reinforcement.
+axiom categories : ∀ a : Alg, ML a → Supervised a ∨ Unsupervised a ∨ Reinforcement a
+
+-- Unsupervised learning algorithms do not require labeled data.
+axiom unsup_no_labels : ∀ a : Alg, Unsupervised a → ¬ RequiresLabeled a
+
+-- The state-of-the-art text summarization model is trained with machine learning algorithms.
+axiom ml_trained : ∃ a : Alg, ML a ∧ Used a Sota
+
+-- Reinforcement learning is not used to train the state-of-the-art text summarization model.
+axiom used_not_rl : ∀ a : Alg, Used a Sota → ¬ Reinforcement a
+
+-- The Machine Learning algorithm for training text summarization models requires labeled data.
+axiom requires_for_used_ml : ∀ a : Alg, ML a → Used a Sota → RequiresLabeled a
+
+-- Statement to prove: Supervised learning is used to train the state-of-the-art text summarization model.
+theorem supervised_used_sota : ∃ a : Alg, Used a Sota ∧ Supervised a := by
+  cases ml_trained with
+  | intro a h =>
+    have hML : ML a := And.left h
+    have hUsed : Used a Sota := And.right h
+    have hReq : RequiresLabeled a := requires_for_used_ml a hML hUsed
+    have hNotUnsup : ¬ Unsupervised a := by
+      intro hU
+      have hNotReq : ¬ RequiresLabeled a := unsup_no_labels a hU
+      exact hNotReq hReq
+    have hNotRL : ¬ Reinforcement a := used_not_rl a hUsed
+    have hCat := categories a hML
+    cases hCat with
+    | inl hSup =>
+        exact Exists.intro a (And.intro hUsed hSup)
+    | inr h =>
+        cases h with
+        | inl hU =>
+            exact False.elim (hNotUnsup hU)
+        | inr hR =>
+            exact False.elim (hNotRL hR)
+</lean>
+
+ANSWER: True

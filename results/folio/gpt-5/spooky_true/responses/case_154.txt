@@ -1,0 +1,49 @@
+<lean>
+axiom obj : Type
+axiom mixture : obj
+axiom Hydrocarbon : obj → Prop
+axiom OrganicCompound : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+axiom A1 : ∀ x : obj, Hydrocarbon x → OrganicCompound x
+axiom A2 : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom A3 : ∀ x : obj, OrganicCompound x → ChemicalCompound x
+axiom A4 : ∀ x : obj, OrganicCompound x → ContainsCarbon x
+axiom A5 : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+axiom A6 : (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨ (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+theorem mixture_neither_cc_nor_alkane_of_one_or_carbon :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := by
+  intro _
+  -- First, show the mixture is neither a chemical compound nor only-one-element
+  have hneither : ¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture := by
+    have hdisj := A6
+    cases hdisj with
+    | inl hboth =>
+      have hc : ChemicalCompound mixture := hboth.left
+      have hone : OnlyOneElement mixture := hboth.right
+      have hnotone : ¬ OnlyOneElement mixture := A5 mixture hc
+      have fals : False := hnotone hone
+      exact False.elim fals
+    | inr hnei =>
+      exact hnei
+  have hNotChem : ¬ ChemicalCompound mixture := hneither.left
+  -- Next, Alkane implies ChemicalCompound via the chain of implications
+  have hAlk_to_Chem : ∀ x : obj, Alkane x → ChemicalCompound x := by
+    intro x
+    intro hA
+    have hHydro : Hydrocarbon x := A2 x hA
+    have hOrg : OrganicCompound x := A1 x hHydro
+    exact A3 x hOrg
+  -- Therefore, the mixture cannot be an alkane
+  have hNotAlk : ¬ Alkane mixture := by
+    intro hA
+    have hc : ChemicalCompound mixture := hAlk_to_Chem mixture hA
+    exact hNotChem hc
+  exact And.intro hNotChem hNotAlk
+</lean>
+
+ANSWER: True

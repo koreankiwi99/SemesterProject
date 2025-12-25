@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom CFG : obj → Prop
+axiom Clean : obj → Prop
+axiom Value : obj → Prop
+axiom FamilyPrior : obj → Prop
+
+axiom Peter : obj
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spill x → ¬ Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try are people who spill a lot of food on their clothing.
+axiom A2 : ∀ x : obj, CFG x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Clean x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, Value x → Clean x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamilyPrior x → Value x
+-- Peter is either (spills and is cleanly) or (does not spill and is not cleanly).
+axiom A6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- Statement to evaluate (negated): ¬(CFG Peter ∨ FamilyPrior Peter)
+theorem peter_not_cfg_or_family : ¬ (CFG Peter ∨ FamilyPrior Peter) := by
+  intro s
+  have h := A6
+  cases h with
+  | inl hsc =>
+    -- hsc : Spill Peter ∧ Clean Peter
+    have sp : Spill Peter := hsc.left
+    have cl : Clean Peter := hsc.right
+    have tidy : Tidy Peter := A3 Peter cl
+    have nottidy : ¬ Tidy Peter := A1 Peter sp
+    exact nottidy tidy
+  | inr hnc =>
+    -- hnc : ¬Spill Peter ∧ ¬Clean Peter
+    have nsp : ¬ Spill Peter := hnc.left
+    have ncl : ¬ Clean Peter := hnc.right
+    cases s with
+    | inl hcfg =>
+      -- From CFG -> Spill, contradict ¬Spill
+      have sp2 : Spill Peter := A2 Peter hcfg
+      exact nsp sp2
+    | inr hfam =>
+      -- From FamilyPrior -> Value -> Clean, contradict ¬Clean
+      have val : Value Peter := A5 Peter hfam
+      have cl2 : Clean Peter := A4 Peter val
+      exact ncl cl2
+</lean>
+
+ANSWER: False

@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Hachi : obj
+
+-- Predicates
+axiom Film : obj → Prop
+axiom AppropriateAllAges : obj → Prop
+axiom CanWatchWithoutGuidance : obj → Prop
+axiom ContainsExcessiveEroticAndViolentContent : obj → Prop
+axiom RatedGeneralAudience : obj → Prop
+axiom FamilyFriendlyAnimated : obj → Prop
+axiom FrozenSeries : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, AppropriateAllAges x → CanWatchWithoutGuidance x
+axiom P2 : ∀ x : obj, ContainsExcessiveEroticAndViolentContent x → ¬ CanWatchWithoutGuidance x
+axiom P3 : ∀ x : obj, RatedGeneralAudience x → AppropriateAllAges x
+axiom P4 : ∀ x : obj, FamilyFriendlyAnimated x → RatedGeneralAudience x
+axiom P5 : ∀ x : obj, FrozenSeries x → FamilyFriendlyAnimated x
+axiom P6 : Film Hachi
+axiom P7 : FamilyFriendlyAnimated Hachi ∨ AppropriateAllAges Hachi
+
+-- Consequences we can derive
+theorem hachi_appropriate : AppropriateAllAges Hachi := by
+  cases P7 with
+  | inl hffa =>
+    exact P3 Hachi (P4 Hachi hffa)
+  | inr happ =>
+    exact happ
+
+theorem hachi_can_watch : CanWatchWithoutGuidance Hachi :=
+  P1 Hachi hachi_appropriate
+
+theorem hachi_not_EV : ¬ ContainsExcessiveEroticAndViolentContent Hachi := by
+  intro hev
+  have hnot : ¬ CanWatchWithoutGuidance Hachi := P2 Hachi hev
+  exact hnot hachi_can_watch
+
+-- Also, EV and Frozen cannot both hold
+theorem not_EV_and_Frozen_Hachi : ¬ (ContainsExcessiveEroticAndViolentContent Hachi ∧ FrozenSeries Hachi) := by
+  intro h
+  have hev : ContainsExcessiveEroticAndViolentContent Hachi := And.left h
+  have hfz : FrozenSeries Hachi := And.right h
+  -- From Frozen -> FamilyFriendly -> GA -> Appropriate -> CanWatch
+  have hcan : CanWatchWithoutGuidance Hachi := by
+    have hffa : FamilyFriendlyAnimated Hachi := P5 Hachi hfz
+    have hga : RatedGeneralAudience Hachi := P4 Hachi hffa
+    have happ : AppropriateAllAges Hachi := P3 Hachi hga
+    exact P1 Hachi happ
+  -- From EV -> not CanWatch, contradiction
+  have hnotcan : ¬ CanWatchWithoutGuidance Hachi := P2 Hachi hev
+  exact hnotcan hcan
+</lean>
+
+ANSWER: Failure

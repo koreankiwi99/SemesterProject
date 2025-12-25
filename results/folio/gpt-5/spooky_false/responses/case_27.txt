@@ -1,0 +1,50 @@
+<lean>
+axiom obj : Type
+axiom Alien : obj → Prop
+axiom ET : obj → Prop
+axiom Human : obj → Prop
+axiom FromEarth : obj → Prop
+axiom FromMars : obj → Prop
+axiom HI : obj → Prop
+axiom Marvin : obj
+
+-- Premises
+axiom A1 : ∀ x : obj, Alien x → ET x                             -- All aliens are extraterrestrials
+axiom A2 : ∀ x : obj, FromMars x → Alien x                       -- If someone is from Mars, then they are an alien
+axiom A3 : ∀ x : obj, ET x → ¬Human x                            -- No extraterrestrials are human
+axiom A4 : ∀ x : obj, HI x ∧ FromEarth x → Human x               -- All highly intelligent beings from Earth are humans
+axiom A5 : HI Marvin                                             -- Marvin is a highly intelligent being
+axiom A6 : (FromEarth Marvin ∧ FromMars Marvin) ∨ (¬FromEarth Marvin ∧ ¬FromMars Marvin)  -- Marvin: either both Earth and Mars, or neither
+axiom A7 : ¬FromEarth Marvin → ET Marvin                         -- If Marvin is not from Earth, then Marvin is an extraterrestrial
+
+-- Derive that Marvin cannot be both from Earth and from Mars
+theorem not_earth_and_mars : ¬(FromEarth Marvin ∧ FromMars Marvin) := by
+  intro hboth
+  have hE : FromEarth Marvin := And.left hboth
+  have hM : FromMars Marvin := And.right hboth
+  have hAlien : Alien Marvin := A2 Marvin hM
+  have hET : ET Marvin := A1 Marvin hAlien
+  have hNotHuman : ¬Human Marvin := A3 Marvin hET
+  have hHI : HI Marvin := A5
+  have hHuman : Human Marvin := A4 Marvin (And.intro hHI hE)
+  exact hNotHuman hHuman
+
+-- Hence, from the exclusive-like disjunction, deduce Marvin is from neither Earth nor Mars
+theorem neither_earth_nor_mars : ¬FromEarth Marvin ∧ ¬FromMars Marvin := by
+  have h := A6
+  cases h with
+  | inl hboth =>
+      have : False := not_earth_and_mars hboth
+      exact False.elim this
+  | inr hneither =>
+      exact hneither
+
+theorem not_from_earth : ¬FromEarth Marvin := And.left neither_earth_nor_mars
+theorem not_from_mars  : ¬FromMars Marvin  := And.right neither_earth_nor_mars
+
+-- Therefore Marvin is an extraterrestrial (but this does not imply he is not an alien)
+theorem et_marvin : ET Marvin := A7 not_from_earth
+theorem not_human_marvin : ¬Human Marvin := A3 Marvin et_marvin
+</lean>
+
+ANSWER: Failure

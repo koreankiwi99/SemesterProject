@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Bark : obj → Prop
+axiom Dog : obj → Prop
+axiom Like : obj → obj → Prop
+axiom Jump : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+
+axiom A1 : ∀ x : obj, Animal x ∧ Bark x → ¬ Like Jane x
+axiom A2 : ∀ x : obj, Dog x → Animal x ∧ Bark x
+axiom A3 : ∀ x : obj, Animal x ∧ Jump x → Like Jane x
+axiom A4 : ∀ x : obj, Animal x ∧ Legs x → Jump x
+axiom A5 : ∀ x : obj, Animal x ∧ Terricolous x → Legs x
+axiom A6 : Animal KiKi
+axiom A7 : (¬ Jump KiKi ∧ ¬ Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+theorem kiki_not_bark_and_not_dog : ¬ Bark KiKi ∧ ¬ Dog KiKi := by
+  classical
+  have hJump : Jump KiKi := by
+    by_cases hL : Legs KiKi
+    · exact A4 KiKi ⟨A6, hL⟩
+    · by_cases hJ : Jump KiKi
+      · exact hJ
+      · have hdisj := A7 ⟨hJ, hL⟩
+        cases hdisj with
+        | inl hT =>
+            have hlegs : Legs KiKi := A5 KiKi ⟨A6, hT⟩
+            exact False.elim (hL hlegs)
+        | inr hlegs =>
+            exact False.elim (hL hlegs)
+  have hLike : Like Jane KiKi := A3 KiKi ⟨A6, hJump⟩
+  have hNotBark : ¬ Bark KiKi := by
+    intro hb
+    have hNotLike : ¬ Like Jane KiKi := A1 KiKi ⟨A6, hb⟩
+    exact hNotLike hLike
+  have hNotDog : ¬ Dog KiKi := by
+    intro hd
+    have hAB : Animal KiKi ∧ Bark KiKi := A2 KiKi hd
+    exact hNotBark hAB.right
+  exact And.intro hNotBark hNotDog
+</lean>
+
+ANSWER: True

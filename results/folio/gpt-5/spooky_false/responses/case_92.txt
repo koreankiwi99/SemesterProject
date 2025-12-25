@@ -1,0 +1,143 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Tom : obj
+axiom Fluffy : obj
+axiom OliveGarden : obj
+
+-- Predicates and functions
+axiom Managed : obj → Prop
+axiom AllowsPets : obj → Prop
+axiom Pet : obj → Prop
+axiom Cat : obj → Prop
+axiom Owns : obj → obj → Prop
+axiom AllowedMoveInWith : obj → obj → obj → Prop  -- person, building, pet
+axiom WillRentIn : obj → obj → Prop               -- person, building
+
+axiom MonthlyRent : obj → Nat
+axiom Deposit : obj → Nat
+
+-- Premises from the text
+
+-- Pets are allowed in some managed buildings.
+axiom some_managed_allows_pets : ∃ b : obj, Managed b ∧ AllowsPets b
+
+-- A deposit is required to rent an apartment in a managed building.
+-- (We model at least that any building someone rents in is managed.)
+axiom rent_implies_managed : ∀ p b, WillRentIn p b → Managed b
+
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom deposit_ge_rent : ∀ b, Managed b → MonthlyRent b ≤ Deposit b
+
+-- Fluffy is Tom's cat.
+axiom fluffy_is_toms_cat : Owns Tom Fluffy ∧ Cat Fluffy
+
+-- Cats are pets.
+axiom cats_are_pets : ∀ x, Cat x → Pet x
+
+-- The Olive Garden is a managed building.
+axiom olive_is_managed : Managed OliveGarden
+
+-- The monthly rent at the Olive Garden is $2000.
+axiom rent_olive : MonthlyRent OliveGarden = 2000
+
+-- $2000 is more than $1500. (provable, but we can also show it directly)
+theorem two_thousand_gt_1500 : 1500 < 2000 := by decide
+
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy,
+-- and the security deposit is no more than $1500.
+axiom tom_rents_if_allowed_and_deposit_small :
+  ∀ b, Managed b → AllowedMoveInWith Tom b Fluffy → Deposit b ≤ 1500 → WillRentIn Tom b
+
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom allows_pets_implies_allowed_with_pet :
+  ∀ p b a, Managed b → AllowsPets b → Pet a → AllowedMoveInWith p b a
+
+-- A useful consequence we can derive: the Olive Garden's deposit is not ≤ 1500.
+theorem olive_deposit_not_le_1500 : ¬ (Deposit OliveGarden ≤ 1500) := by
+  have hm : Managed OliveGarden := olive_is_managed
+  have h_le : MonthlyRent OliveGarden ≤ Deposit OliveGarden := deposit_ge_rent OliveGarden hm
+  have h_rent_gt : 1500 < MonthlyRent OliveGarden := by
+    simpa [rent_olive] using two_thousand_gt_1500
+  have h_dep_gt : 1500 < Deposit OliveGarden := lt_of_lt_of_le h_rent_gt h_le
+  exact not_le_of_gt h_dep_gt
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Tom : obj
+axiom Fluffy : obj
+axiom OliveGarden : obj
+
+-- Predicates and functions
+axiom Managed : obj → Prop
+axiom AllowsPets : obj → Prop
+axiom Pet : obj → Prop
+axiom Cat : obj → Prop
+axiom Owns : obj → obj → Prop
+axiom AllowedMoveInWith : obj → obj → obj → Prop  -- person, building, pet
+axiom WillRentIn : obj → obj → Prop               -- person, building
+
+axiom MonthlyRent : obj → Nat
+axiom Deposit : obj → Nat
+
+-- Premises from the text
+
+-- Pets are allowed in some managed buildings.
+axiom some_managed_allows_pets : ∃ b : obj, Managed b ∧ AllowsPets b
+
+-- A deposit is required to rent an apartment in a managed building.
+-- (We model at least that any building someone rents in is managed.)
+axiom rent_implies_managed : ∀ p b, WillRentIn p b → Managed b
+
+-- The security deposit can be either equal to the monthly rent at a managed building or more.
+axiom deposit_ge_rent : ∀ b, Managed b → MonthlyRent b ≤ Deposit b
+
+-- Fluffy is Tom's cat.
+axiom fluffy_is_toms_cat : Owns Tom Fluffy ∧ Cat Fluffy
+
+-- Cats are pets.
+axiom cats_are_pets : ∀ x, Cat x → Pet x
+
+-- The Olive Garden is a managed building.
+axiom olive_is_managed : Managed OliveGarden
+
+-- The monthly rent at the Olive Garden is $2000.
+axiom rent_olive : MonthlyRent OliveGarden = 2000
+
+-- Arithmetic lemmas (introduced as axioms to avoid missing identifiers)
+axiom lt_of_lt_of_le : ∀ {a b c : Nat}, a < b → b ≤ c → a < c
+axiom not_le_of_gt : ∀ {a b : Nat}, a > b → ¬ a ≤ b
+
+-- $2000 is more than $1500.
+theorem two_thousand_gt_1500 : 1500 < 2000 := by decide
+
+-- Tom will rent an apartment in a managed building if he is allowed to move in with Fluffy,
+-- and the security deposit is no more than $1500.
+axiom tom_rents_if_allowed_and_deposit_small :
+  ∀ b, Managed b → AllowedMoveInWith Tom b Fluffy → Deposit b ≤ 1500 → WillRentIn Tom b
+
+-- If a managed building allows pets, then people are allowed to move in with a pet.
+axiom allows_pets_implies_allowed_with_pet :
+  ∀ p b a, Managed b → AllowsPets b → Pet a → AllowedMoveInWith p b a
+
+-- A useful consequence we can derive: the Olive Garden's deposit is not ≤ 1500.
+theorem olive_deposit_not_le_1500 : ¬ (Deposit OliveGarden ≤ 1500) := by
+  have hm : Managed OliveGarden := olive_is_managed
+  have h_le : MonthlyRent OliveGarden ≤ Deposit OliveGarden := deposit_ge_rent OliveGarden hm
+  have h_rent_gt : 1500 < MonthlyRent OliveGarden := by
+    simpa [rent_olive] using two_thousand_gt_1500
+  have h_dep_gt : 1500 < Deposit OliveGarden := lt_of_lt_of_le h_rent_gt h_le
+  exact not_le_of_gt h_dep_gt
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+
+axiom CanRegisterUS : Person → Prop
+axiom CanParticipate2024 : Person → Prop
+axiom USCitizenship : Person → Prop
+axiom TaiwaneseCitizenship : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerGazprom : Person → Prop
+
+-- Premises
+axiom A1 : ∀ x : Person, CanRegisterUS x → CanParticipate2024 x
+axiom A2 : ∀ x : Person, USCitizenship x → CanRegisterUS x
+axiom A3 : ∀ x : Person, USCitizenship x ∨ TaiwaneseCitizenship x
+axiom A4 : ∀ x : Person, RussianOfficial x → ¬ TaiwaneseCitizenship x
+axiom A5 : ¬ TaiwaneseCitizenship Vladimir ∧ ¬ ManagerGazprom Vladimir
+axiom A6 : CanRegisterUS Ekaterina ∨ RussianOfficial Ekaterina
+
+-- Derivations
+theorem vladimir_us_citizen : USCitizenship Vladimir := by
+  have hdisj := A3 Vladimir
+  have hnotT := And.left A5
+  cases hdisj with
+  | inl hus =>
+      exact hus
+  | inr ht =>
+      exact False.elim (hnotT ht)
+
+theorem vladimir_can_register : CanRegisterUS Vladimir :=
+  A2 Vladimir vladimir_us_citizen
+
+theorem vladimir_can_participate : CanParticipate2024 Vladimir :=
+  A1 Vladimir vladimir_can_register
+
+theorem ekaterina_can_register : CanRegisterUS Ekaterina := by
+  have h := A6
+  cases h with
+  | inl hreg =>
+      exact hreg
+  | inr hoff =>
+      have hnotT : ¬ TaiwaneseCitizenship Ekaterina := A4 Ekaterina hoff
+      have disj := A3 Ekaterina
+      cases disj with
+      | inl hus =>
+          exact A2 Ekaterina hus
+      | inr ht =>
+          exact False.elim (hnotT ht)
+
+theorem conjunction_true :
+  CanRegisterUS Ekaterina ∧ CanParticipate2024 Vladimir :=
+And.intro ekaterina_can_register vladimir_can_participate
+</lean>
+
+ANSWER: Failure

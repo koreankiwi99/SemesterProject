@@ -1,0 +1,65 @@
+<lean>
+axiom obj : Type
+axiom mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom Organic : obj → Prop
+axiom Alkane : obj → Prop
+axiom Chemical : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+
+axiom H_hydro_to_org : ∀ x : obj, Hydrocarbon x → Organic x
+axiom H_alk_to_hydro : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom H_org_to_chem : ∀ x : obj, Organic x → Chemical x
+axiom H_org_to_carbon : ∀ x : obj, Organic x → ContainsCarbon x
+axiom H_no_single_elem_for_chem : ∀ x : obj, Chemical x → ¬OnlyOneElement x
+axiom mix_xnor : (Chemical mixture ∧ OnlyOneElement mixture) ∨ (¬Chemical mixture ∧ ¬OnlyOneElement mixture)
+
+theorem not_chemical_mixture : ¬Chemical mixture := by
+  intro hchem
+  cases mix_xnor with
+  | inl both =>
+      have hone : OnlyOneElement mixture := both.right
+      have hno : ¬OnlyOneElement mixture := H_no_single_elem_for_chem mixture hchem
+      exact hno hone
+  | inr neither =>
+      have hnoChem : ¬Chemical mixture := neither.left
+      exact hnoChem hchem
+
+theorem not_single_element_mixture : ¬OnlyOneElement mixture := by
+  intro hone
+  cases mix_xnor with
+  | inl both =>
+      have hchem : Chemical mixture := both.left
+      have hno : ¬OnlyOneElement mixture := H_no_single_elem_for_chem mixture hchem
+      exact hno hone
+  | inr neither =>
+      have hnoOne : ¬OnlyOneElement mixture := neither.right
+      exact hnoOne hone
+
+theorem alkane_implies_chemical : ∀ x : obj, Alkane x → Chemical x := by
+  intro x
+  intro halk
+  have hhydro : Hydrocarbon x := H_alk_to_hydro x halk
+  have horg : Organic x := H_hydro_to_org x hhydro
+  have hchem : Chemical x := H_org_to_chem x horg
+  exact hchem
+
+theorem not_alkane_mixture : ¬Alkane mixture := by
+  intro halk
+  have hchem : Chemical mixture := alkane_implies_chemical mixture halk
+  exact not_chemical_mixture hchem
+
+-- Statement to evaluate:
+-- If the mixture contains only one element or contains carbon,
+-- then the mixture is neither a chemical compound nor an alkane.
+theorem statement_true :
+  (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬Chemical mixture ∧ ¬Alkane mixture) := by
+  intro _
+  apply And.intro
+  · exact not_chemical_mixture
+  · exact not_alkane_mixture
+</lean>
+
+ANSWER: Failure

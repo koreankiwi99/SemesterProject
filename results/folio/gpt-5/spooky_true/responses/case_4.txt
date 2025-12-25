@@ -1,0 +1,57 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+axiom SchedulesMeeting : Person → Prop
+axiom AppearsInCompanyToday : Person → Prop
+axiom LunchInCompany : Person → Prop
+axiom LunchAtHome : Person → Prop
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountry : Person → Prop
+
+-- All employees who schedule a meeting with their customers will go to the company building today.
+axiom R1 : ∀ x : Person, Employee x → SchedulesMeeting x → AppearsInCompanyToday x
+-- Everyone who has lunch in the company building schedules meetings with their customers.
+axiom R2 : ∀ x : Person, LunchInCompany x → SchedulesMeeting x
+-- Employees have lunch either in the company building or at home.
+axiom R3 : ∀ x : Person, Employee x → (LunchInCompany x ∨ LunchAtHome x)
+-- If an employee has lunch at home, they are working remotely from home.
+axiom R4 : ∀ x : Person, Employee x → LunchAtHome x → RemoteFromHome x
+-- All employees who are in other countries work remotely from home.
+axiom R5 : ∀ x : Person, Employee x → InOtherCountry x → RemoteFromHome x
+-- No managers work remotely from home.
+axiom R6 : ∀ x : Person, Manager x → ¬ RemoteFromHome x
+-- James will appear in the company today iff he is a manager.
+axiom R7a : AppearsInCompanyToday James → Manager James
+axiom R7b : Manager James → AppearsInCompanyToday James
+
+-- Some derived facts (showing relationships that require James to be an employee)
+theorem manager_and_employee_implies_not_lunch_home :
+  Manager James → Employee James → ¬ LunchAtHome James := by
+  intro m ej lh
+  have rfh : RemoteFromHome James := R4 James ej lh
+  have nrfh : ¬ RemoteFromHome James := R6 James m
+  exact nrfh rfh
+
+theorem manager_and_employee_implies_lunch_company :
+  Manager James → Employee James → LunchInCompany James := by
+  intro m ej
+  have notLH : ¬ LunchAtHome James := by
+    exact manager_and_employee_implies_not_lunch_home m ej
+  have disj : LunchInCompany James ∨ LunchAtHome James := R3 James ej
+  cases disj with
+  | inl lc => exact lc
+  | inr lh =>
+    have contra : False := notLH lh
+    exact False.elim contra
+
+theorem lunch_in_company_and_employee_implies_appear :
+  Employee James → LunchInCompany James → AppearsInCompanyToday James := by
+  intro ej lc
+  have sm : SchedulesMeeting James := R2 James lc
+  exact R1 James ej sm
+</lean>
+
+ANSWER: Failure

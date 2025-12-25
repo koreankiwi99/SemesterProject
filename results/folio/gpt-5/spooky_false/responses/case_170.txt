@@ -1,0 +1,63 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Deadly : obj → Prop
+axiom LowSurvival : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Entity
+axiom ColorectalCancer : obj
+
+-- Premises
+axiom P1 : ∀ x : obj, Deadly x → LowSurvival x                          -- Deadly → Low survival
+axiom P2 : ∀ x : obj, SevereCancer x → Deadly x                         -- Severe cancer → Deadly
+axiom P3 : ∀ x : obj, BileDuctCancer x → SevereCancer x                 -- Bile duct cancer → Severe cancer
+axiom P4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x           -- Cholangiocarcinoma → Bile duct cancer
+axiom P5 : ∀ x : obj, MildFlu x → LowSurvival x                         -- Mild flu → Low survival
+axiom P6 : ¬(BileDuctCancer ColorectalCancer ∧ LowSurvival ColorectalCancer) -- Not both bile duct and low survival
+
+-- Derived: bile duct cancer implies low survival
+theorem bileduct_low : ∀ x : obj, BileDuctCancer x → LowSurvival x := by
+  intro x hB
+  have hSev := P3 x hB
+  have hDead := P2 x hSev
+  exact P1 x hDead
+
+-- Colorectal cancer is not a bile duct cancer
+theorem not_bile_col : ¬BileDuctCancer ColorectalCancer := by
+  intro hB
+  have hLS := bileduct_low ColorectalCancer hB
+  exact P6 ⟨hB, hLS⟩
+
+-- Colorectal cancer is not a cholangiocarcinoma
+theorem not_cholangio_col : ¬Cholangiocarcinoma ColorectalCancer := by
+  intro hC
+  apply not_bile_col
+  exact P4 ColorectalCancer hC
+
+-- Antecedent of the statement is false
+theorem antecedent_false : ¬(BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) := by
+  intro h
+  cases h with
+  | inl hB => exact not_bile_col hB
+  | inr hC => exact not_cholangio_col hC
+
+-- The given statement actually holds (vacuously, since the antecedent is false)
+theorem statement_true :
+  (BileDuctCancer ColorectalCancer ∨ Cholangiocarcinoma ColorectalCancer) →
+  (BileDuctCancer ColorectalCancer ∧ MildFlu ColorectalCancer) := by
+  intro h
+  cases h with
+  | inl hB =>
+    have contra := P6 ⟨hB, bileduct_low ColorectalCancer hB⟩
+    exact False.elim contra
+  | inr hC =>
+    have contra := not_cholangio_col hC
+    exact False.elim contra
+</lean>
+
+ANSWER: Failure

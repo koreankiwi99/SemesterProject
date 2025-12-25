@@ -1,0 +1,41 @@
+<lean>
+axiom obj : Type
+
+axiom Luke : obj
+
+-- Predicates
+axiom MB : obj → Prop                               -- born in a multiple birth (with siblings)
+axiom SibsBornTogether : obj → Prop                 -- have siblings who were born together
+axiom ComplainsOften : obj → Prop                   -- complains often about annoying siblings
+axiom SpendTimeWithSibs : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, MB x → SpendTimeWithSibs x
+axiom A2 : ∀ x : obj, SibsBornTogether x → MB x
+axiom A3 : ∀ x : obj, ComplainsOften x → SibsBornTogether x
+axiom A4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom A5 : ∀ x : obj, SpendTimeWithSibs x → LiveAtHome x
+axiom A6 : (MB Luke ∧ LiveWithStrangers Luke) ∨ (¬ MB Luke ∧ ¬ LiveWithStrangers Luke)
+
+theorem luke_neither_mb_nor_complains : ¬ MB Luke ∧ ¬ ComplainsOften Luke := by
+  -- From MB ⇒ SpendTime ⇒ LiveAtHome ⇒ ¬ LiveWithStrangers
+  have h_not_lws_if_mb : ∀ x : obj, MB x → ¬ LiveWithStrangers x :=
+    fun x hmb => A4 x (A5 x (A1 x hmb))
+  -- The left disjunct in A6 is impossible
+  have h_contra_left : (MB Luke ∧ LiveWithStrangers Luke) → False :=
+    fun h => (h_not_lws_if_mb Luke h.left) h.right
+  -- Hence the right disjunct must hold
+  have h_right : (¬ MB Luke ∧ ¬ LiveWithStrangers Luke) :=
+    Or.resolve_left A6 h_contra_left
+  have h_not_mb : ¬ MB Luke := h_right.left
+  -- From Complains ⇒ SibsBornTogether ⇒ MB, so with ¬MB we get ¬Complains
+  have h_mb_of_complains : ComplainsOften Luke → MB Luke :=
+    fun hc => A2 Luke (A3 Luke hc)
+  have h_not_complains : ¬ ComplainsOften Luke :=
+    fun hc => h_not_mb (h_mb_of_complains hc)
+  exact And.intro h_not_mb h_not_complains
+</lean>
+
+ANSWER: True

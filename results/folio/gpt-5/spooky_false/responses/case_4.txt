@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+axiom James : Person
+
+axiom Employee : Person → Prop
+axiom Manager : Person → Prop
+
+axiom LunchCompany : Person → Prop
+axiom LunchHome : Person → Prop
+
+axiom SchedulesMeetingWithCustomers : Person → Prop
+axiom GoToCompanyBuildingToday : Person → Prop
+axiom AppearInCompanyToday : Person → Prop
+
+axiom RemoteFromHome : Person → Prop
+axiom InOtherCountries : Person → Prop
+
+-- All employees who schedule a meeting with their customers will go to the company building today.
+axiom R1 : ∀ x : Person, Employee x ∧ SchedulesMeetingWithCustomers x → GoToCompanyBuildingToday x
+
+-- Everyone who has lunch in the company building schedules meetings with their customers.
+axiom R2 : ∀ x : Person, LunchCompany x → SchedulesMeetingWithCustomers x
+
+-- Employees have lunch either in the company building or at home (exclusive).
+axiom R3 : ∀ x : Person, Employee x → (LunchCompany x ∧ ¬LunchHome x) ∨ (LunchHome x ∧ ¬LunchCompany x)
+
+-- If an employee has lunch at home, they are working remotely from home.
+axiom R4 : ∀ x : Person, Employee x ∧ LunchHome x → RemoteFromHome x
+
+-- All employees who are in other countries work remotely from home.
+axiom R5 : ∀ x : Person, Employee x ∧ InOtherCountries x → RemoteFromHome x
+
+-- No managers work remotely from home.
+axiom R6 : ∀ x : Person, Manager x → ¬RemoteFromHome x
+
+-- James will appear in the company today iff he is a manager.
+axiom R7 : AppearInCompanyToday James ↔ Manager James
+
+-- Going to the company building today implies appearing in the company today.
+axiom R8 : ∀ x : Person, GoToCompanyBuildingToday x → AppearInCompanyToday x
+
+-- Under the additional assumptions that James is an employee and a manager, he must have lunch in the company.
+theorem james_lunch_company_if_manager_and_employee :
+  Employee James → Manager James → LunchCompany James := by
+  intro hEmp hMan
+  have ex := R3 James hEmp
+  cases ex with
+  | inl h =>
+      exact h.left
+  | inr h =>
+      have rem : RemoteFromHome James := R4 James ⟨hEmp, h.left⟩
+      have nrem : ¬RemoteFromHome James := R6 James hMan
+      exact False.elim (nrem rem)
+</lean>
+
+ANSWER: Failure

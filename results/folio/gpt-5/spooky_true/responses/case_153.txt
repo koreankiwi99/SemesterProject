@@ -1,0 +1,56 @@
+<lean>
+axiom obj : Type
+axiom mixture : obj
+
+axiom Hydrocarbon : obj → Prop
+axiom OrganicCompound : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom Alkane : obj → Prop
+
+-- Premises
+axiom H_hydro_to_org : ∀ x : obj, Hydrocarbon x → OrganicCompound x
+axiom H_alkane_to_hydro : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom H_org_to_chem : ∀ x : obj, OrganicCompound x → ChemicalCompound x
+axiom H_org_to_containsC : ∀ x : obj, OrganicCompound x → ContainsCarbon x
+axiom H_no_chem_onlyone : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+axiom H_mixture_either_both_or_neither :
+  (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨
+  (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+-- Consequences we can derive
+theorem mixture_not_chem : ¬ ChemicalCompound mixture := by
+  have not_both : ¬ (ChemicalCompound mixture ∧ OnlyOneElement mixture) := by
+    intro h
+    exact (H_no_chem_onlyone mixture h.left) h.right
+  cases H_mixture_either_both_or_neither with
+  | inl hboth =>
+      exact False.elim (not_both hboth)
+  | inr hneither =>
+      exact hneither.left
+
+theorem mixture_not_only_one : ¬ OnlyOneElement mixture := by
+  have not_both : ¬ (ChemicalCompound mixture ∧ OnlyOneElement mixture) := by
+    intro h
+    exact (H_no_chem_onlyone mixture h.left) h.right
+  cases H_mixture_either_both_or_neither with
+  | inl hboth =>
+      exact False.elim (not_both hboth)
+  | inr hneither =>
+      exact hneither.right
+
+theorem mixture_not_organic : ¬ OrganicCompound mixture := by
+  intro hOrg
+  have hChem : ChemicalCompound mixture := H_org_to_chem mixture hOrg
+  exact mixture_not_chem hChem
+
+theorem mixture_not_alkane : ¬ Alkane mixture := by
+  intro hAlk
+  have hHydro : Hydrocarbon mixture := H_alkane_to_hydro mixture hAlk
+  have hOrg : OrganicCompound mixture := H_hydro_to_org mixture hHydro
+  have hChem : ChemicalCompound mixture := H_org_to_chem mixture hOrg
+  exact mixture_not_chem hChem
+</lean>
+
+ANSWER: Failure

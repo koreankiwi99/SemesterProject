@@ -1,0 +1,47 @@
+<lean>
+axiom obj : Type
+axiom John : obj
+
+axiom MakePlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InviteOthers : obj → Prop
+axiom WellAttended : obj → Prop
+axiom LargerFamily : obj → Prop
+axiom InviteFriends : obj → Prop
+
+-- 1. All people who make wedding plans are engaged.
+axiom A1 : ∀ x : obj, MakePlans x → Engaged x
+-- 2. All people who invite others to come to their ceremony make wedding plans.
+axiom A2 : ∀ x : obj, InviteOthers x → MakePlans x
+-- 3. Anyone who has a well-attended wedding invites others to come to their ceremony.
+axiom A3 : ∀ x : obj, WellAttended x → InviteOthers x
+-- 4. Some people that have well-attended weddings have larger families.
+axiom A4 : ∃ x : obj, WellAttended x ∧ LargerFamily x
+-- 5. If John is engaged, then John does not invite friends to their ceremony and does not make wedding plans.
+axiom A5 : Engaged John → (¬InviteFriends John ∧ ¬MakePlans John)
+-- 6. If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony.
+axiom A6 : LargerFamily John → (WellAttended John ∨ InviteFriends John)
+-- Bridging: inviting friends implies inviting others (friends are others).
+axiom A7 : ∀ x : obj, InviteFriends x → InviteOthers x
+
+theorem john_not_largerFamily : ¬LargerFamily John := by
+  intro hLF
+  have hDisj : WellAttended John ∨ InviteFriends John := A6 hLF
+  have hIF : InviteFriends John := by
+    cases hDisj with
+    | inl hWA =>
+        have hIO : InviteOthers John := A3 John hWA
+        have hMP : MakePlans John := A2 John hIO
+        have hEN : Engaged John := A1 John hMP
+        have hPair := A5 hEN
+        have hNotMP : ¬MakePlans John := And.right hPair
+        exact False.elim (hNotMP hMP)
+    | inr hIF => exact hIF
+  have hIO2 : InviteOthers John := A7 John hIF
+  have hMP2 : MakePlans John := A2 John hIO2
+  have hEN2 : Engaged John := A1 John hMP2
+  have hNotIF : ¬InviteFriends John := And.left (A5 hEN2)
+  exact hNotIF hIF
+</lean>
+
+ANSWER: False

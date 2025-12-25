@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Jane : obj
+axiom KiKi : obj
+
+axiom Animal : obj → Prop
+axiom Barks : obj → Prop
+axiom Dog : obj → Prop
+axiom Jumps : obj → Prop
+axiom Legs : obj → Prop
+axiom Terricolous : obj → Prop
+axiom Likes : obj → obj → Prop
+
+-- Jane does not like any animals that bark.
+axiom H1 : ∀ x : obj, (Animal x ∧ Barks x) → ¬Likes Jane x
+-- All dogs are animals that bark.
+axiom H2 : ∀ x : obj, Dog x → (Animal x ∧ Barks x)
+-- Jane likes all animals that jump.
+axiom H3 : ∀ x : obj, (Animal x ∧ Jumps x) → Likes Jane x
+-- If an animal has legs, then it jumps.
+axiom H4 : ∀ x : obj, (Animal x ∧ Legs x) → Jumps x
+-- If an animal is terricolous, then it has legs.
+axiom H5 : ∀ x : obj, (Animal x ∧ Terricolous x) → Legs x
+-- KiKi is an animal.
+axiom H6 : Animal KiKi
+-- If KiKi neither jumps nor has legs, then KiKi is terricolous or has legs.
+axiom H7 : (¬Jumps KiKi ∧ ¬Legs KiKi) → (Terricolous KiKi ∨ Legs KiKi)
+
+theorem kiki_not_barking_dog : ¬(Dog KiKi ∧ Barks KiKi) := by
+  intro hDB
+  have hDog : Dog KiKi := And.left hDB
+  have hBark : Barks KiKi := And.right hDB
+  -- From barking animal, Jane does not like KiKi
+  have hNotLike : ¬Likes Jane KiKi := by
+    have hAB : Animal KiKi ∧ Barks KiKi := And.intro H6 hBark
+    exact H1 KiKi hAB
+  -- Show KiKi jumps
+  have hJumps : Jumps KiKi := by
+    by_cases hL : Legs KiKi
+    · exact H4 KiKi (And.intro H6 hL)
+    · -- prove Jumps via explosion from (¬J ∧ ¬L) ⇒ T ∨ L
+      by_cases hJ : Jumps KiKi
+      · exact hJ
+      ·
+        have hAnte : ¬Jumps KiKi ∧ ¬Legs KiKi := And.intro hJ hL
+        have hDisj : Terricolous KiKi ∨ Legs KiKi := H7 hAnte
+        have hFalse : False := by
+          apply Or.elim hDisj
+          · intro hT
+            have hL2 : Legs KiKi := H5 KiKi (And.intro H6 hT)
+            exact hL hL2
+          · intro hL2
+            exact hL hL2
+        exact False.elim hFalse
+  -- From animal that jumps, Jane likes KiKi
+  have hLike : Likes Jane KiKi := H3 KiKi (And.intro H6 hJumps)
+  -- Contradiction
+  exact hNotLike hLike
+</lean>
+
+ANSWER: False

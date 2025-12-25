@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom CF : obj → Prop
+axiom Cleanly : obj → Prop
+axiom ValOrd : obj → Prop
+axiom FamOrd : obj → Prop
+
+-- If people spill a lot of food on their clothing, then they are not notably tidy.
+axiom A1 : ∀ x : obj, Spill x → ¬Tidy x
+-- All clumsy foodies who go out frequently to find new food restaurants to try spill a lot of food.
+axiom A2 : ∀ x : obj, CF x → Spill x
+-- If people are cleanly, then they are notably tidy.
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+-- If people value order and spotlessness, then they are cleanly.
+axiom A4 : ∀ x : obj, ValOrd x → Cleanly x
+-- All people whose families prioritize order and spotlessness themselves value order and spotlessness.
+axiom A5 : ∀ x : obj, FamOrd x → ValOrd x
+-- Peter is either (spill and cleanly) or (not spill and not cleanly).
+axiom A6 : (Spill Peter ∧ Cleanly Peter) ∨ (¬Spill Peter ∧ ¬Cleanly Peter)
+
+theorem not_spill_and_cleanly_Peter : ¬(Spill Peter ∧ Cleanly Peter) := by
+  intro h
+  have hs : Spill Peter := h.left
+  have hc : Cleanly Peter := h.right
+  have ht : Tidy Peter := A3 Peter hc
+  have hnt : ¬Tidy Peter := A1 Peter hs
+  exact hnt ht
+
+theorem conclusion_true :
+  (CF Peter ∧ FamOrd Peter) ∨ (¬CF Peter ∧ ¬FamOrd Peter) := by
+  -- From A6 and inconsistency of (Spill ∧ Cleanly), deduce ¬Spill ∧ ¬Cleanly
+  have hnsnc : (¬Spill Peter ∧ ¬Cleanly Peter) := by
+    cases A6 with
+    | inl hsc =>
+        have : False := not_spill_and_cleanly_Peter hsc
+        exact this.elim
+    | inr hnc => exact hnc
+  have hns : ¬Spill Peter := hnsnc.left
+  have hnc : ¬Cleanly Peter := hnsnc.right
+  -- Derive ¬CF Peter from ¬Spill Peter and CF → Spill
+  have hnotCF : ¬CF Peter := by
+    intro hcf
+    exact hns (A2 Peter hcf)
+  -- Derive ¬FamOrd Peter from ¬Cleanly Peter and FamOrd → ValOrd → Cleanly
+  have hnotFam : ¬FamOrd Peter := by
+    intro hfam
+    have hvo : ValOrd Peter := A5 Peter hfam
+    have hcl : Cleanly Peter := A4 Peter hvo
+    exact hnc hcl
+  exact Or.inr ⟨hnotCF, hnotFam⟩
+</lean>
+
+ANSWER: Failure

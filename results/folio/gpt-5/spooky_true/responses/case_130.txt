@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom John : obj
+
+-- Predicates
+axiom MakePlans : obj → Prop
+axiom Engaged : obj → Prop
+axiom InviteOthers : obj → Prop
+axiom WellAttended : obj → Prop
+axiom LargeFamily : obj → Prop
+axiom InviteFriends : obj → Prop
+
+-- Premises
+-- 1. All people who make wedding plans are people who are engaged.
+axiom A1 : ∀ x : obj, MakePlans x → Engaged x
+-- 2. All people who invite others to come to their ceremony make wedding plans.
+axiom A2 : ∀ x : obj, InviteOthers x → MakePlans x
+-- 3. Anyone who has a well-attended wedding invites others to come to their ceremony.
+axiom A3 : ∀ x : obj, WellAttended x → InviteOthers x
+-- 4. Some people that have well-attended weddings have larger families.
+axiom A4 : ∃ x : obj, WellAttended x ∧ LargeFamily x
+-- 5. If John is engaged, then John does not invite friends to their ceremony and does not make wedding plans.
+axiom A5 : Engaged John → (¬ InviteFriends John ∧ ¬ MakePlans John)
+-- 6. If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony.
+axiom A6 : LargeFamily John → (WellAttended John ∨ InviteFriends John)
+
+-- Derivable consequences
+theorem john_not_makeplans : ¬ MakePlans John :=
+by
+  intro hmp
+  have hE : Engaged John := A1 John hmp
+  have hnm : ¬ MakePlans John := (A5 hE).right
+  exact hnm hmp
+
+theorem john_not_invite_others : ¬ InviteOthers John :=
+by
+  intro hio
+  have hmp : MakePlans John := A2 John hio
+  exact john_not_makeplans hmp
+
+theorem john_not_well_attended : ¬ WellAttended John :=
+by
+  intro hw
+  have hio : InviteOthers John := A3 John hw
+  exact john_not_invite_others hio
+
+-- From A6 and john_not_well_attended, we can only conclude:
+theorem largefamily_implies_invitefriends : LargeFamily John → InviteFriends John :=
+by
+  intro hL
+  have hdisj : WellAttended John ∨ InviteFriends John := A6 hL
+  cases hdisj with
+  | inl hw => exact False.elim (john_not_well_attended hw)
+  | inr hf => exact hf
+</lean>
+
+ANSWER: Failure

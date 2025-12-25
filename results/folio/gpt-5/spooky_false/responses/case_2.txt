@@ -1,0 +1,48 @@
+<lean>
+axiom obj : Type
+
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom Chaperone : obj → Prop
+axiom Student : obj → Prop
+axiom YoungChildOrTeen : obj → Prop
+axiom WishesFurtherAcademic : obj → Prop
+
+axiom Bonnie : obj
+
+-- Premises from the textual context
+axiom P1 : ∀ x : obj, InClub x ∧ PerformOften x → AttendEngaged x
+axiom P2 : ∀ x : obj, InClub x → (PerformOften x ∨ InactiveDisinterested x)
+axiom P3 : ∀ x : obj, InClub x ∧ Chaperone x → ¬Student x
+axiom P4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → Chaperone x
+axiom P5 : ∀ x : obj, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → Student x
+axiom P6 : InClub Bonnie ∧ ((AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬AttendEngaged Bonnie ∧ ¬Student Bonnie))
+
+-- Target: negate the statement to evaluate
+-- Statement: If (Chaperone Bonnie) or (if not, then PerformOften Bonnie), then
+-- (YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie.
+theorem bonnie_statement_false :
+  ¬( (Chaperone Bonnie ∨ (¬Chaperone Bonnie → PerformOften Bonnie))
+     → ((YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) ∧ InactiveDisinterested Bonnie) ) := by
+  intro h
+  have inB : InClub Bonnie := P6.left
+  have disj : PerformOften Bonnie ∨ InactiveDisinterested Bonnie := P2 Bonnie inB
+  have antecedent : Chaperone Bonnie ∨ (¬Chaperone Bonnie → PerformOften Bonnie) := by
+    cases disj with
+    | inl pf =>
+        exact Or.inr (fun _ => pf)
+    | inr idis =>
+        have chap : Chaperone Bonnie := P4 Bonnie ⟨inB, idis⟩
+        exact Or.inl chap
+  have conseq := h antecedent
+  have hyw : YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie := conseq.left
+  have hid : InactiveDisinterested Bonnie := conseq.right
+  have chap' : Chaperone Bonnie := P4 Bonnie ⟨inB, hid⟩
+  have notStu : ¬Student Bonnie := P3 Bonnie ⟨inB, chap'⟩
+  have stu : Student Bonnie := P5 Bonnie ⟨inB, hyw.left, hyw.right⟩
+  exact notStu stu
+</lean>
+
+ANSWER: False

@@ -1,0 +1,98 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Bonnie : obj
+
+-- Predicates
+axiom InClub : obj → Prop
+axiom PerformOften : obj → Prop
+axiom AttendEngaged : obj → Prop
+axiom ChaperoneDances : obj → Prop
+axiom StudentAttends : obj → Prop
+axiom InactiveDisinterested : obj → Prop
+axiom YoungChildOrTeen : obj → Prop
+axiom WishesFurtherAcademic : obj → Prop
+
+-- Premises
+-- 1. Club members who perform often attend and are very engaged with school events.
+axiom P1 : ∀ x : obj, InClub x ∧ PerformOften x → AttendEngaged x
+-- 2. Club members either perform often or are inactive/disinterested community members.
+axiom P2 : ∀ x : obj, InClub x → (PerformOften x ∨ InactiveDisinterested x)
+-- 3. Club members who chaperone dances are not students who attend the school.
+axiom P3 : ∀ x : obj, InClub x ∧ ChaperoneDances x → ¬ StudentAttends x
+-- 4. All inactive/disinterested club members chaperone dances.
+axiom P4 : ∀ x : obj, InClub x ∧ InactiveDisinterested x → ChaperoneDances x
+-- 5. All young children/teenagers in the club who wish to further academics are students.
+axiom P5 : ∀ x : obj, InClub x ∧ YoungChildOrTeen x ∧ WishesFurtherAcademic x → StudentAttends x
+-- 6. Bonnie is in the club and (AttendEngaged ↔ StudentAttends) via the given disjunction.
+axiom P6 : InClub Bonnie ∧ ((AttendEngaged Bonnie ∧ StudentAttends Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ StudentAttends Bonnie))
+
+-- Useful derived facts about Bonnie
+theorem bonnie_inclub : InClub Bonnie := And.left P6
+
+theorem bonnie_A_implies_S : AttendEngaged Bonnie → StudentAttends Bonnie := by
+  have hdisj := And.right P6
+  intro hA
+  cases hdisj with
+  | inl h => exact h.right
+  | inr h => exact False.elim (h.left hA)
+
+theorem bonnie_S_implies_A : StudentAttends Bonnie → AttendEngaged Bonnie := by
+  have hdisj := And.right P6
+  intro hS
+  cases hdisj with
+  | inl h => exact h.left
+  | inr h => exact False.elim (h.right hS)
+
+theorem bonnie_A_iff_S : AttendEngaged Bonnie ↔ StudentAttends Bonnie :=
+  Iff.intro bonnie_A_implies_S bonnie_S_implies_A
+
+-- From Chaperone we can derive Inactive for Bonnie (given the other premises)
+theorem chaperone_implies_inactive : ChaperoneDances Bonnie → InactiveDisinterested Bonnie := by
+  intro hCh
+  -- From chaperoning, Bonnie is not a student
+  have hNotS : ¬ StudentAttends Bonnie := by
+    apply P3 Bonnie
+    exact And.intro bonnie_inclub hCh
+  -- Using equivalence, not student implies not attend/engaged
+  have hNotA : ¬ AttendEngaged Bonnie := by
+    intro hA
+    have hS : StudentAttends Bonnie := (bonnie_A_iff_S.mp) hA
+    exact hNotS hS
+  -- Club members are either performers or inactive
+  have hDisj := P2 Bonnie bonnie_inclub
+  cases hDisj with
+  | inl hPerf =>
+    -- If performer, then attends/engaged, contradiction
+    have hA : AttendEngaged Bonnie := P1 Bonnie (And.intro bonnie_inclub hPerf)
+    exact False.elim (hNotA hA)
+  | inr hInactive => exact hInactive
+
+-- Chaperoning also contradicts being (Young ∧ Wishes), via premise (5)
+theorem chaperone_implies_not_YW :
+  ChaperoneDances Bonnie → ¬ (YoungChildOrTeen Bonnie ∧ WishesFurtherAcademic Bonnie) := by
+  intro hCh
+  have hNotS : ¬ StudentAttends Bonnie := by
+    apply P3 Bonnie
+    exact And.intro bonnie_inclub hCh
+  intro hYW
+  have hS : StudentAttends Bonnie :=
+    P5 Bonnie (And.intro bonnie_inclub (And.intro hYW.left hYW.right))
+  exact hNotS hS
+
+-- The antecedent in the query is derivable from the premises (it is always satisfied for Bonnie)
+theorem antecedent_true_for_bonnie :
+  ChaperoneDances Bonnie ∨ (¬ ChaperoneDances Bonnie → PerformOften Bonnie) := by
+  have h := P2 Bonnie bonnie_inclub
+  cases h with
+  | inl hPerf =>
+    apply Or.inr
+    intro _
+    exact hPerf
+  | inr hInactive =>
+    apply Or.inl
+    exact P4 Bonnie (And.intro bonnie_inclub hInactive)
+</lean>
+
+ANSWER: Failure

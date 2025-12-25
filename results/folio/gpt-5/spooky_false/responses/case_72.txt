@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+
+-- Entities and predicates
+axiom KO : obj
+axiom Stock : obj → Prop
+axiom Growth : obj → Prop
+axiom BoughtForRapidAppreciation : obj → Prop
+axiom SuitableForRetirement : obj → Prop
+axiom Mature : obj → Prop
+axiom VolatilePrice : obj → Prop
+
+-- Premises
+-- 1. All growth stocks are bought to earn profits from rapid price appreciation.
+axiom A1 : ∀ x : obj, Growth x → BoughtForRapidAppreciation x
+-- 2. If the stock is bought to earn profits from rapid price appreciation, then it is not suitable for a retirement fund.
+axiom A2 : ∀ x : obj, BoughtForRapidAppreciation x → ¬SuitableForRetirement x
+-- 3. Some stocks are growth stocks.
+axiom A3 : ∃ x : obj, Stock x ∧ Growth x
+-- 4. All mature stocks are suitable for a retirement fund.
+axiom A4 : ∀ x : obj, Mature x → SuitableForRetirement x
+-- 5. KO is a mature stock (we take this to mean both Mature KO and Stock KO).
+axiom A5 : Mature KO
+axiom A6 : Stock KO
+
+-- Derived facts about KO
+theorem KO_suitable : SuitableForRetirement KO := by
+  apply A4
+  exact A5
+
+theorem KO_not_bought_for_rapid : ¬BoughtForRapidAppreciation KO := by
+  intro h
+  have hNotSuit : ¬SuitableForRetirement KO := A2 KO h
+  exact hNotSuit KO_suitable
+
+theorem KO_not_growth : ¬Growth KO := by
+  intro hg
+  have hB : BoughtForRapidAppreciation KO := A1 KO hg
+  exact KO_not_bought_for_rapid hB
+
+-- The antecedent of the evaluated statement is false.
+theorem not_antecedent : ¬(Growth KO ∨ BoughtForRapidAppreciation KO) := by
+  intro h
+  cases h with
+  | inl hg =>
+      exact KO_not_growth hg
+  | inr hb =>
+      exact KO_not_bought_for_rapid hb
+
+-- Hence, the implication in the evaluated statement holds vacuously.
+theorem evaluated_statement_true :
+  (Growth KO ∨ BoughtForRapidAppreciation KO) → (¬Stock KO ∧ ¬VolatilePrice KO) := by
+  intro h
+  have f : False := by
+    cases h with
+    | inl hg => exact KO_not_growth hg
+    | inr hb => exact KO_not_bought_for_rapid hb
+  exact False.elim f
+</lean>
+
+ANSWER: Failure

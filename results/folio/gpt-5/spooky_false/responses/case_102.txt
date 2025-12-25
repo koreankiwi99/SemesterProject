@@ -1,0 +1,54 @@
+<lean>
+axiom obj : Type
+axiom Luke : obj
+
+axiom Baby : obj → Prop
+axiom MultipleBirth : obj → Prop
+axiom HaveSiblingsBornTogether : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom Complains : obj → Prop
+
+-- Context axioms
+axiom C1 : ∀ x : obj, MultipleBirth x → SpendTimeWithSiblings x
+axiom C2 : ∀ x : obj, HaveSiblingsBornTogether x → MultipleBirth x
+axiom C3 : ∀ x : obj, Complains x → HaveSiblingsBornTogether x
+axiom C4 : ∀ x : obj, LiveAtHome x → ¬ LiveWithStrangers x
+axiom C5 : ∀ x : obj, SpendTimeWithSiblings x → LiveAtHome x
+
+axiom Luke_disj :
+  (Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke) ∨
+  (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬ LiveWithStrangers Luke)
+
+-- From complaining we can derive that Luke does not live with strangers
+theorem complains_implies_not_strangers : Complains Luke → ¬ LiveWithStrangers Luke := by
+  intro hC
+  have hHS : HaveSiblingsBornTogether Luke := C3 Luke hC
+  have hMB : MultipleBirth Luke := C2 Luke hHS
+  have hST : SpendTimeWithSiblings Luke := C1 Luke hMB
+  have hHome : LiveAtHome Luke := C5 Luke hST
+  have hNotStr : ¬ LiveWithStrangers Luke := C4 Luke hHome
+  exact hNotStr
+
+-- From complaining we can rule out the first disjunct and obtain the second
+theorem complains_implies_second_branch :
+  Complains Luke → (¬(Baby Luke ∧ MultipleBirth Luke) ∧ ¬ LiveWithStrangers Luke) := by
+  intro hC
+  have hNotStr : ¬ LiveWithStrangers Luke := complains_implies_not_strangers hC
+  cases Luke_disj with
+  | inl hleft =>
+      -- hleft : Baby Luke ∧ MultipleBirth Luke ∧ LiveWithStrangers Luke
+      have hLWS : LiveWithStrangers Luke := by
+        have hMB_LWS : MultipleBirth Luke ∧ LiveWithStrangers Luke := hleft.right
+        exact hMB_LWS.right
+      have : False := hNotStr hLWS
+      exact False.elim this
+  | inr hright =>
+      exact hright
+
+-- We cannot derive a contradiction from assuming Complains Luke,
+-- so we cannot prove the negation ¬(Complains Luke) from the given premises.
+</lean>
+
+ANSWER: Failure

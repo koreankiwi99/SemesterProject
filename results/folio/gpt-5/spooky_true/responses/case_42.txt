@@ -1,0 +1,52 @@
+<lean>
+axiom obj : Type
+axiom Coco : obj
+
+axiom AtRG22 : obj → Prop
+axiom Female : obj → Prop
+axiom Male : obj → Prop
+
+axiom LostIS : obj → Prop
+axiom LostRN : obj → Prop
+
+axiom RankedHighWTA : obj → Prop
+axiom MostActiveMajor : obj → Prop
+axiom MostActiveGS : obj → Prop
+
+-- If someone is ranked highly by the WTA, then they are among the most active players in major tennis.
+axiom R1 : ∀ x : obj, RankedHighWTA x → MostActiveMajor x
+-- Everyone who lost to Iga Świątek at Roland Garros 2022 is ranked highly by the WTA.
+axiom R2 : ∀ x : obj, LostIS x → RankedHighWTA x
+-- All female tennis players at Roland Garros 2022 lost to Iga Świątek.
+axiom R3 : ∀ x : obj, (Female x ∧ AtRG22 x) → LostIS x
+-- All tennis players at Roland Garros 2022 are either female or male.
+axiom R4 : ∀ x : obj, AtRG22 x → (Female x ∨ Male x)
+-- All male tennis players at Roland Garros in 2022 lost to Rafael Nadal.
+axiom R5 : ∀ x : obj, (Male x ∧ AtRG22 x) → LostRN x
+-- If Coco is ranked highly by the WTA or lost to Rafael Nadal, then Coco is not a male tennis player at Roland Garros 2022.
+axiom R6 : (RankedHighWTA Coco ∨ LostRN Coco) → ¬ (Male Coco ∧ AtRG22 Coco)
+-- Coco Gauff is at Roland Garros 2022.
+axiom R7 : AtRG22 Coco
+-- Bridge: "most active in major tennis" implies "most active Grand-Slam".
+axiom R8 : ∀ x : obj, MostActiveMajor x → MostActiveGS x
+
+theorem coco_most_active_gs : MostActiveGS Coco :=
+by
+  have hAt : AtRG22 Coco := R7
+  have hsex : Female Coco ∨ Male Coco := R4 Coco hAt
+  have hfem : Female Coco :=
+    Or.elim hsex
+      (fun hf => hf)
+      (fun hm =>
+        have hmAt : Male Coco ∧ AtRG22 Coco := And.intro hm hAt
+        have hRN : LostRN Coco := R5 Coco hmAt
+        have hnot : ¬ (Male Coco ∧ AtRG22 Coco) := R6 (Or.inr hRN)
+        False.elim (hnot hmAt)
+      )
+  have hIS : LostIS Coco := R3 Coco (And.intro hfem hAt)
+  have hHigh : RankedHighWTA Coco := R2 Coco hIS
+  have hMaj : MostActiveMajor Coco := R1 Coco hHigh
+  exact R8 Coco hMaj
+</lean>
+
+ANSWER: True

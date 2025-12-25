@@ -1,0 +1,67 @@
+<lean>
+axiom City : Type
+axiom State : Type
+
+-- Cities
+axiom Billings : City
+axiom Butte : City
+axiom Helena : City
+axiom Missoula : City
+axiom WhiteSulphurSprings : City
+axiom StPierre : City
+axiom Bristol : City
+axiom Texarkana : City
+axiom Texhoma : City
+axiom UnionCity : City
+
+-- States
+axiom Montana : State
+
+-- Relation: a city is in a state
+axiom In : City → State → Prop
+
+-- Same-state relation (derived)
+def SameState (c1 c2 : City) : Prop := ∃ s : State, In c1 s ∧ In c2 s
+
+-- Premises
+axiom Billings_in_Montana : In Billings Montana
+axiom Butte_in_Montana : In Butte Montana
+axiom Helena_in_Montana : In Helena Montana
+axiom Missoula_in_Montana : In Missoula Montana
+
+axiom WSS_Butte_same : ∃ s : State, In WhiteSulphurSprings s ∧ In Butte s
+
+axiom StPierre_not_in_Montana : ¬ In StPierre Montana
+
+-- "Any city in Butte is not in St Pierre."
+-- Interpreted as: if a city shares a state with Butte, it cannot share a state with St Pierre.
+axiom any_city_in_Butte_not_in_StPierre :
+  ∀ c s1 s2, In c s1 → In Butte s1 → In c s2 → In StPierre s2 → False
+
+-- Uniqueness of state membership for cities except the four exceptions
+axiom unique_except :
+  ∀ c : City, c ≠ Bristol → c ≠ Texarkana → c ≠ Texhoma → c ≠ UnionCity →
+  ∀ s1 s2 : State, In c s1 → In c s2 → s1 = s2
+
+-- Butte is not one of the exceptions
+axiom Butte_ne_Bristol : Butte ≠ Bristol
+axiom Butte_ne_Texarkana : Butte ≠ Texarkana
+axiom Butte_ne_Texhoma : Butte ≠ Texhoma
+axiom Butte_ne_UnionCity : Butte ≠ UnionCity
+
+-- Target: The statement "Butte and St Pierre are in the same state" is false.
+theorem not_same_state_Butte_StPierre : ¬ SameState Butte StPierre := by
+  intro h
+  unfold SameState at h
+  cases h with
+  | intro s hs =>
+    cases hs with
+    | intro hB hSP =>
+      have h_eq : s = Montana := by
+        exact unique_except Butte Butte_ne_Bristol Butte_ne_Texarkana Butte_ne_Texhoma Butte_ne_UnionCity s Montana hB Butte_in_Montana
+      have : In StPierre Montana := by
+        simpa [h_eq] using hSP
+      exact StPierre_not_in_Montana this
+</lean>
+
+ANSWER: False

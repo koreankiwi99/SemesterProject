@@ -1,0 +1,51 @@
+<lean>
+axiom obj : Type
+
+axiom Coco : obj
+axiom Iga : obj
+axiom Nadal : obj
+
+axiom RankedHighWTA : obj → Prop
+axiom MostActiveMajor : obj → Prop
+axiom LostTo : obj → obj → Prop
+axiom FemaleRG : obj → Prop
+axiom MaleRG : obj → Prop
+axiom PlayerRG : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, RankedHighWTA x → MostActiveMajor x
+axiom P2 : ∀ x : obj, LostTo x Iga → RankedHighWTA x
+axiom P3 : ∀ x : obj, FemaleRG x → LostTo x Iga
+axiom P4 : ∀ x : obj, PlayerRG x → (FemaleRG x ∨ MaleRG x)
+axiom P5 : ∀ x : obj, MaleRG x → LostTo x Nadal
+axiom P6 : (RankedHighWTA Coco ∨ LostTo Coco Nadal) → ¬ MaleRG Coco
+axiom P7 : PlayerRG Coco
+
+-- Derivable facts (but cannot derive LostTo Coco Nadal from given premises)
+theorem coco_not_male : ¬ MaleRG Coco := by
+  intro hMale
+  have hdisj : FemaleRG Coco ∨ MaleRG Coco := P4 Coco P7
+  cases hdisj with
+  | inl hFem =>
+      have hLostIga : LostTo Coco Iga := P3 Coco hFem
+      have hRank : RankedHighWTA Coco := P2 Coco hLostIga
+      have hNotMale : ¬ MaleRG Coco := P6 (Or.inl hRank)
+      exact hNotMale hMale
+  | inr hMale' =>
+      have hLostN : LostTo Coco Nadal := P5 Coco hMale'
+      have hNotMale : ¬ MaleRG Coco := P6 (Or.inr hLostN)
+      exact hNotMale hMale
+
+theorem coco_female : FemaleRG Coco := by
+  have hdisj : FemaleRG Coco ∨ MaleRG Coco := P4 Coco P7
+  have hNM : ¬ MaleRG Coco := coco_not_male
+  cases hdisj with
+  | inl hF => exact hF
+  | inr hM =>
+      exact False.elim (hNM hM)
+
+theorem coco_lost_iga : LostTo Coco Iga := P3 Coco coco_female
+theorem coco_ranked : RankedHighWTA Coco := P2 Coco coco_lost_iga
+</lean>
+
+ANSWER: Failure

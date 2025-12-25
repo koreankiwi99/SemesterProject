@@ -1,0 +1,76 @@
+<lean>
+axiom obj : Type
+
+-- Constants / individuals
+axiom James : obj
+
+-- Predicates
+axiom Employee : obj → Prop
+axiom Manager : obj → Prop
+axiom SchedulesWithCustomers : obj → Prop
+axiom GoToCompanyBuildingToday : obj → Prop
+axiom LunchInCompanyBuilding : obj → Prop
+axiom LunchAtHome : obj → Prop
+axiom RemoteFromHome : obj → Prop
+axiom InOtherCountries : obj → Prop
+
+-- Premises from the textual context
+-- 1. All employees who schedule a meeting with their customers will go to the company building today.
+axiom P1 : ∀ x : obj, Employee x ∧ SchedulesWithCustomers x → GoToCompanyBuildingToday x
+
+-- 2. Everyone who has lunch in the company building schedules meetings with their customers.
+axiom P2 : ∀ x : obj, LunchInCompanyBuilding x → SchedulesWithCustomers x
+
+-- 3. Employees have lunch either in the company building or at home.
+axiom P3 : ∀ x : obj, Employee x → (LunchInCompanyBuilding x ∨ LunchAtHome x)
+
+-- 4. If an employee has lunch at home, they are working remotely from home.
+axiom P4 : ∀ x : obj, Employee x ∧ LunchAtHome x → RemoteFromHome x
+
+-- 5. All employees who are in other countries work remotely from home.
+axiom P5 : ∀ x : obj, Employee x ∧ InOtherCountries x → RemoteFromHome x
+
+-- 6. No managers work remotely from home.
+axiom P6 : ∀ x : obj, Manager x → ¬ RemoteFromHome x
+
+-- 7. James will appear in the company today iff he is a manager
+--    (we identify "appear in the company today" with "go to the company building today").
+axiom P7 : GoToCompanyBuildingToday James ↔ Manager James
+
+-- Auxiliary, natural domain assumption often implicit: managers are employees.
+-- (This is not strictly stated in the text, but is a standard modeling choice.)
+axiom ManagerIsEmployee : ∀ x : obj, Manager x → Employee x
+
+-- Derived lemmas
+
+-- From "no managers work remotely" we get that working remotely implies not a manager.
+theorem remote_implies_not_manager (x : obj) : RemoteFromHome x → ¬ Manager x := by
+  intro r
+  intro m
+  have nr : ¬ RemoteFromHome x := P6 x m
+  exact nr r
+
+-- If James is a manager, then he neither lunches at home nor works remotely (hence not (H ∨ R)).
+theorem manager_implies_not_home_or_remote_for_James :
+  Manager James → ¬ (LunchAtHome James ∨ RemoteFromHome James) := by
+  intro m
+  intro h
+  cases h with
+  | inl lh =>
+      have emp : Employee James := ManagerIsEmployee James m
+      have r : RemoteFromHome James := P4 James (And.intro emp lh)
+      have nr : ¬ RemoteFromHome James := P6 James m
+      exact nr r
+  | inr r =>
+      have nr : ¬ RemoteFromHome James := P6 James m
+      exact nr r
+
+-- If James either lunches at home or works remotely, then he is not a manager.
+theorem home_or_remote_implies_not_manager_for_James :
+  (LunchAtHome James ∨ RemoteFromHome James) → ¬ Manager James := by
+  intro h
+  intro m
+  exact (manager_implies_not_home_or_remote_for_James m h)
+</lean>
+
+ANSWER: Failure

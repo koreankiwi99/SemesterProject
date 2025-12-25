@@ -1,0 +1,46 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom Spills : obj → Prop
+axiom Tidy : obj → Prop            -- notably tidy
+axiom Cleanly : obj → Prop
+axiom ValueOrder : obj → Prop      -- values order and spotlessness
+axiom FamilyPrioritizesOrder : obj → Prop
+axiom ClumsyFoodie : obj → Prop
+axiom GoOutFrequentlyForNewRestaurants : obj → Prop
+
+-- Axioms from the context
+axiom A1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom A2 : ∀ x : obj, (ClumsyFoodie x ∧ GoOutFrequentlyForNewRestaurants x) → Spills x
+axiom A3 : ∀ x : obj, Cleanly x → Tidy x
+axiom A4 : ∀ x : obj, ValueOrder x → Cleanly x
+axiom A5 : ∀ x : obj, FamilyPrioritizesOrder x → ValueOrder x
+
+-- Peter and his disjunctive status
+axiom Peter : obj
+axiom Peter_disj : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- The left disjunct leads to a contradiction (both tidy and not tidy)
+theorem left_branch_contradiction : (Spills Peter ∧ Cleanly Peter) → False := by
+  intro h
+  have hspill : Spills Peter := h.left
+  have hclean : Cleanly Peter := h.right
+  have h_not_tidy : ¬ Tidy Peter := A1 Peter hspill
+  have h_tidy : Tidy Peter := A3 Peter hclean
+  exact h_not_tidy h_tidy
+
+-- Therefore, the right disjunct must hold: Peter neither spills nor is cleanly.
+theorem peter_not_spill_and_not_clean : ¬ Spills Peter ∧ ¬ Cleanly Peter := by
+  have h := Peter_disj
+  exact Or.elim h
+    (fun hleft => False.elim (left_branch_contradiction hleft))
+    (fun hright => hright)
+
+-- A weaker consequence we can derive: Peter is either not tidy or not cleanly (indeed not cleanly).
+theorem not_tidy_or_not_cleanly_Peter : ¬ Tidy Peter ∨ ¬ Cleanly Peter := by
+  have hnc : ¬ Cleanly Peter := (peter_not_spill_and_not_clean).right
+  exact Or.inr hnc
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,59 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom Picuris : obj
+axiom Harding : obj
+axiom Onate : obj
+
+-- Predicates
+axiom MountainRange : obj → Prop
+axiom InNM : obj → Prop
+axiom InTX : obj → Prop
+axiom Mine : obj → Prop
+axiom Donated : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Visited : obj → obj → Prop
+
+-- Facts from the context
+axiom R_picuris : MountainRange Picuris
+axiom picuris_in_nm_or_tx : InNM Picuris ∨ InTX Picuris
+axiom onate_visited_picuris : Visited Onate Picuris
+axiom harding_is_mine : Mine Harding
+axiom harding_in_picuris : LocatedIn Harding Picuris
+axiom harding_donated : Donated Harding
+
+-- No Texas mountain ranges have mines that have been donated
+axiom no_tx_mtn_with_donated_mine :
+  ∀ r m : obj, MountainRange r → InTX r → Mine m → LocatedIn m r → Donated m → False
+
+-- From the facts, Picuris cannot be in Texas (since Harding is a donated mine located there)
+theorem picuris_not_in_tx : ¬ InTX Picuris := by
+  intro htx
+  exact no_tx_mtn_with_donated_mine Picuris Harding R_picuris htx harding_is_mine harding_in_picuris harding_donated
+
+-- Therefore, by the disjunction, Picuris is in New Mexico
+theorem picuris_in_nm : InNM Picuris := by
+  cases picuris_in_nm_or_tx with
+  | inl hnm => exact hnm
+  | inr htx =>
+    have contra := picuris_not_in_tx htx
+    exact False.elim contra
+
+-- Hence, Harding is located in a mountain range in New Mexico (namely, Picuris)
+theorem exists_nm_range_for_harding :
+  ∃ r, MountainRange r ∧ InNM r ∧ LocatedIn Harding r := by
+  refine Exists.intro Picuris ?_
+  apply And.intro R_picuris
+  apply And.intro picuris_in_nm
+  exact harding_in_picuris
+
+-- The statement to evaluate is: "Harding is not located in a mountain range in New Mexico."
+-- That statement is ¬∃ r, MountainRange r ∧ InNM r ∧ LocatedIn Harding r, which is refuted by the above existence.
+theorem statement_is_false :
+  ¬ (¬ ∃ r, MountainRange r ∧ InNM r ∧ LocatedIn Harding r) := by
+  intro hneg
+  exact hneg exists_nm_range_for_harding
+</lean>
+
+ANSWER: Failure

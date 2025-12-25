@@ -1,0 +1,56 @@
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+axiom SaladReg : Person → Prop
+axiom HealthCon : Person → Prop
+axiom GrewUpHC : Person → Prop
+axiom Fulfill : Person → Prop
+axiom Disregard : Person → Prop
+axiom GymDaily : Person → Prop
+
+axiom A1 : ∀ x : Person, SaladReg x → HealthCon x
+axiom A2 : ∀ x : Person, GrewUpHC x → SaladReg x
+axiom A3 : ∀ x : Person, Fulfill x → GrewUpHC x
+axiom A4 : ∀ x : Person, Disregard x → ¬HealthCon x
+axiom A5 : ∀ x : Person, GymDaily x → Fulfill x
+axiom A6 : (GrewUpHC Taylor ∧ Disregard Taylor) ∨ (¬GrewUpHC Taylor ∧ ¬Disregard Taylor)
+
+theorem grewUp_implies_healthConscious : ∀ x : Person, GrewUpHC x → HealthCon x := by
+  intro x
+  intro hx
+  have hs : SaladReg x := A2 x hx
+  exact A1 x hs
+
+theorem gym_implies_grewUp : ∀ x : Person, GymDaily x → GrewUpHC x := by
+  intro x
+  intro gx
+  have hf : Fulfill x := A5 x gx
+  exact A3 x hf
+
+theorem taylor_not_grewUp_and_disregard : ¬(GrewUpHC Taylor ∧ Disregard Taylor) := by
+  intro h
+  have hH : GrewUpHC Taylor := h.left
+  have hD : Disregard Taylor := h.right
+  have hc : HealthCon Taylor := grewUp_implies_healthConscious Taylor hH
+  have nhc : ¬HealthCon Taylor := A4 Taylor hD
+  exact nhc hc
+
+theorem taylor_not_grewUp : ¬GrewUpHC Taylor := by
+  cases A6 with
+  | inl h =>
+      exact False.elim (taylor_not_grewUp_and_disregard h)
+  | inr h =>
+      exact h.left
+
+theorem taylor_not_gym : ¬GymDaily Taylor := by
+  intro g
+  have hH : GrewUpHC Taylor := gym_implies_grewUp Taylor g
+  exact taylor_not_grewUp hH
+
+theorem statement_true : ¬GrewUpHC Taylor ∧ ¬GymDaily Taylor := by
+  apply And.intro
+  · exact taylor_not_grewUp
+  · exact taylor_not_gym
+</lean>
+
+ANSWER: Failure

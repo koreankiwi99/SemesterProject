@@ -1,0 +1,43 @@
+<lean>
+axiom obj : Type
+
+-- Predicates
+axiom AtSchool : obj → Prop
+axiom WorkJob : obj → Prop
+axiom NeedMoney : obj → Prop
+axiom OrderTakeout : obj → Prop
+axiom EnjoyDining : obj → Prop
+axiom Picky : obj → Prop
+axiom SpendTimeDiningHalls : obj → Prop
+
+-- Rules about people at Mary's school
+axiom R1 : ∀ x : obj, AtSchool x → WorkJob x → NeedMoney x
+axiom R2 : ∀ x : obj, AtSchool x → OrderTakeout x → WorkJob x
+axiom R3 : ∀ x : obj, AtSchool x → (OrderTakeout x ∨ EnjoyDining x)
+axiom R4 : ∀ x : obj, AtSchool x → EnjoyDining x → ¬ Picky x
+axiom R5 : ∀ x : obj, AtSchool x → EnjoyDining x → SpendTimeDiningHalls x
+
+-- Hannah-specific facts
+axiom Hannah : obj
+axiom H_at : AtSchool Hannah
+axiom H_work : WorkJob Hannah
+axiom H_imp : NeedMoney Hannah → (¬ Picky Hannah ∧ ¬ NeedMoney Hannah)
+
+theorem conclusion :
+  AtSchool Hannah ∧ ¬ Picky Hannah ∧ SpendTimeDiningHalls Hannah := by
+  have hS : AtSchool Hannah := H_at
+  have hDisj : OrderTakeout Hannah ∨ EnjoyDining Hannah := R3 Hannah hS
+  have hEnjoy : EnjoyDining Hannah := by
+    cases hDisj with
+    | inl hOrder =>
+      have hWork : WorkJob Hannah := R2 Hannah hS hOrder
+      have hNeed : NeedMoney Hannah := R1 Hannah hS hWork
+      have hNotNeed : ¬ NeedMoney Hannah := And.right (H_imp hNeed)
+      exact False.elim (hNotNeed hNeed)
+    | inr hEnj => exact hEnj
+  have hNP : ¬ Picky Hannah := R4 Hannah hS hEnjoy
+  have hST : SpendTimeDiningHalls Hannah := R5 Hannah hS hEnjoy
+  exact And.intro hS (And.intro hNP hST)
+</lean>
+
+ANSWER: True

@@ -1,0 +1,58 @@
+<lean>
+axiom Person : Type
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+axiom Man : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom InMichaelClass : Person → Prop
+axiom Block : Person → Person → Prop
+axiom Jumps : Person → Prop
+axiom GreatShooter : Person → Prop
+
+-- If a man is taller than another man, the taller one can block the other's shooting.
+axiom TallBlocks : ∀ x y : Person, Man x → Man y → Taller x y → Block x y
+
+-- Michael is a man who is taller than everyone else in his class (classmates only).
+axiom Michael_is_man : Man Michael
+axiom Michael_taller_than_classmates : ∀ y : Person, InMichaelClass y → Taller Michael y
+
+-- Transitivity of taller.
+axiom taller_trans : ∀ x y z : Person, Taller x y → Taller y z → Taller x z
+
+-- Peter is a man who is taller than Michael.
+axiom Peter_is_man : Man Peter
+axiom Peter_taller_than_Michael : Taller Peter Michael
+
+-- Michael can block any shooting from a person as long as the person does not jump when shooting.
+axiom Michael_blocks_nonjumpers : ∀ p : Person, ¬Jumps p → Block Michael p
+
+-- Michael cannot block Windy's shooting.
+axiom Michael_not_block_Windy : ¬ Block Michael Windy
+
+-- Every shooter who can jump when shooting is a great shooter.
+axiom jumpers_are_great : ∀ p : Person, Jumps p → GreatShooter p
+
+-- Natural asymmetry of "taller than".
+axiom taller_asym : ∀ x y : Person, Taller x y → ¬ Taller y x
+
+-- Statement to evaluate: Peter is shorter than a man in Michael's class.
+def Statement : Prop := ∃ m : Person, Man m ∧ InMichaelClass m ∧ Taller m Peter
+
+-- We prove the negation of the statement.
+theorem not_Statement : ¬ Statement := by
+  intro h
+  cases h with
+  | intro m hm =>
+    cases hm with
+    | intro hm_man hm' =>
+      cases hm' with
+      | intro hm_inclass hm_tallerPeter =>
+        have hMy : Taller Michael m := Michael_taller_than_classmates m hm_inclass
+        have hPm : Taller Peter m := taller_trans Peter Michael m Peter_taller_than_Michael hMy
+        have hnot : ¬ Taller m Peter := taller_asym Peter m hPm
+        exact hnot hm_tallerPeter
+</lean>
+
+ANSWER: False

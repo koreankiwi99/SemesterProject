@@ -1,0 +1,77 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+-- Predicates
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom Values : obj → Prop
+axiom FamilyPrior : obj → Prop
+-- "clumsy foodie who goes out frequently to find new food restaurants to try"
+axiom CF : obj → Prop
+
+-- Premises
+axiom A1 : ∀ x : obj, Spill x → ¬ Tidy x
+axiom A2 : ∀ x : obj, CF x → Spill x
+axiom A3 : ∀ x : obj, Clean x → Tidy x
+axiom A4 : ∀ x : obj, Values x → Clean x
+axiom A5 : ∀ x : obj, FamilyPrior x → Values x
+axiom A6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- No one can both spill a lot and be cleanly (derivable from A1 and A3)
+theorem no_spill_and_clean : ∀ x : obj, ¬ (Spill x ∧ Clean x) := by
+  intro x
+  intro h
+  have hs : Spill x := And.left h
+  have hc : Clean x := And.right h
+  have nt : ¬ Tidy x := A1 x hs
+  have t : Tidy x := A3 x hc
+  exact nt t
+
+-- Contrapositive of A2: ¬Spill → ¬CF
+theorem not_spill_implies_not_CF : ∀ x : obj, ¬ Spill x → ¬ CF x := by
+  intro x
+  intro hns
+  intro hcf
+  exact hns (A2 x hcf)
+
+-- From ¬Clean and A5∘A4, get ¬FamilyPrior
+theorem not_clean_implies_not_familyprior : ∀ x : obj, ¬ Clean x → ¬ FamilyPrior x := by
+  intro x
+  intro hnc
+  intro hfp
+  have hv : Values x := A5 x hfp
+  have hc : Clean x := A4 x hv
+  exact hnc hc
+
+-- From A6 and no_spill_and_clean, deduce ¬Spill Peter ∧ ¬Clean Peter
+theorem peter_not_spill_and_not_clean : ¬ Spill Peter ∧ ¬ Clean Peter := by
+  have h := A6
+  cases h with
+  | inl hsc =>
+    have : False := no_spill_and_clean Peter hsc
+    exact False.elim this
+  | inr hnc =>
+    exact hnc
+
+-- Therefore, ¬CF Peter and ¬FamilyPrior Peter
+theorem peter_not_CF : ¬ CF Peter := by
+  have hns : ¬ Spill Peter := And.left peter_not_spill_and_not_clean
+  exact not_spill_implies_not_CF Peter hns
+
+theorem peter_not_familyprior : ¬ FamilyPrior Peter := by
+  have hnc : ¬ Clean Peter := And.right peter_not_spill_and_not_clean
+  exact not_clean_implies_not_familyprior Peter hnc
+
+-- Hence the stated conclusion (CF Peter ∨ FamilyPrior Peter) is false
+theorem conclusion_false : ¬ (CF Peter ∨ FamilyPrior Peter) := by
+  intro h
+  cases h with
+  | inl hcf =>
+    exact peter_not_CF hcf
+  | inr hfp =>
+    exact peter_not_familyprior hfp
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,56 @@
+<lean>
+axiom obj : Type
+
+-- Individuals
+axiom Peter : obj
+
+-- Predicates
+axiom Spill : obj → Prop
+axiom Tidy : obj → Prop
+axiom Clean : obj → Prop
+axiom CF : obj → Prop  -- clumsy foodie who goes out frequently to find new food restaurants to try
+axiom ValuesOrder : obj → Prop
+axiom FamilyPrioritizesOrder : obj → Prop
+
+-- Premises
+axiom A1 : ∀ x : obj, Spill x → ¬ Tidy x
+axiom A2 : ∀ x : obj, CF x → Spill x
+axiom A3 : ∀ x : obj, Clean x → Tidy x
+axiom A4 : ∀ x : obj, ValuesOrder x → Clean x
+axiom A5 : ∀ x : obj, FamilyPrioritizesOrder x → ValuesOrder x
+axiom A6 : (Spill Peter ∧ Clean Peter) ∨ (¬ Spill Peter ∧ ¬ Clean Peter)
+
+-- Conclusion to prove:
+-- Peter is either both CF and FamilyPrioritizesOrder, or neither CF nor FamilyPrioritizesOrder.
+theorem peter_dichotomy :
+  (CF Peter ∧ FamilyPrioritizesOrder Peter) ∨ (¬ CF Peter ∧ ¬ FamilyPrioritizesOrder Peter) :=
+by
+  have hdisj := A6
+  cases hdisj with
+  | inl h =>
+      -- h : Spill Peter ∧ Clean Peter
+      have hs : Spill Peter := h.left
+      have hc : Clean Peter := h.right
+      have ht : Tidy Peter := A3 Peter hc
+      have hnt : ¬ Tidy Peter := A1 Peter hs
+      have contra : False := hnt ht
+      exact False.elim contra
+  | inr h =>
+      -- h : ¬ Spill Peter ∧ ¬ Clean Peter
+      have hns : ¬ Spill Peter := h.left
+      have hnc : ¬ Clean Peter := h.right
+      have hnotCF : ¬ CF Peter :=
+        by
+          intro hcf
+          have sp : Spill Peter := A2 Peter hcf
+          exact hns sp
+      have hnotFam : ¬ FamilyPrioritizesOrder Peter :=
+        by
+          intro hfam
+          have vo : ValuesOrder Peter := A5 Peter hfam
+          have cl : Clean Peter := A4 Peter vo
+          exact hnc cl
+      exact Or.inr (And.intro hnotCF hnotFam)
+</lean>
+
+ANSWER: True

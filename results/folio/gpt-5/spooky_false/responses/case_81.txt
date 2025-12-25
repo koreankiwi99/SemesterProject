@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+
+-- Entities
+axiom DriedThaiChilies : obj
+
+-- Predicates
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom Cupcake : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom FromBBM : obj → Prop
+
+-- Premises
+axiom H1 : ∀ x : obj, BakedSweet x → ¬Spicy x               -- No baked sweets are spicy.
+axiom H2 : ∀ x : obj, Cupcake x → BakedSweet x               -- All cupcakes are baked sweets.
+axiom H3 : ∀ x : obj, MalaHotpot x → Spicy x                 -- All mala hotpots are spicy.
+axiom H4 : ∀ x : obj, FromBBM x → Cupcake x                  -- All products from BBM are cupcakes.
+axiom H5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweet DriedThaiChilies
+  -- Dried Thai chilies are spicy or mala hotpots or not baked sweets.
+
+-- Useful derived facts
+theorem BBM_implies_BS : ∀ x : obj, FromBBM x → BakedSweet x := by
+  intro x hx
+  have hxCup : Cupcake x := H4 x hx
+  have hxBS : BakedSweet x := H2 x hxCup
+  exact hxBS
+
+theorem BBM_implies_not_spicy : ∀ x : obj, FromBBM x → ¬Spicy x := by
+  intro x hx
+  have hxBS : BakedSweet x := BBM_implies_BS x hx
+  have hxNotSp : ¬Spicy x := H1 x hxBS
+  exact hxNotSp
+
+theorem DTC_spicy_or_not_baked : Spicy DriedThaiChilies ∨ ¬BakedSweet DriedThaiChilies := by
+  have h := H5
+  cases h with
+  | inl hSp => exact Or.inl hSp
+  | inr hTail =>
+    cases hTail with
+    | inl hMH =>
+      have hSp' : Spicy DriedThaiChilies := H3 DriedThaiChilies hMH
+      exact Or.inl hSp'
+    | inr hNotBS => exact Or.inr hNotBS
+
+-- Consequence: Dried Thai chilies are not from BBM
+theorem not_fromBBM_DTC : ¬FromBBM DriedThaiChilies := by
+  intro hBBM
+  have hNotSp : ¬Spicy DriedThaiChilies := BBM_implies_not_spicy DriedThaiChilies hBBM
+  have hBS : BakedSweet DriedThaiChilies := BBM_implies_BS DriedThaiChilies hBBM
+  have hOr : Spicy DriedThaiChilies ∨ ¬BakedSweet DriedThaiChilies := DTC_spicy_or_not_baked
+  cases hOr with
+  | inl hSp => exact hNotSp hSp
+  | inr hNotBS => exact hNotBS hBS
+</lean>
+
+ANSWER: Failure

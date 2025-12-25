@@ -173,19 +173,26 @@ async def run_single_case(
             gt_norm = ground_truth.lower() if ground_truth else None
 
             # Calculate correctness based on condition
-            # Note: gt_norm is "yes"/"no" from dataset
-            # pred_norm is normalized: "true"/"failure" for bidir_true, "false"/"failure" for bidir_false
+            # FOLIO gt_norm: "true"/"false"/"uncertain"
+            # MultiLogiEval gt_norm: "yes"/"no"
             if answer_format == "bidir_true":
-                # bidir_true: success (yes/true) correct if gt=yes, failure correct if gt=no
+                # bidir_true: trying to prove conclusion is TRUE
+                # Success (True/Yes) correct if gt=true/yes
+                # Failure correct if gt=false/no/uncertain (can't prove true)
                 is_success = pred_norm in ("yes", "true")
-                correct = (is_success and gt_norm == "yes") or \
-                          (pred_norm == "failure" and gt_norm == "no")
+                gt_is_true = gt_norm in ("yes", "true")
+                gt_is_not_true = gt_norm in ("no", "false", "uncertain")
+                correct = (is_success and gt_is_true) or \
+                          (pred_norm == "failure" and gt_is_not_true)
             elif answer_format == "bidir_false":
-                # bidir_false: answer_false correct if gt=no, "Failure" correct if gt=yes
-                # pred will be "no" (multilogieval) or "false" (folio), gt is always "yes"/"no"
+                # bidir_false: trying to prove conclusion is FALSE (negation)
+                # Success (False/No) correct if gt=false/no
+                # Failure correct if gt=true/yes/uncertain (can't prove false)
                 is_false_answer = pred_norm in ("no", "false")
-                correct = (is_false_answer and gt_norm == "no") or \
-                          (pred_norm == "failure" and gt_norm == "yes")
+                gt_is_false = gt_norm in ("no", "false")
+                gt_is_not_false = gt_norm in ("yes", "true", "uncertain")
+                correct = (is_false_answer and gt_is_false) or \
+                          (pred_norm == "failure" and gt_is_not_false)
             else:
                 correct = pred_norm == gt_norm
 

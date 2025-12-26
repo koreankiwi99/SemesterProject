@@ -229,7 +229,9 @@ class UnifiedAsyncClient:
     async def _get_session(self) -> aiohttp.ClientSession:
         """Get or create aiohttp session."""
         if not hasattr(self, '_session') or self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession()
+            # Set long timeout for reasoning models like DeepSeek-R1 (can take 5+ minutes)
+            timeout = aiohttp.ClientTimeout(total=600)  # 10 minutes
+            self._session = aiohttp.ClientSession(timeout=timeout)
         return self._session
 
     async def close(self):

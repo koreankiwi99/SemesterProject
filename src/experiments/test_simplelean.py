@@ -42,11 +42,11 @@ SYSTEM_PROMPTS = {
     "lean4_balanced": "prompts/simplelean-conditions/pilot/system_lean4_balanced.txt",
     "lean4_minimal": "prompts/simplelean-conditions/pilot/system_lean4_minimal.txt",
     # Bidirectional prompts
-    "bidir_true": "prompts/bidirectional/true_system.txt",
-    "bidir_false": "prompts/bidirectional/false_system.txt",
-    # Spooky (nudging) prompts for specification gaming experiment
-    "spooky_true": "prompts/bidirectional/spooky_true_system.txt",
-    "spooky_false": "prompts/bidirectional/spooky_false_system.txt",
+    "bidir_true": "prompts/bidirectional/dir_true_system.txt",
+    "bidir_false": "prompts/bidirectional/dir_false_system.txt",
+    # Nudge prompts for specification gaming experiment
+    "spooky_true": "prompts/bidirectional/nudge_true_system.txt",
+    "spooky_false": "prompts/bidirectional/nudge_false_system.txt",
 }
 
 FEEDBACK_PROMPTS = {

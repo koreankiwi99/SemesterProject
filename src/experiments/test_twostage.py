@@ -36,9 +36,11 @@ PROMPTS = {
     "stage1_system": "prompts/twostage/two-stage1_system.txt",
     "stage1_user": "prompts/twostage/two-stage1_user.txt",
     "stage1_feedback": "prompts/twostage/two-stage1_feedback.txt",
+    "stage1_no_code": "prompts/simplelean-shared/no_lean_code_feedback.txt",
     "stage2_system": "prompts/twostage/two-stage2_system.txt",
     "stage2_user": "prompts/twostage/two-stage2_user.txt",
     "stage2_feedback": "prompts/twostage/two-stage2_feedback.txt",
+    "stage2_no_proof": "prompts/twostage/two-stage2_no_proof.txt",
 }
 
 # Answer format for parsing
@@ -95,6 +97,7 @@ async def run_stage1(
     system_prompt: str,
     user_prompt_template: str,
     feedback_template: str,
+    no_code_template: str,
 ) -> tuple:
     """
     Stage 1: Generate and type-check axioms + theorem with sorry.
@@ -169,6 +172,9 @@ async def run_stage1(
                 conversation_history.append({"role": "user", "content": feedback})
         else:
             iteration_data['lean_error'] = "No Lean code found in response"
+            if iteration < max_iterations - 1:
+                feedback = no_code_template.format(answer_format="True/False/Uncertain")
+                conversation_history.append({"role": "user", "content": feedback})
 
         iterations.append(iteration_data)
 
@@ -184,6 +190,7 @@ async def run_stage2(
     system_prompt: str,
     user_prompt_template: str,
     feedback_template: str,
+    no_proof_template: str,
 ) -> tuple:
     """
     Stage 2: Generate proof term to replace sorry.
@@ -258,6 +265,8 @@ async def run_stage2(
                 conversation_history.append({"role": "user", "content": feedback})
         else:
             iteration_data['lean_error'] = "No proof term found in response"
+            if iteration < max_iterations - 1:
+                conversation_history.append({"role": "user", "content": no_proof_template})
 
         iterations.append(iteration_data)
 
@@ -313,6 +322,7 @@ async def run_two_stage_case(
                 system_prompt=prompts['stage1_system'],
                 user_prompt_template=prompts['stage1_user'],
                 feedback_template=prompts['stage1_feedback'],
+                no_code_template=prompts['stage1_no_code'],
             )
 
             result['stage1_iterations'] = s1_iters
@@ -337,6 +347,7 @@ async def run_two_stage_case(
                 system_prompt=prompts['stage2_system'],
                 user_prompt_template=prompts['stage2_user'],
                 feedback_template=prompts['stage2_feedback'],
+                no_proof_template=prompts['stage2_no_proof'],
             )
 
             result['stage2_iterations'] = s2_iters

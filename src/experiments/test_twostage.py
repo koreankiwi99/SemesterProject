@@ -16,6 +16,7 @@ Usage:
 import sys
 import asyncio
 import argparse
+import traceback
 from pathlib import Path
 from dotenv import load_dotenv
 from tqdm.asyncio import tqdm_asyncio
@@ -43,7 +44,7 @@ PROMPTS = {
 }
 
 # Answer format for parsing
-ANSWER_FORMAT = {"True": "True", "False": "False", "Uncertain": "Uncertain"}
+ANSWER_FORMAT = "true_false"  # For FOLIO: True/False/Uncertain
 
 
 def get_token_usage(response) -> dict:
@@ -340,8 +341,10 @@ async def run_two_stage_case(
                     result['correct'] = s2_pred.lower() == ground_truth.lower()
 
         except Exception as e:
-            result['error'] = str(e)
+            result['error'] = f"{type(e).__name__}: {str(e)}"
+            result['error_traceback'] = traceback.format_exc()
             result['fail_stage'] = 'exception'
+            print(f"Exception in case {result['case_idx']}: {type(e).__name__}: {e}")
 
         return result
 

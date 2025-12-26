@@ -131,6 +131,15 @@ async def verify_with_lean_async(lean_code, lean_server, verbose=False, timeout=
 
         return result
 
+    except (asyncio.TimeoutError, TimeoutError) as e:
+        return {
+            'success': False,
+            'env': None,
+            'errors': [f'Lean verification timed out after {timeout}s'],
+            'warnings': [],
+            'all_messages': []
+        }
+
     except Exception as e:
         return {
             'success': False,

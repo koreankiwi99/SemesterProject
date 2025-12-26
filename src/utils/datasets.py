@@ -4,15 +4,17 @@ import json
 from pathlib import Path
 
 
-def load_folio() -> list:
+def load_folio(folio_path: str = None) -> list:
     """Load FOLIO validation dataset."""
-    folio_path = "data/folio/original/folio-validation.json"
+    if folio_path is None:
+        folio_path = "data/folio/original/folio-validation.json"
     with open(folio_path, 'r') as f:
         data = json.load(f)
 
     cases = []
-    for entry in data:
+    for idx, entry in enumerate(data):
         cases.append({
+            'idx': idx,
             'story_id': entry.get('story_id', 0),
             'example_id': entry.get('example_id', 0),
             'premises': entry.get('premises', ''),

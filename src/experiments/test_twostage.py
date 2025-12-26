@@ -364,7 +364,7 @@ async def main():
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--data_file', default=None, help='Pre-sampled data file')
     # FOLIO options
-    parser.add_argument('--folio_file', default='data/folio_original/folio-validation.json')
+    parser.add_argument('--folio_file', default='data/folio/original/folio-validation.json')
 
     args = parser.parse_args()
 
@@ -402,7 +402,7 @@ async def main():
 
     # Initialize client and Lean server
     client = create_client(args.model)
-    lean_server = await create_lean_server()
+    lean_server = create_lean_server()
 
     # Initialize saver
     saver = TwoStageSaver(

@@ -1,0 +1,60 @@
+The reasoning involves deducing that the Picuris Mountains must be in New Mexico based on the premises, which then directly supports the conclusion that Juan de Onate visited a mountain range in New Mexico.
+
+**Proof Structure:**
+1. **Premise:** The Picuris Mountains are in New Mexico or Texas (disjunction).
+2. **Premise:** The Harding Pegmatite Mine (located in the Picuris Mountains) was donated.
+3. **Premise:** No mountain range in Texas has a donated mine (universal negation).
+4. **Contradiction Step:** If the Picuris Mountains were in Texas, this would contradict the third premise (since the mine exists and is donated).
+5. **Disjunction Resolution:** By contradiction, the Picuris Mountains cannot be in Texas, so they must be in New Mexico (first premise).
+6. **Conclusion:** Juan de Onate visited the Picuris Mountains (second premise), which are in New Mexico.
+
+Thus, the conclusion "Juan de Onate visited a mountain range in New Mexico" is true.
+
+**Lean Translation:**
+- Axioms for `State` (New Mexico or Texas), `MountainRange`, and `Mine`.
+- Specific constants: `Picuris` (mountain range) and `HardingPegmatiteMine` (mine).
+- Predicates: 
+  - `InState mr s` (mountain range `mr` is in state `s`).
+  - `LocatedIn m mr` (mine `m` is located in mountain range `mr`).
+  - `Donated m` (mine `m` was donated).
+  - `Visited j m` (Juan de Onate visited mountain range `m`).
+- Premises as axioms, including the critical universal negation for Texas.
+- Proof shows existence of a mountain range in New Mexico visited by Juan.
+
+<lean>
+axiom MountainRange : Type
+axiom Mine : Type
+
+axiom Picuris : MountainRange
+axiom HardingPegmatiteMine : Mine
+
+inductive State : Type
+  | NM
+  | TX
+
+axiom InState : MountainRange → State → Prop
+axiom LocatedIn : Mine → MountainRange → Prop
+axiom Donated : Mine → Prop
+axiom Visited : MountainRange → Prop  -- Juan visited a mountain range
+
+axiom picuris_location : InState Picuris State.NM ∨ InState Picuris State.TX
+axiom juan_visited : Visited Picuris
+axiom mine_location : LocatedIn HardingPegmatiteMine Picuris
+axiom mine_donated : Donated HardingPegmatiteMine
+axiom no_donated_in_texas : ∀ (mr : MountainRange), (InState mr State.TX) → ¬ (∃ m, LocatedIn m mr ∧ Donated m)
+
+theorem juan_visited_nm : ∃ mr, InState mr State.NM ∧ Visited mr := by
+  -- Picuris cannot be in Texas due to the mine contradiction
+  have not_texas : ¬ InState Picuris State.TX := by 
+    intro h 
+    apply no_donated_in_texas Picuris h 
+    exact ⟨HardingPegmatiteMine, mine_location, mine_donated⟩ 
+  -- Resolve disjunction: must be in New Mexico
+  cases picuris_location with 
+  | inl in_nm => 
+      exact ⟨Picuris, in_nm, juan_visited⟩ 
+  | inr in_tx => 
+      contradiction 
+</lean>
+
+ANSWER: True

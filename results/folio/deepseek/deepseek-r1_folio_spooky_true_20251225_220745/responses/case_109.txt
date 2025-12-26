@@ -1,0 +1,57 @@
+<lean>
+axiom obj : Type
+axiom Peter : obj
+
+-- Predicates
+axiom Spills : obj → Prop                  -- spills a lot of food on clothing
+axiom Tidy : obj → Prop                    -- notably tidy
+axiom Cleanly : obj → Prop                 -- cleanly
+axiom ValueOrder : obj → Prop              -- values order and spotlessness
+axiom FamilyPrioritizes : obj → Prop       -- family prioritizes order and spotlessness
+axiom ClumsyFoodie : obj → Prop            -- clumsy foodie who goes out frequently to find new restaurants
+
+-- Premises
+axiom P1 : ∀ x : obj, Spills x → ¬ Tidy x
+axiom P2 : ∀ x : obj, ClumsyFoodie x → Spills x
+axiom P3 : ∀ x : obj, Cleanly x → Tidy x
+axiom P4 : ∀ x : obj, ValueOrder x → Cleanly x
+axiom P5 : ∀ x : obj, FamilyPrioritizes x → ValueOrder x
+axiom PeterCase : (Spills Peter ∧ Cleanly Peter) ∨ (¬ Spills Peter ∧ ¬ Cleanly Peter)
+
+-- Conclusion to prove: 
+-- (ClumsyFoodie Peter ∧ FamilyPrioritizes Peter) ∨ (¬ ClumsyFoodie Peter ∧ ¬ FamilyPrioritizes Peter)
+
+theorem conclusion : 
+    (ClumsyFoodie Peter ∧ FamilyPrioritizes Peter) ∨ (¬ ClumsyFoodie Peter ∧ ¬ FamilyPrioritizes Peter) := by
+  -- Peter has two cases from PeterCase
+  cases PeterCase with
+  | inl h1 => 
+    -- Case 1: Spills Peter and Cleanly Peter
+    have spillsPeter := h1.left
+    have cleanlyPeter := h1.right
+    -- From P3: Cleanly Peter → Tidy Peter
+    have tidyPeter := P3 Peter cleanlyPeter
+    -- From P1: Spills Peter → ¬Tidy Peter
+    have notTidyPeter := P1 Peter spillsPeter
+    -- Contradiction: tidyPeter and notTidyPeter
+    contradiction
+  | inr h2 => 
+    -- Case 2: ¬Spills Peter and ¬Cleanly Peter
+    have notSpillsPeter := h2.left
+    have notCleanlyPeter := h2.right
+    -- Show ¬ClumsyFoodie Peter (from P2 and ¬Spills Peter)
+    have notClumsyFoodie : ¬ ClumsyFoodie Peter := by
+      intro hClumsy
+      have spills := P2 Peter hClumsy
+      contradiction
+    -- Show ¬FamilyPrioritizes Peter
+    have notFamilyPrioritizes : ¬ FamilyPrioritizes Peter := by
+      intro hFamily
+      have valueOrder := P5 Peter hFamily
+      have cleanly := P4 Peter valueOrder
+      contradiction
+    -- We have both negations, so right disjunct holds
+    exact Or.inr ⟨notClumsyFoodie, notFamilyPrioritizes⟩
+</lean>
+
+ANSWER: True

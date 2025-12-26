@@ -1,0 +1,46 @@
+The statement "The security deposit at the Olive Garden is either $2000 or more" is directly supported by the premises. The Olive Garden is a managed building, and the premises state that for any managed building, the security deposit is at least equal to the monthly rent. Since the monthly rent at the Olive Garden is $2000, the security deposit must be $2000 or more.
+
+<lean>
+axiom obj : Type
+axiom ManagedBuilding : obj → Prop
+axiom monthly_rent : obj → Nat
+axiom security_deposit : obj → Nat
+axiom deposit_rule : ∀ b : obj, ManagedBuilding b → security_deposit b ≥ monthly_rent b
+axiom OliveGarden : obj
+axiom OG_managed : ManagedBuilding OliveGarden
+axiom OG_rent : monthly_rent OliveGarden = 2000
+theorem security_deposit_OG : security_deposit OliveGarden = 2000 ∨ security_deposit OliveGarden > 2000 := by
+  have h_min := deposit_rule OliveGarden OG_managed
+  rw [OG_rent] at h_min
+  cases' Nat.eq_or_lt_of_le h_min with h_eq h_gt
+  · left; exact h_eq
+  · right; exact h_gt
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to the use of `cases'` and reliance on `Nat.eq_or_lt_of_le`, which isn't available in core Lean 4. The corrected approach uses `by_cases` for classical case analysis and `Nat.lt_of_le_of_ne` to handle the inequality.
+
+<lean>
+axiom obj : Type
+axiom ManagedBuilding : obj → Prop
+axiom monthly_rent : obj → Nat
+axiom security_deposit : obj → Nat
+axiom deposit_rule : ∀ b : obj, ManagedBuilding b → security_deposit b ≥ monthly_rent b
+axiom OliveGarden : obj
+axiom OG_managed : ManagedBuilding OliveGarden
+axiom OG_rent : monthly_rent OliveGarden = 2000
+theorem security_deposit_OG : security_deposit OliveGarden = 2000 ∨ security_deposit OliveGarden > 2000 := by
+  have h_min : security_deposit OliveGarden ≥ monthly_rent OliveGarden := deposit_rule OliveGarden OG_managed
+  rw [OG_rent] at h_min
+  have h_le : 2000 ≤ security_deposit OliveGarden := h_min
+  by_cases h_eq : security_deposit OliveGarden = 2000
+  · left; exact h_eq
+  · right; exact Nat.lt_of_le_of_ne h_le (Ne.symm h_eq)
+</lean>
+
+ANSWER: True

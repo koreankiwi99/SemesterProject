@@ -1,0 +1,43 @@
+The premises do not allow us to prove that John does not have a larger family. The existential premise (4) confirms that some person has both a well-attended wedding and a larger family, but it does not specify John. Premises (5) and (6) about John lead to a contradiction only in certain interpretations and cases, but a consistent model exists where John has a larger family (e.g., by having John invite friends without being engaged or making wedding plans). Therefore, the conclusion cannot be proven from the given premises.
+
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom Engaged : Person → Prop
+axiom MakesWeddingPlans : Person → Prop
+axiom InvitesOthers : Person → Prop
+axiom HasWellAttendedWedding : Person → Prop
+axiom HasLargerFamily : Person → Prop
+axiom InvitesFriends : Person → Prop
+
+axiom P1 : ∀ p : Person, MakesWeddingPlans p → Engaged p
+axiom P2 : ∀ p : Person, InvitesOthers p → MakesWeddingPlans p
+axiom P3 : ∀ p : Person, HasWellAttendedWedding p → InvitesOthers p
+axiom P4 : ∃ p : Person, HasWellAttendedWedding p ∧ HasLargerFamily p
+-- Interpretation: If John is engaged, then he does not invite friends AND does not make wedding plans.
+axiom P5 : Engaged John → ¬ InvitesFriends John ∧ ¬ MakesWeddingPlans John
+axiom P6 : HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriends John
+
+theorem john_not_larger_family : ¬ HasLargerFamily John :=
+  fun h_larger : HasLargerFamily John =>
+  have h_disj : HasWellAttendedWedding John ∨ InvitesFriends John := P6 h_larger
+  Or.elim h_disj
+    (fun h_well : HasWellAttendedWedding John =>
+      have h_invites_others : InvitesOthers John := P3 John h_well
+      have h_plans : MakesWeddingPlans John := P2 John h_invites_others
+      have h_engaged : Engaged John := P1 John h_plans
+      have h_P5 : ¬ InvitesFriends John ∧ ¬ MakesWeddingPlans John := P5 h_engaged
+      have h_no_plans : ¬ MakesWeddingPlans John := h_P5.right
+      False.elim (h_no_plans h_plans)
+    )
+    (fun h_friends : InvitesFriends John =>
+      -- No contradiction: John invites friends, but we cannot derive that he is engaged or makes wedding plans.
+      -- Without further premises linking InvitesFriends to Engaged or MakesWeddingPlans, this branch remains consistent.
+      False.elim (sorry) -- Stuck; no contradiction found
+    )
+
+-- Since the second branch cannot be completed, the proof fails.
+</lean>
+
+ANSWER: Failure

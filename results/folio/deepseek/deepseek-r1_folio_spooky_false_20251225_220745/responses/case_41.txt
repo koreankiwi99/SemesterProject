@@ -1,0 +1,47 @@
+After careful analysis of the premises and the statement to evaluate, I've formalized the reasoning in Lean. The key points are:
+
+1. The premises imply that any design adored by Max must be Kelly Wearstler's style (since Zaha Hadid's styles lead to contradiction)
+2. Kelly Wearstler designs are both evocative and dreamy (premises 4-5)
+3. Therefore, every adored design must be either evocative or dreamy (in fact both)
+
+This means the conclusion "A design by Max is either evocative or dreamy" (interpreted as applying to designs Max adores) must be true. Consequently, it's impossible to prove the negation of this conclusion from the given premises.
+
+Here's the Lean formalization:
+
+<lean>
+axiom Style : Type
+axiom Design : Type
+axiom style : Design → Style
+axiom Adores : Design → Prop
+axiom isZahaStyle : Style → Prop
+axiom isKellyStyle : Style → Prop
+axiom isBrutalistStyle : Style → Prop
+axiom HasInterestingGeometry : Design → Prop
+axiom Evocative : Design → Prop
+axiom Dreamy : Design → Prop
+
+axiom P1 : ∀ d : Design, isZahaStyle (style d) ∧ Adores d → HasInterestingGeometry d
+axiom P2 : ∀ d : Design, isBrutalistStyle (style d) ∧ Adores d → ¬ HasInterestingGeometry d
+axiom P3 : ∀ d : Design, Adores d → isZahaStyle (style d) ∨ isKellyStyle (style d)
+axiom P4 : ∀ d : Design, isKellyStyle (style d) ∧ Adores d → Evocative d
+axiom P5 : ∀ d : Design, isKellyStyle (style d) ∧ Adores d → Dreamy d
+axiom P6 : ∀ d : Design, Adores d ∧ HasInterestingGeometry d → isBrutalistStyle (style d) ∧ Evocative d
+
+theorem cannot_refute : ¬∃ d, Adores d ∧ ¬Evocative d ∧ ¬Dreamy d := by
+  intro h
+  cases h with
+  | intro d hd =>
+    have h_style := P3 d hd.1
+    cases h_style with
+    | inl z =>
+        have h_geom := P1 d ⟨z, hd.1⟩
+        have h_brut := (P6 d ⟨hd.1, h_geom⟩).1
+        have no_geom := P2 d ⟨h_brut, hd.1⟩
+        contradiction
+    | inr k =>
+        have evo := P4 d ⟨k, hd.1⟩
+        have dream := P5 d ⟨k, hd.1⟩
+        exact hd.2.1 evo
+</lean>
+
+ANSWER: Failure

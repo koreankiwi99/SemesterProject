@@ -1,0 +1,75 @@
+<lean>
+inductive Season
+| Spring
+| Summer
+| Fall
+| Winter
+
+axiom Student : Type
+axiom Emma : Student
+axiom Mia : Student
+axiom James : Student
+
+axiom FavoriteSeason : Student → Season
+axiom WantsLongVacation : Student → Prop
+
+axiom all_long_vacation_summer : ∀ s : Student, WantsLongVacation s → FavoriteSeason s = Season.Summer
+axiom emma_fav_summer : FavoriteSeason Emma = Season.Summer
+axiom mia_not_emma : FavoriteSeason Mia ≠ FavoriteSeason Emma
+axiom james_wants : WantsLongVacation James
+
+-- Derived facts
+theorem mia_not_summer : FavoriteSeason Mia ≠ Season.Summer := by
+  rw [emma_fav_summer] at mia_not_emma
+  exact mia_not_emma
+
+-- Attempt to prove ¬(FavoriteSeason Mia = Season.Spring) fails because:
+-- 1. We only know Mia's season isn't Summer
+-- 2. No premises constrain Mia's season to exclude Spring
+-- 3. Mia could have Spring, Fall, or Winter as favorite
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `rw` tactic was incorrectly applied to an axiom (`mia_not_emma`) rather than a local hypothesis. The proof has been corrected by introducing a local hypothesis `h` and constructing a contradiction.
+
+<lean>
+inductive Season
+| Spring
+| Summer
+| Fall
+| Winter
+
+axiom Student : Type
+axiom Emma : Student
+axiom Mia : Student
+axiom James : Student
+
+axiom FavoriteSeason : Student → Season
+axiom WantsLongVacation : Student → Prop
+
+axiom all_long_vacation_summer : ∀ s : Student, WantsLongVacation s → FavoriteSeason s = Season.Summer
+axiom emma_fav_summer : FavoriteSeason Emma = Season.Summer
+axiom mia_not_emma : FavoriteSeason Mia ≠ FavoriteSeason Emma
+axiom james_wants : WantsLongVacation James
+
+theorem mia_not_summer : FavoriteSeason Mia ≠ Season.Summer := by
+  intro h
+  have : FavoriteSeason Mia = FavoriteSeason Emma := Eq.trans h (Eq.symm emma_fav_summer)
+  exact mia_not_emma this
+
+-- Attempt to prove ¬(FavoriteSeason Mia = Season.Spring)
+-- We know FavoriteSeason Mia ≠ Summer, but no premises constrain Spring
+-- Possible seasons for Mia: Spring, Fall, Winter → cannot prove ¬(FavoriteSeason Mia = Spring)
+</lean>
+
+ANSWER: Failure
+
+**Explanation:**  
+- The proof `mia_not_summer` is now valid: Assuming `FavoriteSeason Mia = Summer` leads to a contradiction with `mia_not_emma` and `emma_fav_summer`.  
+- However, there are no premises that force Mia's favorite season to be anything other than Summer. It could be Spring, Fall, or Winter.  
+- Therefore, we cannot prove the negation of "Mia's favorite season is spring" (¬(FavoriteSeason Mia = Spring)).

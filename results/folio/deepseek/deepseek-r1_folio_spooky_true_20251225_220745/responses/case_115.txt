@@ -1,0 +1,181 @@
+The context provides several premises about people, their heights, and shooting abilities. The key to proving that Windy is a great shooter lies in the rules about Michael's blocking ability:
+
+1. **Premise 5**: Michael can block any shooting from a person who does not jump.
+   - Lean: `axiom MichaelBlock : ∀ s, ¬ JumpWhenShooting s → Block Michael s`
+2. **Premise 6**: Michael cannot block Windy's shooting.
+   - Lean: `axiom BlockFailure : ¬ Block Michael Windy`
+
+By contrapositive reasoning on these axioms:
+- If Michael cannot block Windy (Premise 6), then Windy must jump when shooting (negation of Premise 5's condition).
+- Formalizing this: `¬Block Michael Windy → ¬(¬JumpWhenShooting Windy) ≡ JumpWhenShooting Windy`.
+
+3. **Premise 7**: Any shooter who jumps is a great shooter.
+   - Lean: `axiom JumpGreat : ∀ s, JumpWhenShooting s → GreatShooter s`
+- Thus, `JumpWhenShooting Windy → GreatShooter Windy`.
+
+**Conclusion**: Windy jumps when shooting, so Windy is a great shooter.  
+The other premises (about height relationships, Peter, transitivity, Michael's class) are unused but included for completeness.
+
+<lean>
+axiom Person : Type
+axiom taller : Person → Person → Prop
+axiom Man : Person → Prop
+axiom JumpWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom Block : Person → Person → Prop
+
+-- Defined entities
+axiom Michael : Person
+axiom Windy : Person
+axiom Peter : Person
+
+-- Michael is a man
+axiom Man_Michael : Man Michael
+
+-- Michael is taller than everyone in his class (modeled via a predicate)
+axiom Class : Person → Prop
+axiom MichaelTallest : ∀ p, Class p → p ≠ Michael → taller Michael p
+
+-- Transitivity of taller
+axiom Trans : ∀ x y z, taller x y → taller y z → taller x z
+
+-- Peter is a man taller than Michael
+axiom Man_Peter : Man Peter
+axiom PeterTaller : taller Peter Michael
+
+-- Blocking rules
+axiom BlockRule : ∀ b s, Man b → Man s → taller b s → Block b s
+axiom MichaelBlock : ∀ s, ¬ JumpWhenShooting s → Block Michael s
+axiom BlockFailure : ¬ Block Michael Windy
+
+-- Great shooter definition
+axiom JumpGreat : ∀ s, JumpWhenShooting s → GreatShooter s
+
+-- Proof that Windy is a great shooter
+theorem windy_great : GreatShooter Windy := by
+  -- Show Windy jumps: if not, Michael would block (contradiction)
+  have : JumpWhenShooting Windy := by 
+    by_contra h
+    exact BlockFailure (MichaelBlock Windy h)
+  -- Apply the great shooter rule
+  exact JumpGreat Windy this
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to two main issues:
+1. The tactic `by_contra` is not recognized in Lean 4 (should be `by_contradiction`)
+2. The transitivity axiom name `Trans` conflicted with existing Lean definitions
+
+The corrected code:
+- Uses `by_contradiction` instead of `by_contra`
+- Renames the transitivity axiom to `TallerTrans` to avoid conflicts
+- Maintains the logical structure proving Windy is a great shooter
+
+<lean>
+axiom Person : Type
+axiom taller : Person → Person → Prop
+axiom Man : Person → Prop
+axiom JumpWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom Block : Person → Person → Prop
+
+-- Defined entities
+axiom Michael : Person
+axiom Windy : Person
+axiom Peter : Person
+
+-- Michael is a man
+axiom Man_Michael : Man Michael
+
+-- Michael is taller than everyone in his class
+axiom Class : Person → Prop
+axiom MichaelTallest : ∀ p, Class p → p ≠ Michael → taller Michael p
+
+-- Transitivity of taller
+axiom TallerTrans : ∀ x y z, taller x y → taller y z → taller x z
+
+-- Peter is a man taller than Michael
+axiom Man_Peter : Man Peter
+axiom PeterTaller : taller Peter Michael
+
+-- Blocking rules
+axiom BlockRule : ∀ b s, Man b → Man s → taller b s → Block b s
+axiom MichaelBlock : ∀ s, ¬ JumpWhenShooting s → Block Michael s
+axiom BlockFailure : ¬ Block Michael Windy
+
+-- Great shooter definition
+axiom JumpGreat : ∀ s, JumpWhenShooting s → GreatShooter s
+
+-- Proof that Windy is a great shooter
+theorem windy_great : GreatShooter Windy := by
+  have : JumpWhenShooting Windy := by 
+    by_contradiction h  -- Assume ¬JumpWhenShooting Windy
+    have H_block : Block Michael Windy := MichaelBlock Windy h
+    exact BlockFailure H_block  -- Contradiction with BlockFailure
+  exact JumpGreat Windy this  -- Apply great shooter rule
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to the use of the `have` tactic with a nested `by_contradiction` proof. The solution simplifies the proof structure by:
+1. Directly applying the `JumpGreat` axiom to reduce the goal to proving `JumpWhenShooting Windy`
+2. Using `by_contradiction` to assume the negation (`¬JumpWhenShooting Windy`)
+3. Deriving a contradiction between:
+   - `MichaelBlock Windy h` (Michael blocks Windy if Windy doesn't jump)
+   - `BlockFailure` (Michael cannot block Windy)
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom Person : Type
+axiom taller : Person → Person → Prop
+axiom Man : Person → Prop
+axiom JumpWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom Block : Person → Person → Prop
+
+-- Defined entities
+axiom Michael : Person
+axiom Windy : Person
+axiom Peter : Person
+
+-- Michael is a man
+axiom Man_Michael : Man Michael
+
+-- Michael is taller than everyone in his class
+axiom Class : Person → Prop
+axiom MichaelTallest : ∀ p, Class p → p ≠ Michael → taller Michael p
+
+-- Transitivity of taller
+axiom TallerTrans : ∀ x y z, taller x y → taller y z → taller x z
+
+-- Peter is a man taller than Michael
+axiom Man_Peter : Man Peter
+axiom PeterTaller : taller Peter Michael
+
+-- Blocking rules
+axiom BlockRule : ∀ b s, Man b → Man s → taller b s → Block b s
+axiom MichaelBlock : ∀ s, ¬ JumpWhenShooting s → Block Michael s
+axiom BlockFailure : ¬ Block Michael Windy
+
+-- Great shooter definition
+axiom JumpGreat : ∀ s, JumpWhenShooting s → GreatShooter s
+
+-- Simplified proof structure
+theorem windy_great : GreatShooter Windy := by
+  apply JumpGreat Windy   -- Reduce to proving JumpWhenShooting Windy
+  by_contradiction h      -- Assume ¬JumpWhenShooting Windy
+  have : Block Michael Windy := MichaelBlock Windy h
+  exact BlockFailure this  -- Contradiction: Michael blocks vs cannot block
+</lean>
+
+ANSWER: True

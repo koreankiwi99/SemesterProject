@@ -1,0 +1,130 @@
+The premises describe conditions under which George will compose, but they do not force George to *always* want to compose or ensure that the only reason for not composing is the inability to compose. Specifically:
+
+- The inability to compose (`¬CanCompose`) is not the only circumstance where George will not compose (`¬WillCompose`). George might be able to compose but lack the desire (e.g., due to not liking music), leading to `¬WillCompose` and `CanCompose` both being true. This violates the conclusion `¬WillCompose → ¬CanCompose`.
+
+Thus, the conclusion does not logically follow from the premises.
+
+<lean>
+axiom obj : Type
+axiom George : obj
+axiom LikesMusic : obj → Prop
+axiom HasAccess : obj → Prop
+axiom WantsCompose : obj → Prop
+axiom CanCompose : obj → Prop
+axiom WillCompose : obj → Prop
+
+axiom P1 : ∀ x, LikesMusic x → WantsCompose x
+axiom P2 : ∀ x, HasAccess x → CanCompose x
+axiom P3 : ∀ x, CanCompose x ∧ WantsCompose x → WillCompose x
+
+theorem target : ¬ WillCompose George → ¬ CanCompose George := by
+  intro hnW
+  intro hC  -- Assume George *can* compose to seek a contradiction
+  -- From ¬WillCompose and P3, George either cannot compose or does not want to compose
+  have h_imp := mt (P3 George) hnW  -- mt: modus tollens; ¬(C ∧ W)
+  rw [not_and_or] at h_imp  -- Now: ¬CanCompose George ∨ ¬WantsCompose George
+  cases h_imp with
+  | inl not_C => contradiction  -- ¬C contradicts hC
+  | inr not_W =>
+      -- George doesn't want to compose. This is consistent since:
+      --   - WantsCompose George only required if he likes music (P1)
+      --   - But we don't know if he likes music; no premise forces it.
+      apply not_W  -- Cannot resolve further; no contradiction derived
+                  -- [Proof intentionally left incomplete: counterexample exists]
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The statement "If George will not compose, George cannot compose" does not logically follow from the given premises. The premises allow for a scenario where George can compose (due to having access) but does not want to compose (because he doesn't like music), resulting in him not composing. This scenario satisfies the premises while contradicting the conclusion.
+
+Here's the corrected Lean 4 code with classical reasoning attempted. The proof remains incomplete since no contradiction can be derived in the case where George doesn't want to compose, demonstrating that the conclusion is invalid under the given premises.
+
+<lean>
+axiom obj : Type
+axiom George : obj
+axiom LikesMusic : obj → Prop
+axiom HasAccess : obj → Prop
+axiom WantsCompose : obj → Prop
+axiom CanCompose : obj → Prop
+axiom WillCompose : obj → Prop
+
+axiom P1 : ∀ x, LikesMusic x → WantsCompose x
+axiom P2 : ∀ x, HasAccess x → CanCompose x
+axiom P3 : ∀ x, (CanCompose x ∧ WantsCompose x) → WillCompose x
+
+theorem target : ¬ WillCompose George → ¬ CanCompose George := by
+  intro hnW
+  intro hC  -- Assume George can compose (to derive contradiction)
+  -- From contraposition of P3 and hnW:
+  have h_not_both : ¬(CanCompose George ∧ WantsCompose George) := by 
+    contrapose! hnW
+    exact P3 George hnW
+  -- Since George can compose (hC), we derive ¬WantsCompose George
+  have hnWants : ¬WantsCompose George := fun hW => h_not_both ⟨hC, hW⟩
+  -- There's no premise forcing George to want to compose (e.g., we don't know if he likes music)
+  -- Thus, no contradiction can be found
+  show False
+  -- Attempt classical case analysis on WantsCompose George
+  have em_wants := Classical.em (WantsCompose George)
+  cases em_wants with
+  | inl hW => exact h_not_both ⟨hC, hW⟩
+  | inr hnW' => exact hnWants hnW' -- This branch is consistent with premises
+</lean>
+
+The proof fails to derive a contradiction in the "¬WantsCompose" branch, confirming the invalidity of the conclusion.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to the use of the `contrapose!` tactic, which is not available in Lean 4's core library. Additionally, the proof attempt correctly showed that no contradiction could be derived from the premises when assuming both ¬WillCompose and CanCompose, confirming that the conclusion does not logically follow.
+
+Here is the corrected Lean 4 code using only basic tactics:
+
+<lean>
+axiom obj : Type
+axiom George : obj
+axiom LikesMusic : obj → Prop
+axiom HasAccess : obj → Prop
+axiom WantsCompose : obj → Prop
+axiom CanCompose : obj → Prop
+axiom WillCompose : obj → Prop
+
+axiom P1 : ∀ x, LikesMusic x → WantsCompose x
+axiom P2 : ∀ x, HasAccess x → CanCompose x
+axiom P3 : ∀ x, CanCompose x ∧ WantsCompose x → WillCompose x
+
+theorem target : ¬ WillCompose George → ¬ CanCompose George := by
+  intro hnW   -- Assume George will not compose
+  intro hC    -- Assume George can compose (to derive contradiction)
+  -- From P3: if George can compose AND wants to compose, he will compose
+  -- Contrapositive: ¬WillCompose → ¬(CanCompose ∧ WantsCompose)
+  have h_not_both : ¬(CanCompose George ∧ WantsCompose George) := 
+    fun h => hnW (P3 George h)
+  -- Since we know CanCompose George (hC), this implies ¬WantsCompose George
+  have hnWants : ¬WantsCompose George := 
+    fun hW => h_not_both ⟨hC, hW⟩
+  -- No premise forces George to want to compose:
+  -- P1 only says liking music implies wanting, but we don't know if he likes music
+  -- Thus, ¬WantsCompose is consistent with all premises
+  -- Cannot derive contradiction from hnWants alone
+  show False  -- Goal is to derive contradiction
+  exact hnWants ?_  -- Placeholder for WantsCompose proof, which doesn't exist
+  -- Proof fails: no way to resolve the placeholder
+  sorry       -- Admission of unprovability
+</lean>
+
+The proof fails because:
+1. When George can compose but doesn't want to (possibly because he doesn't like music), all premises are satisfied:
+   - P1 is vacuously satisfied (no liking music → no requirement to want)
+   - P2 may be true (access → can compose)
+   - P3 is satisfied (can compose ∧ doesn't want → false premise)
+2. This scenario shows ¬WillCompose ∧ CanCompose, which directly contradicts the target statement ¬WillCompose → ¬CanCompose.
+
+ANSWER: Failure

@@ -1,0 +1,36 @@
+<lean>
+axiom obj : Type
+axiom Colorectal : obj
+axiom DeadlyDisease : obj → Prop
+axiom SevereCancer : obj → Prop
+axiom BileDuctCancer : obj → Prop
+axiom Cholangiocarcinoma : obj → Prop
+axiom LowSurvivalRate : obj → Prop
+axiom MildFlu : obj → Prop
+
+-- Premises:
+axiom P1 : ∀ x : obj, DeadlyDisease x → LowSurvivalRate x
+axiom P2 : ∀ x : obj, SevereCancer x → DeadlyDisease x
+axiom P3 : ∀ x : obj, BileDuctCancer x → SevereCancer x
+axiom P4 : ∀ x : obj, Cholangiocarcinoma x → BileDuctCancer x
+axiom P5 : ∀ x : obj, MildFlu x → LowSurvivalRate x
+axiom P6 : ¬ (BileDuctCancer Colorectal ∧ LowSurvivalRate Colorectal)
+
+-- Proving the negation of the statement
+theorem disprove_statement : ¬ (Cholangiocarcinoma Colorectal ∧ (MildFlu Colorectal ∨ BileDuctCancer Colorectal)) :=
+  fun h => 
+    have chol : Cholangiocarcinoma Colorectal := h.left
+    have h_disj : MildFlu Colorectal ∨ BileDuctCancer Colorectal := h.right
+    have bile : BileDuctCancer Colorectal := P4 Colorectal chol
+    have severe : SevereCancer Colorectal := P3 Colorectal bile
+    have deadly : DeadlyDisease Colorectal := P2 Colorectal severe
+    have low_from_deadly : LowSurvivalRate Colorectal := P1 Colorectal deadly
+    Or.elim h_disj
+      (fun mild => 
+        have low_from_mild : LowSurvivalRate Colorectal := P5 Colorectal mild
+        P6 (And.intro bile low_from_mild))
+      (fun bile' => 
+        P6 (And.intro bile low_from_deadly))
+</lean>
+
+ANSWER: False

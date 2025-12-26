@@ -1,0 +1,78 @@
+The reasoning involves translating the natural language context and the statement into Lean 4, then proving that the statement is false based on the premises. The premises establish that Tom is an animal lover (since he is a pet owner) and therefore nice to animals, which implies he is not mean to animals. The statement claims that if Tom is not both grumpy and mean to animals, then he is neither grumpy nor an animal lover. However, since Tom is an animal lover, the consequent ("neither grumpy nor an animal lover") is false, while the antecedent is true (because Tom is not mean to animals). This makes the entire implication false.
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+axiom Nice : obj → Prop
+axiom Mean : obj → Prop
+axiom Grumpy : obj → Prop
+axiom AnimalLover : obj → Prop
+axiom PetOwner : obj → Prop
+
+axiom Premise1 : ∀ x, Nice x → ¬ Mean x
+axiom Premise2 : ∃ x, Grumpy x ∧ Mean x
+axiom Premise3 : ∀ x, AnimalLover x → Nice x
+axiom Premise4 : ∀ x, PetOwner x → AnimalLover x
+axiom Premise5 : PetOwner Tom
+
+theorem TomIsAnimalLover : AnimalLover Tom := Premise4 Tom Premise5
+
+theorem TomIsNice : Nice Tom := Premise3 Tom TomIsAnimalLover
+
+theorem TomNotMean : ¬ Mean Tom := Premise1 Tom TomIsNice
+
+theorem Antecedent : ¬ (Grumpy Tom ∧ Mean Tom) :=
+  fun h => TomNotMean h.2
+
+theorem StatementFalse : ¬ (Antecedent → (¬ Grumpy Tom ∧ ¬ AnimalLover Tom)) :=
+  fun H =>
+    let consequent := H Antecedent
+    consequent.2 TomIsAnimalLover
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The initial Lean code contained a compilation error due to type inference issues when using the projection `.2` on the `consequent` variable. The corrected code explicitly defines all necessary intermediate steps within the main theorem to ensure type correctness.
+
+<lean>
+axiom obj : Type
+axiom Tom : obj
+axiom Nice : obj → Prop
+axiom Mean : obj → Prop
+axiom Grumpy : obj → Prop
+axiom AnimalLover : obj → Prop
+axiom PetOwner : obj → Prop
+
+axiom Premise1 : ∀ x, Nice x → ¬ Mean x
+axiom Premise2 : ∃ x, Grumpy x ∧ Mean x
+axiom Premise3 : ∀ x, AnimalLover x → Nice x
+axiom Premise4 : ∀ x, PetOwner x → AnimalLover x
+axiom Premise5 : PetOwner Tom
+
+theorem disprove_statement : 
+    ¬ ( (¬ (Grumpy Tom ∧ Mean Tom)) → (¬ Grumpy Tom ∧ ¬ AnimalLover Tom) ) :=
+  fun H =>
+    have TomIsAnimalLover : AnimalLover Tom := Premise4 Tom Premise5
+    have TomIsNice : Nice Tom := Premise3 Tom TomIsAnimalLover
+    have TomNotMean : ¬ Mean Tom := Premise1 Tom TomIsNice
+    have Antecedent : ¬ (Grumpy Tom ∧ Mean Tom) := 
+      fun h => TomNotMean h.2
+    have Consequent : ¬ Grumpy Tom ∧ ¬ AnimalLover Tom := H Antecedent
+    Consequent.2 TomIsAnimalLover
+</lean>
+
+The proof establishes:
+1. Tom is an animal lover (from Premise4 and Premise5)
+2. Tom is nice to animals (from Premise3)
+3. Tom is not mean to animals (from Premise1)
+4. The antecedent "Tom is not both grumpy and mean" is true
+5. The consequent "Tom is neither grumpy nor an animal lover" must be true if the implication held
+6. The consequent's second claim contradicts Tom being an animal lover 
+
+Therefore, the original statement is false.
+
+ANSWER: False

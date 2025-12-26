@@ -1,0 +1,57 @@
+The reasoning involves translating the natural language premises into Lean 4 and proving that the statement "Luke complains often about annoying siblings" leads to a contradiction (False) under these premises. The key steps are:
+
+1. **Premise Translation**:
+   - `MB x`: x was born in a multiple birth.
+   - `H x`: x has siblings born together.
+   - `C x`: x complains often about annoying siblings.
+   - `S x`: x spends a lot of time hanging out/playing with siblings.
+   - `Home x`: x lives at home.
+   - `Strangers x`: x lives with strangers.
+   - Premises become axioms `P1` to `P6`.
+
+2. **Logical Derivation**:
+   - Assume `C Luke` (Luke complains about siblings).
+   - By `P3`, `C Luke` implies `H Luke` (Luke has siblings born together).
+   - By `P2`, `H Luke` implies `MB Luke` (Luke was born in a multiple birth).
+   - By `P1`, `MB Luke` implies `S Luke` (Luke spends time with siblings).
+   - By `P5`, `S Luke` implies `Home Luke` (Luke lives at home).
+   - By `P4`, `Home Luke` implies `¬Strangers Luke` (Luke does not live with strangers).
+   - Now, `P6` states Luke must be in one of two mutually exclusive states:
+     - Case 1: `MB Luke ∧ Strangers Luke` – Contradicts `¬Strangers Luke`.
+     - Case 2: `¬MB Luke ∧ ¬Strangers Luke` – Contradicts `MB Luke`.
+   - Both cases yield a contradiction, proving `C Luke → False`.
+
+3. **Lean Implementation**:
+   - The theorem `contradiction_from_C_Luke` assumes `C Luke` and derives `False`.
+   - Tactics are avoided; pure functional style is used with `have` for intermediate steps.
+
+<lean>
+axiom Person : Type
+axiom Luke : Person
+axiom MB : Person → Prop
+axiom H : Person → Prop
+axiom C : Person → Prop
+axiom S : Person → Prop
+axiom Home : Person → Prop
+axiom Strangers : Person → Prop
+
+axiom P1 : ∀ x, MB x → S x
+axiom P2 : ∀ x, H x → MB x
+axiom P3 : ∀ x, C x → H x
+axiom P4 : ∀ x, Home x → ¬ Strangers x
+axiom P5 : ∀ x, S x → Home x
+axiom P6 : (MB Luke ∧ Strangers Luke) ∨ (¬ MB Luke ∧ ¬ Strangers Luke)
+
+theorem contradiction_from_C_Luke : C Luke → False :=
+  fun hC : C Luke =>
+  have hH : H Luke := P3 Luke hC
+  have hMB : MB Luke := P2 Luke hH
+  have hS : S Luke := P1 Luke hMB
+  have hHome : Home Luke := P5 Luke hS
+  have hNoStrangers : ¬ Strangers Luke := P4 Luke hHome
+  Or.elim P6
+    (fun hCase1 : MB Luke ∧ Strangers Luke => hNoStrangers hCase1.right)
+    (fun hCase2 : ¬ MB Luke ∧ ¬ Strangers Luke => hCase2.left hMB)
+</lean>
+
+ANSWER: False

@@ -1,0 +1,78 @@
+The Lean code models the given premises and attempts to prove the negation of the statement: "The security deposit at the Olive Garden is either $2000 or more." The negation is that the security deposit is less than $2000. However, the premises explicitly state that the security deposit is always at least the monthly rent, and the monthly rent at Olive Garden is $2000. This directly contradicts the possibility of the security deposit being less than $2000. Thus, the negation cannot be proven from the premises, resulting in "Failure."
+
+<lean>
+axiom ManagedBuilding : Type
+axiom OliveGarden : ManagedBuilding
+axiom AllowsPets : ManagedBuilding → Prop
+axiom exists_pet_building : ∃ b : ManagedBuilding, AllowsPets b
+axiom Rent : ManagedBuilding → Nat
+axiom SecurityDeposit : ManagedBuilding → Nat
+-- Deposit must be ≥ rent
+axiom deposit_rule : ∀ b : ManagedBuilding, SecurityDeposit b ≥ Rent b
+axiom rent_og : Rent OliveGarden = 2000
+axiom gt1500 : 1500 < 2000
+axiom Pet : Type
+constant Fluffy : Pet
+axiom AllowedToMoveInWith : Pet → ManagedBuilding → Prop
+axiom WillRent : ManagedBuilding → Prop
+-- Tom will rent if allowed with Fluffy and deposit ≤ 1500
+axiom Tom_condition : ∀ b : ManagedBuilding, 
+  (AllowedToMoveInWith Fluffy b) ∧ SecurityDeposit b ≤ 1500 → WillRent b
+-- If pets allowed, then move-in allowed with any pet
+axiom pet_policy : ∀ (b : ManagedBuilding), AllowsPets b → 
+  ∀ (p : Pet), AllowedToMoveInWith p b
+
+-- Negation of the statement: security deposit < 2000
+theorem deposit_og_negation : SecurityDeposit OliveGarden < 2000 → False := by
+  intro h_neg
+  -- Rent at Olive Garden is 2000, so deposit ≥ 2000
+  have deposit_ge_2000 : SecurityDeposit OliveGarden ≥ 2000 := by 
+    rw [rent_og]; exact deposit_rule OliveGarden
+  -- Obtain 2000 < 2000 from the contradiction
+  exact Nat.lt_irrefl 2000 (Nat.le_lt_trans deposit_ge_2000 h_neg)
+
+-- We cannot prove the negation (deposit < 2000) because it leads to contradiction.
+-- Thus, we cannot prove the original statement is false.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom ManagedBuilding : Type
+axiom OliveGarden : ManagedBuilding
+axiom AllowsPets : ManagedBuilding → Prop
+axiom Rent : ManagedBuilding → Nat
+axiom SecurityDeposit : ManagedBuilding → Nat
+axiom deposit_rule : ∀ b : ManagedBuilding, SecurityDeposit b ≥ Rent b
+axiom rent_og : Rent OliveGarden = 2000
+axiom Pet : Type
+axiom Fluffy : Pet
+axiom AllowedToMoveInWith : Pet → ManagedBuilding → Prop
+axiom WillRent : ManagedBuilding → Prop
+axiom Tom_condition : ∀ b : ManagedBuilding, 
+  (AllowedToMoveInWith Fluffy b) ∧ SecurityDeposit b ≤ 1500 → WillRent b
+axiom pet_policy : ∀ (b : ManagedBuilding), AllowsPets b → 
+  ∀ (p : Pet), AllowedToMoveInWith p b
+
+-- Attempt to prove negation: security deposit < 2000
+theorem deposit_og_negation : SecurityDeposit OliveGarden < 2000 → False := by
+  intro h_neg
+  have deposit_ge : SecurityDeposit OliveGarden ≥ Rent OliveGarden := deposit_rule OliveGarden
+  rw [rent_og] at deposit_ge
+  -- Contradiction: 2000 ≤ deposit and deposit < 2000
+  exact Nat.not_lt_of_le deposit_ge h_neg
+
+-- We proved ¬(security deposit < 2000) → False, meaning it's true that security deposit ≥ 2000.
+-- Therefore, we cannot prove the original statement is false.
+</lean>
+
+ANSWER: Failure
+
+Explanation:
+- We successfully proved that the negation of "security deposit < 2000" leads to a contradiction using the deposit rule and rent information.
+- This means "security deposit ≥ 2000" must be true, so the original statement ("is either $2000 or more") is actually true.
+- Since we cannot prove the original statement is false (we proved it must be true), we return "Failure" as per requirements.

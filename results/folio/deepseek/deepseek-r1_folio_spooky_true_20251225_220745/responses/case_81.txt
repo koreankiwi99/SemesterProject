@@ -1,0 +1,112 @@
+<lean>
+axiom obj : Type
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom Cupcake : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+axiom DriedThaiChilies : obj → Prop
+
+-- Premises:
+axiom no_baked_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+axiom cupcakes_sweets : ∀ x, Cupcake x → BakedSweet x
+axiom mala_hotpots_spicy : ∀ x, MalaHotpot x → Spicy x
+axiom melissa_cupcakes : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+axiom chili_property : ∀ x, DriedThaiChilies x → Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x
+
+-- We want to prove: For all x, if it is DriedThaiChilies, then 
+-- ¬ ProductOfBakedByMelissa x ∧ ¬ BakedSweet x
+
+theorem chilies_not_melissa_nor_sweet : 
+  ∀ x, DriedThaiChilies x → ¬ ProductOfBakedByMelissa x ∧ ¬ BakedSweet x :=
+fun x h =>   -- Assume x is a DriedThaiChilies
+by
+  -- First, prove ¬BakedSweet x
+  have H2 : Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x := chili_property x h
+  have without_sweets : ¬ BakedSweet x := by
+    intro hbs
+    cases H2 with
+    | inl spicy_x => 
+        have no_spicy : ¬Spicy x := no_baked_spicy x hbs
+        contradiction
+    | inr h_rest => 
+        cases h_rest with
+        | inl mala_x => 
+            have spicy_x : Spicy x := mala_hotpots_spicy x mala_x
+            have no_spicy : ¬Spicy x := no_baked_spicy x hbs
+            contradiction
+        | inr not_bs => contradiction
+
+  -- Now prove ¬ProductOfBakedByMelissa x
+  have not_product : ¬ ProductOfBakedMelissa x := by
+    intro hMel
+    have hCup : Cupcake x := melissa_cupcakes x hMel
+    have yes_bs : BakedSweet x := cupcakes_sweets x hCup
+    contradiction
+    
+  exact ⟨not_product, without_sweets⟩
+end lean>
+
+After careful reasoning:
+- Premise 5 ensures every Dried Thai chili must be spicy, mala hotpot, or non-baked-sweet.
+- Assuming "baked sweet" leads to contradiction via all cases:
+  • Spicy contradicts premise 1 (no baked sweets are spicy)
+  • Mala hotpot implies spicy by premise 3, again contradicting premise 1
+  • Direct ¬baked false by assumption.
+- Thus ¬BakedSweet x holds.
+- Products from Baked by Melissa are cupcakes (premise 4) which implies baked sweet (premise 2), contradicting ¬BakedSweet x.
+- Hence both conclusions hold.
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom obj : Type
+
+axiom BakedSweet : obj → Prop
+axiom Spicy : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom Cupcake : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+axiom DriedThaiChilies : obj → Prop
+
+-- Premises
+axiom no_baked_spicy : ∀ x, BakedSweet x → ¬ Spicy x
+axiom cupcakes_sweets : ∀ x, Cupcake x → BakedSweet x
+axiom mala_spicy : ∀ x, MalaHotpot x → Spicy x
+axiom melissa_cupcakes : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+axiom chilies_case : ∀ x, DriedThaiChilies x → Spicy x ∨ MalaHotpot x ∨ ¬ BakedSweet x
+
+-- Proving statement: DriedThaiChilies are neither products of BakedByMelissa nor baked sweets
+theorem thai_chilies_not_related : 
+  ∀ x, DriedThaiChilies x → ¬ ProductOfBakedByMelissa x ∧ ¬ BakedSweet x :=
+fun x hchili => 
+by
+  -- First prove ¬BakedSweet x using case analysis on chilies_case
+  have tri_case := chilies_case x hchili
+  have not_bs : ¬ BakedSweet x := by
+    intro bs
+    cases tri_case with
+    | inl spice => 
+        exact no_baked_spicy x bs spice
+    | inr rest => 
+        cases rest with
+        | inl mala => 
+            have spicy := mala_spicy x mala
+            exact no_baked_spicy x bs spicy
+        | inr not_bs => exact not_bs bs
+            
+  -- Now prove ¬ProductOfBakedByMelissa x
+  have not_mel : ¬ ProductOfBakedByMelissa x := by
+    intro mel
+    have cup := melissa_cupcakes x mel
+    have bs := cupcakes_sweets x cup
+    exact not_bs bs
+        
+  exact ⟨not_mel, not_bs⟩
+</lean>
+
+ANSWER: True

@@ -1,0 +1,46 @@
+The reasoning involves deriving a contradiction from the premises and the antecedent of the conclusion. The antecedent assumes that Hamden Plaza Subway provides take-out and receives many negative reviews. From premise 5, we know it either has a rating >4 or is popular among locals. Both cases lead to it being listed in Yelp (premises 2 and 4). By premise 1, this means it cannot have many negative reviews, contradicting the antecedent. Thus, the antecedent leads to a contradiction, making the entire implication true by the principle of explosion.
+
+<lean>
+axiom obj : Type
+axiom hamden : obj
+-- Predicates
+axiom ListedInYelpRecs : obj → Prop
+axiom ManyNegativeReviews : obj → Prop
+axiom RatingGreaterThanFour : obj → Prop
+axiom ProvidesTakeOut : obj → Prop
+axiom PopularAmongLocals : obj → Prop
+
+-- Premises
+axiom T1 : ∀ r : obj, ListedInYelpRecs r → ¬ ManyNegativeReviews r
+axiom T2 : ∀ r : obj, RatingGreaterThanFour r → ListedInYelpRecs r
+axiom T3 : ∃ r : obj, ¬ ProvidesTakeOut r ∧ ManyNegativeReviews r
+axiom T4 : ∀ r : obj, PopularAmongLocals r → RatingGreaterThanFour r
+axiom T5 : RatingGreaterThanFour hamden ∨ PopularAmongLocals hamden
+
+-- Conclusion to prove: 
+-- If (provides take-out ∧ many negative reviews) → (rating >4 ∧ ¬provides take-out)
+theorem target : 
+  (ProvidesTakeOut hamden ∧ ManyNegativeReviews hamden) → 
+  (RatingGreaterThanFour hamden ∧ ¬ ProvidesTakeOut hamden) := 
+fun h => 
+  have takeout_pos : ProvidesTakeOut hamden := h.left
+  have neg_rev : ManyNegativeReviews hamden := h.right
+  Or.elim T5 
+    -- Case 1: Rating >4
+    (fun h_rating : RatingGreaterThanFour hamden => 
+      have yelp_listed : ListedInYelpRecs hamden := T2 hamden h_rating
+      have no_neg : ¬ ManyNegativeReviews hamden := T1 hamden yelp_listed
+      show RatingGreaterThanFour hamden ∧ ¬ ProvidesTakeOut hamden from 
+        False.elim (no_neg neg_rev)
+    )
+    -- Case 2: Popular among locals
+    (fun h_pop : PopularAmongLocals hamden => 
+      have h_rating : RatingGreaterThanFour hamden := T4 hamden h_pop
+      have yelp_listed : ListedInYelpRecs hamden := T2 hamden h_rating
+      have no_neg : ¬ ManyNegativeReviews hamden := T1 hamden yelp_listed
+      show RatingGreaterThanFour hamden ∧ ¬ ProvidesTakeOut hamden from 
+        False.elim (no_neg neg_rev)
+    )
+</lean>
+
+ANSWER: True

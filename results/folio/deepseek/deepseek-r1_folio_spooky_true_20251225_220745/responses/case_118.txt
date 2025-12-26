@@ -1,0 +1,61 @@
+After translating the natural language premises into Lean code and attempting to prove the conclusion, the proof fails due to insufficient connectivity between geographical entities. Specifically:
+
+1. The premises establish:
+   - Barutin Cove is located in Snow Island
+   - Snow Island is located in South Shetland Islands
+   - Using transitivity, Barutin Cove is therefore located in the South Shetland Islands
+
+2. However, the premise "Antarctica is located on the South Shetland Islands" uses the relation `LocatedOn`, which is:
+   - Not connected to the `LocatedIn` relation through axioms
+   - Not covered by the transitive property axiom (which only applies to `LocatedIn`)
+   
+3. The conclusion requires proving ∃ (cove), LocatedIn cove Antarctica, but:
+   - No chain links South Shetland Islands to Antarctica via `LocatedIn`
+   - The `LocatedOn` relation cannot be used to close the proof
+
+<lean>
+axiom Place : Type
+
+axiom LocatedIn : Place → Place → Prop
+axiom LocatedOn : Place → Place → Prop
+axiom NamedAfter : Place → Place → Prop
+axiom IsInBulgaria : Place → Prop
+
+-- Entities
+axiom barutin_cove : Place
+axiom snow_island : Place
+axiom south_shetland : Place
+axiom antarctica : Place
+axiom barutin_settlement : Place
+
+-- Premises
+axiom named_after : NamedAfter barutin_cove barutin_settlement
+axiom in_bulgaria : IsInBulgaria barutin_settlement
+axiom on_coast : LocatedIn barutin_cove snow_island
+axiom island_location : LocatedIn snow_island south_shetland
+axiom antarctica_location : LocatedOn antarctica south_shetland
+
+-- Transitivity rule
+axiom transitive : ∀ (A B C : Place), LocatedIn A B → LocatedIn B C → LocatedIn A C
+
+-- Attempted proof
+theorem coves_in_antarctica : 
+    ∃ (cove : Place), LocatedIn cove antarctica ∧ 
+    ∃ (origin : Place), NamedAfter cove origin ∧ IsInBulgaria origin := by 
+  -- Use Barutin Cove as the candidate
+  apply Exists.intro barutin_cove 
+  constructor 
+  · -- Prove LocatedIn barutin_cove antarctica
+    have chain1 : LocatedIn barutin_cove snow_island := on_coast 
+    have chain2 : LocatedIn snow_island south_shetland := island_location 
+    have in_shetland : LocatedIn barutin_cove south_shetland := transitive barutin_cove snow_island south_shetland chain1 chain2 
+    /- Critical gap: Antarctica is only related via `LocatedOn`, 
+       which isn't connected to `LocatedIn` nor supports transitivity. 
+       Stuck here -/
+    admit
+  · -- Prove naming after Bulgarian settlement
+    apply Exists.intro barutin_settlement 
+    exact ⟨named_after, in_bulgaria⟩ 
+</lean>
+
+ANSWER: Failure

@@ -1,0 +1,161 @@
+The Lean code models the premises and attempts to prove that the statement "Luke is neither born in a multiple birth nor complains often about annoying siblings" is false (i.e., derive `False`). The proof strategy involves:
+
+1. Assuming the statement as a hypothesis (`¬BornMultiple Luke ∧ ¬ComplainAboutAnnoyingSiblings Luke`)
+2. Using the disjunctive premise about Luke (premise 6) to split into two cases:
+   - Case 1: Luke is born in a multiple birth and lives with strangers
+   - Case 2: Luke is not born in a multiple birth and does not live with strangers
+
+In Case 1, a contradiction arises immediately because the assumption denies Luke being born in a multiple birth, while Case 1 asserts it. However, in Case 2:
+- No contradiction emerges because:
+  - The assumption matches the case on not being born in a multiple birth
+  - Premises 2 and 3 imply Luke cannot have siblings born together and thus cannot complain about annoying siblings, aligning with the assumption
+  - Premises about living arrangements (4-5) remain consistent with no forced contradictions
+
+Since Case 2 yields no contradiction, the proof of `False` fails. The premises do not universally negate the evaluated statement.
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom BornMultiple : obj → Prop
+axiom ComplainAboutAnnoyingSiblings : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom P2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom P3 : ∀ x, ComplainAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom P6 : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Attempt to prove the statement is false (i.e., derive False)
+theorem prove_negation : False :=
+  by
+    -- Assume the statement: Luke is neither born in a multiple birth nor complains
+    assume h : ¬BornMultiple Luke ∧ ¬ComplainAboutAnnoyingSiblings Luke
+    cases P6 with
+    | inl h1 =>
+        -- Case 1: Luke is born in multiple birth and lives with strangers
+        -- This contradicts the first part of the assumption
+        exact h.1 h1.1
+    | inr h2 =>
+        -- Case 2: Luke is not born in multiple birth and does not live with strangers
+        -- Show Luke cannot have siblings born together (contrapositive of P2)
+        have no_siblings : ¬HasSiblingsBornTogether Luke := fun hs => h.1 (P2 Luke hs)
+        -- Show Luke cannot complain (contrapositive of P3)
+        have no_complain : ¬ComplainAboutAnnoyingSiblings Luke := fun hc => no_siblings (P3 Luke hc)
+        -- This matches the second part of the assumption (h.2), but no contradiction emerges
+        -- Premises 4-5 are consistent: ¬LiveWithStrangers (from h2) doesn't force LiveAtHome
+        -- No further contradictions possible
+        admit
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the `admit` tactic was used, which is not valid in Lean 4. The proof attempt showed that:
+1. In the first case (Luke born in multiple birth and lives with strangers), the assumption that Luke is not born in a multiple birth leads to a contradiction.
+2. In the second case (Luke not born in multiple birth and not living with strangers), no contradiction arises because:
+   - The premises allow Luke to not complain about siblings without violating any conditions
+   - The living arrangement premises remain consistent with no forced implications
+   - No premises link "not living with strangers" to "complaining about siblings"
+
+Thus, the statement "Luke is neither born in a multiple birth nor complains often about annoying siblings" cannot be proven false from the premises.
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom BornMultiple : obj → Prop
+axiom ComplainAboutAnnoyingSiblings : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom P2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom P3 : ∀ x, ComplainAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom P6 : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Attempt to prove the statement is false (i.e., derive False)
+theorem prove_negation : False :=
+  by
+    -- Assume the statement: Luke is neither born in a multiple birth nor complains
+    intro h : ¬BornMultiple Luke ∧ ¬ComplainAboutAnnoyingSiblings Luke
+    cases P6 with
+    | inl h1 =>
+        -- Case 1: Luke is born in multiple birth and lives with strangers
+        exact h.1 h1.1  -- Contradiction: ¬BornMultiple vs BornMultiple
+    | inr h2 =>
+        -- Case 2: Luke is not born in multiple birth and does not live with strangers
+        -- Show Luke cannot have siblings born together (contrapositive of P2)
+        have no_siblings : ¬HasSiblingsBornTogether Luke := fun hs => h.1 (P2 Luke hs)
+        -- Show Luke cannot complain (contrapositive of P3)
+        have no_complain : ¬ComplainAboutAnnoyingSiblings Luke := fun hc => no_siblings (P3 Luke hc)
+        -- Matches h.2, but no contradiction possible
+        -- Premises 4-5 are consistent with ¬LiveWithStrangers
+        -- No additional constraints force a contradiction
+        contradiction  -- Fails since no contradiction exists
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were due to incorrect syntax in the `intro` tactic and an unresolved `contradiction` in the second case. After correcting the syntax and analyzing the proof, it's clear that:
+1. Case 1 (Luke born in multiple birth and living with strangers) leads to a contradiction via premises P1, P5, and P4
+2. Case 2 (Luke not born in multiple birth and not living with strangers) is consistent with the statement:
+   - Premises P2 and P3 imply Luke cannot complain about siblings
+   - No premises force Luke to complain or create contradictions
+   - The statement holds in this case
+
+Thus, the negation cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom Luke : obj
+axiom BornMultiple : obj → Prop
+axiom ComplainAboutAnnoyingSiblings : obj → Prop
+axiom LiveWithStrangers : obj → Prop
+axiom SpendTimeWithSiblings : obj → Prop
+axiom LiveAtHome : obj → Prop
+axiom HasSiblingsBornTogether : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x, BornMultiple x → SpendTimeWithSiblings x
+axiom P2 : ∀ x, HasSiblingsBornTogether x → BornMultiple x
+axiom P3 : ∀ x, ComplainAboutAnnoyingSiblings x → HasSiblingsBornTogether x
+axiom P4 : ∀ x, LiveAtHome x → ¬ LiveWithStrangers x
+axiom P5 : ∀ x, SpendTimeWithSiblings x → LiveAtHome x
+axiom P6 : (BornMultiple Luke ∧ LiveWithStrangers Luke) ∨ (¬ BornMultiple Luke ∧ ¬ LiveWithStrangers Luke)
+
+-- Attempt to prove statement false
+theorem not_statement : ¬ (¬ BornMultiple Luke ∧ ¬ ComplainAboutAnnoyingSiblings Luke) := 
+by
+  intro h  -- Assume the statement
+  cases P6
+  case inl h1 =>  -- Case 1: BornMultiple ∧ LiveWithStrangers
+    have sts : SpendTimeWithSiblings Luke := P1 Luke h1.1
+    have home : LiveAtHome Luke := P5 Luke sts
+    exact P4 Luke home h1.2  -- Contradiction: ¬LiveWithStrangers vs LiveWithStrangers
+  case inr h2 =>  -- Case 2: ¬BornMultiple ∧ ¬LiveWithStrangers
+    have no_sibs : ¬HasSiblingsBornTogether Luke := fun hs => h2.1 (P2 Luke hs)
+    have no_complain : ¬ComplainAboutAnnoyingSiblings Luke := fun hc => no_sibs (P3 Luke hc)
+    -- No contradiction: h.2 (¬Complain) matches no_complain
+    apply h.2 no_complain  -- This fails since h.2 is ¬Complain and no_complain is ¬Complain
+    -- No way to derive False
+    admit  -- Required since proof fails
+</lean>
+
+ANSWER: Failure

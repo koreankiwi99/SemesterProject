@@ -1,0 +1,83 @@
+The reasoning involves proving whether Sam was assigned to lead a new team given the premises and the fact that Sam did not get a promotion.
+
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom ImpressManager : Person → Prop  -- x impressed the manager with excellent work
+axiom GetPromotion : Person → Prop    -- x gets a promotion
+axiom TakeExtra : Person → Prop       -- x took on extra responsibilities
+axiom GainExperience : Person → Prop  -- x gains valuable experience
+axiom LeadTeam : Person → Prop        -- x is assigned to lead a new team
+
+-- Premises:
+axiom Premise1 : ∀ x : Person, ImpressManager x → GetPromotion x
+axiom Premise2 : ∀ x : Person, TakeExtra x → GainExperience x
+axiom Premise3 : ImpressManager Sam ∨ TakeExtra Sam
+axiom Premise4 : ∀ x : Person, GainExperience x → LeadTeam x
+
+-- Given fact: Sam did not get a promotion
+axiom Given : ¬ GetPromotion Sam
+
+-- Prove that Sam was assigned to lead a new team
+theorem result : LeadTeam Sam := by
+  -- Since Sam didn't get a promotion, Sam did not impress the manager (by contraposition of Premise1)
+  have not_impress : ¬ ImpressManager Sam := by
+    intro hImpress
+    have hPromo := Premise1 Sam hImpress
+    contradiction
+  -- From Premise3 (Sam either impressed manager or took extra work), and since Sam didn't impress, Sam took extra work
+  have extra : TakeExtra Sam := by
+    cases Premise3 with
+    | inl impress => contradiction
+    | inr take_extra => exact take_extra
+  -- From Premise2, taking extra work implies gaining experience
+  have experience : GainExperience Sam := Premise2 Sam extra
+  -- From Premise4, gaining experience implies leading a team
+  exact Premise4 Sam experience
+
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic failed to recognize the contradiction between `hPromo` and `Given` in the first proof block. This was resolved by explicitly applying `Given` to `hPromo` to derive `False`. The corrected proof uses explicit term application in the first block and retains `contradiction` in the second block where it correctly handles the disjunction.
+
+<lean>
+axiom Person : Type
+axiom Sam : Person
+
+axiom ImpressManager : Person → Prop
+axiom GetPromotion : Person → Prop
+axiom TakeExtra : Person → Prop
+axiom GainExperience : Person → Prop
+axiom LeadTeam : Person → Prop
+
+axiom Premise1 : ∀ x : Person, ImpressManager x → GetPromotion x
+axiom Premise2 : ∀ x : Person, TakeExtra x → GainExperience x
+axiom Premise3 : ImpressManager Sam ∨ TakeExtra Sam
+axiom Premise4 : ∀ x : Person, GainExperience x → LeadTeam x
+
+axiom Given : ¬ GetPromotion Sam
+
+theorem result : LeadTeam Sam := by
+  -- Prove Sam didn't impress manager (using Given and Premise1)
+  have not_impress : ¬ ImpressManager Sam := by
+    intro hImpress
+    exact Given (Premise1 Sam hImpress)  -- Explicit contradiction
+  
+  -- Prove Sam took extra work (disjunctive syllogism on Premise3)
+  have extra : TakeExtra Sam := by
+    cases Premise3 with
+    | inl impress => contradiction  -- Contradiction with not_impress
+    | inr take_extra => exact take_extra
+  
+  -- Chain implications: extra → experience → lead team
+  exact Premise4 Sam (Premise2 Sam extra)
+
+</lean>
+
+ANSWER: Yes

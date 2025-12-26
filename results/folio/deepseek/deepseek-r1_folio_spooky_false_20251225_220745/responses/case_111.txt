@@ -1,0 +1,159 @@
+The reasoning involves translating the natural language premises into Lean 4 and attempting to prove the negation of the statement "Juan de Onate visited a mountain range in New Mexico." The premises establish that the Picuris Mountains are in New Mexico or Texas, Juan de Onate visited them, the Harding Pegmatite Mine (located in the Picuris Mountains) was donated, and no Texas mountain range has donated mines. 
+
+From these, it is deduced that the Picuris Mountains cannot be in Texas (because they contain a donated mine, contradicting the premise about Texas). Thus, they must be in New Mexico. Since Juan de Onate visited the Picuris Mountains, the statement "Juan de Onate visited a mountain range in New Mexico" is true. Consequently, its negation cannot be proven.
+
+<lean>
+axiom obj : Type
+axiom MountainRange : obj → Prop
+axiom Mine : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom VisitedByJuan : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+constant Picuris : obj
+constant HardingMine : obj
+
+axiom A1 : MountainRange Picuris ∧ (InNewMexico Picuris ∨ InTexas Picuris)
+axiom A2 : VisitedByJuan Picuris
+axiom A3 : Mine HardingMine ∧ LocatedIn HardingMine Picuris ∧ Donated HardingMine
+axiom A4 : ∀ m : obj, MountainRange m → InTexas m → ¬ (∃ mine : obj, Mine mine ∧ LocatedIn mine m ∧ Donated mine)
+
+lemma notInTexas : ¬ InTexas Picuris := by
+  intro h_tex
+  have contra := A4 Picuris A1.left h_tex
+  apply contra
+  exists HardingMine
+  exact A3
+
+lemma inNewMexico : InNewMexico Picuris := by
+  cases A1.right with
+  | inl nm => exact nm
+  | inr tex => contradiction
+
+theorem statement_true : ∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m :=
+  ⟨Picuris, A1.left, inNewMexico, A2⟩
+
+theorem target : ¬ (∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m) :=
+  fun h => by
+    -- Attempt to derive contradiction: we have a witness (Picuris) satisfying the existential,
+    -- but the negation claims no such witness exists. However, 'h' is the assumed existential,
+    -- and 'statement_true' independently proves it. Applying the negation 'h' to 'statement_true'
+    -- should yield False, but Lean does not allow this direct contradiction because 'h' is not
+    -- universally quantified over proofs. The structure of ¬(∃ x, P x) is (∃ x, P x) → False,
+    -- and we have two proofs of ∃ (statement_true and h), which are not inherently contradictory.
+    -- Since no contradiction arises solely from 'h' and the axioms, the negation cannot be proven.
+    sorry  -- Admission of failure: cannot construct a proof
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors were due to incorrect handling of constant declarations and lemma dependencies. The corrected code properly declares all entities and predicates, and ensures lemmas are proven without relying on `contradiction` tactics that caused resolution failures. The key steps are:
+
+1. `notInTexas` lemma proves Picuris Mountains aren't in Texas using axiom A4 and the donated mine (A3)
+2. `inNewMexico` lemma uses disjunction from A1 and `notInTexas` to establish New Mexico location
+3. `statement_true` proves the original statement using Picuris as witness
+4. `target` attempts to prove the negation but fails since the statement is true
+
+<lean>
+axiom obj : Type
+
+axiom MountainRange : obj → Prop
+axiom Mine : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom VisitedByJuan : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+axiom Picuris : obj
+axiom HardingMine : obj
+
+axiom A1 : MountainRange Picuris ∧ (InNewMexico Picuris ∨ InTexas Picuris)
+axiom A2 : VisitedByJuan Picuris
+axiom A3 : Mine HardingMine ∧ LocatedIn HardingMine Picuris ∧ Donated HardingMine
+axiom A4 : ∀ (m : obj), MountainRange m → InTexas m → ¬ (∃ (mine : obj), Mine mine ∧ LocatedIn mine m ∧ Donated mine)
+
+lemma notInTexas : ¬ InTexas Picuris := by
+  intro h_tex
+  apply A4 Picuris A1.left h_tex
+  exists HardingMine
+  exact A3
+
+lemma inNewMexico : InNewMexico Picuris := by
+  cases A1.right with
+  | inl nm => exact nm
+  | inr tex => exact notInTexas tex
+
+theorem statement_true : ∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m :=
+  ⟨Picuris, A1.left, inNewMexico, A2⟩
+
+theorem target : ¬ (∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m) :=
+  fun h => False.elim (h.rec fun _ _ => id)  -- Proof fails here
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors were resolved by:
+1. Correcting lemma dependencies (defining `inNewMexico` before use)
+2. Fixing the disjunction case in `inNewMexico` using `absurd`
+3. Removing the invalid proof attempt in `target`
+4. Using `sorry` to admit unprovability of the negation
+
+The premises prove the statement true:
+- Picuris Mountains contain donated mine (A3)
+- No Texas mountain ranges have donated mines (A4)
+- Therefore Picuris must be in New Mexico
+- Juan de Onate visited Picuris (A2)
+- Thus the statement "Juan de Onate visited a mountain range in New Mexico" is true
+
+Since the statement is true, its negation cannot be proven from the premises.
+
+<lean>
+axiom obj : Type
+
+axiom MountainRange : obj → Prop
+axiom Mine : obj → Prop
+axiom InNewMexico : obj → Prop
+axiom InTexas : obj → Prop
+axiom VisitedByJuan : obj → Prop
+axiom LocatedIn : obj → obj → Prop
+axiom Donated : obj → Prop
+
+axiom Picuris : obj
+axiom HardingMine : obj
+
+axiom A1 : MountainRange Picuris ∧ (InNewMexico Picuris ∨ InTexas Picuris)
+axiom A2 : VisitedByJuan Picuris
+axiom A3 : Mine HardingMine ∧ LocatedIn HardingMine Picuris ∧ Donated HardingMine
+axiom A4 : ∀ (m : obj), MountainRange m → InTexas m → ¬ (∃ (mine : obj), Mine mine ∧ LocatedIn mine m ∧ Donated mine)
+
+lemma notInTexas : ¬ InTexas Picuris := by
+  intro h_tex
+  have H := A4 Picuris A1.left h_tex
+  apply H
+  exists HardingMine
+  exact A3
+
+lemma inNewMexico : InNewMexico Picuris := by
+  cases A1.right with
+  | inl h => exact h
+  | inr h => exact absurd h notInTexas
+
+theorem statement_true : ∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m :=
+  ⟨Picuris, A1.left, inNewMexico, A2⟩
+
+theorem target : ¬ (∃ m : obj, MountainRange m ∧ InNewMexico m ∧ VisitedByJuan m) :=
+  fun _ => by sorry
+</lean>
+
+ANSWER: Failure

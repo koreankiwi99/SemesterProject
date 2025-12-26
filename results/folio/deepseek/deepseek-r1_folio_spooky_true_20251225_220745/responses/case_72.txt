@@ -1,0 +1,36 @@
+The Lean code below formalizes the given premises and the statement to evaluate. The domain is defined as a type `Stock`, with `ko` as a constant of this type. Predicates represent the properties mentioned in the context: `GrowthStock`, `BoughtForProfit`, `SuitableForRetirement`, `MatureStock`, and `Volatile` (for price volatility). The premises are translated as axioms.
+
+The statement to evaluate is:  
+*If KO is a growth stock or bought to earn profits from rapid price appreciation, then KO is neither a stock nor is its price volatile.*  
+
+Given that the domain is `Stock`, all entities (including `ko`) are stocks by definition. Thus, "KO is not a stock" is always false. The consequent "neither a stock nor volatile" is equivalent to `False ∧ ¬ Volatile ko` (which simplifies to `False`). The proof shows that the antecedent (`GrowthStock ko ∨ BoughtForProfit ko`) leads to a contradiction with the premises (since `ko` is a mature stock, making it suitable for retirement, but if it satisfies the antecedent, it would not be suitable). From this contradiction, the consequent follows vacuously. 
+
+<lean>
+axiom Stock : Type
+axiom ko : Stock
+axiom GrowthStock : Stock → Prop
+axiom BoughtForProfit : Stock → Prop
+axiom SuitableForRetirement : Stock → Prop
+axiom MatureStock : Stock → Prop
+axiom Volatile : Stock → Prop
+
+axiom P1 : ∀ s : Stock, GrowthStock s → BoughtForProfit s
+axiom P2 : ∀ s : Stock, BoughtForProfit s → ¬ SuitableForRetirement s
+axiom P4 : ∀ s : Stock, MatureStock s → SuitableForRetirement s
+axiom P5 : MatureStock ko
+
+theorem evaluate : 
+    (GrowthStock ko ∨ BoughtForProfit ko) → (False ∧ ¬ Volatile ko) :=
+  fun h => by
+    have suitable_ko : SuitableForRetirement ko := P4 ko P5
+    cases h with
+    | inl growth_ko =>
+        have bought_ko : BoughtForProfit ko := P1 ko growth_ko
+        have not_suitable_ko : ¬ SuitableForRetirement ko := P2 ko bought_ko
+        exact False.elim (not_suitable_ko suitable_ko)
+    | inr bought_ko =>
+        have not_suitable_ko : ¬ SuitableForRetirement ko := P2 ko bought_ko
+        exact False.elim (not_suitable_ko suitable_ko)
+</lean>
+
+ANSWER: True

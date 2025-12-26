@@ -1,0 +1,99 @@
+The Lean formalization captures the given context and evaluates the statement "Space sucks." The premises are translated into axioms, and the theorem attempts to prove the negation of the statement. However, while space is a vacuum and vacuums suck (implying space sucks), there is no contradiction or additional premise that disproves this. The duster not sucking is consistent since it is not a vacuum. Thus, proving the negation is impossible.
+
+<lean>
+axiom obj : Type
+axiom space : obj
+axiom duster : obj
+axiom Suck : obj → Prop
+axiom Plunger : obj → Prop
+axiom Vacuum : obj → Prop
+axiom Vampire : obj → Prop
+axiom HouseholdAppliance : obj → Prop
+
+axiom plungers_suck : ∀ x : obj, Plunger x → Suck x
+axiom vacuums_suck : ∀ x : obj, Vacuum x → Suck x
+axiom vampires_suck : ∀ x : obj, Vampire x → Suck x
+axiom space_vacuum : Vacuum space
+axiom duster_appliance : HouseholdAppliance duster ∧ ¬Suck duster
+
+theorem prove_negation : ¬Suck space :=
+  fun h : Suck space =>
+  -- We know space is a vacuum and vacuums suck, so h is consistent.
+  -- No contradiction arises because the duster is not a vacuum.
+  -- Attempting to find a contradiction fails.
+  have duster_not_vacuum : ¬Vacuum duster :=
+    fun hv : Vacuum duster =>
+    have suck_duster : Suck duster := vacuums_suck duster hv
+    duster_appliance.right suck_duster
+  -- This proves the duster isn't a vacuum, but doesn't help disprove space sucks.
+  -- No further contradiction can be derived.
+  False.elim (by contradiction) -- This line will fail; no contradiction exists.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic was unable to find a contradiction in the context. Upon reanalysis, the proof attempt is still unsuccessful because:
+
+1. From the premises: 
+   - All vacuums suck (`vacuums_suck`)
+   - Space is a vacuum (`space_vacuum`)
+   → Therefore, space *must* suck
+
+2. The key subtlety: 
+   - The duster not sucking (`¬Suck duster`) doesn't contradict the above, as:
+   - We can prove the duster is not a vacuum (to prevent contradiction)
+   - But there are no axioms linking space and duster for identification
+   - Case split analysis fails: Only gets contradiction if space=duster (which we cannot prove)
+
+<lean>
+axiom obj : Type
+axiom space : obj
+axiom duster : obj
+axiom Suck : obj → Prop
+axiom Vacuum : obj → Prop
+axiom Plunger : obj → Prop
+axiom Vampire : obj → Prop
+axiom HouseholdAppliance : obj → Prop
+
+axiom plungers_suck : ∀ x : obj, Plunger x → Suck x
+axiom vacuums_suck : ∀ x : obj, Vacuum x → Suck x
+axiom vampires_suck : ∀ x : obj, Vampire x → Suck x
+axiom space_vacuum : Vacuum space
+axiom duster_appliance : HouseholdAppliance duster ∧ ¬Suck duster
+
+open Classical
+
+theorem prove_negation : ¬Suck space := 
+  fun h_suck_space : Suck space =>
+  have duster_not_vacuum : ¬Vacuum duster :=
+    fun hv : Vacuum duster => 
+    duster_appliance.right (vacuums_suck duster hv)
+  byContra
+  (fun _ =>
+    have no_contradiction : False := by
+      -- Attempt case split on space=duster
+      cases (em (space = duster)) with
+      | inl heq =>  -- Space is duster
+          apply duster_appliance.right
+          rw [←heq] at h_suck_space
+          exact h_suck_space
+      | inr _ =>    -- Space ≠ duster: No contradiction possible
+          -- Context remains consistent here
+          -- Suck_space is true and ¬Suction_duster is true
+          -- No axioms connect these facts for distinct objects
+          apply duster_not_vacuum
+          exact space_vacuum
+    exact no_contradiction
+  )
+</lean>
+
+The proof fails because:
+- When space ≠ duster, the context is consistent: Space sucks (per premises) and duster doesn't
+- Case analysis only provides contradiction in the impossible space=duster case
+- But space=duster leads to a type inconsistency (duster can't both suck and not suck)
+
+ANSWER: Failure

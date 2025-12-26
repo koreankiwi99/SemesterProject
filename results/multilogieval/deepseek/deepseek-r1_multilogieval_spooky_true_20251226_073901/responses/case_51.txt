@@ -1,0 +1,60 @@
+The reasoning involves translating the natural language premises into Lean propositions and proving that if Mary did not stock up on groceries, then prices went up recently. The premises are modeled using a `Person` type, with Mary as a specific instance. The key steps are:
+
+1. **Premise Translation**:
+   - Sale: Supermarket has a sale.
+   - StockUp: People stock up on groceries (per person).
+   - MakeList: Someone makes a shopping list (per person).
+   - Plan: Someone plans what to buy (per person).
+   - Payday: Payday was this week.
+   - PriceUp: Prices went up recently.
+
+2. **Premise Axioms**:
+   - `P1`: Sale implies everyone stocks up.
+   - `P2`: Making a list implies planning.
+   - `P3`: Either sale or some person doesn't plan.
+   - `P4`: Payday implies everyone makes a list.
+   - `P5`: Payday or prices went up (or both).
+
+3. **Proof**:
+   - Assume Mary did not stock up (`¬StockUp mary`).
+   - By `P1`, this implies no sale (`¬Sale`).
+   - By `P3`, since no sale, some person `q` doesn't plan (`∃ q, ¬Plan q`).
+   - By `P2`, `q` not planning implies `q` didn't make a list (`¬MakeList q`).
+   - Thus, not everyone made a list (`¬∀ p, MakeList p`).
+   - By `P4`, this implies no payday (`¬Payday`).
+   - By `P5`, no payday implies prices went up (`PriceUp`).
+
+The Lean code formalizes this reasoning and proves `PriceUp` under the assumption that Mary did not stock up.
+
+<lean>
+axiom Person : Type
+axiom mary : Person
+axiom Sale : Prop
+axiom Payday : Prop
+axiom PriceUp : Prop
+axiom MakeList : Person → Prop
+axiom Plan : Person → Prop
+axiom StockUp : Person → Prop
+
+axiom P1 : Sale → ∀ p : Person, StockUp p
+axiom P2 : ∀ p : Person, MakeList p → Plan p
+axiom P3 : Sale ∨ (∃ p : Person, ¬ Plan p)
+axiom P4 : Payday → ∀ p : Person, MakeList p
+axiom P5 : Payday ∨ PriceUp
+
+theorem price_up_if_mary_not_stockup (h_mary : ¬ StockUp mary) : PriceUp := by
+  have no_sale : ¬ Sale := fun h_sale => h_mary (P1 h_sale mary)
+  cases P3 with
+  | inl sale => contradiction
+  | inr ex => 
+      let ⟨q, h_no_plan⟩ := ex
+      have h_no_make : ¬ MakeList q := fun h_make => h_no_plan (P2 q h_make)
+      have not_all_make : ¬ (∀ p, MakeList p) := fun h => h_no_make (h q)
+      have no_payday : ¬ Payday := fun h_payday => not_all_make (P4 h_payday)
+      cases P5 with
+      | inl h_pay => contradiction
+      | inr h_price => exact h_price
+
+</lean>
+
+ANSWER: Yes

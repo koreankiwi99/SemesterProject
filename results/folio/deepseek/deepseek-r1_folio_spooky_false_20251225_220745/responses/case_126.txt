@@ -1,0 +1,54 @@
+The natural language reasoning establishes that Rock must have wings based on the given premises. The premises lead to a case analysis where, regardless of whether Rock is a monkey or a bird, it can fly. Since Rock is Peter's pet and can fly, it must have wings by the sixth premise. This contradicts the statement "Rock does not have wings," proving it false.
+
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom PeterPet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom Fly : obj → Prop
+axiom Breathe : obj → Prop
+axiom Wings : obj → Prop
+
+axiom A1 : ∀ x, PeterPet x ∧ Mammal x → Animal x
+axiom A2 : ∀ x, Monkey x → Mammal x
+axiom A3 : ∀ x, PeterPet x → Monkey x ∨ Bird x
+axiom A4 : ∀ x, PeterPet x ∧ Bird x → Fly x
+axiom A5 : ∀ x, Animal x ∧ PeterPet x → Breathe x
+axiom A6 : ∀ x, PeterPet x ∧ Fly x → Wings x
+axiom A7 : PeterPet Rock
+axiom A8 : Fly Rock ∨ Bird Rock ∨ ¬(Breathe Rock)
+
+theorem wings_Rock : Wings Rock := by
+  have pet_rock := A7
+  have type := A3 Rock pet_rock
+  cases type
+  case inl monkey => 
+    have mammal := A2 Rock monkey
+    have animal := A1 Rock ⟨pet_rock, mammal⟩
+    have breathe := A5 Rock ⟨animal, pet_rock⟩
+    cases A8
+    case inl fly => exact A6 Rock ⟨pet_rock, fly⟩
+    case inr rest => 
+      cases rest
+      case inl bird => 
+        have fly := A4 Rock ⟨pet_rock, bird⟩
+        exact A6 Rock ⟨pet_rock, fly⟩
+      case inr not_breathe => contradiction
+  case inr bird => 
+    have fly := A4 Rock ⟨pet_rock, bird⟩
+    exact A6 Rock ⟨pet_rock, fly⟩
+
+theorem false_statement : ¬(¬(Wings Rock)) := by
+  intro h
+  apply h
+  exact wings_Rock
+
+theorem produces_false : (¬Wings Rock) → False := 
+  fun h => h wings_Rock
+
+</lean>
+
+ANSWER: False

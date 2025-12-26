@@ -1,0 +1,211 @@
+The goal is to prove that the statement "Dried Thai chilies are neither products of Baked by Melissa nor baked sweets" is false. This statement translates to:  
+¬(ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies)  
+which is equivalent to:  
+¬ProductOfBakedByMelissa DriedThaiChilies ∧ ¬BakedSweets DriedThaiChilies  
+
+To prove this statement false, we must show:  
+ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies  
+
+Using the premises:  
+1. No baked sweets are spicy: ∀x, BakedSweets x → ¬Spicy x  
+2. All cupcakes are baked sweets: ∀x, Cupcake x → BakedSweets x  
+3. All mala hotpots are spicy: ∀x, MalaHotpot x → Spicy x  
+4. All products from Baked by Melissa are cupcakes: ∀x, ProductOfBakedByMelissa x → Cupcake x  
+5. Dried Thai chilies are spicy or mala hotpots or not baked sweets: Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweets DriedThaiChilies  
+
+From premise 5, we derive ¬BakedSweets DriedThaiChilies:  
+- If Spicy DriedThaiChilies, premise 1 implies ¬BakedSweets DriedThaiChilies.  
+- If MalaHotpot DriedThaiChilies, premise 3 implies Spicy DriedThaiChilies, and premise 1 again implies ¬BakedSweets DriedThaiChilies.  
+- If ¬BakedSweets DriedThaiChilies, it holds directly.  
+
+Thus, ¬BakedSweets DriedThaiChilies is proven. Now, we must show ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies. Since ¬BakedSweets DriedThaiChilies, the disjunction reduces to ProductOfBakedByMelissa DriedThaiChilies.  
+
+However:  
+- If ProductOfBakedByMelissa DriedThaiChilies, premise 4 implies Cupcake DriedThaiChilies, and premise 2 implies BakedSweets DriedThaiChilies, contradicting ¬BakedSweets DriedThaiChilies.  
+- Thus, ¬ProductOfBakedByMelissa DriedThaiChilies is proven.  
+
+Therefore, we have both ¬ProductOfBakedByMelissa DriedThaiChilies and ¬BakedSweets DriedThaiChilies, meaning the original statement holds. We cannot prove it false.  
+
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+axiom BakedSweets : obj → Prop
+axiom Spicy : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+axiom Cupcake : obj → Prop
+
+axiom P1 : ∀ x, BakedSweets x → ¬Spicy x
+axiom P2 : ∀ x, Cupcake x → BakedSweets x
+axiom P3 : ∀ x, MalaHotpot x → Spicy x
+axiom P4 : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+axiom P5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweets DriedThaiChilies
+
+-- Attempt to prove: ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies
+theorem disprove_statement : ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies := 
+  by
+    have not_baked : ¬BakedSweets DriedThaiChilies := by
+      cases P5 with
+      | inl spicy => 
+          intro baked
+          exact P1 DriedThaiChilies baked spicy
+      | inr rest => 
+          cases rest with
+          | inl mala => 
+              intro baked
+              apply P1 DriedThaiChilies baked
+              exact P3 DriedThaiChilies mala
+          | inr not_baked => exact not_baked
+    -- Now need ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies
+    right  -- Try BakedSweets DriedThaiChilies
+    · apply not_baked  -- Contradiction: need BakedSweets but have ¬BakedSweets
+    left  -- Try ProductOfBakedByMelissa DriedThaiChilies
+    · -- If ProductOfBakedByMelissa, then Cupcake and then BakedSweets, contradicting not_baked
+      intro h_product
+      have h_cupcake : Cupcake DriedThaiChilies := P4 DriedThaiChilies h_product
+      have h_baked : BakedSweets DriedThaiChilies := P2 DriedThaiChilies h_cupcake
+      exact not_baked h_baked
+    -- No way to prove either disjunct
+    sorry  -- Proof fails
+
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the `apply` tactic was misused. Specifically, `apply not_baked` was used when trying to prove `BakedSweets DriedThaiChilies`, but `not_baked` is a proof of `¬BakedSweets DriedThaiChilies`, which is the negation of the goal. This creates a type mismatch. The proof strategy must be adjusted to correctly handle the disjunction without attempting to apply negation proofs to positive goals.
+
+Here is the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+axiom BakedSweets : obj → Prop
+axiom Spicy : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+axiom Cupcake : obj → Prop
+
+axiom P1 : ∀ x, BakedSweets x → ¬Spicy x
+axiom P2 : ∀ x, Cupcake x → BakedSweets x
+axiom P3 : ∀ x, MalaHotpot x → Spicy x
+axiom P4 : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+axiom P5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweets DriedThaiChilies
+
+theorem not_baked : ¬BakedSweets DriedThaiChilies := by
+  cases P5 with
+  | inl spicy => 
+      intro baked
+      exact P1 DriedThaiChilies baked spicy
+  | inr rest => 
+      cases rest with
+      | inl mala => 
+          intro baked
+          apply P1 DriedThaiChilies baked
+          exact P3 DriedThaiChilies mala
+      | inr not_baked => exact not_baked
+
+theorem not_product : ¬ProductOfBakedByMelissa DriedThaiChilies := by
+  intro h_product
+  have h_cupcake : Cupcake DriedThaiChilies := P4 DriedThaiChilies h_product
+  have h_baked : BakedSweets DriedThaiChilies := P2 DriedThaiChilies h_cupcake
+  exact not_baked h_baked
+
+theorem disprove_statement : ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies := by
+  -- Attempt left disjunct (ProductOfBakedByMelissa)
+  left
+  apply not_product  -- Fails: not_product proves negation, but we need positive
+  -- Attempt right disjunct (BakedSweets)
+  right
+  apply not_baked    -- Fails: not_baked proves negation, but we need positive
+  -- Both paths fail; no way to prove the disjunction
+  sorry
+</lean>
+
+**Explanation:**  
+- `not_baked` proves `¬BakedSweets DriedThaiChilies` using premise P5 and the properties from P1/P3.
+- `not_product` proves `¬ProductOfBakedByMelissa DriedThaiChilies` by showing it leads to `BakedSweets` (via P4 and P2), contradicting `not_baked`.
+- The theorem `disprove_statement` attempts to prove `ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies` but fails:
+  - The left disjunct requires `ProductOfBakedByMelissa`, but `not_product` proves its negation.
+  - The right disjunct requires `BakedSweets`, but `not_baked` proves its negation.
+- Both paths are impossible, so the proof is incomplete (requires `sorry`).
+
+The disjunction cannot be proven from the premises. Therefore, the original statement ("Dried Thai chilies are neither products of Baked by Melissa nor baked sweets") **cannot be proven false**.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The previous Lean code encountered compilation errors because the proof tactics were misapplied. The key issue was attempting to use negation proofs (`not_product` and `not_baked`) to directly prove positive atomic goals, which caused type mismatches.
+
+The corrected approach:
+1. First prove `¬BakedSweets DriedThaiChilies` using a case analysis of premise P5
+2. Then prove `¬ProductOfBakedByMelissa DriedThaiChilies` by showing it leads to a contradiction
+3. Finally, attempt to prove the disjunction `ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies` but fail since:
+   - The left disjunct contradicts `not_product`
+   - The right disjunct contradicts `not_baked`
+
+Here's the corrected Lean code:
+
+<lean>
+axiom obj : Type
+axiom DriedThaiChilies : obj
+axiom BakedSweets : obj → Prop
+axiom Spicy : obj → Prop
+axiom MalaHotpot : obj → Prop
+axiom ProductOfBakedByMelissa : obj → Prop
+axiom Cupcake : obj → Prop
+
+axiom P1 : ∀ x, BakedSweets x → ¬Spicy x
+axiom P2 : ∀ x, Cupcake x → BakedSweets x
+axiom P3 : ∀ x, MalaHotpot x → Spicy x
+axiom P4 : ∀ x, ProductOfBakedByMelissa x → Cupcake x
+axiom P5 : Spicy DriedThaiChilies ∨ MalaHotpot DriedThaiChilies ∨ ¬BakedSweets DriedThaiChilies
+
+theorem disprove_statement : ProductOfBakedByMelissa DriedThaiChilies ∨ BakedSweets DriedThaiChilies := by
+  -- Prove Dried Thai chilies are not baked sweets
+  have not_baked : ¬BakedSweets DriedThaiChilies := by
+    cases P5 with
+    | inl spicy => 
+        intro baked
+        exact P1 DriedThaiChilies baked spicy
+    | inr rest => 
+        cases rest with
+        | inl mala => 
+            intro baked
+            apply P1 DriedThaiChilies baked 
+            exact P3 DriedThaiChilies mala
+        | inr not_baked => exact not_baked
+  
+  -- Prove they're not Baked by Melissa products
+  have not_product : ¬ProductOfBakedByMelissa DriedThaiChilies := by
+    intro product
+    have cupcake := P4 DriedThaiChilies product
+    have baked := P2 DriedThaiChilies cupcake
+    exact not_baked baked
+  
+  -- Attempt to prove the disjunction (required to disprove the original statement)
+  -- Left disjunct cannot be proven because we have not_product
+  -- Right disjunct cannot be proven because we have not_baked
+  -- No possible way to continue
+  contradiction  -- Fails since no contradiction in context, followed by sorry
+  sorry  -- Indicates we cannot complete the proof
+</lean>
+
+**Explanation:**  
+- `not_baked` is proven by case analysis:  
+  • If chilies are spicy (P5 left), premise P1 shows they're not baked sweets  
+  • If they're mala hotpots (P5 middle), P3 makes them spicy and P1 applies  
+  • If not baked sweets (P5 right), it holds directly  
+- `not_product` is proven by contradiction: if chilies were Baked by Melissa products, they'd be cupcakes (P4) and thus baked sweets (P2), contradicting `not_baked`  
+- The disjunction cannot be proven because both possibilities contradict the established facts  
+- The `contradiction` tactic fails as there's no immediate contradiction, and `sorry` acknowledges the unprovable goal  
+
+Since we cannot prove the disjunction that would falsify the original statement, the answer is:
+
+ANSWER: Failure

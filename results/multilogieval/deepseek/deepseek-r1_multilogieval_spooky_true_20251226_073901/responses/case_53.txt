@@ -1,0 +1,84 @@
+The reasoning involves Mary's situation. Given that her artwork did not stand out, we deduce she did not improve her technique (from premise 2 via contraposition). This implies she did not practice often (from premise 1 via contraposition). Since she either practiced or took a class (premise 3), she must have taken the art class. Therefore, she learned new methods (premise 4).
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+-- Predicates
+axiom PracticesOften : obj → Prop
+axiom TechniqueImproves : obj → Prop
+axiom ArtworkStandsOut : obj → Prop
+axiom TakesArtClass : obj → Prop
+axiom LearnsNewMethods : obj → Prop
+
+-- Premises
+axiom P1 : ∀ x : obj, PracticesOften x → TechniqueImproves x
+axiom P2 : ∀ x : obj, TechniqueImproves x → ArtworkStandsOut x
+axiom P3 : ∀ x : obj, PracticesOften x ∨ TakesArtClass x
+axiom P4 : ∀ x : obj, TakesArtClass x → LearnsNewMethods x
+
+-- Given fact
+axiom Given : ¬ ArtworkStandsOut Mary
+
+-- Proof that Mary learned new methods
+theorem mary_learned : LearnsNewMethods Mary := by
+  -- Show Mary didn't improve technique
+  have no_improve : ¬ TechniqueImproves Mary := by
+    intro assume_improve
+    have standout : ArtworkStandsOut Mary := P2 Mary assume_improve
+    exact Given standout
+  -- Show Mary didn't practice often
+  have no_practice : ¬ PracticesOften Mary := by
+    intro assume_practice
+    have improve : TechniqueImproves Mary := P1 Mary assume_practice
+    exact no_improve improve
+  -- Show Mary must have taken art class
+  have took_class : TakesArtClass Mary := by
+    cases P3 Mary with
+    | inl practice => exact absurd practice no_practice
+    | inr class => exact class
+  -- Apply premise 4
+  exact P4 Mary took_class
+</lean>
+
+ANSWER: Yes
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to issues with the `cases` tactic and the way hypotheses were handled. The corrected Lean code uses a more robust approach by:
+1. Defining the necessary objects and predicates
+2. Stating all premises clearly
+3. Using contraposition to derive ¬TechniqueImproves Mary and ¬PracticesOften Mary
+4. Handling the disjunction (P3) with cases and contradiction tactic
+5. Applying P4 directly in the right branch
+
+The corrected proof shows that Mary must have taken an art class (since she didn't practice often), and therefore learned new methods.
+
+<lean>
+axiom obj : Type
+axiom Mary : obj
+
+axiom PracticesOften : obj → Prop
+axiom TechniqueImproves : obj → Prop
+axiom ArtworkStandsOut : obj → Prop
+axiom TakesArtClass : obj → Prop
+axiom LearnsNewMethods : obj → Prop
+
+axiom P1 : ∀ x : obj, PracticesOften x → TechniqueImproves x
+axiom P2 : ∀ x : obj, TechniqueImproves x → ArtworkStandsOut x
+axiom P3 : ∀ x : obj, PracticesOften x ∨ TakesArtClass x
+axiom P4 : ∀ x : obj, TakesArtClass x → LearnsNewMethods x
+
+axiom Given : ¬ ArtworkStandsOut Mary
+
+theorem mary_learned : LearnsNewMethods Mary := by
+  have no_improve : ¬ TechniqueImproves Mary := fun h => Given (P2 Mary h)
+  have no_practice : ¬ PracticesOften Mary := fun h => no_improve (P1 Mary h)
+  cases P3 Mary with
+  | inl h => contradiction
+  | inr h => exact P4 Mary h
+</lean>
+
+ANSWER: Yes

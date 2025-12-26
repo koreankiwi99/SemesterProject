@@ -1,0 +1,47 @@
+The reasoning involves formalizing the premises and evaluating whether the conclusion follows. The key challenge is connecting John's lack of bringing treats to his productivity, given the premises.
+
+Premises formalized:
+1. If anyone finishes their project early, they take a long lunch: `∀ x, FinishesAhead x → TakeLongLunch x`
+2. If it's a birthday, someone brings treats: `Birthday → ∃ x, BringsTreats x`
+3. Either someone finishes early or it's a birthday (or both): `(∃ x, FinishesAhead x) ∨ Birthday`
+4. Taking a long lunch leads to recharging and productivity: `∀ x, TakeLongLunch x → Recharged x` and `∀ x, Recharged x → ProductiveAfternoon x`
+
+The query: If John did not bring treats (`¬ BringsTreats John`), did he have a productive afternoon (`ProductiveAfternoon John`)?
+
+Analysis:
+- From `¬ BringsTreats John`, we cannot infer `¬Birthday` because premise 2 only requires that *someone* (not necessarily John) brings treats when it's a birthday.
+- If it's a birthday (`Or.inr` case), we know someone brought treats, but it might not be John. No link exists between birthday and John's productivity.
+- If someone finishes early (`Or.inl` case), that person (say `y`) is productive, but `y` might not be John. There is no premise forcing John to be the one who finished early or took a long lunch.
+- Thus, we cannot prove `ProductiveAfternoon John` from `¬ BringsTreats John`.
+
+<lean>
+axiom obj : Type
+axiom John : obj
+axiom FinishesAhead : obj → Prop
+axiom TakeLongLunch : obj → Prop
+axiom Birthday : Prop
+axiom BringsTreats : obj → Prop
+axiom Recharged : obj → Prop
+axiom ProductiveAfternoon : obj → Prop
+
+axiom P1 : ∀ x, FinishesAhead x → TakeLongLunch x
+axiom P2 : Birthday → ∃ x, BringsTreats x
+axiom P3 : (∃ x, FinishesAhead x) ∨ Birthday
+axiom Chain1 : ∀ x, TakeLongLunch x → Recharged x
+axiom Chain2 : ∀ x, Recharged x → ProductiveAfternoon x
+
+theorem target : ¬ BringsTreats John → ProductiveAfternoon John :=
+  fun noTreatsJohn => 
+    match P3 with
+    | Or.inl ⟨y, hy⟩ => 
+        have h1 : TakeLongLunch y := P1 y hy
+        have h2 : ProductiveAfternoon y := Chain2 y (Chain1 y h1)
+        -- Cannot prove for John since y might not be John
+        sorry
+    | Or.inr bday => 
+        have h : ∃ z, BringsTreats z := P2 bday
+        -- Cannot derive contradiction or productivity for John
+        sorry
+</lean>
+
+ANSWER: Failure

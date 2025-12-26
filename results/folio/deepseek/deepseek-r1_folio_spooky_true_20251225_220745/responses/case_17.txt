@@ -1,0 +1,176 @@
+The reasoning involves analyzing the premises to determine if "Rockie is not a turtle" can be proven. The key steps are:
+
+1. **Premises:**
+   - All spotted rabbits are cute (irrelevant to conclusion).
+   - Some turtles are spotted (shows turtles exist, but doesn't involve Rockie).
+   - Only rabbits and squirrels are spotted near campus.
+   - Skittish animals are not calm.
+   - All spotted squirrels are skittish.
+   - Rockie is spotted and calm.
+
+2. **Analysis for Rockie:**
+   - Since Rockie is spotted, by premise 3, Rockie must be a rabbit or squirrel.
+   - If Rockie were a squirrel, premise 5 would make Rockie skittish, and premise 4 would make Rockie not calm. This contradicts premise 6 (Rockie is calm).
+   - Therefore, Rockie cannot be a squirrel and must be a rabbit.
+
+3. **Conclusion about turtles:**
+   - Rockie is a rabbit, but there is no premise stating that rabbits cannot be turtles. The existence of spotted turtles (premise 2) does not imply Rockie cannot be a turtle, as an animal could potentially be both a rabbit and a turtle (no disjointness axiom).
+   - Rockie's calmness does not conflict with being a turtle, as no premise links turtle species to calmness or skittishness.
+
+4. **Proof outcome:**
+   - While Rockie must be a rabbit (not a squirrel), the conclusion "Rockie is not a turtle" cannot be proven without additional premises about species exclusivity.
+
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom SpottedNearCampus : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+
+axiom A2 : ∃ x : obj, Turtle x ∧ SpottedNearCampus x
+axiom A3 : ∀ x : obj, SpottedNearCampus x → Rabbit x ∨ Squirrel x
+axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
+axiom A5 : ∀ x : obj, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom A6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+lemma not_squirrel_Rockie : ¬ Squirrel Rockie :=
+  fun h : Squirrel Rockie =>
+    have h_spotted : SpottedNearCampus Rockie := A6.left
+    have h_sq : Squirrel Rockie ∧ SpottedNearCampus Rockie := ⟨h, h_spotted⟩
+    have h_skittish : Skittish Rockie := A5 Rockie h_sq
+    have h_not_calm : ¬ Calm Rockie := A4 Rockie h_skittish
+    h_not_calm A6.right
+
+lemma rabbit_Rockie : Rabbit Rockie :=
+  have h_spot : SpottedNearCampus Rockie := A6.left
+  match A3 Rockie h_spot with
+  | Or.inl h_rabbit => h_rabbit
+  | Or.inr h_squirrel => absurd h_squirrel not_squirrel_Rockie
+
+-- Attempt to prove ¬ Turtle Rockie fails due to lack of species exclusivity
+-- No contradiction under assumption Turtle Rockie ∧ Rabbit Rockie
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to the use of term-mode proofs with complex expressions that Lean had trouble parsing. The corrected code uses tactic-mode proofs, which are more robust and align with the requirement to use `by` followed by tactics.
+
+### Key Corrections:
+1. **Replaced term-mode proofs with tactic-mode proofs**:
+   - Used `by` with structured tactics (`intro`, `have`, `exact`, `cases`) instead of lambda abstractions and `match` expressions.
+2. **Explicitly handled disjunction** with `cases` tactic instead of `match`.
+3. **Clarified proof structure** for lemmas to avoid type inference issues.
+
+### Revised Lean Code:
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom SpottedNearCampus : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+
+axiom A2 : ∃ x : obj, Turtle x ∧ SpottedNearCampus x
+axiom A3 : ∀ x : obj, SpottedNearCampus x → Rabbit x ∨ Squirrel x
+axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
+axiom A5 : ∀ x : obj, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom A6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+lemma not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro h
+  have h_spotted : SpottedNearCampus Rockie := A6.left
+  have h_sq : Squirrel Rockie ∧ SpottedNearCampus Rockie := ⟨h, h_spotted⟩
+  have h_skittish : Skittish Rockie := A5 Rockie h_sq
+  have h_not_calm : ¬ Calm Rockie := A4 Rockie h_skittish
+  exact h_not_calm A6.right
+
+lemma rabbit_Rockie : Rabbit Rockie := by
+  have h_spot : SpottedNearCampus Rockie := A6.left
+  cases (A3 Rockie h_spot) with
+  | inl h_rabbit => exact h_rabbit
+  | inr h_squirrel => exact absurd h_squirrel not_squirrel_Rockie
+
+-- Attempt to prove ¬ Turtle Rockie fails due to lack of species exclusivity
+-- No premise states that rabbits and turtles are disjoint
+</lean>
+
+### Proof Analysis:
+- **Rockie is not a squirrel** (`not_squirrel_Rockie`):  
+  If Rockie were a squirrel, it would be skittish (by `A5`), contradicting Rockie's calmness (by `A4` and `A6`).
+- **Rockie is a rabbit** (`rabbit_Rockie`):  
+  Since Rockie is spotted and not a squirrel, it must be a rabbit (by `A3`).
+
+**Why "Rockie is not a turtle" cannot be proven**:  
+- Premises confirm Rockie is a rabbit, but **no axiom states rabbits and turtles are mutually exclusive**.  
+- `A2` confirms turtles exist near campus, but Rockie could theoretically be both a rabbit and a turtle without contradiction.  
+- Calmness (`A6`) doesn't conflict with turtle identity, as no premise links turtles to skittishness.
+
+**Conclusion**: The statement "Rockie is not a turtle" is unprovable from the given premises.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to improper handling of the proof state in tactic mode. Specifically, the term `h_not_calm A6.right` in the first lemma was missing tactical structure (`exact`), and the `cases` tactic syntax needed adjustment. Here's the corrected code:
+
+<lean>
+axiom obj : Type
+axiom Rockie : obj
+
+axiom SpottedNearCampus : obj → Prop
+axiom Skittish : obj → Prop
+axiom Calm : obj → Prop
+axiom Rabbit : obj → Prop
+axiom Turtle : obj → Prop
+axiom Squirrel : obj → Prop
+
+axiom A2 : ∃ x : obj, Turtle x ∧ SpottedNearCampus x
+axiom A3 : ∀ x : obj, SpottedNearCampus x → Rabbit x ∨ Squirrel x
+axiom A4 : ∀ x : obj, Skittish x → ¬ Calm x
+axiom A5 : ∀ x : obj, Squirrel x ∧ SpottedNearCampus x → Skittish x
+axiom A6 : SpottedNearCampus Rockie ∧ Calm Rockie
+
+lemma not_squirrel_Rockie : ¬ Squirrel Rockie := by
+  intro h
+  have h_spotted := A6.left
+  have h_sq := ⟨h, h_spotted⟩
+  have h_skittish := A5 Rockie h_sq
+  have h_not_calm := A4 Rockie h_skittish
+  exact h_not_calm A6.right
+
+lemma rabbit_Rockie : Rabbit Rockie := by
+  have h_spot := A6.left
+  cases A3 Rockie h_spot with
+  | inl h_rabbit => exact h_rabbit
+  | inr h_squirrel => exact (not_squirrel_Rockie h_squirrel).elim
+</lean>
+
+### Reasoning Summary:
+1. **Rockie is not a squirrel** (proven):
+   - If Rockie were a squirrel, it would be skittish (by `A5`)
+   - Skittish animals are not calm (by `A4`), contradicting Rockie's calmness (by `A6`)
+
+2. **Rockie is a rabbit** (proven):
+   - Rockie is spotted (by `A6`)
+   - Spotted animals are rabbits or squirrels (by `A3`)
+   - Since Rockie isn't a squirrel, it must be a rabbit
+
+3. **Rockie is not a turtle cannot be proven**:
+   - While Rockie is a rabbit, no premise states rabbits and turtles are disjoint species
+   - `A2` confirms there are spotted turtles, but Rockie could theoretically be both rabbit and turtle without logical contradiction
+   - Calmness property doesn't constrain turtles, so no conflict exists
+
+ANSWER: Failure

@@ -1,0 +1,51 @@
+The reasoning requires formalizing the premises in Lean and proving that Rock has wings. The key steps involve:
+
+1. Proving Rock can fly by case analysis on the disjunction: 
+   - If Rock can fly, we're done.
+   - If Rock is a bird, birds can fly.
+   - If Rock cannot breathe, we split cases:
+     - If Rock is a monkey, we get a contradiction (monkeys are mammals→animals→breathe).
+     - If Rock is a bird, birds can fly.
+
+2. Using "fly implies wings" to conclude Rock has wings.
+
+<lean>
+axiom obj : Type
+axiom Pet : obj → Prop
+axiom Mammal : obj → Prop
+axiom Animal : obj → Prop
+axiom Monkey : obj → Prop
+axiom Bird : obj → Prop
+axiom Fly : obj → Prop
+axiom Breathe : obj → Prop
+axiom Wing : obj → Prop
+axiom Rock : obj
+
+axiom ax1 : ∀ x, Pet x → Mammal x → Animal x
+axiom ax2 : ∀ x, Monkey x → Mammal x
+axiom ax3 : ∀ x, Pet x → Monkey x ∨ Bird x
+axiom ax4 : ∀ x, Pet x → Bird x → Fly x
+axiom ax5 : ∀ x, Pet x → Animal x → Breathe x
+axiom ax6 : ∀ x, Pet x → Fly x → Wing x
+axiom ax7 : Pet Rock
+axiom ax8 : Fly Rock ∨ Bird Rock ∨ ¬ Breathe Rock
+
+theorem fly_Rock : Fly Rock := by
+  cases ax8 with
+  | inl fly => exact fly
+  | inr h => cases h with 
+    | inl birdRock => exact ax4 Rock ax7 birdRock
+    | inr notBreatheRock => 
+        have H := ax3 Rock ax7
+        cases H with
+        | inl monkeyRock => 
+            have mamm : Mammal Rock := ax2 Rock monkeyRock
+            have anim : Animal Rock := ax1 Rock ax7 mamm
+            have breath : Breathe Rock := ax5 Rock ax7 anim
+            contradiction
+        | inr birdRock => exact ax4 Rock ax7 birdRock
+
+theorem rock_has_wings : Wing Rock := ax6 Rock ax7 fly_Rock
+</lean>
+
+ANSWER: True

@@ -1,0 +1,87 @@
+The reasoning involves evaluating the logical implication about Bonnie based on the given premises. The premises define relationships within the club members, but after a thorough analysis, it is determined that the conclusion cannot be proven from these premises. Specifically:
+
+- The premises do not provide sufficient information to establish that Bonnie is both a young child/teenager wishing to further her academic career and an inactive, disinterested member when the antecedent is true.
+- Counterexamples exist where the antecedent holds but the consequent fails (e.g., when Bonnie is an engaged student who performs often but is neither inactive nor meets the young child/teenager criteria).
+- The critical elements for the consequent (Bonnie's age group, academic wishes, and inactivity) are not constrained in a way that allows proof under the antecedent condition.
+
+Thus, the conclusion cannot be proven.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+axiom PerformOften : Person → Prop
+axiom AttendEngaged : Person → Prop
+axiom InactiveDisinterested : Person → Prop
+axiom Chaperone : Person → Prop
+axiom Student : Person → Prop
+axiom YoungChildOrTeen : Person → Prop
+axiom WishFurther : Person → Prop
+
+axiom Premise1 : ∀ p, PerformOften p → AttendEngaged p
+axiom Premise2 : ∀ p, PerformOften p ∨ InactiveDisinterested p
+axiom Premise3 : ∀ p, Chaperone p → ¬ Student p
+axiom Premise4 : ∀ p, InactiveDisinterested p → Chaperone p
+axiom Premise5 : ∀ p, YoungChildOrTeen p → WishFurther p → Student p
+axiom Bonnie_premise : 
+  (AttendEngaged Bonnie ∧ Student Bonnie) ∨ (¬ AttendEngaged Bonnie ∧ ¬ Student Bonnie)
+
+theorem target : 
+    (Chaperone Bonnie ∨ PerformOften Bonnie) → 
+    YoungChildOrTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie :=
+by
+  -- Introduction of the antecedent (Chaperone Bonnie ∨ PerformOften Bonnie)
+  intro h
+  -- Case analysis on Bonnie's scenario
+  cases Bonnie_premise with
+  | inl h_case1 =>
+      -- Bonnie is engaged and a student
+      have A : AttendEngaged Bonnie := h_case1.left
+      have S : Student Bonnie := h_case1.right
+      -- Interaction with Premise2: must either perform often or be inactive
+      cases (Premise2 Bonnie) with
+      | inr I =>
+          -- If inactive, she must chaperone (Premise4) and thus not be a student (Premise3)
+          have C : Chaperone Bonnie := Premise4 Bonnie I
+          have not_S : ¬ Student Bonnie := Premise3 Bonnie C
+          contradiction  -- Contradicts S
+      | inl P =>
+          -- She performs often; so the antecedent holds trivially (right disjunct)
+          -- But we now need to prove the consequent
+          -- To show: YoungChildOrTeen Bonnie ∧ WishFurther Bonnie ∧ InactiveDisinterested Bonnie
+          -- Prove she is *not* inactive to create a contradiction in the consequent
+          have not_I : ¬ InactiveDisinterested Bonnie := by
+            intro I_h
+            have C : Chaperone Bonnie := Premise4 Bonnie I_h
+            have not_S : ¬ Student Bonnie := Premise3 Bonnie C
+            contradiction
+          -- Now, the consequent requires inactivity (which is false) and the youth/wish (unprovable)
+          apply False.elim  -- Cannot proceed; no proof for YoungChildOrTeen or WishFurther
+          exact not_I (by assumption)  -- Stuck on inactivity contradiction
+  | inr h_case2 =>
+      -- Bonnie is not engaged and not a student
+      have not_A : ¬ AttendEngaged Bonnie := h_case2.left
+      have not_S : ¬ Student Bonnie := h_case2.right
+      -- She cannot "perform often" because that forces engagement (Premise1)
+      have not_P : ¬ PerformOften Bonnie := by
+        intro P
+        have A : AttendEngaged Bonnie := Premise1 Bonnie P
+        contradiction
+      -- Since she doesn't perform often, must be inactive (Premise2)
+      have I : InactiveDisinterested Bonnie := by
+        cases (Premise2 Bonnie) with
+        | inl P => contradiction
+        | inr I => exact I
+      -- Now have I (inactivity), but need youth/wish
+      -- However, youth/wish would force her to be a student (Premise5)
+      have no_youth_wish : ¬ (YoungChildOrTeen Bonnie ∧ WishFurther Bonnie) := by
+        intro ⟨Y, W⟩
+        have S : Student Bonnie := Premise5 Bonnie Y W
+        contradiction
+      -- Consequent requires youth/wish ∧ inactivity, but youth/wish is false
+      -- Can't prove the conjunction since youth/wish is unprovable (and actually false)
+      apply False.elim  -- Dead end; no way to conclude youth/wish
+      exact no_youth_wish (by assumption)  -- Stuck on youth/wish contradiction
+</lean>
+
+ANSWER: Failure

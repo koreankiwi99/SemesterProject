@@ -1,0 +1,54 @@
+The formalization accurately captures all premises, including the ambiguity in the fifth premise where "John does not invite friends to their ceremony and make wedding plans" is interpreted using a negated conjunction: `¬ (InvitesFriends John ∧ MakesWeddingPlans John)`. The Lean proof demonstrates that:
+- The existential premise (A4) applies to some unspecified person, providing no information about John.
+- Attempts to prove both `¬HasLargerFamily John` and `¬InvitesOthers John` lead to dead ends. 
+  - Assuming `HasLargerFamily John` (to derive absurdity) yields two cases: either `HasWellAttendedWedding John` (implying `InvitesOthers John`, conflicting with the desired goal but the goal is not yet available), or `InvitesFriends John` (which yields no contradiction with any premise).
+  - Assuming `InvitesOthers John` to prove its negation leads to `MakesWeddingPlans John` and `Engaged John` but no contradiction from `A5` without additional assumptions about `InvitesFriends John`.
+
+No inherent contradiction is found in the premises that would enforce the conclusion about John. Therefore, the conclusion does not follow from the provided premises.
+
+<lean>
+axiom Person : Type
+axiom John : Person
+
+axiom Engaged : Person → Prop
+axiom MakesWeddingPlans : Person → Prop
+axiom InvitesOthers : Person → Prop
+axiom HasWellAttendedWedding : Person → Prop
+axiom HasLargerFamily : Person → Prop
+axiom InvitesFriends : Person → Prop
+
+axiom A1 : ∀ p : Person, MakesWeddingPlans p → Engaged p
+axiom A2 : ∀ p : Person, InvitesOthers p → MakesWeddingPlans p
+axiom A3 : ∀ p : Person, HasWellAttendedWedding p → InvitesOthers p
+axiom A4 : ∃ p : Person, HasWellAttendedWedding p ∧ HasLargerFamily p
+axiom A5 : Engaged John → ¬ (InvitesFriends John ∧ MakesWeddingPlans John)
+axiom A6 : HasLargerFamily John → (HasWellAttendedWedding John ∨ InvitesFriends John)
+
+theorem goal : ¬ HasLargerFamily John ∧ ¬ InvitesOthers John := by
+  constructor
+  · -- ¬HasLargerFamily John
+    intro h1 -- h1: HasLargerFamily John
+    have h2 := A6 h1
+    cases h2 with
+    | inl hw => 
+        -- hw: HasWellAttendedWedding John
+        have h3 := A3 John hw -- InvitesOthers John
+        have h4 := A2 John h3 -- MakesWeddingPlans John
+        have h5 := A1 John h4 -- Engaged John
+        have h6 := A5 h5 -- ¬(InvitesFriends ∧ MakesWeddingPlans)
+        -- Missing contradiction: ¬InvitesOthers goal part not yet available
+        sorry
+    | inr hf => 
+        -- hf: InvitesFriends John
+        -- No contradiction derived
+        sorry
+  · -- ¬InvitesOthers John
+    intro h1 -- h1: InvitesOthers John
+    have h2 := A2 John h1 -- MakesWeddingPlans John
+    have h3 := A1 John h2 -- Engaged John
+    have h4 := A5 h3 -- ¬(InvitesFriends ∧ MakesWeddingPlans)
+    -- Cannot proceed without InvitesFriends assumption
+    sorry
+</lean>
+
+ANSWER: Failure

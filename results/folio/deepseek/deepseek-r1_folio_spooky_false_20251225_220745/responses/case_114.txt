@@ -1,0 +1,97 @@
+<lean>
+variable Person : Type
+variable Man : Person → Prop
+variable Taller : Person → Person → Prop
+variable CanBlock : Person → Person → Prop
+variable JumpsWhenShooting : Person → Prop
+variable GreatShooter : Person → Prop
+variable Class : Person → Prop
+variable Michael : Person
+variable Peter : Person
+variable Windy : Person
+
+-- Premises
+axiom P1 : ∀ x y : Person, Man x → Man y → Taller x y → CanBlock x y
+axiom P2 : Man Michael ∧ (∀ x : Person, Class x → Taller Michael x) ∧ ¬Class Michael
+axiom P3 : ∀ x y z : Person, Taller x y → Taller y z → Taller x z
+axiom P4 : Man Peter ∧ Taller Peter Michael
+axiom P5 : ∀ x : Person, ¬JumpsWhenShooting x → CanBlock Michael x
+axiom P6 : ¬CanBlock Michael Windy
+axiom P7 : ∀ x : Person, JumpsWhenShooting x → GreatShooter x
+axiom Irreflexive : ∀ x : Person, ¬Taller x x  -- Implicit from common understanding of "taller"
+
+-- Prove negation of statement: ¬∃ x, Class x ∧ Man x ∧ Taller x Peter
+theorem disprove_statement : ¬∃ x : Person, Class x ∧ Man x ∧ Taller x Peter := by
+  intro ⟨x, hClass, hMan, hTaller⟩
+  have hTallerMichael := P2.right.left x hClass
+  have hTallerPeterMichael := P4.right
+  have hTallerPeterx : Taller Peter x := P3 Peter Michael x hTallerPeterMichael hTallerMichael
+  have hTallerxx : Taller x x := P3 x Peter x hTaller hTallerPeterx
+  exact Irreflexive x hTallerxx
+
+-- Since we proved the negation, the original statement is False
+theorem false_conclusion : False := 
+  have : ∃ x : Person, Class x ∧ Man x ∧ Taller x Peter := by 
+    -- Attempt to assume statement true for contradiction
+    sorry  -- We cannot construct this existence proof
+  disprove_statement this
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the initial code used `variable` declarations incorrectly. In Lean, `variable` is used to declare variables that are automatically included in subsequent definitions, but it requires proper scoping (like within a `section`). However, for this self-contained problem, it's simpler to use `axiom` for all declarations to avoid scoping issues.
+
+The corrected code:
+1. Declares all types, predicates, and individuals as `axiom`.
+2. Explicitly adds `Irreflexive` for "taller" (implicit in natural language).
+3. Proves the negation of the statement ("Peter is shorter than a man in Michael's class") by deriving a contradiction:
+   - Assume such a man `x` exists (in Michael's class, taller than Peter).
+   - Michael is taller than `x` (since `x` is in his class).
+   - Peter is taller than Michael (premise).
+   - By transitivity, `x` is taller than Peter and Peter is taller than `x`, leading to `x` being taller than itself (contradiction via irreflexivity).
+
+The statement is proven false, so the answer is `False`.
+
+<lean>
+axiom Person : Type
+
+axiom Man : Person → Prop
+axiom Taller : Person → Person → Prop
+axiom CanBlock : Person → Person → Prop
+axiom JumpsWhenShooting : Person → Prop
+axiom GreatShooter : Person → Prop
+axiom Class : Person → Prop
+
+axiom Michael : Person
+axiom Peter : Person
+axiom Windy : Person
+
+-- Premises
+axiom P1 : ∀ x y, Man x → Man y → Taller x y → CanBlock x y
+axiom P2 : Man Michael ∧ (∀ x, Class x → Taller Michael x) ∧ ¬Class Michael
+axiom P3 : ∀ x y z, Taller x y → Taller y z → Taller x z
+axiom P4 : Man Peter ∧ Taller Peter Michael
+axiom P5 : ∀ x, ¬JumpsWhenShooting x → CanBlock Michael x
+axiom P6 : ¬CanBlock Michael Windy
+axiom P7 : ∀ x, JumpsWhenShooting x → GreatShooter x
+
+-- Implicit: Taller is irreflexive (no one is taller than themselves)
+axiom Irreflexive : ∀ x, ¬Taller x x
+
+-- Negation of statement: ¬∃ x, Class x ∧ Man x ∧ Taller x Peter
+theorem disprove_statement : ¬∃ x, Class x ∧ Man x ∧ Taller x Peter := by
+  intro ⟨x, hClass, hMan, hTaller⟩
+  have hTallerMichael := P2.right.left x hClass
+  have hTallerPeterMichael := P4.right
+  have hTallerPeterx : Taller Peter x := P3 Peter Michael x hTallerPeterMichael hTallerMichael
+  have hTallerxx : Taller x x := P3 x Peter x hTaller hTallerPeterx
+  exact Irreflexive x hTallerxx
+
+-- We have proven the statement false
+</lean>
+
+ANSWER: False

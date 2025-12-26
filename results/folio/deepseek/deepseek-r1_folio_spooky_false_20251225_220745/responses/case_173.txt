@@ -1,0 +1,46 @@
+The goal is to prove that the statement "Taylor visits the gym at least once a day" is false, based on the given premises. Here's the Lean 4 formalization:
+
+<lean>
+axiom Person : Type
+axiom Taylor : Person
+axiom EatsSaladsRegularly : Person → Prop
+axiom VeryConscious : Person → Prop
+axiom GrewUpHealthConscious : Person → Prop
+axiom FulfillNutrition : Person → Prop
+axiom DisregardWellBeing : Person → Prop
+axiom VisitGymDaily : Person → Prop
+
+-- Premises from context
+axiom P1 : ∀ p : Person, EatsSaladsRegularly p → VeryConscious p
+axiom P2 : ∀ p : Person, GrewUpHealthConscious p → EatsSaladsRegularly p
+axiom P3 : ∀ p : Person, FulfillNutrition p → GrewUpHealthConscious p
+axiom P4 : ∀ p : Person, DisregardWellBeing p → ¬ VeryConscious p
+axiom P5 : ∀ p : Person, VisitGymDaily p → FulfillNutrition p
+axiom P6 : (GrewUpHealthConscious Taylor ∧ DisregardWellBeing Taylor) ∨ 
+            (¬ GrewUpHealthConscious Taylor ∧ ¬ DisregardWellBeing Taylor)
+
+-- Core proof
+theorem taylor_not_gym : ¬ VisitGymDaily Taylor := by
+  intro hGym
+  have hNutri : FulfillNutrition Taylor := P5 Taylor hGym
+  have hGrew : GrewUpHealthConscious Taylor := P3 Taylor hNutri
+  have hEat : EatsSaladsRegularly Taylor := P2 Taylor hGrew
+  have hConsc : VeryConscious Taylor := P1 Taylor hEat
+  cases P6
+  case inl h =>  -- Health-conscious home and disregards well-being
+    have hDisregard := h.2
+    apply P4 Taylor hDisregard
+    exact hConsc
+  case inr h =>  -- Neither health-conscious home nor disregards well-being
+    have hNotGrew := h.1
+    contradiction
+</lean>
+
+**Explanation**:
+- **Premise chains**: Gym visits imply fulfilling nutrition (`P5`), fulfilling nutrition implies health-conscious upbringing (`P3`), which implies eating salads (`P2`), which implies health consciousness (`P1`).
+- **Taylor's dichotomy**: `P6` forces a choice between two mutually exclusive cases.
+- **Contradiction in left case**: Health consciousness from salad-eating contradicts the disregard for well-being via `P4`.
+- **Contradiction in right case**: Proved health-conscious upbringing (`hGrew`) directly contradicts ¬GrewUpHealthConscious from `P6`.
+- Both cases yield contradictions under the assumption of gym visits, proving the negation.
+
+ANSWER: False

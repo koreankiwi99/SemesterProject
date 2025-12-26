@@ -1,0 +1,151 @@
+<lean>
+constant Person : Type
+constant Show : Type
+constant Karen : Person
+constant Lisa : Person
+constant BlackMirror : Show
+constant StrangerThings : Show
+
+constant NetflixShow : Show → Prop
+constant Popular : Show → Prop
+constant BingeWatches : Person → Show → Prop
+constant Downloads : Person → Show → Prop
+constant Shares : Person → Show → Person → Prop
+
+axiom T1 : NetflixShow StrangerThings ∧ Popular StrangerThings
+axiom T2 : ∀ s, NetflixShow s → Popular s → BingeWatches Karen s
+axiom T3 : ∀ s, NetflixShow s → (BingeWatches Karen s ↔ Downloads Karen s)
+axiom T4 : ¬ Downloads Karen BlackMirror
+axiom T5 : NetflixShow BlackMirror
+axiom T6 : ∀ s, NetflixShow s → BingeWatches Karen s → Shares Karen s Lisa
+
+theorem disprove_share : ¬ Shares Karen BlackMirror Lisa := by
+  intro h_share
+  have h_download_iff := T3 BlackMirror T5
+  have no_bw : ¬ BingeWatches Karen BlackMirror := by
+    intro h_bw
+    rw [h_download_iff] at h_bw
+    exact T4 h_bw
+  have no_trigger : ¬ (BingeWatches Karen BlackMirror) := no_bw
+  have h_share_requires_bw := T6 BlackMirror T5
+  let h_share2 : BingeWatches Karen BlackMirror := h_share_requires_bw.mp h_share
+  contradiction
+
+-- After attempting to prove the negation, we find the above is incomplete because T6 only provides that binge-watching LEADS to sharing, not that sharing REQUIRES binge-watching.
+-- Since we cannot derive a contradiction from assuming "Shares Karen BlackMirror Lisa" (as Karen could share without binge-watching via mechanisms not forbidden by the axioms),
+-- we must declare failure.
+
+-- Revised: we demonstrate the attempt fails by showing we cannot complete the proof.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+variable Person : Type
+variable Series : Type
+variable Karen : Person
+variable Lisa : Person
+variable BlackMirror : Series
+variable StrangerThings : Series
+
+variable NetflixShow : Series → Prop
+variable Popular : Series → Prop
+variable BingeWatches : Person → Series → Prop
+variable Downloads : Person → Series → Prop
+variable Shares : Person → Series → Person → Prop
+
+axiom T1 : NetflixShow StrangerThings ∧ Popular StrangerThings
+axiom T2 : ∀ (s : Series), NetflixShow s → Popular s → BingeWatches Karen s
+axiom T3 : ∀ (s : Series), NetflixShow s → (BingeWatches Karen s ↔ Downloads Karen s)
+axiom T4 : ¬ Downloads Karen BlackMirror
+axiom T5 : NetflixShow BlackMirror
+axiom T6 : ∀ (s : Series), NetflixShow s → BingeWatches Karen s → Shares Karen s Lisa
+
+theorem disprove_share : ¬ Shares Karen BlackMirror Lisa := by
+  intro h_share
+  have no_bw : ¬ BingeWatches Karen BlackMirror := by
+    intro h_bw
+    have h_dl : Downloads Karen BlackMirror := (T3 BlackMirror T5).mp h_bw
+    exact T4 h_dl
+  -- Attempt to derive that binge-watching is needed for sharing  
+  have imp : BingeWatches Karen BlackMirror → Shares Karen BlackMirror Lisa := T6 BlackMirror T5
+  -- But we cannot reverse the implication: sharing does NOT necessarily imply binge-watching
+  -- No other axioms connect sharing to download/binge-watch status
+  -- Therefore unable to derive contradiction
+  admit
+
+</lean>
+
+The corrected code fixes these errors:
+1. Renames `Show` to `Series` to avoid conflict with Lean's built-in `Show` typeclass
+2. Properly uses `variable` instead of `constant` for more flexible declarations
+3. Specifies types for quantifiers (e.g., `∀ (s : Series)`)
+4. Removes the logically flawed tactic proof that incorrectly assumed sharing implies binge-watching
+5. Replaces the contradiction attempt with `admit` since the proof cannot be completed
+
+The key logical issue: While we know:
+- Karen doesn't download Black Mirror (T4)
+- Thus she doesn't binge-watch it (T3)
+- T6 says binge-watching causes sharing, but it doesn't say sharing requires binge-watching
+There exists no axiom preventing Karen from sharing Black Mirror without binge-watching it.
+
+Therefore, we cannot prove the negation ("Karen will not share Black Mirror with Lisa").
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the compilation errors and the logical structure, I've identified two key issues: incorrect use of `variable` declarations (which caused parsing errors) and the core logical impossibility of proving the negation due to insufficient premises. Here's the corrected Lean 4 code:
+
+<lean>
+constant Person : Type
+constant NetflixShow : Type
+constant Karen : Person
+constant Lisa : Person
+constant StrangerThings : NetflixShow
+constant BlackMirror : NetflixShow
+
+constant Popular : NetflixShow → Prop
+constant BingeWatches : Person → NetflixShow → Prop
+constant Downloads : Person → NetflixShow → Prop
+constant Shares : Person → NetflixShow → Person → Prop
+
+axiom T1 : Popular StrangerThings
+axiom T2 : ∀ (s : NetflixShow), Popular s → BingeWatches Karen s
+axiom T3 : ∀ (s : NetflixShow), BingeWatches Karen s ↔ Downloads Karen s
+axiom T4 : ¬ Downloads Karen BlackMirror
+axiom T6 : ∀ (s : NetflixShow), BingeWatches Karen s → Shares Karen s Lisa
+
+theorem disprove_share : ¬ Shares Karen BlackMirror Lisa := by
+  intro h_share
+  -- Prove Karen doesn't binge-watch BlackMirror
+  have no_bw : ¬ BingeWatches Karen BlackMirror := by
+    intro h_bw
+    have h_dl : Downloads Karen BlackMirror := (T3 BlackMirror).mp h_bw
+    exact T4 h_dl
+  -- T6 only states binge-watching causes sharing, not the converse
+  -- No axiom prevents sharing without binge-watching
+  -- Cannot derive contradiction from h_share
+  admit
+</lean>
+
+**Explanation:**
+1. Replaced `variable` with `constant` for all declarations to resolve parsing errors
+2. Removed redundant `NetflixShow` predicate by incorporating it into the type
+3. Removed T5 (Black Mirror being a Netflix show) as it's implied by the type
+4. The `admit` tactic confirms the proof is incomplete
+
+**Logical Analysis:**
+- From T3 and T4, Karen doesn't binge-watch Black Mirror (`no_bw`)
+- T6 only establishes that binge-watching implies sharing ("if"), not that sharing requires binge-watching ("only if")
+- No premise connects sharing directly to downloading/binge-watching
+- Possible Karen could share without binge-watching via undetermined mechanisms
+- Thus impossible to prove she doesn't share (¬Shares)
+
+ANSWER: Failure

@@ -1,0 +1,182 @@
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TWCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x, Register x → Participate x
+axiom P2 : ∀ x, USCitizen x → Register x
+axiom P3 : ∀ x, USCitizen x ∨ TWCitizen x
+axiom P4 : ∀ x, RFOfficial x → ¬ TWCitizen x
+axiom P5 : ¬ TWCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RFOfficial Ekaterina
+
+-- Prove that the statement "¬(Register Ekaterina ∧ Participate Vladimir)" is False
+theorem disprove_conclusion : ¬¬(Register Ekaterina ∧ Participate Vladimir) :=
+  fun h => 
+  have hVladimir : Participate Vladimir := by
+    have vladimir_citizen : USCitizen Vladimir := by
+      cases P3 Vladimir with
+      | inl us => exact us
+      | inr tw => exact False.elim (P5 tw)
+    have vladimir_register : Register Vladimir := P2 Vladimir vladimir_citizen
+    exact P1 Vladimir vladimir_register
+  have hEkaterina : Register Ekaterina := by
+    cases P6 with
+    | inl reg => exact reg
+    | inr rf => 
+        have no_tw : ¬TWCitizen Ekaterina := P4 Ekaterina rf
+        have us : USCitizen Ekaterina := by
+          cases P3 Ekaterina with
+          | inl us => exact us
+          | inr tw => exact False.elim (no_tw tw)
+        exact P2 Ekaterina us
+  h ⟨hEkaterina, hVladimir⟩
+
+-- Since we proved the double negation, we can derive the original conjunction
+theorem conjunction_holds : Register Ekaterina ∧ Participate Vladimir := by
+  apply Classical.byContradiction
+  exact disprove_conclusion
+
+-- The conclusion claims "¬(Register Ekaterina ∧ Participate Vladimir)" is true, but we proved the conjunction
+-- Therefore, the conclusion is False
+theorem conclusion_false : False := 
+  let ⟨hE, hV⟩ := conjunction_holds
+  disprove_conclusion (fun h => h ⟨hE, hV⟩)
+</lean>
+
+ANSWER: False
+
+======================================================================
+ITERATION 2
+======================================================================
+
+After analyzing the reasoning and correcting the Lean code, I've translated the natural language premises into formal definitions and proven that the conclusion is false. Here's the corrected Lean 4 code:
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TWCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x, Register x → Participate x
+axiom P2 : ∀ x, USCitizen x → Register x
+axiom P3 : ∀ x, USCitizen x ∨ TWCitizen x
+axiom P4 : ∀ x, RFOfficial x → ¬ TWCitizen x
+axiom P5 : ¬ TWCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RFOfficial Ekaterina
+
+theorem ekaterina_registers : Register Ekaterina := by
+  cases P6 with
+  | inl reg => exact reg
+  | inr rf => 
+      have no_tw : ¬ TWCitizen Ekaterina := P4 Ekaterina rf
+      cases P3 Ekaterina with
+      | inl us => exact P2 Ekaterina us
+      | inr tw => contradiction
+
+theorem vladimir_participates : Participate Vladimir := by
+  cases P3 Vladimir with
+  | inl us => 
+      have regV : Register Vladimir := P2 Vladimir us
+      exact P1 Vladimir regV
+  | inr tw => contradiction
+
+theorem conjunction_holds : Register Ekaterina ∧ Participate Vladimir := 
+  ⟨ekaterina_registers, vladimir_participates⟩
+
+-- The conclusion claims: ¬(Register Ekaterina ∧ Participate Vladimir)
+-- We've proven the conjunction, so the conclusion is false
+theorem conclusion_false : ¬(¬(Register Ekaterina ∧ Participate Vladimir)) := 
+  fun h => h conjunction_holds
+</lean>
+
+The key steps in the proof:
+1. For Vladimir: 
+   - He must be a US citizen (since he doesn't have Taiwanese citizenship by P5, and P3 states everyone has one citizenship)
+   - Thus he can register (P2) and participate (P1)
+
+2. For Ekaterina:
+   - She either registers directly (P6) or is a Russian official
+   - If she's a Russian official, she can't have Taiwanese citizenship (P4)
+   - Thus she must be a US citizen (P3) and can register (P2)
+
+Since both Ekaterina can register and Vladimir can participate, the conclusion claiming the opposite is false.
+
+ANSWER: False
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation error occurred because the `contradiction` tactic failed to automatically find a contradiction in the `vladimir_participates` theorem. This was fixed by explicitly using `False.elim (P5 tw)` to handle the case where Vladimir has Taiwanese citizenship, which contradicts axiom P5 stating he doesn't have Taiwanese citizenship.
+
+Here's the corrected Lean 4 code:
+
+<lean>
+axiom Person : Type
+axiom Ekaterina : Person
+axiom Vladimir : Person
+axiom Register : Person → Prop
+axiom Participate : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TWCitizen : Person → Prop
+axiom RFOfficial : Person → Prop
+
+-- Premises
+axiom P1 : ∀ x, Register x → Participate x
+axiom P2 : ∀ x, USCitizen x → Register x
+axiom P3 : ∀ x, USCitizen x ∨ TWCitizen x
+axiom P4 : ∀ x, RFOfficial x → ¬ TWCitizen x
+axiom P5 : ¬ TWCitizen Vladimir
+axiom P6 : Register Ekaterina ∨ RFOfficial Ekaterina
+
+theorem ekaterina_registers : Register Ekaterina := by
+  cases P6 with
+  | inl reg => exact reg
+  | inr rf => 
+      have no_tw : ¬ TWCitizen Ekaterina := P4 Ekaterina rf
+      cases P3 Ekaterina with
+      | inl us => exact P2 Ekaterina us
+      | inr tw => exact False.elim (no_tw tw)
+
+theorem vladimir_participates : Participate Vladimir := by
+  cases P3 Vladimir with
+  | inl us => 
+      have regV : Register Vladimir := P2 Vladimir us
+      exact P1 Vladimir regV
+  | inr tw => exact False.elim (P5 tw)
+
+theorem conjunction_holds : Register Ekaterina ∧ Participate Vladimir := 
+  ⟨ekaterina_registers, vladimir_participates⟩
+
+-- The conclusion claims: ¬(Register Ekaterina ∧ Participate Vladimir)
+-- We've proven the conjunction, so the conclusion is false
+theorem conclusion_false : ¬(¬(Register Ekaterina ∧ Participate Vladimir)) := 
+  fun h => h conjunction_holds
+</lean>
+
+**Proof Explanation:**
+1. **Ekaterina's case:** 
+   - If she can register (P6 left case), we're done.
+   - If she's a Russian official (P6 right case), she can't have Taiwanese citizenship (P4). Since everyone has either US or Taiwanese citizenship (P3), she must have US citizenship and can register (P2).
+
+2. **Vladimir's case:**
+   - He doesn't have Taiwanese citizenship (P5), so he must have US citizenship (P3 left case).
+   - Thus he can register (P2) and participate (P1).
+
+3. **Conclusion:** 
+   - We've proven both Ekaterina can register and Vladimir can participate.
+   - Therefore, the statement "It is not true that Ekaterina can register and Vladimir can participate" is false.
+
+ANSWER: False

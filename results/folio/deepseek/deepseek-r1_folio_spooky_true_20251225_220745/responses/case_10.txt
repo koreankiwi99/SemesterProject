@@ -1,0 +1,129 @@
+The premises state that there are six distinct types of wild turkeys, and explicitly deny that Tom belongs to five of them (Eastern, Osceola, Gould's, Merriam's, Rio Grande). This leaves Ocellated as the only possibility. Therefore, it is impossible to prove the statement "Tom is an Eastern wild turkey" from the given premises.
+
+<lean>
+inductive Kind where
+  | Eastern
+  | Osceola
+  | Gould
+  | Merriam
+  | RioGrande
+  | Ocellated
+
+axiom Turkey : Type
+axiom kindOf : Turkey → Kind
+
+axiom Tom : Turkey
+
+axiom notEastern : kindOf Tom ≠ Kind.Eastern
+axiom notOsceola : kindOf Tom ≠ Kind.Osceola
+axiom notGould : kindOf Tom ≠ Kind.Gould
+axiom notMerriam : kindOf Tom ≠ Kind.Merriam
+axiom notRioGrande : kindOf Tom ≠ Kind.RioGrande
+
+theorem tomIsEastern : kindOf Tom = Kind.Eastern := by
+  -- Proof attempt fails: Premises force Tom to be Ocellated, not Eastern
+  cases h : kindOf Tom
+  case Eastern => exact False.elim (notEastern h)
+  case Osceola => exact False.elim (notOsceola h)
+  case Gould => exact False.elim (notGould h)
+  case Merriam => exact False.elim (notMerriam h)
+  case RioGrande => exact False.elim (notRioGrande h)
+  case Ocellated => 
+    -- Cannot prove Ocellated = Eastern (constructors are distinct)
+    apply False.elim  -- Stuck: no contradiction but goal remains unprovable
+    -- Note: `notEastern` requires proof of Eastern equality to derive contradiction,
+    -- but here `h : kindOf Tom = Ocellated` rewritten in goal yields unprovable equality
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because in the Ocellated branch, the proof attempt used `False.elim` without providing a proof of `False`. The corrected approach demonstrates that Tom cannot be Eastern due to the premises and the distinct nature of the wild turkey kinds. The conclusion "Tom is an Eastern wild turkey" cannot be proven from the given premises.
+
+<lean>
+inductive Kind where
+  | Eastern
+  | Osceola
+  | Gould
+  | Merriam
+  | RioGrande
+  | Ocellated
+
+axiom Turkey : Type
+axiom kindOf : Turkey → Kind
+axiom Tom : Turkey
+axiom notEastern : kindOf Tom ≠ Kind.Eastern
+axiom notOsceola : kindOf Tom ≠ Kind.Osceola
+axiom notGould : kindOf Tom ≠ Kind.Gould
+axiom notMerriam : kindOf Tom ≠ Kind.Merriam
+axiom notRioGrande : kindOf Tom ≠ Kind.RioGrande
+
+theorem tomIsEastern : kindOf Tom = Kind.Eastern := by
+  -- Prove Tom must be Ocellated since other kinds are excluded
+  have : kindOf Tom = Kind.Ocellated := by
+    cases h : kindOf Tom
+    case Eastern => contradiction
+    case Osceola => contradiction
+    case Gould => contradiction
+    case Merriam => contradiction
+    case RioGrande => contradiction
+    case Ocellated => rfl
+  -- Use this fact to attempt proof by substitution
+  rw [this]
+  -- Now goal becomes: Kind.Ocellated = Kind.Eastern
+  have h' : Kind.Ocellated = Kind.Eastern → False := by
+    intro heq
+    -- Constructor distinctness will be used in work
+    -- This creates an impossible equality which will be proven false later
+  -- Placeholder for demonstrating contradiction: constructors are distinct
+  sorry
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred because the `contradiction` tactic couldn't resolve the cases where `kindOf Tom` was one of the non-Ocellated kinds. This happened because the context didn't have explicit contradictions for these cases. The proof was restructured to:
+1. Use `cases` on `kindOf Tom` to examine all possible kinds
+2. For each non-Ocellated kind, explicitly apply the relevant "not" axiom to derive `False`
+3. In the Ocellated branch, rewrite the goal using `h` to get `Ocellated = Eastern`
+4. Use `discriminate` to handle the impossible equality of distinct constructors
+
+The critical insight is that after proving Tom must be Ocellated (since all other kinds lead to contradictions), the goal becomes proving `Ocellated = Eastern`. Since these are distinct constructors of an inductive type, this equality is impossible to prove, hence the conclusion fails.
+
+<lean>
+inductive Kind where
+  | Eastern
+  | Osceola
+  | Gould
+  | Merriam
+  | RioGrande
+  | Ocellated
+
+axiom Turkey : Type
+axiom kindOf : Turkey → Kind
+axiom Tom : Turkey
+axiom notEastern : kindOf Tom ≠ Kind.Eastern
+axiom notOsceola : kindOf Tom ≠ Kind.Osceola
+axiom notGould : kindOf Tom ≠ Kind.Gould
+axiom notMerriam : kindOf Tom ≠ Kind.Merriam
+axiom notRioGrande : kindOf Tom ≠ Kind.RioGrande
+
+theorem tomIsEastern : kindOf Tom = Kind.Eastern := by
+  cases h : kindOf Tom
+  case Eastern => exact False.elim (notEastern h)
+  case Osceola => exact False.elim (notOsceola h)
+  case Gould => exact False.elim (notGould h)
+  case Merriam => exact False.elim (notMerriam h)
+  case RioGrande => exact False.elim (notRioGrande h)
+  case Ocellated =>
+    rw [h]  -- Goal becomes: Kind.Ocellated = Kind.Eastern
+    discriminate  -- Fails because constructors are distinct
+</lean>
+
+ANSWER: Failure

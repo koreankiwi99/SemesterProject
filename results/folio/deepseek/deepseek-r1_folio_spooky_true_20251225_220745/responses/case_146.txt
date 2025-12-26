@@ -1,0 +1,36 @@
+The reasoning follows from the given premises without requiring Vladimir's information, as the conclusion about Ekaterina depends solely on the general premises and her specific case. The key insight is that Ekaterina being a Russian official (from premise 6) leads to her having US citizenship (due to premises 3 and 4), which allows her to register to vote (premise 2) and thus participate in the election (premise 1). Alternatively, if she already can register to vote (premise 6), she directly participates. In both cases, the left part of the disjunction (participating in the election) holds, satisfying the OR condition regardless of the Gazprom status.
+
+<lean>
+axiom Person : Type
+axiom CanRegisterToVoteInUS : Person → Prop
+axiom CanParticipateIn2024USElection : Person → Prop
+axiom USCitizen : Person → Prop
+axiom TaiwaneseCitizen : Person → Prop
+axiom RussianOfficial : Person → Prop
+axiom ManagerAtGazprom : Person → Prop
+axiom Ekaterina : Person
+axiom Vladimir : Person  -- Vladimir appears in a premise but is unused in this proof
+
+axiom Premise1 : ∀ p : Person, CanRegisterToVoteInUS p → CanParticipateIn2024USElection p
+axiom Premise2 : ∀ p : Person, USCitizen p → CanRegisterToVoteInUS p
+axiom Premise3 : ∀ p : Person, USCitizen p ∨ TaiwaneseCitizen p
+axiom Premise4 : ∀ p : Person, RussianOfficial p → ¬ TaiwaneseCitizen p
+axiom Premise5 : ¬ TaiwaneseCitizen Vladimir ∧ ¬ ManagerAtGazprom Vladimir  -- Unused
+axiom Premise6 : CanRegisterToVoteInUS Ekaterina ∨ RussianOfficial Ekaterina
+
+theorem goal : CanParticipateIn2024USElection Ekaterina ∨ ManagerAtGazprom Ekaterina := by
+  cases Premise6 with
+  | inl canRegister =>  -- Ekaterina can register
+    left
+    exact Premise1 Ekaterina canRegister
+  | inr isRussian =>  -- Ekaterina is a Russian official
+    have notTaiwanese : ¬ TaiwaneseCitizen Ekaterina := Premise4 Ekaterina isRussian
+    cases Premise3 Ekaterina with
+    | inl hasUS =>
+        left
+        apply Premise1 Ekaterina (Premise2 Ekaterina hasUS)
+    | inr hasTaiwan =>  -- Contradicts Russian officials not holding Taiwanese
+        contradiction
+</lean>
+
+ANSWER: True

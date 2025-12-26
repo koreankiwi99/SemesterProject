@@ -1,0 +1,189 @@
+<lean>
+axiom City : Type
+axiom State : Type
+
+-- Cities mentioned
+axiom billings : City
+axiom butte : City
+axiom helena : City
+axiom missoula : City
+axiom whiteSulphurSprings : City
+axiom stPierre : City
+
+-- States
+axiom montana : State
+
+-- Location relation
+axiom locatedIn : City → State → Prop
+
+-- Exception cities (not used in proof but declared for completeness)
+axiom bristol : City
+axiom texarkana : City
+axiom texhoma : City
+axiom unionCity : City
+
+-- Premises:
+-- Billings is in Montana
+axiom P1 : locatedIn billings montana
+-- Montana includes Butte, Helena, Missoula
+axiom P2 : locatedIn butte montana ∧ locatedIn helena montana ∧ locatedIn missoula montana
+-- White Sulphur Springs and Butte are in the same state
+axiom P3 : ∃ s, locatedIn whiteSulphurSprings s ∧ locatedIn butte s
+-- St Pierre is not in Montana
+axiom P4 : ¬ locatedIn stPierre montana
+-- "Any city in Butte is not in St Pierre" → interpreted as: no city can be located in both the state containing Butte and the state containing St Pierre
+axiom P5 : ∀ (c : City) (s_butte s_stPierre : State), 
+           locatedIn butte s_butte → locatedIn c s_butte → 
+           locatedIn stPierre s_stPierre → ¬locatedIn c s_stPierre
+-- Single-state constraint (with exceptions)
+axiom P6 : ∀ (c : City) (s1 s2 : State), 
+           (c ≠ bristol ∧ c ≠ texarkana ∧ c ≠ texhoma ∧ c ≠ unionCity) → 
+           locatedIn c s1 → locatedIn c s2 → s1 = s2
+
+-- We attempt to prove the negation: ¬locatedIn missoula montana
+theorem disprove : ¬locatedIn missoula montana := by
+  -- Extract Missoula's location from P2
+  have h_missoula_montana : locatedIn missoula montana := P2.right.right
+  -- Assuming the negation leads to immediate contradiction with P2
+  intro h_neg
+  exact h_neg h_missoula_montana
+
+-- Since we reached a dead end in proving the negation, we mark Failure.
+-- The above theorem leads to contradiction because its assumption 
+-- directly contradicts the premise P2. Thus, we cannot prove ¬locatedIn missoula montana.
+
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom City : Type
+axiom State : Type
+
+axiom billings : City
+axiom butte : City
+axiom helena : City
+axiom missoula : City
+axiom whiteSulphurSprings : City
+axiom stPierre : City
+
+-- Exception cities required by P6
+axiom bristol : City
+axiom texarkana : City
+axiom texhoma : City
+axiom unionCity : City
+
+axiom montana : State
+axiom locatedIn : City → State → Prop
+
+-- Premises
+axiom P1 : locatedIn billings montana
+axiom P2 : locatedIn butte montana ∧ locatedIn helena montana ∧ locatedIn missoula montana
+axiom P3 : ∃ s, locatedIn whiteSulphurSprings s ∧ locatedIn butte s
+axiom P4 : ¬ locatedIn stPierre montana
+axiom P5 : ∀ (c : City) (s_butte s_stPierre : State), 
+    locatedIn butte s_butte → 
+    locatedIn c s_butte → 
+    locatedIn stPierre s_stPierre → 
+    ¬ locatedIn c s_stPierre
+axiom P6 : ∀ (c : City) (s1 s2 : State), 
+    (c ≠ bristol ∧ c ≠ texarkana ∧ c ≠ texhoma ∧ c ≠ unionCity) → 
+    locatedIn c s1 → locatedIn c s2 → s1 = s2
+
+-- We attempt to prove ¬locatedIn missoula montana
+theorem disprove : ¬locatedIn missoula montana := by
+  -- We derive that White Sulphur Springs must be in Montana
+  have h_butte_montana : locatedIn butte montana := P2.left
+  cases P3 with | intro s₀ h_ws_butte => 
+  have : s₀ = montana := by
+    apply P6 butte s₀ montana
+    · intro; simp only [*]; done  -- butte is not an exception city
+    · exact h_ws_butte.right
+    · exact h_butte_montana
+  have h_ws_montana : locatedIn whiteSulphurSprings montana := by rw [←this]; exact h_ws_butte.left
+
+  -- We choose Montana as Butte's state and some state for St Pierre
+  intro h_missoula_in_montana  -- Assume Missoula is in Montana
+  -- We'll show contradiction via location constraints
+  have h_stPierre_state : ∃ s, locatedIn stPierre s := by
+    -- States of cities must exist, though not specified in axioms
+    -- Without this as an axiom, proof cannot proceed
+    admit 
+
+  cases h_stPierre_state with | intro s_stp h_stp => 
+  -- Apply P5 to Missoula with Montana (Butte's state) and s_stp (St Pierre's state)
+  have := P5 missoula montana s_stp h_butte_montana h_missoula_in_montana h_stp
+  -- But this only says Missoula is not in s_stp, not a contradiction
+  -- We need a contradiction with Montana location - no premise provides this
+  admit
+
+  -- Since we cannot complete the proof during real execution, we indicate proof abandonment
+</lean>
+
+ANSWER: Failure
+
+The Lean proof attempt shows:
+1. We successfully derived White Sulphur Springs must be in Montana by combining P3 and P6 with Butte's location from P2.
+2. However:
+   - We lack an axiom guaranteeing that St Pierre exists in some state
+   - P5 only states that no city sharing Butte's state can share St Pierre's state, but doesn't contradict Missoula's Montana location
+3. The premises (particularly P2) directly confirm Missoula is in Montana
+4. All intermediate steps remain consistent - no contradiction emerges when assuming Missoula isn't in Montana
+
+Thus we cannot prove the negation of "Montana is home to Missoula". This indicates the original statement must be true per the premises, but the question specifically asks whether we can prove its negation. Since we can't, we return Failure.
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The error occurred because the proof for White Sulphur Springs' location used a tactic that failed to prove Butte is not an exception city. However, this derivation is unnecessary for the main goal of proving ¬locatedIn missoula montana.
+
+The core issue is that premise P2 directly states Missoula is in Montana. Attempting to prove its negation would require finding a contradiction with other premises, but:
+1. P4 states St. Pierre isn't in Montana but doesn't mention Missoula
+2. P5 restricts dual-location only between Butte's state and St. Pierre's state
+3. P6 allows single-state cities but has exceptions that don't apply to Missoula
+
+Since no premises contradict Missoula being in Montana, the negation of "Missoula is in Montana" cannot be proven.
+
+Corrected Lean code:
+<lean>
+axiom City : Type
+axiom State : Type
+
+axiom billings : City
+axiom butte : City
+axiom helena : City
+axiom missoula : City
+axiom whiteSulphurSprings : City
+axiom stPierre : City
+
+axiom bristol : City
+axiom texarkana : City
+axiom texhoma : City
+axiom unionCity : City
+
+axiom montana : State
+axiom locatedIn : City → State → Prop
+
+axiom P1 : locatedIn billings montana
+axiom P2 : locatedIn butte montana ∧ locatedIn helena montana ∧ locatedIn missoula montana
+axiom P3 : ∃ s, locatedIn whiteSulphurSprings s ∧ locatedIn butte s
+axiom P4 : ¬ locatedIn stPierre montana
+axiom P5 : ∀ (c : City) (s_butte s_stPierre : State), 
+    locatedIn butte s_butte → 
+    locatedIn c s_butte → 
+    locatedIn stPierre s_stPierre → 
+    ¬ locatedIn c s_stPierre
+axiom P6 : ∀ (c : City) (s1 s2 : State), 
+    (c ≠ bristol ∧ c ≠ texarkana ∧ c ≠ texhoma ∧ c ≠ unionCity) → 
+    locatedIn c s1 → locatedIn c s2 → s1 = s2
+
+-- Attempt at proving ¬locatedIn missoula montana is impossible
+-- No valid derivation contradicts P2.right.right
+</lean>
+
+ANSWER: Failure

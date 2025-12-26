@@ -1,0 +1,131 @@
+The goal is to prove that if the fans are not more emotionally invested, then the atmosphere was not electric (i.e., the negation of the implication). However, the premises lead to the opposite conclusion: when fans are not emotionally invested, the atmosphere must be electric. This is because:
+1. Either the home team is winning or it's a rivalry game (or both).
+2. If it's a rivalry game, fans are emotionally invested (contradicting the assumption of no investment).
+3. Thus, if fans are not invested, it must be that the home team is winning.
+4. If the home team is winning, the crowd is loud and energized, leading to an electric atmosphere.
+
+Therefore, the negation cannot be proven from the premises.
+
+<lean>
+axiom home_winning : Prop
+axiom rivalry : Prop
+axiom loud : Prop
+axiom energized : Prop
+axiom emotionally_invested : Prop
+axiom electric : Prop
+
+axiom P1 : home_winning → (loud ∧ energized)
+axiom P2 : rivalry → emotionally_invested
+axiom P3 : home_winning ∨ rivalry
+axiom P4 : (loud ∧ energized) → electric
+
+-- Attempt to prove: ¬emotionally_invested → ¬electric (negation of the original implication)
+theorem prove_negation : ¬emotionally_invested → ¬electric :=
+  fun (h_not_invested : ¬emotionally_invested) =>
+  fun (h_electric : electric) =>
+  show False from
+  have h_or : home_winning ∨ rivalry := P3
+  Or.elim h_or
+    (fun (hw : home_winning) =>
+      have h_le : loud ∧ energized := P1 hw
+      have h_e : electric := P4 h_le
+      -- Contradiction not found since h_electric matches h_e
+      False.elim (h_electric (by trivial) ()) -- No contradiction here
+    )
+    (fun (hr : rivalry) =>
+      have h_invested : emotionally_invested := P2 hr
+      show False from h_not_invested h_invested
+    )
+
+-- The above proof fails because the home_winning case does not yield a contradiction
+-- Therefore, we cannot prove the negation
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The corrected Lean code properly formalizes the premises and attempts to prove the negation. The key insight is that when the fans are not emotionally invested, it must be because it's not a rivalry game (since rivalry implies emotional investment). Therefore, by disjunction, the home team must be winning. If the home team is winning, the crowd is loud and energized, leading to an electric atmosphere. Thus, the assumption that the atmosphere is not electric (as part of the negation proof) leads to a contradiction only in the rivalry case, but not in the home-winning case. This makes the full proof unattainable.
+
+<lean>
+axiom home_winning : Prop
+axiom rivalry : Prop
+axiom loud : Prop
+axiom energized : Prop
+axiom emotionally_invested : Prop
+axiom electric : Prop
+
+axiom P1 : home_winning → (loud ∧ energized)
+axiom P2 : rivalry → emotionally_invested
+axiom P3 : home_winning ∨ rivalry
+axiom P4 : (loud ∧ energized) → electric
+
+theorem prove_negation : ¬emotionally_invested → ¬electric := by
+  intro h_not_invested
+  intro h_electric
+  cases P3
+  case inl hw => 
+    have h_le : loud ∧ energized := P1 hw
+    have : electric := P4 h_le
+    -- No contradiction: premises prove electric, but assumption is ¬electric? 
+    -- Actually, we assumed ¬electric via the negation, but here we derived electric.
+    contradiction  -- Tries to use the electric/¬electric contradiction
+  case inr hr => 
+    have h_invested : emotionally_invested := P2 hr
+    contradiction  -- Contradiction: ¬invested vs. invested
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+After analyzing the errors and the logical structure, I realize that the initial approach was flawed. The key insight is that the premises actually imply the *opposite* of what we're trying to prove. Specifically:
+
+1. If fans are not emotionally invested (`¬emotionally_invested`), then it cannot be a rivalry game (`¬rivalry`) by contraposition of P2
+2. By disjunction (P3), if it's not a rivalry game, then the home team must be winning
+3. If home team is winning (P1), the crowd is loud and energized, leading to an electric atmosphere (P4)
+
+Thus, `¬emotionally_invested → electric` is provable, making `¬emotionally_invested → ¬electric` unprovable since it contradicts the premises.
+
+Corrected Lean code:
+
+<lean>
+axiom home_winning : Prop
+axiom rivalry : Prop
+axiom loud : Prop
+axiom energized : Prop
+axiom emotionally_invested : Prop
+axiom electric : Prop
+
+axiom P1 : home_winning → (loud ∧ energized)
+axiom P2 : rivalry → emotionally_invested
+axiom P3 : home_winning ∨ rivalry
+axiom P4 : (loud ∧ energized) → electric
+
+-- Provable theorem: not emotionally invested implies electric
+theorem provable : ¬emotionally_invested → electric := by
+  intro h_not_invested
+  cases P3 with
+  | inl hw => exact P4 (P1 hw)
+  | inr hr => 
+      have : emotionally_invested := P2 hr
+      contradiction
+
+-- Attempt to prove negation (¬emotionally_invested → ¬electric) fails
+theorem unprovable : ¬emotionally_invested → ¬electric := 
+  fun h_not_invested =>
+  fun h_electric => 
+  have : electric := provable h_not_invested
+  show False from h_electric this  -- Contradiction: electric and ¬electric
+
+-- The above proof succeeds in showing the negation is FALSE
+-- But this is not what we want - we're trying to PROVE the negation
+</lean>
+
+The final proof shows that `¬emotionally_invested → ¬electric` leads to a contradiction, meaning the negation is actually false. However, the task was to *prove* the negation, which we cannot do since it's false under the premises.
+
+ANSWER: Failure

@@ -1,0 +1,61 @@
+<lean>
+axiom obj : Type
+axiom Rock : obj
+axiom p : obj → Prop  -- Peter's pet
+axiom mammal : obj → Prop
+axiom animal : obj → Prop
+axiom monkey : obj → Prop
+axiom bird : obj → Prop
+axiom canfly : obj → Prop
+axiom canbreathe : obj → Prop
+axiom haswings : obj → Prop
+
+axiom A1 : ∀ x : obj, p x ∧ mammal x → animal x
+axiom A2 : ∀ x : obj, monkey x → mammal x
+axiom A3 : ∀ x : obj, p x → monkey x ∨ bird x
+axiom A4 : ∀ x : obj, p x ∧ bird x → canfly x
+axiom A5 : ∀ x : obj, animal x ∧ p x → canbreathe x
+axiom A6 : ∀ x : obj, p x ∧ canfly x → haswings x
+axiom A7 : p Rock
+axiom A8 : canfly Rock ∨ bird Rock ∨ ¬canbreathe Rock
+
+theorem rock_monkey : monkey Rock := by
+  cases A8
+  case inl hfly =>
+    -- Case 1: Rock can fly
+    have H := A3 Rock A7
+    cases H
+    case inl hmonkey => exact hmonkey
+    case inr hbird => 
+      -- Stuck: Rock is a bird but need to prove monkey
+      have : bird Rock := hbird
+      admit
+  case inr h_or =>
+    cases h_or
+    case inl hbird => 
+      -- Case 2: Rock is a bird → cannot prove monkey
+      admit
+    case inr hbreathe => 
+      -- Case 3: Rock cannot breathe
+      have no_animal : ¬ animal Rock := by
+        intro h
+        have : animal Rock ∧ p Rock := And.intro h A7
+        exact absurd (A5 Rock this) hbreathe
+      have no_mammal : ¬ mammal Rock := by
+        intro h
+        exact no_animal (A1 Rock (And.intro A7 h))
+      have not_monkey : ¬ monkey Rock := by
+        intro h
+        exact no_mammal (A2 Rock h)
+      -- Obtain pet classification
+      have H := A3 Rock A7
+      cases H
+      case inl hmonkey => 
+        exact absurd hmonkey not_monkey  -- Contradiction from monkey
+      case inr hbird => 
+        -- Rock is a bird but not monkey; cannot resolve monkey Rock
+        admit
+  done
+</lean>
+
+ANSWER: Failure

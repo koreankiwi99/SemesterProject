@@ -1,0 +1,39 @@
+The Lean code models the premises and attempts to prove that "Hachi: A dog's Tale" is not rated General Audience. However, the disjunction in premise P7 creates two cases:
+
+1. If Hachi is a family-friendly animated film, then by P4 it must be rated GA (valid case where the conclusion holds).
+2. If Hachi is appropriate for all ages, there is no premise forcing it to be rated GA (but also no contradiction).
+
+Since case 1 directly proves IsRatedGA(hachi) and case 2 doesn't yield a contradiction, the negation ¬IsRatedGA(hachi) cannot be proven. The attempt results in admitted cases, indicating failure.
+
+<lean>
+axiom Film : Type
+axiom hachi : Film
+axiom IsAppropriateForAllAges : Film → Prop
+axiom ChildrenCanWatchWithoutGuidance : Film → Prop
+axiom HasExplicitContent : Film → Prop
+axiom IsRatedGA : Film → Prop
+axiom IsFamilyFriendlyAnimatedFilm : Film → Prop
+
+-- Premises
+axiom P1 : ∀ f : Film, IsAppropriateForAllAges f → ChildrenCanWatchWithoutGuidance f
+axiom P2 : ∀ f : Film, HasExplicitContent f → ¬ ChildrenCanWatchWithoutGuidance f
+axiom P3 : ∀ f : Film, IsRatedGA f → IsAppropriateForAllAges f
+axiom P4 : ∀ f : Film, IsFamilyFriendlyAnimatedFilm f → IsRatedGA f
+axiom P7 : IsFamilyFriendlyAnimatedFilm hachi ∨ IsAppropriateForAllAges hachi
+
+theorem negate_conclusion : ¬IsRatedGA hachi := 
+  fun h : IsRatedGA hachi => 
+    have app_hachi : IsAppropriateForAllAges hachi := P3 hachi h
+    have watch_hachi : ChildrenCanWatchWithoutGuidance hachi := P1 hachi app_hachi
+    show False from (
+      match P7 with
+      | Or.inl family => 
+          -- Family-friendly → rated GA (by P4) → no contradiction
+          nomatch watch_hachi  -- Dummy failure (cannot get False)
+      | Or.inr _ => 
+          -- Appropriate for all ages → no contradiction with watch_hachi
+          nomatch watch_hachi  -- Dummy failure (cannot get False)
+    )
+</lean>
+
+ANSWER: Failure

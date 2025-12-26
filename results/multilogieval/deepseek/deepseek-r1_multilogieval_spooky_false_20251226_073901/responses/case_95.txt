@@ -1,0 +1,136 @@
+The reasoning involves translating the natural language premises into Lean and attempting to prove the negation of the conclusion. The key question is whether "If Mary did not meet her friends for dinner, then it was an exciting night at the ballpark" can be disproven from the premises.
+
+### Lean Formalization:
+- `ClearUp`: Weather clears up
+- `ErrandsDoneMary`: Mary's errands are done
+- `MeetFriendsMary`: Mary meets friends for dinner
+- `GameOn`: Baseball game goes on
+- `FansCheer`: Fans get to cheer
+- `ExcitingNight`: Exciting night at the ballpark
+
+Premises:
+1. If weather clears, game goes on: `ClearUp → GameOn`
+2. If errands done, meet friends: `ErrandsDoneMary → MeetFriendsMary`
+3. Either weather clears or Mary's errands done (or both): `ClearUp ∨ ErrandsDoneMary`
+4. If game on, fans cheer: `GameOn → FansCheer`
+5. If fans cheer, exciting night: `FansCheer → ExcitingNight`
+
+Goal: Prove `¬MeetFriendsMary → ¬ExcitingNight` (if Mary didn't meet friends, it wasn't exciting).
+
+### Proof Attempt:
+- Assume `¬MeetFriendsMary` (Mary didn't meet friends).
+- From premise 2, by contrapositive: `¬MeetFriendsMary → ¬ErrandsDoneMary` (Mary's errands not done).
+- Premise 3: `ClearUp ∨ ErrandsDoneMary`. With `¬ErrandsDoneMary`, we get `ClearUp` (weather cleared).
+- `ClearUp` implies `GameOn` (premise 1), then `FansCheer` (premise 4), then `ExcitingNight` (premise 5).
+- Thus, `¬MeetFriendsMary` leads to `ExcitingNight`, not `¬ExcitingNight`.
+- The negation `¬MeetFriendsMary → ¬ExcitingNight` cannot be proven; it is contradicted.
+
+<lean>
+variable ClearUp : Prop
+variable ErrandsDoneMary : Prop
+variable MeetFriendsMary : Prop
+variable GameOn : Prop
+variable FansCheer : Prop
+variable ExcitingNight : Prop
+
+axiom P1 : ClearUp → GameOn
+axiom P2 : ErrandsDoneMary → MeetFriendsMary
+axiom P3 : ClearUp ∨ ErrandsDoneMary
+axiom P4 : GameOn → FansCheer
+axiom P5 : FansCheer → ExcitingNight
+
+-- Attempt to prove ¬MeetFriendsMary → ¬ExcitingNight
+theorem goal : ¬MeetFriendsMary → ¬ExcitingNight :=
+  fun h_no_meet : ¬MeetFriendsMary =>
+  fun h_excite : ExcitingNight =>
+  have h_no_errands : ¬ErrandsDoneMary := fun h_errands => h_no_meet (P2 h_errands)
+  have h_clear : ClearUp := by
+    cases P3 with
+    | inl h => exact h
+    | inr h => contradiction  -- Contradiction from h_no_errands and h
+  have h_game : GameOn := P1 h_clear
+  have h_cheer : FansCheer := P4 h_game
+  have : ExcitingNight := P5 h_cheer
+  show False from h_excite this  -- Contradiction found
+
+-- But note: the above proof actually shows that ¬MeetFriendsMary leads to ExcitingNight,
+-- meaning the goal (¬MeetFriendsMary → ¬ExcitingNight) is unprovable. Instead, we have:
+theorem actual_result : ¬MeetFriendsMary → ExcitingNight :=
+  fun h_no_meet : ¬MeetFriendsMary =>
+  have h_no_errands : ¬ErrandsDoneMary := fun h_errands => h_no_meet (P2 h_errands)
+  have h_clear : ClearUp := by
+    cases P3 with
+    | inl h => exact h
+    | inr h => contradiction
+  P5 (P4 (P1 h_clear))
+
+-- Since we proved ¬MeetFriendsMary → ExcitingNight, the negation (¬MeetFriendsMary → ¬ExcitingNight) is false.
+-- Thus, we cannot prove the negation.
+</lean>
+
+### Conclusion:
+The premises imply that if Mary didn't meet friends, the weather cleared, leading to an exciting night. The negation (that it wasn't exciting) cannot be proven.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred due to incorrect handling of variables and a logical error in the proof attempt. The key issues were:
+1. Using `variable` declarations improperly, causing scope issues
+2. Attempting to apply a term of type `ExcitingNight` as a function (`h_excite this`)
+3. Failing to recognize that the premises imply the opposite conclusion
+
+The corrected Lean code formalizes the propositions as axioms and demonstrates:
+- The attempted proof of "¬MeetFriendsMary → ¬ExcitingNight" fails because it leads to a dead end
+- The premises actually imply "¬MeetFriendsMary → ExcitingNight"
+- Therefore, the negation cannot be proven
+
+<lean>
+axiom ClearUp : Prop
+axiom ErrandsDoneMary : Prop
+axiom MeetFriendsMary : Prop
+axiom GameOn : Prop
+axiom FansCheer : Prop
+axiom ExcitingNight : Prop
+
+axiom P1 : ClearUp → GameOn
+axiom P2 : ErrandsDoneMary → MeetFriendsMary
+axiom P3 : ClearUp ∨ ErrandsDoneMary
+axiom P4 : GameOn → FansCheer
+axiom P5 : FansCheer → ExcitingNight
+
+-- Attempt to prove ¬MeetFriendsMary → ¬ExcitingNight
+theorem goal : ¬MeetFriendsMary → ¬ExcitingNight :=
+  fun h_no_meet : ¬MeetFriendsMary =>
+  fun h_excite : ExcitingNight =>
+  have h_no_errands : ¬ErrandsDoneMary := 
+    fun h_errands => h_no_meet (P2 h_errands)
+  have h_clear : ClearUp := by
+    cases P3 with
+    | inl h => exact h
+    | inr h => exact False.elim (h_no_errands h)
+  have h_game : GameOn := P1 h_clear
+  have h_cheer : FansCheer := P4 h_game
+  have h_exciting : ExcitingNight := P5 h_cheer
+  -- Cannot produce contradiction: have two ExcitingNight proofs
+  -- (h_excite and h_exciting) but no negation of ExcitingNight
+  sorry  -- Proof fails here
+
+-- Proof that ¬MeetFriendsMary implies ExcitingNight
+theorem actual_result : ¬MeetFriendsMary → ExcitingNight :=
+  fun h_no_meet : ¬MeetFriendsMary =>
+  have h_no_errands : ¬ErrandsDoneMary := 
+    fun h_errands => h_no_meet (P2 h_errands)
+  have h_clear : ClearUp := by
+    cases P3 with
+    | inl h => exact h
+    | inr h => exact False.elim (h_no_errands h)
+  P5 (P4 (P1 h_clear))
+
+-- Since actual_result proves ¬MeetFriendsMary → ExcitingNight,
+-- the negation (¬MeetFriendsMary → ¬ExcitingNight) is unprovable
+</lean>
+
+ANSWER: Failure

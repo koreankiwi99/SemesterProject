@@ -1,0 +1,57 @@
+<lean>
+constant Person : Type
+constant James : Person
+
+-- Predicates
+def Employee : Person → Prop := fun _ => False -- Placeholder, will be overridden by axioms
+def Manager : Person → Prop := fun _ => False
+def SchedulesMeeting : Person → Prop := fun _ => False
+def GoesToCompany : Person → Prop := fun _ => False
+def EatsLunchInBuilding : Person → Prop := fun _ => False
+def EatsLunchAtHome : Person → Prop := fun _ => False
+def WorksRemotely : Person → Prop := fun _ => False
+def InOtherCountry : Person → Prop := fun _ => False  -- Even if unused
+
+-- Axioms
+axiom manager_is_employee : ∀ p, Manager p → Employee p
+axiom axiom1 : ∀ p, Employee p → (SchedulesMeeting p → GoesToCompany p)
+axiom axiom2 : ∀ p, EatsLunchInBuilding p → SchedulesMeeting p
+axiom axiom3 : ∀ p, Employee p → (EatsLunchInBuilding p ∨ EatsLunchAtHome p)
+axiom axiom4 : ∀ p, Employee p → (EatsLunchAtHome p → WorksRemotely p)
+axiom axiom5 : ∀ p, Employee p → (InOtherCountry p → WorksRemotely p)
+axiom axiom6 : ∀ p, Manager p → ¬ WorksRemotely p
+axiom axiom7 : GoesToCompany James ↔ Manager James
+
+-- Attempt to prove James does not eat lunch in the company
+theorem not_eat_in_company : ¬ EatsLunchInBuilding James := by
+  intro h_in  -- Assume James eats in company
+  have h_sched := axiom2 James h_in         -- James schedules meetings
+  by_cases h_mgr : Manager James
+  · -- Case: James is manager
+    have h_emp : Employee James := manager_is_employee James h_mgr
+    have : EatsLunchInBuilding James ∨ EatsLunchAtHome James := axiom3 James h_emp
+    have h_not_remote := axiom6 James h_mgr
+    have h_not_home : ¬ EatsLunchAtHome James := by
+      intro h_home
+      exact h_not_remote (axiom4 James h_emp h_home)
+    cases this with
+    | inl inB => exact inB -- Contradiction? We get EatsLunchInBuilding, but we assumed it so this branch is fine
+    | inr home => exact absurd home h_not_home
+    -- This case provides witness for EatsLunchInBuilding, so cannot prove ¬EatsLunchInBuilding
+    done
+  · -- Case: James is not manager
+    have h_not_go := (axiom7.1).mt h_mgr  -- James doesn't go to company [if not manager]
+    have : Employee James := ?unprovable  -- Need James to be employee, but no evidence
+    -- If James were an employee, we would have:
+    /-
+    have h_go := axiom1 James this h_sched   -- GoesToCompany James
+    exact h_not_go h_go
+    -/
+    -- But we cannot establish Employee James without Manager James
+    done
+  done
+
+-- Since both cases are unresolved, theorem is unproven.
+</lean>
+
+ANSWER: Failure

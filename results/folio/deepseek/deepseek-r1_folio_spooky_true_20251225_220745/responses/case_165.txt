@@ -1,0 +1,59 @@
+The reasoning involves translating the given premises into Lean and proving the conclusion. The conclusion is: "If roses are given out during Breaking Bad, then it is on Monday at 8 pm." 
+
+After formalizing the premises:
+- There exists a show airing Monday at 8pm that gives roses.
+- Any show giving roses is an episode of The Bachelor.
+- The Bachelor portrays real lives.
+- Any show portraying real lives is a reality TV show.
+- Breaking Bad is a show and not a reality TV show.
+
+The proof shows that if roses were given during Breaking Bad, it would lead to a contradiction:
+1. Breaking Bad giving roses implies it is The Bachelor (Premise 2).
+2. The Bachelor portrays real lives (Premise 3), so it is a reality TV show (Premise 4).
+3. Thus, Breaking Bad would be a reality TV show, contradicting Premise 6.
+4. This contradiction implies the antecedent (roses given during Breaking Bad) is false, making the entire implication true vacuously.
+
+The Lean code formalizes this reasoning and proves the conclusion.
+
+<lean>
+axiom Episode : Type
+axiom Show : Type
+axiom Series : Episode → Show
+
+axiom breakingBad_series : Show
+axiom theBachelor_series : Show
+
+axiom AiringMonday8 : Episode → Prop
+axiom GivesRoses : Episode → Prop
+axiom PortraysRealLives : Show → Prop
+axiom RealityTV : Show → Prop
+
+-- Premise 1: Some show airing at 8 pm on Monday gives out roses.
+axiom P1 : ∃ e : Episode, AiringMonday8 e ∧ GivesRoses e
+
+-- Premise 2: If a show gives out roses, it is an episode of The Bachelor.
+axiom P2 : ∀ e : Episode, GivesRoses e → Series e = theBachelor_series
+
+-- Premise 3: The Bachelor portrays real lives.
+axiom P3 : PortraysRealLives theBachelor_series
+
+-- Premise 4: Shows portraying real lives are reality TV shows.
+axiom P4 : ∀ s : Show, PortraysRealLives s → RealityTV s
+
+-- Premise 6: Breaking Bad is not a reality TV show.
+axiom P6 : ¬ RealityTV breakingBad_series
+
+-- Define "during Breaking Bad" as an episode of Breaking Bad
+def DuringBreakingBad (e : Episode) : Prop := Series e = breakingBad_series
+
+-- Conclusion: If roses are given during Breaking Bad, then it airs Monday at 8pm.
+theorem breaking_bad_roses_imply_monday_8pm : ∀ e, DuringBreakingBad e → GivesRoses e → AiringMonday8 e := by
+  intro e H_during H_roses
+  have H_bachelor : Series e = theBachelor_series := P2 e H_roses
+  have H_eq : breakingBad_series = theBachelor_series := Eq.trans (Eq.symm H_during) H_bachelor
+  have H_bachelor_reality : RealityTV theBachelor_series := P4 theBachelor_series P3
+  have H_breaking_reality : RealityTV breakingBad_series := by rw [H_eq]; exact H_bachelor_reality
+  exact False.elim (P6 H_breaking_reality)
+</lean>
+
+ANSWER: True

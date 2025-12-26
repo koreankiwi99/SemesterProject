@@ -1,0 +1,70 @@
+<lean>
+axiom LastQuarter : Type
+axiom InvestedMarketing : Prop -- represents if the company invested in marketing last quarter
+axiom ProductionCostIncreased : Prop -- represents if production costs increased last quarter
+axiom SalesIncreased : Prop -- represents if sales increased last quarter
+
+-- Premise: If invested in marketing, sales increase (via customer gain)
+axiom invest_then_sales : InvestedMarketing → SalesIncreased
+
+-- Premise: Either marketing investment OR cost increase OR both occurred
+axiom factors : InvestedMarketing ∨ ProductionCostIncreased
+
+-- Given fact: Sales did not increase last quarter
+axiom sales_not_increased : ¬SalesIncreased
+
+-- Attempt to prove that production costs did NOT increase (the negation of the conclusion)
+theorem prove_negation : ¬ProductionCostIncreased := by
+  -- Prove that they didn't invest in marketing from first premise and given sales drop
+  have no_invest : ¬InvestedMarketing := fun h_invest => sales_not_increased (invest_then_sales h_invest)
+  -- Combine with disjunctive premise: if no marketing happened, costs MUST have increased
+  cases factors with
+  | inl h_invest => exact False.elim (no_invest h_invest)  -- Contradiction from marketing case
+  | inr h_cost => exact h_cost  -- Directly contradicts the theorem goal ¬ProductionCostIncreased
+  -- In the 'inr' case, we get evidence that costs increased (h_cost), making ¬ProductionCostIncreased impossible
+</lean>
+
+Explanation: The proof shows a contradiction when trying to establish ¬ProductionCostIncreased. From the given sales decrease, we derive that marketing investment didn't occur. The disjunction forces production costs to have increased when marketing didn't occur. Therefore, **we cannot prove the negation** (that costs didn't increase).
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The error occurred because the proof attempted to use `h_cost` (which has type `ProductionCostIncreased`) as a proof of `¬ProductionCostIncreased` in the `inr` branch. This is a type mismatch since `h_cost` is evidence that production costs increased, while the goal was to prove they did not increase.
+
+After re-examining the premises:
+1. If marketing investment occurs, sales increase
+2. Either marketing investment or cost increase (or both) occurred
+3. Sales did not increase
+
+We can derive:
+- Marketing investment did NOT occur (from 1 and 3)
+- Therefore, production costs MUST have increased (from 2 and the above)
+
+This means we can prove `ProductionCostIncreased` but cannot prove its negation (`¬ProductionCostIncreased`). The corrected Lean code below includes proofs of these facts and acknowledges that the negation cannot be proven.
+
+<lean>
+axiom LastQuarter : Type
+axiom InvestedMarketing : Prop
+axiom ProductionCostIncreased : Prop
+axiom SalesIncreased : Prop
+axiom invest_then_sales : InvestedMarketing → SalesIncreased
+axiom factors : InvestedMarketing ∨ ProductionCostIncreased
+axiom sales_not_increased : ¬SalesIncreased
+
+-- Proof of no marketing investment
+theorem no_invest : ¬InvestedMarketing := 
+  fun h_invest => sales_not_increased (invest_then_sales h_invest)
+
+-- Proof that production costs increased
+theorem cost_increased : ProductionCostIncreased := by
+  cases factors with
+  | inl h_invest => exact False.elim (no_invest h_invest)
+  | inr h_cost => exact h_cost
+
+-- Attempt to prove ¬ProductionCostIncreased fails because we have a proof of ProductionCostIncreased
+</lean>
+
+ANSWER: Failure

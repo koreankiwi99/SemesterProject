@@ -1,0 +1,85 @@
+The aim is to prove that if Team B did not lose the game, then Team A did not score more points. However, the premises lead to the opposite conclusion. Specifically:
+
+- Premise: If Team A scores more points, they win (but this does not specify that winning requires scoring more).
+- Premise: If Team B fumbles multiple times, they lose.
+- Premise: Either Team A scores more points or Team B fumbles multiple times (or both).
+- Given: Team B did not lose.
+
+From these, we derive:
+1. Since Team B did not lose, it follows that Team B did not fumble multiple times (by contraposition of the second premise).
+2. Using the disjunction (third premise), if Team B did not fumble, then Team A must have scored more points.
+
+Thus, under the given condition that Team B did not lose, Team A must have scored more points. Therefore, it is impossible to prove that Team A did not score more points. Attempting to do so results in a failure.
+
+<lean>
+axiom Team : Type
+axiom TeamA : Team
+axiom TeamB : Team
+axiom ScoreMore : Team → Prop
+axiom FumbleMultiple : Team → Prop
+axiom Win : Team → Prop
+axiom Lose : Team → Prop
+
+-- If Team A scores more, they win
+axiom P1 : ScoreMore TeamA → Win TeamA
+-- If Team B fumbles multiple times, they lose
+axiom P2 : FumbleMultiple TeamB → Lose TeamB
+-- Either Team A scores more or Team B fumbles multiple times (or both)
+axiom P3 : ScoreMore TeamA ∨ FumbleMultiple TeamB
+
+-- Attempt to prove: If TeamB did not lose, then TeamA did not score more
+theorem prove_negation (h : ¬Lose TeamB) : ¬ScoreMore TeamA :=  
+  fun a : ScoreMore TeamA => 
+    have notBfumble : ¬FumbleMultiple TeamB := fun bf => h (P2 bf)
+    have or_elim : ¬(FumbleMultiple TeamB) → ScoreMore TeamA := 
+      fun nbf => match P3 with
+        | Or.inl a => a
+        | Or.inr bf => absurd bf nbf
+    -- We have derived ScoreMore TeamA, contradicting the goal
+    or_elim notBfumble a
+
+-- If no contradiction is generated above, we would have succeeded. But Lean identifies:
+--   `or_elim notBfumble` provides a proof of `ScoreMore TeamA`, which directly conflicts with the assumption `a`.
+-- Hence, the theorem cannot be proven and the proof fails.
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation error occurred because the term `or_elim` was applied to two arguments (`notBfumble` and `a`), but `or_elim` was defined as a function taking only one argument (¬FumbleMultiple TeamB) and returning ScoreMore TeamA. Applying it to two arguments is invalid. More importantly, the proof strategy was flawed because no contradiction exists in the case where Team A scores more points.
+
+After correcting the code, we see:
+- Under the assumption that Team B did not lose (¬Lose TeamB), we derive ¬FumbleMultiple TeamB
+- From the disjunction (P3) and ¬FumbleMultiple TeamB, we derive ScoreMore TeamA
+- When attempting to prove ¬ScoreMore TeamA under ¬Lose TeamB, we assume ScoreMore TeamA but find no contradiction since the premises actually imply ScoreMore TeamA in this scenario
+
+The branch where Team A scores more points (Or.inl) yields no contradiction, making the proof impossible to complete. Therefore, we cannot prove that "If Team B did not lose, then Team A did not score more points."
+
+<lean>
+axiom Team : Type
+axiom TeamA : Team
+axiom TeamB : Team
+axiom ScoreMore : Team → Prop
+axiom FumbleMultiple : Team → Prop
+axiom Win : Team → Prop
+axiom Lose : Team → Prop
+
+axiom P1 : ScoreMore TeamA → Win TeamA
+axiom P2 : FumbleMultiple TeamB → Lose TeamB
+axiom P3 : ScoreMore TeamA ∨ FumbleMultiple TeamB
+
+theorem prove_negation (h : ¬Lose TeamB) : ¬ScoreMore TeamA := 
+  fun a : ScoreMore TeamA => 
+    have notBfumble : ¬FumbleMultiple TeamB := fun bf => h (P2 bf)
+    match P3 with
+    | Or.inl sm => 
+        -- No contradiction: both 'a' and 'sm' prove ScoreMore TeamA
+        False.elim (sorry)  -- Cannot produce actual contradiction
+    | Or.inr bf => 
+        notBfumble bf  -- Contradiction in this branch
+</lean>
+
+ANSWER: Failure

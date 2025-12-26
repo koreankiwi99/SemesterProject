@@ -1,0 +1,55 @@
+The natural language premises lead to a logical contradiction when applied to Hannah. Specifically:
+
+1. Hannah works in student jobs on campus (from 7th premise).
+2. Therefore, Hannah needs to earn money (from 1st premise).
+3. The 7th premise also states: if Hannah needs money, then she is not picky and does not need money.
+4. From (2) and (3), Hannah must not need money.
+5. (2) and (4) are contradictory.
+
+From this contradiction, any conclusion follows (via *ex falso quodlibet*). Therefore, the statement about Hannah follows necessarily from the premises.
+
+<lean>
+axiom Person : Type
+axiom Hannah : Person
+
+axiom Works : Person → Prop
+axiom NeedsMoney : Person → Prop
+axiom OrdersTakeout : Person → Prop
+axiom EnjoysDining : Person → Prop
+axiom Picky : Person → Prop
+axiom SpendsTime : Person → Prop
+
+-- Premise 1
+axiom P1 : ∀ p : Person, Works p → NeedsMoney p
+-- Premise 2
+axiom P2 : ∀ p : Person, OrdersTakeout p → Works p
+-- Premise 3
+axiom P3 : ∀ p : Person, OrdersTakeout p ∨ EnjoysDining p
+-- Premise 4
+axiom P4 : ∀ p : Person, EnjoysDining p → ¬ Picky p
+-- Premise 5
+axiom P5 : ∀ p : Person, EnjoysDining p → SpendsTime p
+
+-- Premise 7: Hannah-specific condition
+axiom Hannah_specific : 
+  Works Hannah ∧ 
+  (NeedsMoney Hannah → (¬ Picky Hannah ∧ ¬ NeedsMoney Hannah))
+
+theorem hannah_conclusion : 
+  ¬ Picky Hannah ∨ (Picky Hannah → SpendsTime Hannah) := by
+  -- Extract Hannah's work status
+  have hannah_works : Works Hannah := Hannah_specific.1
+  -- Hannah needs money by P1
+  have hannah_needs_money : NeedsMoney Hannah := P1 Hannah hannah_works
+  -- Apply implication from Hannah_specific
+  have hannah_implication : ¬ Picky Hannah ∧ ¬ NeedsMoney Hannah := 
+    Hannah_specific.2 hannah_needs_money
+  -- We now have both NeedsMoney Hannah (from P1) and ¬NeedsMoney Hannah (from implication)
+  have money_contradiction : NeedsMoney Hannah ∧ ¬ NeedsMoney Hannah := 
+    ⟨hannah_needs_money, hannah_implication.2⟩
+  -- Contradiction proves the goal by explosion
+  exact False.elim (money_contradiction.2 money_contradiction.1)
+
+</lean>
+
+ANSWER: True

@@ -1,0 +1,122 @@
+The Lean code below formalizes the given premises and attempts to prove the negation of the statement "Mike has a J1 visa". The premises are translated into axioms, and a theorem attempts to show ¬J1 Mike. However, the proof relies on case analysis for Mike's visa status (F1 or J1) and his work intent. The critical insight is:
+
+- If Mike wants to work and has an F1 visa, he must apply for CPT or OPT (Premise 2).  
+- Premise 4 requires Mike to apply for CPT if he wants to work.  
+- If Mike has a J1 visa (and not F1) but wants to work, we expect no application requirement from the given rules. Yet Premise 4 forces CPT application, creating conflict.  
+
+However, the proof fails because Premise 2 does not prohibit J1 visa holders from applying for CPT or OPT. The absence of visa exclusivity (using inclusive ∨) allows Mike to have both visas. The proof gets stuck when Mike has J1 without F1 but wants to work, as no contradiction arises between Premise 4 (requiring CPT) and the silence on J1 requirements. Hence, we cannot complete the proof.
+
+<lean>
+axiom Person : Type
+axiom Mike : Person
+axiom IS : Person → Prop  -- Is an international student
+axiom F1 : Person → Prop  -- Has F1 visa
+axiom J1 : Person → Prop  -- Has J1 visa
+axiom WantsToWork : Person → Prop 
+axiom ApplyForCPT : Person → Prop 
+axiom ApplyForOPT : Person → Prop 
+
+-- Premise: International students have either F1 or J1 (inclusive "or")
+axiom P1 : ∀ s, IS s → F1 s ∨ J1 s
+
+-- Premise: If an international student with F1 visa wants to work, they need CPT or OPT
+axiom P2 : ∀ s, IS s → F1 s → WantsToWork s → ApplyForCPT s ∨ ApplyForOPT s
+
+-- Premise: Mike is an international student
+axiom P3 : IS Mike
+
+-- Premise: Mike needs CPT if he wants to work
+axiom P4 : WantsToWork Mike → ApplyForCPT Mike
+
+-- Attempt to prove Mike does NOT have a J1 visa (i.e., ¬J1 Mike)
+theorem disprove_J1_Mike : ¬ J1 Mike := by
+  intro hJMike  -- Assume Mike has a J1 visa
+  -- Case analysis: Does Mike have F1 or not?
+  have hVisa := P1 Mike P3      -- F1 Mike ∨ J1 Mike
+  cases hVisa with
+  | inl hFMike => 
+    -- Case 1: Mike has F1 visa. But we assumed J1 Mike is true, which is possible if he has both.
+    -- This case doesn't yield a contradiction since visas are inclusive OR.
+    -- Fall through without contradiction.
+    admit 
+  | inr hJ => 
+    -- Case 2: Mike has J1 visa (and from intro, we know J1 Mike is true). 
+    -- Now consider: does Mike want to work?
+    by_cases hWantsWork : WantsToWork Mike
+    · -- Mike wants to work: Premise 4 forces ApplyForCPT Mike.
+      have hCPT := P4 hWantsWork          -- ApplyForCPT Mike
+      -- We have no information to derive a contradiction here. 
+      -- Premise 2 doesn't trigger (since F1 Mike must be false in this case), 
+      -- but P4 alone doesn't conflict with J1 visa.
+      admit 
+    · -- Mike doesn't want to work: cannot trigger application rules. Also no contradiction.
+      admit 
+-- Proof incomplete: Cannot derive False
+
+end 
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+<lean>
+axiom Person : Type
+axiom Mike : Person
+axiom IS : Person → Prop
+axiom F1 : Person → Prop
+axiom J1 : Person → Prop
+axiom WantsToWork : Person → Prop
+axiom ApplyForCPT : Person → Prop
+axiom ApplyForOPT : Person → Prop
+
+axiom P1 : ∀ s : Person, IS s → F1 s ∨ J1 s
+axiom P2 : ∀ s : Person, IS s → F1 s → WantsToWork s → ApplyForCPT s ∨ ApplyForOPT s
+axiom P3 : IS Mike
+axiom P4 : WantsToWork Mike → ApplyForCPT Mike
+
+theorem disprove_J1_Mike : ¬J1 Mike := by
+  intro hJ  -- Assume Mike has J1 visa
+  -- Show Mike is F1∨J1 visa holder
+  have visa_case : F1 Mike ∨ J1 Mike := P1 Mike P3  
+  cases visa_case with
+  | inl hF => 
+    -- Mike has F1 visa, but hJ says he has J1 - no exclusivity contradiction
+    -- Check if Mike wants to work:
+    have work_case : WantsToWork Mike ∨ ¬WantsToWork Mike := by apply Classical.em
+    cases work_case with
+    | inl hWork =>
+      have cpt : ApplyForCPT Mike := P4 hWork
+      have opt_or_cpt : ApplyForCPT Mike ∨ ApplyForOPT Mike := P2 Mike P3 hF hWork
+      -- No contradiction: F1+J1 with CPT requirement is consistent
+      sorry
+    | inr _ =>
+      -- No work intention → no application requirement → no contradiction
+      sorry
+  | inr hJ' => 
+    -- Mike has J1 visa exclusively (hJ already assumed)
+    have work_case : WantsToWork Mike ∨ ¬WantsToWork Mike := by apply Classical.em
+    cases work_case with
+    | inl hWork =>
+      have cpt : ApplyForCPT Mike := P4 hWork
+      -- Premise 2 doesn't apply since Mike doesn't have F1 visa
+      -- No constraint violation since CPT could be valid for J1 visas
+      sorry
+    | inr _ => 
+      -- No work intention → no conflict
+      sorry
+-- No branch produces contradiction
+</lean>
+
+After careful formalization:
+
+1. The premises allow Mike to have both visas (P1 uses inclusive OR)
+2. P4 requires CPT when Mike wants to work, regardless of visa
+3. J1 visa holders applying for CPT isn't prohibited
+4. The assumption "Mike has J1" doesn't contradict the premises
+
+The negation (¬J1 Mike) cannot be proven. 
+
+ANSWER: Failure

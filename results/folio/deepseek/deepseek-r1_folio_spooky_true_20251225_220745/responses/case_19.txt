@@ -1,0 +1,158 @@
+The logic challenge requires translating natural language premises into Lean and proving the conclusion: "If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish."
+
+**Key observations from premises:**
+1. `Spotted(Rockie) ∧ Calm(Rockie)` (Premise 6)
+2. Spotted entities are rabbits or squirrels (Premise 3).
+3. If Rockie were a squirrel, then:
+   - Premise 5 implies `Skittish(Rockie)`
+   - Premise 4 implies `¬Calm(Rockie)`, contradicting `Calm(Rockie)`.
+4. Thus, Rockie must be a rabbit (closed case by contradiction).
+5. As a spotted rabbit (Premises 1, 6), Rockie is cute.
+6. Therefore, `Cute(Rockie)` holds unconditionally, proving the consequent `Cute(Rockie) ∨ Skittish(Rockie)` regardless of the antecedent.
+
+The implication holds since the antecedent's truth value does not affect the already-true consequent.
+
+<lean>
+constant U : Type
+constant Rockie : U
+constant Rabbit : U → Prop
+constant Turtle : U → Prop
+constant Squirrel : U → Prop
+constant Spotted : U → Prop
+constant Cute : U → Prop
+constant Skittish : U → Prop
+constant Calm : U → Prop
+
+axiom P1 : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom P3 : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom P4 : ∀ x, Skittish x → ¬ Calm x
+axiom P5 : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom P6 : Spotted Rockie ∧ Calm Rockie
+
+theorem rockie_rabbit : Rabbit Rockie := by
+  have spotted : Spotted Rockie := P6.1
+  have calm : Calm Rockie := P6.2
+  cases P3 Rockie spotted with
+  | inl hr => exact hr
+  | inr hs => 
+      have skittish : Skittish Rockie := P5 Rockie ⟨hs, spotted⟩
+      have not_calm : ¬ Calm Rockie := P4 Rockie skittish
+      contradiction
+
+theorem rockie_cute : Cute Rockie := by
+  apply P1 Rockie
+  exact ⟨rockie_rabbit, P6.1⟩
+
+theorem goal : (¬ (Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie) := 
+  fun _ => Or.inl rockie_cute
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The compilation errors occurred because the bound variable `x` in the axioms was not explicitly typed. Adding `(x : U)` to each axiom resolves the issue. The corrected Lean code proves the conclusion as follows:
+
+1. **Premises Analysis**:
+   - Rockie is spotted and calm (P6).
+   - Spotted animals are rabbits or squirrels (P3).
+   - If Rockie were a squirrel, it would be skittish (P5), leading to a contradiction with calmness (P4). Thus, Rockie must be a rabbit (theorem `rockie_rabbit`).
+   - As a spotted rabbit, Rockie is cute (P1, theorem `rockie_cute`).
+
+2. **Conclusion Proof**:
+   - The consequent "Rockie is cute or skittish" holds unconditionally (since Rockie is cute).
+   - The antecedent ("Rockie is not both a turtle and a squirrel") is irrelevant to the truth of the consequent. Thus, the implication is true.
+
+<lean>
+constant U : Type
+constant Rockie : U
+constant Rabbit : U → Prop
+constant Turtle : U → Prop
+constant Squirrel : U → Prop
+constant Spotted : U → Prop
+constant Cute : U → Prop
+constant Skittish : U → Prop
+constant Calm : U → Prop
+
+axiom P1 : ∀ (x : U), Rabbit x ∧ Spotted x → Cute x
+axiom P3 : ∀ (x : U), Spotted x → Rabbit x ∨ Squirrel x
+axiom P4 : ∀ (x : U), Skittish x → ¬ Calm x
+axiom P5 : ∀ (x : U), Squirrel x ∧ Spotted x → Skittish x
+axiom P6 : Spotted Rockie ∧ Calm Rockie
+
+theorem rockie_rabbit : Rabbit Rockie := by
+  have spotted : Spotted Rockie := P6.1
+  have calm : Calm Rockie := P6.2
+  cases P3 Rockie spotted with
+  | inl hr => exact hr
+  | inr hs =>
+      have skittish : Skittish Rockie := P5 Rockie ⟨hs, spotted⟩
+      have not_calm : ¬ Calm Rockie := P4 Rockie skittish
+      contradiction
+
+theorem rockie_cute : Cute Rockie := by
+  apply P1 Rockie
+  exact ⟨rockie_rabbit, P6.1⟩
+
+theorem goal : (¬ (Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie) := 
+  fun _ => Or.inl rockie_cute
+</lean>
+
+ANSWER: True
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to Lean's automatic introduction of implicit variables, which caused ambiguity in the type declarations. By adding `set_option autoImplicit false` at the beginning, we enforce explicit type declarations throughout the code. The corrected Lean code proves the conclusion as follows:
+
+1. **Premises Analysis**:
+   - Rockie is spotted and calm (P6).
+   - Spotted animals are exclusively rabbits or squirrels (P3).
+   - If Rockie were a squirrel, it would be skittish (P5), contradicting calmness (P4). Thus, Rockie must be a rabbit (theorem `rockie_rabbit`).
+   - As a spotted rabbit, Rockie is cute (P1, theorem `rockie_cute`).
+
+2. **Conclusion Proof**:
+   - The consequent "Rockie is cute or skittish" holds unconditionally (since Rockie is cute).
+   - The antecedent ("Rockie is not both a turtle and a squirrel") is irrelevant to the truth of the consequent. Thus, the implication is true.
+
+<lean>
+set_option autoImplicit false
+
+axiom U : Type
+axiom Rockie : U
+axiom Rabbit : U → Prop
+axiom Turtle : U → Prop
+axiom Squirrel : U → Prop
+axiom Spotted : U → Prop
+axiom Cute : U → Prop
+axiom Skittish : U → Prop
+axiom Calm : U → Prop
+
+axiom P1 : ∀ (x : U), Rabbit x ∧ Spotted x → Cute x
+axiom P3 : ∀ (x : U), Spotted x → Rabbit x ∨ Squirrel x
+axiom P4 : ∀ (x : U), Skittish x → ¬ Calm x
+axiom P5 : ∀ (x : U), Squirrel x ∧ Spotted x → Skittish x
+axiom P6 : Spotted Rockie ∧ Calm Rockie
+
+theorem rockie_rabbit : Rabbit Rockie := by
+  have spotted : Spotted Rockie := P6.1
+  have calm : Calm Rockie := P6.2
+  cases P3 Rockie spotted with
+  | inl hr => exact hr
+  | inr hs =>
+      have skittish : Skittish Rockie := P5 Rockie ⟨hs, spotted⟩
+      have not_calm : ¬ Calm Rockie := P4 Rockie skittish
+      contradiction
+
+theorem rockie_cute : Cute Rockie := by
+  apply P1 Rockie
+  exact ⟨rockie_rabbit, P6.1⟩
+
+theorem goal : (¬ (Turtle Rockie ∧ Squirrel Rockie)) → (Cute Rockie ∨ Skittish Rockie) := 
+  fun _ => Or.inl rockie_cute
+</lean>
+
+ANSWER: True

@@ -14,7 +14,6 @@ Usage:
 """
 
 import sys
-import re
 import asyncio
 import argparse
 from pathlib import Path
@@ -36,7 +35,7 @@ PROMPTS = {
     "stage1_system": "prompts/twostage/two-stage1_system.txt",
     "stage1_user": "prompts/twostage/two-stage1_user.txt",
     "stage1_feedback": "prompts/twostage/two-stage1_feedback.txt",
-    "stage1_no_code": "prompts/simplelean-shared/no_lean_code_feedback.txt",
+    "stage1_no_code": "prompts/twostage/two-stage1_no_code.txt",
     "stage2_system": "prompts/twostage/two-stage2_system.txt",
     "stage2_user": "prompts/twostage/two-stage2_user.txt",
     "stage2_feedback": "prompts/twostage/two-stage2_feedback.txt",
@@ -45,28 +44,6 @@ PROMPTS = {
 
 # Answer format for parsing
 ANSWER_FORMAT = {"True": "True", "False": "False", "Uncertain": "Uncertain"}
-
-
-def extract_proof_term(response: str) -> str:
-    """Extract proof term from <proof></proof> tags."""
-    # Try <proof></proof> tags first
-    match = re.search(r'<proof>(.*?)</proof>', response, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-
-    # Fallback: look for code block after "proof term" mention
-    match = re.search(r'```(?:lean)?\s*(.*?)```', response, re.DOTALL)
-    if match:
-        return match.group(1).strip()
-
-    # Last resort: take last line that looks like code
-    lines = response.strip().split('\n')
-    for line in reversed(lines):
-        line = line.strip()
-        if line and not line.startswith('ANSWER') and not line.startswith('#'):
-            return line
-
-    return ""
 
 
 def get_token_usage(response) -> dict:
@@ -173,8 +150,7 @@ async def run_stage1(
         else:
             iteration_data['lean_error'] = "No Lean code found in response"
             if iteration < max_iterations - 1:
-                feedback = no_code_template.format(answer_format="True/False/Uncertain")
-                conversation_history.append({"role": "user", "content": feedback})
+                conversation_history.append({"role": "user", "content": no_code_template})
 
         iterations.append(iteration_data)
 
@@ -224,8 +200,8 @@ async def run_stage2(
         prediction, parse_status = parse_answer(llm_response, ANSWER_FORMAT)
         last_prediction = prediction
 
-        # Extract proof term
-        proof_term = extract_proof_term(llm_response)
+        # Extract complete Lean code (with proof replacing sorry)
+        full_code = extract_lean_code(llm_response)
 
         iteration_data = {
             'iteration': iteration + 1,
@@ -233,14 +209,12 @@ async def run_stage2(
             'reasoning_content': reasoning_content,
             'prediction': prediction,
             'parse_status': parse_status,
-            'proof_term': proof_term,
+            'lean_code': full_code,
             'lean_error': None,
             'token_usage': token_usage,
         }
 
-        if proof_term:
-            # Replace sorry with proof term
-            full_code = stage1_code.replace(":= sorry", f":= {proof_term}")
+        if full_code:
 
             # Verify complete proof
             verification = await verify_with_lean_async(full_code, lean_server)
@@ -264,7 +238,7 @@ async def run_stage2(
                 )
                 conversation_history.append({"role": "user", "content": feedback})
         else:
-            iteration_data['lean_error'] = "No proof term found in response"
+            iteration_data['lean_error'] = "No Lean code found in response"
             if iteration < max_iterations - 1:
                 conversation_history.append({"role": "user", "content": no_proof_template})
 

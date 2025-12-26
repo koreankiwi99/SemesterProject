@@ -1,0 +1,206 @@
+```lean
+<lean>
+axiom Movie : Type
+axiom Character : Type
+
+-- Specific entities
+axiom M : Movie
+axiom digby : Character
+axiom nemesis : Character
+
+-- Predicates
+axiom SuperheroMovie : Movie → Prop
+axiom Fights : Character → Character → Prop
+axiom GoodGuy : Character → Prop
+axiom BadGuy : Character → Prop
+axiom Wins : Character → Character → Prop  -- Wins x y means x wins the fight against y
+axiom NamedAfter : Movie → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+-- Premises
+axiom movie_superhero : SuperheroMovie M
+axiom digby_fights_nemesis : Fights digby nemesis
+axiom fight_roles : ∀ (x y : Character), Fights x y → 
+  (GoodGuy x ∧ BadGuy y) ∨ (GoodGuy y ∧ BadGuy x)
+axiom naming_rule : ∀ (m : Movie) (x : Character), 
+  SuperheroMovie m → NamedAfter m x → GoodGuy x ∧ InMovie x m
+axiom named_after_digby : NamedAfter M digby
+axiom win_exclusive : ∀ (x y : Character), Wins x y → ¬ Wins y x
+
+-- Conclusion to refute: "Sir Digby’s nemesis does not win"
+-- We try to prove that this is false, i.e., nemesis wins against digby (Wins nemesis digby)
+
+theorem refute_nemesis_does_not_win : Wins nemesis digby := 
+  let digby_good : GoodGuy digby := (naming_rule M digby movie_superhero named_after_digby).1
+  let fight_roles_specific := fight_roles digby nemesis digby_fights_nemesis
+  have : GoodGuy digby ∧ BadGuy nemesis := by
+    cases fight_roles_specific
+    case inl h => exact h
+    case inr h => 
+      have : GoodGuy nemesis ∧ BadGuy digby := h
+      absurd digby_good
+      exact this.2
+  -- At this point we know: digby is good, nemesis is bad.
+  -- BUT: There is NO axiom stating good guys win individual fights in superhero movies.
+  -- The premise "good guys always win" is overall/collective, not per fight.
+  -- Sir Digby might lose his fight even if the good guys win overall.
+  -- We cannot derive Wins digby nemesis or Wins nemesis digby.
+  -- Thus, we cannot prove Wins nemesis digby.
+  sorry  -- Stuck here: no contradiction found for the negation.
+
+-- Since we cannot complete the proof, we output Failure.
+</lean>
+```
+
+The premises establish that Sir Digby is a good guy and his nemesis is a bad guy, but **do not prove the outcome of their fight**. The global statement "good guys always win" (collective victory) does not entail that every individual good guy wins every fight. Since we cannot prove that the nemesis wins (to refute the original statement), the negation cannot be proven.
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The errors occurred due to missing premises and incorrect handling of role assignments in the proof. The key issues were:
+
+1. Missing the critical premise: "In superhero movies, the good guys always win"
+2. Lack of evidence that the nemesis is in the movie
+3. Inability to prove role exclusivity (good/bad) without additional axioms
+
+Here's the corrected Lean code:
+
+<lean>
+axiom Movie : Type
+axiom Character : Type
+
+-- Specific entities
+axiom M : Movie
+axiom digby : Character
+axiom nemesis : Character
+
+-- Predicates
+axiom SuperheroMovie : Movie → Prop
+axiom Fights : Character → Character → Prop
+axiom GoodGuy : Character → Prop
+axiom BadGuy : Character → Prop
+axiom Wins : Character → Character → Prop
+axiom NamedAfter : Movie → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+-- Premises
+axiom movie_superhero : SuperheroMovie M
+axiom digby_fights_nemesis : Fights digby nemesis
+axiom fight_roles : ∀ (x y : Character), Fights x y → 
+  (GoodGuy x ∧ BadGuy y) ∨ (GoodGuy y ∧ BadGuy x)
+axiom naming_rule : ∀ (m : Movie) (x : Character), 
+  SuperheroMovie m → NamedAfter m x → GoodGuy x ∧ InMovie x m
+axiom named_after_digby : NamedAfter M digby
+axiom win_exclusive : ∀ (x y : Character), Wins x y → ¬ Wins y x
+
+-- Added missing premise: "In superhero movies, the good guys always win"
+axiom good_guys_win : ∀ (m : Movie), SuperheroMovie m →
+  ∀ (x y : Character), InMovie x m → InMovie y m → Fights x y → 
+  GoodGuy x → BadGuy y → Wins x y
+
+-- Conclusion to refute: "Sir Digby’s nemesis does not win"
+theorem refute_nemesis_does_not_win : Wins nemesis digby := by
+  -- Sir Digby is good and in movie
+  have digby_good := (naming_rule M digby movie_superhero named_after_digby).1
+  have digby_in_movie := (naming_rule M digby movie_superhero named_after_digby).2
+
+  -- Analyze fight roles
+  cases fight_roles digby nemesis digby_fights_nemesis with
+  | inl h =>  -- Case: Digby good, nemesis bad
+    have nemesis_bad := h.2
+    -- Cannot proceed: missing nemesis_in_movie evidence
+    sorry
+  | inr h =>  -- Case: Nemesis good, digby bad
+    have nemesis_good := h.1
+    have digby_bad := h.2
+    -- Contradiction: digby_good and digby_bad can coexist per premises?
+    -- Even if contradiction, still missing nemesis_in_movie for good_guys_win
+    contradiction  -- Fails since no role exclusivity axiom
+</lean>
+
+**Explanation:**
+1. Added missing `good_guys_win` axiom to capture the first premise
+2. The proof fails because:
+   - No evidence that nemesis is in the movie (`InMovie nemesis M`)
+   - Premises don't prohibit characters from being both good/bad
+   - `good_guys_win` requires both fighters to be in the movie
+3. Cannot prove `Wins nemesis digby` due to insufficient evidence about:
+   - Nemesis's movie presence
+   - Role exclusivity (good/bad status)
+   - Actual fight outcome
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The errors occurred due to two main issues:
+1. Missing role exclusivity axiom (a character can't be both good and bad)
+2. Insufficient evidence about nemesis's presence in the movie
+
+Here's the corrected Lean code with proper role exclusivity handling:
+
+<lean>
+axiom Movie : Type
+axiom Character : Type
+
+axiom M : Movie
+axiom digby : Character
+axiom nemesis : Character
+
+axiom SuperheroMovie : Movie → Prop
+axiom Fights : Character → Character → Prop
+axiom GoodGuy : Character → Prop
+axiom BadGuy : Character → Prop
+axiom Wins : Character → Character → Prop
+axiom NamedAfter : Movie → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+-- Premises
+axiom movie_superhero : SuperheroMovie M
+axiom digby_fights_nemesis : Fights digby nemesis
+axiom fight_roles : ∀ (x y : Character), Fights x y → 
+  (GoodGuy x ∧ BadGuy y) ∨ (GoodGuy y ∧ BadGuy x)
+axiom naming_rule : ∀ (m : Movie) (x : Character), 
+  SuperheroMovie m → NamedAfter m x → GoodGuy x ∧ InMovie x m
+axiom named_after_digby : NamedAfter M digby
+axiom win_exclusive : ∀ (x y : Character), Wins x y → ¬ Wins y x
+axiom good_guys_win : ∀ (m : Movie), SuperheroMovie m →
+  ∀ (x y : Character), InMovie x m → InMovie y m → Fights x y → 
+  GoodGuy x → BadGuy y → Wins x y
+
+-- Critical missing axiom: Role exclusivity
+axiom role_exclusive : ∀ (c : Character), ¬ (GoodGuy c ∧ BadGuy c)
+
+theorem refute_nemesis_does_not_win : Wins nemesis digby := by
+  -- Establish Digby's properties
+  have digby_good : GoodGuy digby := (naming_rule M digby movie_superhero named_after_digby).1
+  have digby_in_movie : InMovie digby M := (naming_rule M digby movie_superhero named_after_digby).2
+
+  -- Analyze fight roles
+  cases fight_roles digby nemesis digby_fights_nemesis with
+  | inl h =>  -- Case: Digby good, nemesis bad
+    have nemesis_bad := h.2
+    -- Cannot proceed: missing evidence that nemesis is in the movie
+    sorry
+  | inr h =>  -- Case: Nemesis good, digby bad
+    have nemesis_good := h.1
+    have digby_bad := h.2
+    -- Contradiction: Digby cannot be both good and bad
+    exact False.elim (role_exclusive digby ⟨digby_good, digby_bad⟩)
+</lean>
+
+**Explanation:**
+1. Added `role_exclusive` axiom to resolve the contradiction case
+2. The proof still fails because:
+   - No evidence exists that nemesis is in the movie (`InMovie nemesis M`)
+   - The `good_guys_win` axiom requires both fighters to be in the movie
+   - Premises don't provide nemesis's movie presence
+3. The first case (Digby good/nemesis bad) remains unprovable due to insufficient information
+4. The original conclusion ("nemesis does not win") cannot be refuted
+
+ANSWER: Failure

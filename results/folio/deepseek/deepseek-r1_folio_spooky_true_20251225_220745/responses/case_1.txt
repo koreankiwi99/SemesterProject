@@ -1,0 +1,47 @@
+The reasoning context is modeled in Lean using appropriate predicates to represent the natural language statements. The key insight is that the consequent of the statement to evaluate (Bonnie is either a student or inactive) holds unconditionally given the premises, regardless of the antecedent. This is proven via case analysis on Bonnie's club status (from premise 2): 
+- If Bonnie performs in talent shows, she attends/engages (premise 1), hence she is a student (Bonnie equivalence axiom). 
+- If Bonnie is inactive, she chaperones dances (premise 4). 
+
+The antecedent (about Bonnie being a young wisher who chaperones, or not a young wisher) is irrelevant to proving the consequent true. Thus, the entire conditional statement holds.
+
+<lean>
+axiom Person : Type
+axiom Bonnie : Person
+
+-- Predicates
+axiom Club : Person → Prop
+axiom Performs : Person → Prop
+axiom Attends : Person → Prop
+axiom Engaged : Person → Prop
+axiom Inactive : Person → Prop
+axiom Student : Person → Prop
+axiom Chaperones : Person → Prop
+axiom Young : Person → Prop
+axiom Wishes : Person → Prop
+
+-- Premises
+axiom P1 : ∀ p, Club p → Performs p → (Attends p ∧ Engaged p)
+axiom P2 : ∀ p, Club p → (Performs p ∨ Inactive p)
+axiom P3 : ∀ p, Club p → Chaperones p → ¬ Student p
+axiom P4 : ∀ p, Club p → Inactive p → Chaperones p
+-- P5 is unused in the proof but included for completeness
+axiom P5 : ∀ p, Club p → Young p → Wishes p → Student p
+axiom Club_Bonnie : Club Bonnie
+axiom Bonnie_eq : (Attends Bonnie ∧ Engaged Bonnie) ↔ Student Bonnie
+
+-- First, prove that Bonnie is either a student or inactive (unconditionally)
+theorem bonnie_student_or_inactive : Student Bonnie ∨ Inactive Bonnie := by
+  cases (P2 Bonnie Club_Bonnie) with
+  | inl perf =>
+      have att_eng : Attends Bonnie ∧ Engaged Bonnie := P1 Bonnie Club_Bonnie perf
+      rw [Bonnie_eq] at att_eng
+      exact Or.inl att_eng
+  | inr inact => exact Or.inr inact
+
+-- The target statement: antecedent → consequent
+theorem target : (((Young Bonnie ∧ Wishes Bonnie) ∧ Chaperones Bonnie) ∨ ¬ (Young Bonnie ∧ Wishes Bonnie)) → (Student Bonnie ∨ Inactive Bonnie) := by
+  intro _
+  exact bonnie_student_or_inactive -- Consequent is always true
+</lean>
+
+ANSWER: True

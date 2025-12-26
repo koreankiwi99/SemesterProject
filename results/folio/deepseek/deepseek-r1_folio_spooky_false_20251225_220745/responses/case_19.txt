@@ -1,0 +1,202 @@
+The premises lead to a contradiction only if Rockie is a squirrel, but Rockie could be a rabbit without contradiction. Specifically:
+- Rockie is spotted and calm.
+- From premise 3, Rockie is either a rabbit or a squirrel.
+- If Rockie is a squirrel, then by premise 5, Rockie is skittish, which contradicts premise 4 given Rockie's calmness.
+- If Rockie is a rabbit, then by premise 1, Rockie is cute, which is consistent with all premises.
+
+The statement to evaluate is: "If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish." When Rockie is a rabbit:
+- Rockie is not a squirrel (assuming disjoint types, though not explicitly stated), so the antecedent is true.
+- Rockie is cute, so the consequent is true, making the statement true.
+
+Thus, the negation of the statement cannot be proven from the premises. The premises do not entail a contradiction (as the rabbit case is consistent), so proving the statement's negation is impossible.
+
+<lean>
+axiom Animal : Type
+axiom Spotted : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+
+axiom all_spotted_rabbits_cute : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom some_spotted_turtle : ∃ x, Turtle x ∧ Spotted x
+axiom only_rabbits_squirrels_spotted : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom skittish_not_calm : ∀ x, Skittish x → ¬ Calm x
+axiom all_spotted_squirrels_skittish : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom Rockie : Animal
+axiom rockie_spotted : Spotted Rockie
+axiom rockie_calm : Calm Rockie
+
+def statement : Prop :=
+  ¬ (Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie)
+
+theorem neg_statement : ¬ statement :=
+  fun h : ¬ (Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie) => 
+  have not_skittish : ¬ Skittish Rockie := 
+    fun hs => skittish_not_calm Rockie hs rockie_calm
+  have rockie_rabbit_or_squirrel : Rabbit Rockie ∨ Squirrel Rockie := 
+    only_rabbits_squirrels_spotted Rockie rockie_spotted
+  have not_cute : ¬ Cute Rockie := by
+    intro hc
+    -- No contradiction if Rabbit; only if Squirrel leads to contradiction
+    cases rockie_rabbit_or_squirrel with
+    | inl h_rabbit => 
+        -- Rockie is rabbit and cute, consistent
+        exact False.elim (by admit)  -- Cannot derive contradiction here
+    | inr h_squirrel => 
+        have : Skittish Rockie := all_spotted_squirrels_skittish Rockie ⟨h_squirrel, rockie_spotted⟩
+        exact not_skittish this
+  have : ¬ (Cute Rockie ∨ Skittish Rockie) := 
+    fun h' => match h' with
+    | Or.inl hc => not_cute hc
+    | Or.inr hs => not_skittish hs
+  have : Cute Rockie ∨ Skittish Rockie := h (by 
+    intro ⟨ht, hs⟩
+    cases rockie_rabbit_or_squirrel with
+    | inl h_rabbit => 
+        -- If Rockie is rabbit, not squirrel (assuming disjoint), so hs false
+        exact False.elim (by admit)  -- Disjointness not assumed, so no contradiction
+    | inr h_squirrel => 
+        -- If Rockie is squirrel, antecedent condition not met if also turtle? But no disjointness
+        exact False.elim (by admit)  -- Cannot prove ¬(Turtle ∧ Squirrel) universally
+  )
+  this <| this
+
+theorem false_from_premises : False := by
+  have : Rabbit Rockie ∨ Squirrel Rockie := 
+    only_rabbits_squirrels_spotted Rockie rockie_spotted
+  cases this
+  case inl h_rabbit =>
+    have : Cute Rockie := all_spotted_rabbits_cute Rockie ⟨h_rabbit, rockie_spotted⟩
+    -- No contradiction; admit failure
+    admit
+  case inr h_squirrel =>
+    have : Skittish Rockie := all_spotted_squirrels_skittish Rockie ⟨h_squirrel, rockie_spotted⟩
+    have : ¬ Calm Rockie := skittish_not_calm Rockie this
+    exact this rockie_calm
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 2
+======================================================================
+
+The Lean code attempts to prove the negation of the statement "If Rockie is not both a turtle and a squirrel, then Rockie is either cute or skittish" from the given premises. However, the premises imply that Rockie must be a rabbit (not a squirrel) and is cute, making the statement true. The negation cannot be proven, and no contradiction arises from the premises.
+
+Corrected Lean code:
+<lean>
+axiom Animal : Type
+axiom Spotted : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+
+axiom all_spotted_rabbits_cute : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom some_spotted_turtle : ∃ x, Turtle x ∧ Spotted x
+axiom only_rabbits_squirrels_spotted : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom skittish_not_calm : ∀ x, Skittish x → ¬ Calm x
+axiom all_spotted_squirrels_skittish : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom Rockie : Animal
+axiom rockie_spotted : Spotted Rockie
+axiom rockie_calm : Calm Rockie
+
+def statement : Prop :=
+  ¬ (Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie)
+
+lemma not_squirrel : ¬ Squirrel Rockie := by
+  intro h
+  have : Skittish Rockie := all_spotted_squirrels_skittish Rockie ⟨h, rockie_spotted⟩
+  exact skittish_not_calm Rockie this rockie_calm
+
+lemma is_rabbit : Rabbit Rockie := by
+  cases only_rabbits_squirrels_spotted Rockie rockie_spotted with
+  | inl h => exact h
+  | inr h => exact absurd h not_squirrel
+
+lemma is_cute : Cute Rockie :=
+  all_spotted_rabbits_cute Rockie ⟨is_rabbit, rockie_spotted⟩
+
+lemma not_skittish : ¬ Skittish Rockie :=
+  fun h => skittish_not_calm Rockie h rockie_calm
+
+theorem neg_statement : ¬ statement := by
+  intro h
+  admit
+
+theorem false_from_premises : False := by
+  admit
+</lean>
+
+ANSWER: Failure
+
+======================================================================
+ITERATION 3
+======================================================================
+
+The compilation errors occurred due to mixing term-style proofs with tactic proofs improperly and attempting to prove lemmas that aren't directly needed. The key issue is that the negation of the statement cannot be proven from the premises. Below is corrected Lean code:
+
+<lean>
+axiom Animal : Type
+axiom Spotted : Animal → Prop
+axiom Cute : Animal → Prop
+axiom Skittish : Animal → Prop
+axiom Calm : Animal → Prop
+axiom Rabbit : Animal → Prop
+axiom Turtle : Animal → Prop
+axiom Squirrel : Animal → Prop
+
+axiom all_spotted_rabbits_cute : ∀ x, Rabbit x ∧ Spotted x → Cute x
+axiom some_spotted_turtle : ∃ x, Turtle x ∧ Spotted x
+axiom only_rabbits_squirrels_spotted : ∀ x, Spotted x → Rabbit x ∨ Squirrel x
+axiom skittish_not_calm : ∀ x, Skittish x → ¬ Calm x
+axiom all_spotted_squirrels_skittish : ∀ x, Squirrel x ∧ Spotted x → Skittish x
+axiom Rockie : Animal
+axiom rockie_spotted : Spotted Rockie
+axiom rockie_calm : Calm Rockie
+
+def statement : Prop :=
+  ¬ (Turtle Rockie ∧ Squirrel Rockie) → (Cute Rockie ∨ Skittish Rockie)
+
+lemma not_squirrel : ¬ Squirrel Rockie := by
+  intro h
+  have : Skittish Rockie := all_spotted_squirrels_skittish Rockie ⟨h, rockie_spotted⟩
+  exact skittish_not_calm Rockie this rockie_calm
+
+lemma is_rabbit : Rabbit Rockie := by
+  cases only_rabbits_squirrels_spotted Rockie rockie_spotted with
+  | inl h => exact h
+  | inr h => exact absurd h not_squirrel
+
+lemma is_cute : Cute Rockie := by
+  apply all_spotted_rabbits_cute Rockie
+  exact ⟨is_rabbit, rockie_spotted⟩
+
+lemma not_skittish : ¬ Skittish Rockie := by
+  intro h
+  exact skittish_not_calm Rockie h rockie_calm
+
+theorem neg_statement : ¬ statement := by
+  intro h
+  -- Attempt to derive contradiction from assuming statement is false
+  -- We know: ¬(Turtle ∧ Squirrel) → (Cute ∨ Skittish) is false
+  -- This requires ¬(Turtle ∧ Squirrel) true and (Cute ∨ Skittish) false
+  -- But (Cute ∨ Skittish) is false only if ¬Cute ∧ ¬Skittish
+  have : Cute Rockie ∨ Skittish Rockie := by
+    apply Or.inl
+    exact is_cute
+  -- Since we have Cute Rockie, (Cute ∨ Skittish) is true
+  -- Cannot satisfy the condition for the implication to be false
+  admit
+
+theorem false_from_premises : False := by
+  -- Premises are consistent: Rockie is rabbit, cute, calm
+  admit
+</lean>
+
+ANSWER: Failure

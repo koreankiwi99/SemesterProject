@@ -404,7 +404,7 @@ async def main():
     print(f"Running two-stage experiment on {len(cases)} cases")
 
     # Initialize client and Lean server
-    client = create_client(args.model)
+    client = create_client(model=args.model)
     lean_server = create_lean_server()
 
     # Initialize saver

@@ -1,0 +1,848 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and a conclusion. We need to formalize the logical structure.
+
+Steps:
+1. Identify the types and predicates.
+2. Declare axioms for the premises.
+3. Declare the theorem corresponding to the conclusion.
+
+Entities:
+- We have superhero movies, characters, and fights.
+- We'll need a type for characters and a type for movies? Or perhaps we can model without a separate movie type?
+
+But note: The premises talk about superhero movies and characters. Also, there is a specific movie: "The Surprising Adventures of Sir Digby Chicken Caesar", and specific characters: Sir Digby and his nemesis.
+
+We can do:
+
+- `obj` for any entity? But note: we have movies and characters. Alternatively, we can have:
+   - `Movie` : Type
+   - `Character` : Type
+
+But the problem says: "If a superhero movie is named after a character, that character is a good guy." and "that character is in the movie". So we need to relate movies and characters.
+
+Alternatively, we can have:
+   - `character` : Type
+   - `movie` : Type
+
+But note: the movie is also an entity that can be a superhero movie. And we have a specific movie: `digby_movie`.
+
+Also, we have fights: between two characters? And winning a fight.
+
+Premises:
+
+1. "In superhero movies, the good guys always win."
+   - This seems to mean: for any superhero movie, every good guy in that movie wins? Or wins against the bad guys? But note the next premise: "Good guys fight bad guys and vice versa." and then "Sir Digby fights his nemesis".
+
+   Actually, let's break down:
+
+   - We have: "In superhero movies, the good guys always win." -> This probably means: in the context of a superhero movie, if there is a fight between good guys and bad guys, the good guys win.
+
+   But note: the next premise: "Good guys fight bad guys and vice versa." -> so fights are between good and bad.
+
+   Then: "Sir Digby fights his nemesis." -> so we assume Sir Digby is a good guy? But we have: "If a superhero movie is named after a character, that character is a good guy." and the movie is named after Sir Digby -> so Sir Digby is a good guy.
+
+   And his nemesis would then be a bad guy? Because good guys fight bad guys.
+
+2. "The Surprising Adventures of Sir Digby Chicken Caesar is a superhero movie." -> we'll call this movie `digby_movie`.
+
+3. "Good guys fight bad guys and vice versa." -> This establishes that fights are between good and bad. So we can say: if two characters fight, then one is good and the other is bad? Or more precisely: if a good guy fights someone, then that someone is bad, and vice versa.
+
+4. "Sir Digby fights his nemesis." -> So we have a fight between Sir Digby and his nemesis.
+
+5. "If a superhero movie is named after a character, that character is a good guy." -> So for any movie that is a superhero movie and is named after a character, that character is good.
+
+6. "The Surprising Adventures of Sir Digby Chicken Caesar is named after Sir Digby." -> So `digby_movie` is named after Sir Digby.
+
+7. "If somebody wins a fight, the person they are fighting does not win." -> So in a fight, at most one wins? Actually, it says if A wins then B (the opponent) does not win. But note: it doesn't say that exactly one wins, but we can infer that if one wins the other doesn't, and possibly neither wins? But the context is that the good guys always win, so we expect that in a fight between good and bad, the good one wins and the bad one doesn't.
+
+8. "If a superhero movie is named after a character, that character is in the movie." -> So we need a way to say a character is in a movie.
+
+Conclusion: Sir Digby’s nemesis does not win.
+
+We need to represent:
+- Characters: we'll have `Character` as a type.
+- Movies: we'll have `Movie` as a type.
+- We have a specific movie: `digby_movie : Movie`
+- We have specific characters: `sir_digby : Character` and `nemesis : Character` (but note: we don't have a constant for nemesis? We know Sir Digby fights his nemesis, so we can have `nemesis` as a constant? Or we can have a relation: `nemesis_of : Character → Character`? But the conclusion says "Sir Digby’s nemesis", so we can have:
+
+   `axiom nemesis : Character`   but then we need to relate it to Sir Digby? Alternatively, we can have:
+
+   `axiom Nemesis : Character → Character`   meaning for each character, they have a nemesis? But the premise says "Sir Digby fights his nemesis", so we can have:
+
+   `axiom SirDigby : Character`
+   `axiom nemesis_of_SirDigby : Character`   and then an axiom that `Fights SirDigby nemesis_of_SirDigby`
+
+But note: the problem does not specify that the nemesis is unique, but we can introduce a constant for Sir Digby's nemesis.
+
+Alternatively, we can have:
+
+   `axiom SirDigby : Character`
+   `axiom Nemesis : Character → Character`   and then we can have `Fights SirDigby (Nemesis SirDigby)`
+
+But the problem says "Sir Digby fights his nemesis", so we can define:
+
+   `axiom SirDigby : Character`
+   `axiom nemesis : Character`
+   `axiom fights_digby_nemesis : Fights SirDigby nemesis`
+
+But then we have to assume that `nemesis` is the nemesis of Sir Digby? Actually, the premise says "Sir Digby fights his nemesis", so we can call that nemesis `nemesis_of_digby`.
+
+Let me choose:
+
+   `axiom SirDigby : Character`
+   `axiom NemesisOf : Character → Character`   but then we don't have a function for every character? Only Sir Digby? Alternatively, we can avoid introducing a function and just have:
+
+   `axiom SirDigby : Character`
+   `axiom DigbyNemesis : Character`
+   `axiom fights : Fights SirDigby DigbyNemesis`
+
+But note: the conclusion is about "Sir Digby’s nemesis", so we can call that `DigbyNemesis`.
+
+So:
+
+   `axiom DigbyNemesis : Character`
+
+And then:
+
+   `axiom Fights : Character → Character → Prop`
+
+   `axiom T3 : Fights SirDigby DigbyNemesis`
+
+Now, predicates:
+
+- `SuperheroMovie : Movie → Prop`
+- `GoodGuy : Character → Prop`   (or we can have `Good : Character → Prop`? But note: we also have bad guys? We can define bad guy as not good? But the premise says "Good guys fight bad guys", so we might need a `BadGuy` predicate? Or we can define `BadGuy` as `fun c => ¬ GoodGuy c`? But note: the premise says "Good guys fight bad guys and vice versa", meaning that if a good guy fights someone, that someone is bad, and if a bad guy fights someone, that someone is good. So we need to define both? Or we can define:
+
+   `axiom FightsOnlyGoodVsBad : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ BadGuy c2) ∨ (BadGuy c1 ∧ GoodGuy c2)`
+
+But note: the premise says "Good guys fight bad guys and vice versa", which might be interpreted as:
+
+   - If c1 is a good guy and fights c2, then c2 is bad.
+   - If c1 is a bad guy and fights c2, then c2 is good.
+
+We can write:
+
+   `axiom R3a : ∀ c1 c2, GoodGuy c1 → Fights c1 c2 → BadGuy c2`
+   `axiom R3b : ∀ c1 c2, BadGuy c1 → Fights c1 c2 → GoodGuy c2`
+
+But note: we don't have a `BadGuy` predicate? We can define it? Or we can avoid it by using `¬ GoodGuy`? But then we have to be careful: the premise says "vice versa", meaning that bad guys fight good guys. So:
+
+   `axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ↔ ¬ GoodGuy c2)`
+
+But note: if we define `BadGuy c := ¬ GoodGuy c`, then we can say:
+
+   `axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 → BadGuy c2) ∧ (BadGuy c1 → GoodGuy c2)`
+
+But actually, the premise says "Good guys fight bad guys and vice versa", meaning:
+
+   - Every fight involves a good guy and a bad guy.
+
+So we can have:
+
+   `axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)`
+
+But note: we don't have a `BadGuy` predicate, so we can use `¬ GoodGuy` to represent bad.
+
+Alternatively, we can introduce:
+
+   `axiom GoodGuy : Character → Prop`
+   `axiom BadGuy : Character → Prop`
+
+   and then:
+
+   `axiom R3a : ∀ c1 c2, GoodGuy c1 → Fights c1 c2 → BadGuy c2`
+   `axiom R3b : ∀ c1 c2, BadGuy c1 → Fights c1 c2 → GoodGuy c2`
+
+But then we need to ensure that no one is both? And that every character is either good or bad? The premises don't say that, but in the context of a fight, they are opposed. However, the conclusion only involves Sir Digby and his nemesis, and we know Sir Digby is good (from the naming premise) so his nemesis must be bad.
+
+But to avoid introducing an extra predicate, we can use `¬ GoodGuy` for bad. However, note that the premise "Good guys fight bad guys and vice versa" does not necessarily imply that every character is either good or bad. But in the context of a fight, the two fighters are one good and one bad.
+
+So let's go with:
+
+   `axiom GoodGuy : Character → Prop`
+
+   and then for the fight relation:
+
+   `axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)`
+
+But note: we have a premise that Sir Digby is a good guy (from the naming) and he fights his nemesis, so we can deduce that the nemesis is not a good guy.
+
+Now, the first premise: "In superhero movies, the good guys always win."
+
+What does "win" mean? We have winning a fight. So:
+
+   `axiom Wins : Character → Prop`   ? But wins what? Wins in the context of the movie? Or wins a fight?
+
+But note: the premise says "the good guys always win" in superhero movies. And then we have a fight between Sir Digby and his nemesis, which is in the movie? We also have: "If a superhero movie is named after a character, that character is in the movie." and the movie is named after Sir Digby, so Sir Digby is in the movie.
+
+We need to represent "in a movie". Let's have:
+
+   `InMovie : Character → Movie → Prop`
+
+And then, the winning might be per fight? But the premise says "the good guys always win" in the movie. So:
+
+   `axiom T1 : ∀ (m : Movie), SuperheroMovie m → (∀ (c : Character), InMovie c m → GoodGuy c → Wins c)`
+
+But what does `Wins c` mean? Does it mean that in every fight they engage in, they win? Or that overall in the movie they win? The problem doesn't specify. However, the conclusion is about a specific fight: Sir Digby’s nemesis does not win (presumably in the fight against Sir Digby).
+
+We have a premise: "If somebody wins a fight, the person they are fighting does not win." -> This suggests that winning is per fight. So we need to relate winning to a fight.
+
+So we should have:
+
+   `WinsInFight : Character → Character → Prop`   meaning that in a fight between two characters, the first wins? But note: the premise says "somebody wins a fight", so we can have:
+
+   `WinsAgainst : Character → Character → Prop`   meaning that the first character wins against the second in a fight? But then we have:
+
+   `axiom R7 : ∀ c1 c2, WinsAgainst c1 c2 → ¬ WinsAgainst c2 c1`
+
+But note: the fight is symmetric? We have `Fights c1 c2` meaning they fight each other. And then `WinsAgainst` is asymmetric.
+
+Alternatively, we can have a relation `Fight` that has two characters and then define winning for that fight. But we don't have a type for fights. We can model:
+
+   `Fight : Character → Character → Prop`   (as above)
+   `Wins : Character → Character → Prop`   meaning that in the fight between c1 and c2, the first wins? But then we have:
+
+   `axiom R7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1`
+
+But note: the premise says "If somebody wins a fight, the person they are fighting does not win." So if we have a fight between A and B, and A wins, then B does not win. So we can have:
+
+   `axiom R7 : ∀ c1 c2, Fights c1 c2 → (∀ w, Wins w c1 c2 → w = c1 → ¬ Wins c2 c1 c2)`   ... this becomes messy.
+
+Alternatively, we can think of a fight as an event? But that might complicate.
+
+Another idea: We can have a ternary relation? Or we can define winning as a predicate on the fight? But we don't have a fight object.
+
+Alternatively, we can assume that for any two characters that fight, we can talk about who wins. So:
+
+   `axiom Wins : Character → Character → Prop`   meaning that the first beats the second in a fight? But note: the fight might not be between arbitrary pairs? So we require that `Wins c1 c2` only if they fight? But the premise R7 says: "If somebody wins a fight, the person they are fighting does not win." So if `Wins c1 c2` then we know they fought? Actually, the premise doesn't explicitly say that winning implies they fought, but in context we assume that winning is about a fight they are in.
+
+So let's define:
+
+   `Fights c1 c2` means they fight each other.
+
+   `WinsInFight c1 c2` might be confusing because it doesn't specify the fight? But note: we are only concerned with the fight between Sir Digby and his nemesis.
+
+Alternatively, we can avoid a separate winning relation and use:
+
+   `axiom WinsAgainst : Character → Character → Prop`
+
+   with the understanding that `WinsAgainst c1 c2` implies that they fought (i.e., `Fights c1 c2`). But we don't have that as an axiom? We can add:
+
+   `axiom WinsImpliesFight : ∀ c1 c2, WinsAgainst c1 c2 → Fights c1 c2`
+
+But the problem doesn't state that explicitly. However, the premise R7: "If somebody wins a fight, the person they are fighting does not win." -> so if A wins a fight against B, then B does not win that same fight. So we can model:
+
+   `axiom Wins : Character → Character → Prop`   // Wins c1 c2 means c1 wins against c2 in a fight between them.
+
+   Then we have:
+
+   `axiom R7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1`
+
+   And we also need to know that if they fight, then one wins? Not necessarily: the premise doesn't say that someone wins. But the first premise says "the good guys always win" in superhero movies. So we assume that in a fight in the movie, the good guy wins.
+
+But note: we have to connect the fight to the movie. We need to know that the fight between Sir Digby and his nemesis is part of the movie.
+
+We have: the movie is named after Sir Digby, and if named then the character is in the movie. But we don't have that the fight is in the movie? We need to add:
+
+   `InMovie : Character → Movie → Prop`
+   `FightInMovie : ...` ? Or we can assume that if both characters are in the movie, then the fight is in the movie? But that might not be true.
+
+Alternatively, we can have:
+
+   `PartOf : Fight → Movie → Prop`   but we don't have a fight type.
+
+Given the complexity, let's try to simplify:
+
+We are only concerned with one movie: `digby_movie` and one fight: between Sir Digby and his nemesis.
+
+Premises:
+
+- `digby_movie` is a superhero movie.
+- Sir Digby is in the movie (because the movie is named after him).
+- The nemesis? We don't know if the nemesis is in the movie. But the premise says "Sir Digby fights his nemesis" and the movie is about Sir Digby? We might need to assume that the fight is part of the movie? The problem doesn't explicitly say, but the context is that it's a superhero movie and Sir Digby is the main character.
+
+But note: the first premise: "In superhero movies, the good guys always win." -> meaning the good guys in the movie win? So if Sir Digby is in the movie and is a good guy, then he wins? But wins what? Wins his fights? Or wins overall? The problem says "win", and then we have a specific fight.
+
+We have: "If somebody wins a fight, the person they are fighting does not win." -> so winning is per fight.
+
+So we can interpret: in a superhero movie, every good guy wins every fight they are in? But that might be too strong. Alternatively, the overall outcome is that they win? But then we have a specific fight.
+
+Given the conclusion is about the nemesis not winning (presumably in the fight against Sir Digby), we can assume that the fight between Sir Digby and his nemesis is part of the movie.
+
+How to represent that a fight is in a movie? We can introduce:
+
+   `FightInMovie : Character → Character → Movie → Prop`
+
+But that might be heavy. Alternatively, we can assume that if a character is in a movie and fights someone, then that fight is in the movie? But that might not be true.
+
+But note: we don't have information about other fights. So for the purpose of this problem, we can assume that the fight between Sir Digby and his nemesis is in the movie because Sir Digby is in the movie and the movie is about his adventures? The problem doesn't say, but we have to make an assumption.
+
+Alternatively, we can avoid the movie context for the fight and rely on the fact that Sir Digby is a good guy and the movie is a superhero movie, and then the first premise says that the good guys win. But then we need to know that the fight is in the movie? 
+
+But note: the premise "In superhero movies, the good guys always win." doesn't specify whether it's about fights in the movie or overall. However, the conclusion is about a fight, so we must connect the fight to the movie.
+
+Given the ambiguity, let's assume that the fight between Sir Digby and his nemesis is in the movie. We can add an axiom:
+
+   `axiom fight_in_movie : FightInMovie SirDigby DigbyNemesis digby_movie`
+
+But then we have to define `FightInMovie`.
+
+Alternatively, we can define:
+
+   `InMovie : Character → Movie → Prop`
+   `axiom T8a : InMovie SirDigby digby_movie`
+   `axiom T8b : InMovie DigbyNemesis digby_movie`   // but we don't have a premise for the nemesis being in the movie? 
+
+We have: "If a superhero movie is named after a character, that character is in the movie." -> so Sir Digby is in the movie. But what about the nemesis? We don't know. However, the movie is about Sir Digby's adventures, and he fights his nemesis, so it's reasonable to assume the nemesis is in the movie. But the problem doesn't say.
+
+But note: the first premise: "In superhero movies, the good guys always win." -> it doesn't specify that the winning is only for fights in the movie? It might mean that every good guy who is in the movie wins (in their fights, or overall). But then we have a fight between Sir Digby and his nemesis: if both are in the movie, then we can say that the fight is part of the movie? 
+
+We'll assume that the nemesis is in the movie. We can add:
+
+   `axiom nemesis_in_movie : InMovie DigbyNemesis digby_movie`
+
+But that's not stated in the premises. Alternatively, we can avoid it by having the first premise apply to any fight that occurs in the movie? But we don't have a way to say that a fight occurs in the movie.
+
+Given the complexity and the fact that the problem is about one specific fight, we can simplify:
+
+- We'll have `digby_movie` and assume that the fight between Sir Digby and his nemesis is in this movie.
+
+But to be safe, let's introduce:
+
+   `IsFightInMovie : Character → Character → Movie → Prop`
+
+   and then:
+
+   `axiom T3b : IsFightInMovie SirDigby DigbyNemesis digby_movie`
+
+But then we have to carry this ternary relation.
+
+Alternatively, we can have a predicate `InMovie` for characters and then assume that if two characters are in the movie and they fight, then the fight is in the movie? But that's an assumption.
+
+But the problem doesn't state that, so we'll avoid it.
+
+Given the above, I propose the following structure:
+
+Types:
+   `Character : Type`
+   `Movie : Type`
+
+Constants:
+   `digby_movie : Movie`
+   `SirDigby : Character`
+   `DigbyNemesis : Character`
+
+Predicates:
+   `SuperheroMovie : Movie → Prop`
+   `GoodGuy : Character → Prop`
+   `Fights : Character → Character → Prop`
+   `Wins : Character → Character → Prop`   // Wins c1 c2 means c1 wins against c2 in a fight between them.
+   `InMovie : Character → Movie → Prop`
+   `NamedAfter : Movie → Character → Prop`   // The movie is named after the character.
+
+Axioms:
+
+1. "In superhero movies, the good guys always win."
+   How to interpret? We'll say: for any superhero movie, and for any good guy in that movie, and for any bad guy (or opponent) in that movie, if they fight then the good guy wins? But note: the premise doesn't specify that they fight. It just says "the good guys always win". We'll interpret as: every good guy in a superhero movie wins every fight they are in that is part of the movie? But we don't have "part of the movie" for fights.
+
+   Alternatively: in a superhero movie, every good guy wins (in general). But then how does that relate to the fight? We have to assume that Sir Digby wins his fight? And then by R7, his nemesis doesn't win.
+
+   But note: the conclusion is about the nemesis not winning, so we don't need to know about Sir Digby winning? We can derive that Sir Digby wins (because he is a good guy in a superhero movie) and then by R7, his nemesis doesn't win.
+
+   So we can have:
+
+   `axiom T1 : ∀ (m : Movie), SuperheroMovie m → ∀ (c : Character), InMovie c m → GoodGuy c → (∀ (opponent : Character), Fights c opponent → Wins c opponent)`
+
+   This says: for every superhero movie m, every good guy c in m, and for every opponent they fight, c wins against that opponent.
+
+   But note: we don't require that the opponent is in the movie? But if the fight is in the movie, then we might require the opponent to be in the movie? But the problem doesn't specify.
+
+   Alternatively, we can say: for every fight that occurs in the movie between c and opponent, if c is good then c wins. But we don't have a way to say the fight is in the movie.
+
+   Given the ambiguity, we'll go with:
+
+   `axiom T1 : ∀ (m : Movie), SuperheroMovie m → ∀ (c : Character), InMovie c m → GoodGuy c → (∀ (opponent : Character), Fights c opponent → Wins c opponent)`
+
+   This assumes that if a good guy is in the movie and fights someone, then he wins. But note: the fight might not be in the movie? But the premise says "in superhero movies, the good guys always win", meaning in the context of the movie, so we assume that the fights we are considering are in the movie.
+
+   But then we need to know that Sir Digby fights his nemesis in the movie? We have that Sir Digby is in the movie and he fights his nemesis, but we don't know that the fight is in the movie. So we must assume that if a character is in the movie and fights someone, then that fight is in the movie? Or we can add that the fight between Sir Digby and his nemesis is in the movie.
+
+   To be safe, let's add:
+
+   `axiom fight_in_movie : InMovie SirDigby digby_movie → InMovie DigbyNemesis digby_movie → IsFightInMovie SirDigby DigbyNemesis digby_movie`
+
+   But that's an implication we don't have evidence for.
+
+   Alternatively, we can avoid the issue by assuming that the first premise applies to any fight involving a good guy who is in the movie, regardless of whether the opponent is in the movie? That might be acceptable.
+
+   We'll go with:
+
+   `axiom T1 : ∀ (m : Movie), SuperheroMovie m → ∀ (c : Character), InMovie c m → GoodGuy c → (∀ (opponent : Character), Fights c opponent → Wins c opponent)`
+
+   And then we'll have Sir Digby in the movie and he is good, and he fights his nemesis, so he wins against his nemesis.
+
+2. "The Surprising Adventures of Sir Digby Chicken Caesar is a superhero movie."
+
+   `axiom T2 : SuperheroMovie digby_movie`
+
+3. "Good guys fight bad guys and vice versa."
+
+   We'll model as:
+
+   `axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)`
+
+   But note: we don't have a separate bad guy predicate.
+
+4. "Sir Digby fights his nemesis."
+
+   `axiom T3 : Fights SirDigby DigbyNemesis`
+
+5. "If a superhero movie is named after a character, that character is a good guy."
+
+   `axiom R5 : ∀ (m : Movie) (c : Character), SuperheroMovie m → NamedAfter m c → GoodGuy c`
+
+6. "The Surprising Adventures of Sir Digby Chicken Caesar is named after Sir Digby."
+
+   `axiom T6 : NamedAfter digby_movie SirDigby`
+
+7. "If somebody wins a fight, the person they are fighting does not win."
+
+   `axiom R7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1`
+
+   But note: `Wins c1 c2` implies that they fought? We don't have that explicitly, but we can assume that `Wins c1 c2` only makes sense if they fight? However, we don't have an axiom for that. But the context is that winning is about a fight.
+
+8. "If a superhero movie is named after a character, that character is in the movie."
+
+   `axiom R8 : ∀ (m : Movie) (c : Character), SuperheroMovie m → NamedAfter m c → InMovie c m`
+
+Now, we have Sir Digby in the movie:
+
+   `axiom digby_in_movie : InMovie SirDigby digby_movie`   // This follows from R8, T2, T6. But we don't need to state it as an axiom because we can derive it. However, in the axiom list we are stating premises, so we don't need to derive anything. We can state R8 and then use it later. But in the theorem, we will use R8 to show SirDigby is in the movie.
+
+But note: the theorem is about the nemesis. We don't have an axiom that the nemesis is in the movie. However, in T1, we need SirDigby to be in the movie (which we get from R8) and then T1 says that SirDigby wins against any opponent he fights. Then we have T3: he fights DigbyNemesis, so he wins against DigbyNemesis. Then by R7, DigbyNemesis does not win against SirDigby.
+
+But note: R7 says: if Wins c1 c2 then not Wins c2 c1. We have Wins SirDigby DigbyNemesis, so ¬ Wins DigbyNemesis SirDigby.
+
+The conclusion is "Sir Digby’s nemesis does not win." -> does that mean he doesn't win against Sir Digby? Or doesn't win at all? The context is the fight between them. So we interpret: in the fight against Sir Digby, the nemesis does not win.
+
+Therefore, the theorem is:
+
+   `theorem goal : ¬ Wins DigbyNemesis SirDigby := sorry`
+
+But note: we have Wins SirDigby DigbyNemesis, and by R7 we get ¬ Wins DigbyNemesis SirDigby.
+
+So we don't need to know anything about the nemesis being in the movie? Because T1 only requires that SirDigby is in the movie and he is good, and then it says he wins against any opponent he fights (including DigbyNemesis). Then R7 gives the result.
+
+So we don't need to know if DigbyNemesis is in the movie? That's a relief.
+
+Now, we also need to show that SirDigby is a good guy: by R5, T2, T6.
+
+But again, we don't need to state that as an axiom because we have the premises.
+
+So the Lean code:
+
+<lean>
+axiom Character : Type
+axiom Movie : Type
+axiom digby_movie : Movie
+axiom SirDigby : Character
+axiom DigbyNemesis : Character
+
+axiom SuperheroMovie : Movie → Prop
+axiom GoodGuy : Character → Prop
+axiom Fights : Character → Character → Prop
+axiom Wins : Character → Character → Prop
+axiom InMovie : Character → Movie → Prop
+axiom NamedAfter : Movie → Character → Prop
+
+axiom T1 : ∀ (m : Movie), SuperheroMovie m → ∀ (c : Character), InMovie c m → GoodGuy c → (∀ (opponent : Character), Fights c opponent → Wins c opponent)
+axiom T2 : SuperheroMovie digby_movie
+axiom R3 : ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)
+axiom T3 : Fights SirDigby DigbyNemesis
+axiom R5 : ∀ (m : Movie) (c : Character), SuperheroMovie m → NamedAfter m c → GoodGuy c
+axiom T6 : NamedAfter digby_movie SirDigby
+axiom R7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1
+axiom R8 : ∀ (m : Movie) (c : Character), SuperheroMovie m → NamedAfter m c → InMovie c m
+
+theorem goal : ¬ Wins DigbyNemesis SirDigby := sorry
+</lean>
+
+But note: we don't have an axiom for the nemesis being in the movie? And we don't need it because T1 only requires that SirDigby is in the movie (which we get from R8) and then SirDigby wins against any opponent he fights, including DigbyNemesis.
+
+Also, we have T3: Fights SirDigby DigbyNemesis.
+
+So we can derive:
+
+   have digby_good : GoodGuy SirDigby := R5 digby_movie SirDigby T2 T6
+   have digby_in_movie : InMovie SirDigby digby_movie := R8 digby_movie SirDigby T2 T6
+   have wins_digby : Wins SirDigby DigbyNemesis := T1 digby_movie T2 SirDigby digby_in_movie digby_good DigbyNemesis T3
+   then by R7: ¬ Wins DigbyNemesis SirDigby
+
+So the theorem is about ¬ Wins DigbyNemesis SirDigby.
+
+But note: the conclusion says "Sir Digby’s nemesis does not win." and we interpret that as not winning against Sir Digby.
+
+This seems consistent.
+
+One more point: the premise R3 might be used to deduce that DigbyNemesis is not a good guy? But we don't need that for the theorem.
+
+So we'll output the above.
+
+
+=== RESPONSE ===
+Based on the provided premises and conclusion, here's the Lean 4 formalization:
+
+<lean>
+axiom Character : Type
+axiom Movie : Type
+axiom SirDigby : Character
+axiom DigbyNemesis : Character
+axiom DigbyMovie : Movie
+
+axiom SuperheroMovie : Movie → Prop
+axiom GoodGuy : Character → Prop
+axiom Fights : Character → Character → Prop
+axiom Wins : Character → Character → Prop
+axiom NamedAfter : Movie → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+axiom Premise1 : ∀ (m : Movie), SuperheroMovie m → 
+  ∀ (c : Character), InMovie c m → GoodGuy c → 
+    ∀ (opponent : Character), Fights c opponent → Wins c opponent
+
+axiom Premise2 : SuperheroMovie DigbyMovie
+axiom Premise3 : ∀ c1 c2, Fights c1 c2 → 
+  (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)
+axiom Premise4 : Fights SirDigby DigbyNemesis
+axiom Premise5 : ∀ (m : Movie) (c : Character), 
+  SuperheroMovie m → NamedAfter m c → GoodGuy c
+axiom Premise6 : NamedAfter DigbyMovie SirDigby
+axiom Premise7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1
+axiom Premise8 : ∀ (m : Movie) (c : Character), 
+  SuperheroMovie m → NamedAfter m c → InMovie c m
+
+theorem conclusion : ¬ Wins DigbyNemesis SirDigby := sorry
+</lean>
+
+Explanation:
+1. Types `Character` and `Movie` represent entities
+2. Constants:
+   - `SirDigby`, `DigbyNemesis` as characters
+   - `DigbyMovie` as the specific movie
+3. Predicates:
+   - `SuperheroMovie` identifies superhero movies
+   - `GoodGuy` identifies heroic characters
+   - `Fights` represents combat relationships
+   - `Wins` defines victory in fights (Wins A B means A wins against B)
+   - `NamedAfter` links movies to titular characters
+   - `InMovie` indicates character appearance in movies
+4. Premises directly translate each given statement
+5. Theorem `conclusion` formalizes "Sir Digby’s nemesis does not win" as ¬ Wins DigbyNemesis SirDigby
+
+Note: The formalization uses the critical Lean 4 syntax requirements and focuses solely on declaring types, constants, predicates, and axioms without proof.
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and need to prove ¬ Wins DigbyNemesis SirDigby.
+ Let me denote:
+   S = SirDigby
+   N = DigbyNemesis
+   M = DigbyMovie
+
+ We have:
+   Premise2: SuperheroMovie M
+   Premise4: Fights S N
+   Premise6: NamedAfter M S
+   Premise5: ∀ m c, SuperheroMovie m → NamedAfter m c → GoodGuy c
+     So, with m=M and c=S: GoodGuy S  (from Premise2 and Premise6)
+
+ Premise3: ∀ c1 c2, Fights c1 c2 → (GoodGuy c1 ∧ ¬GoodGuy c2) ∨ (¬GoodGuy c1 ∧ GoodGuy c2)
+   Applied to S and N (since Fights S N): 
+        (GoodGuy S ∧ ¬GoodGuy N) ∨ (¬GoodGuy S ∧ GoodGuy N)
+
+ But we have GoodGuy S, so the first disjunct must hold: GoodGuy S and ¬GoodGuy N.
+
+ Now, we also have Premise8: ∀ m c, SuperheroMovie m → NamedAfter m c → InMovie c m
+   With m=M and c=S: InMovie S M.
+
+ We have Premise1: 
+   ∀ m, SuperheroMovie m → ∀ c, InMovie c m → GoodGuy c → ∀ opponent, Fights c opponent → Wins c opponent
+
+ Apply to m=M: 
+   SuperheroMovie M → ... (which we have by Premise2) 
+   then for c=S: InMovie S M (from above) and GoodGuy S (from above) 
+   then for opponent=N: Fights S N → Wins S N
+
+ So we get: Wins S N.
+
+ Now, Premise7 says: ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1
+   Specifically, for c1=S and c2=N: Wins S N → ¬ Wins N S.
+
+ Since we have Wins S N, then ¬ Wins N S, which is exactly the goal: ¬ Wins DigbyNemesis SirDigby.
+
+ Therefore, we can prove the theorem.
+
+ Let me write the proof in Lean:
+
+ We break down the steps:
+
+ Step 1: GoodGuy SirDigby
+   h1 : GoodGuy SirDigby := Premise5 DigbyMovie SirDigby Premise2 Premise6
+
+ Step 2: From Premise3, since Fights SirDigby DigbyNemesis, we get:
+   (GoodGuy SirDigby ∧ ¬GoodGuy DigbyNemesis) ∨ (¬GoodGuy SirDigby ∧ GoodGuy DigbyNemesis)
+   But we have GoodGuy SirDigby, so the second disjunct is impossible because it requires ¬GoodGuy SirDigby.
+   Therefore, we have GoodGuy SirDigby and ¬GoodGuy DigbyNemesis.
+
+   Actually, we can use `Or.elim` or more directly we can use `have` with a match, but simpler: 
+   since we know GoodGuy SirDigby, then if we have the second disjunct it leads to contradiction? 
+   Actually, we don't need to eliminate the disjunct that way because the first branch holds.
+
+   Alternatively, we can use:
+     have h2 := Premise3 SirDigby DigbyNemesis Premise4
+     have h3 : GoodGuy SirDigby ∧ ¬ GoodGuy DigbyNemesis := by
+        cases h2 with
+        | inl h => exact h
+        | inr h => have := h.1; contradiction   [because this would give ¬GoodGuy SirDigby but we have h1]
+
+   But note: we don't have a proof that GoodGuy SirDigby is not false unless we have consistency? 
+   Actually, we don't need to do that because the disjunct in the second branch has ¬GoodGuy SirDigby, which contradicts h1.
+   However, it's easier to use `have` and `match` but since we're in term mode we can use:
+
+   Actually, we can use `Or.elim` or just get the pattern matching with `have`.
+
+   In a term, we can write:
+     (match (Premise3 SirDigby DigbyNemesis Premise4) with
+        | Or.inl h => h
+        | Or.inr h => False.elim (h.1 h1))
+
+   But we are writing a proof term so we can use it.
+
+ Step 3: We also need InMovie SirDigby DigbyMovie: 
+   h4 : InMovie SirDigby DigbyMovie := Premise8 DigbyMovie SirDigby Premise2 Premise6
+
+ Step 4: Apply Premise1 to get that SirDigby wins against DigbyNemesis:
+   h5 : Wins SirDigby DigbyNemesis := 
+        Premise1 DigbyMovie Premise2 SirDigby h4 h1 DigbyNemesis Premise4
+
+ Step 5: From Premise7: 
+   h6 : Wins SirDigby DigbyNemesis → ¬ Wins DigbyNemesis SirDigby
+        := Premise7 SirDigby DigbyNemesis
+
+   Therefore: h6 h5 : ¬ Wins DigbyNemesis SirDigby
+
+ Now, note that the theorem is exactly: ¬ Wins DigbyNemesis SirDigby.
+
+ So we can write:
+
+   theorem conclusion : ¬ Wins DigbyNemesis SirDigby := 
+     let h1 := Premise5 DigbyMovie SirDigby Premise2 Premise6;  -- GoodGuy SirDigby
+     let h4 := Premise8 DigbyMovie SirDigby Premise2 Premise6;  -- InMovie SirDigby DigbyMovie
+     let h5 := Premise1 DigbyMovie Premise2 SirDigby h4 h1 DigbyNemesis Premise4;  -- Wins SirDigby DigbyNemesis
+     let h3 := Premise3 SirDigby DigbyNemesis Premise4;
+     let h_imp : Wins SirDigby DigbyNemesis → ¬ Wins DigbyNemesis SirDigby := Premise7 SirDigby DigbyNemesis;
+     -- But note: we haven't used h3 to get any contradiction? Actually, we don't need h3 for the final step, because we have h5 and h_imp.
+     h_imp h5
+
+ However, wait: we did use h1 to get h5, and h3 was used in the sense that at some point we needed to know that SirDigby is good, but we have that. 
+ But actually, the above proof does not use h3 at all? 
+
+ Let's double-check: we did use Premise4 and Premise2 and Premise6, and from Premise5 we got h1 (GoodGuy SirDigby). 
+ But we never used the fact that ¬GoodGuy DigbyNemesis. Is that a problem? 
+
+ Actually, it is not needed for the Premise1 because Premise1 only requires that the hero (c) is a good guy and in a superhero movie. It doesn't care about the goodness of the opponent? 
+
+ So we don't use h3 (the result from Premise3) at all? That seems odd. Then why do we have Premise3?
+
+ Let me think: without Premise3 we would still have the conclusion? 
+
+ But wait: in step 5 we don't need the goodness of the opponent. However, note that Premise3 is critical to ensure that the world is consistent? Actually, we did use the first branch of Premise3 to establish that there is no contradiction? 
+
+ No: the way we wrote the proof above, we did not use h3 when building the final term. However, we did use h1 (which we have) and then Premise1 to get that SirDigby wins, and then Premise7 to get that the nemesis doesn't win.
+
+ But actually, we did use the first disjunct of Premise3 in a hidden way: we only know GoodGuy SirDigby from Premise5 and Premise6, and that does not require Premise3. And Premise1 and Premise8 then allow us to get the win.
+
+ So why is Premise3 there? It might be that without Premise3, there is a possibility that DigbyNemesis is also good? But that would contradict the premise that a fight must have one good and one bad. But we don't need that for the positive conclusion.
+
+ Actually, the argument stands: we don't need Premise3 to construct the proof. However, the problem has this axiom and we are using it to derive ¬GoodGuy DigbyNemesis, but we don't use that fact.
+
+ But then note: we must show that the proof does not have a contradiction? However, the proof term we wrote does not contain a contradiction. So we can leave it. 
+
+ However, in our first step we thought we needed to use Premise3 to get that the second disjunct is impossible and hence we maintain consistency? Actually, our proof of h1 (GoodGuy SirDigby) is independent of Premise3, and the rest of the steps are consistent. 
+
+ So we can omit the use of Premise3? But the problem says that we cannot change the axioms. We've been asked to prove the theorem, and we can prove it without using Premise3. It is legitimate to use only a subset of the premises. So we can write the proof without using Premise3.
+
+ But wait: what if Premise3 is actually necessary for the proof? No, we have a clear path without it.
+
+ However, let me check: the problem might require that because we have Fights SirDigby DigbyNemesis, and without Premise3 we might have a case where both are good? Then would Premise1 still tell us that SirDigby wins? Yes, because Premise1 only requires the hero to be good. It doesn't care about the opponent being bad. So we still get that SirDigby wins.
+
+ Therefore, we can prove the conclusion without Premise3.
+
+ But the above reasoning that leads to the need of Premise3 for consistency is not required for the derivation of our goal. 
+
+ Therefore, the proof term without Premise3:
+
+   Premise7 SirDigby DigbyNemesis 
+     (Premise1 DigbyMovie Premise2 SirDigby 
+        (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+        (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+        DigbyNemesis Premise4)
+
+ However, to use clear names we can write:
+
+   let h1 := Premise5 DigbyMovie SirDigby Premise2 Premise6;                       -- GoodGuy SirDigby
+   let h2 := Premise8 DigbyMovie SirDigby Premise2 Premise6;                       -- InMovie SirDigby DigbyMovie
+   let h3 := Premise1 DigbyMovie Premise2 SirDigby h2 h1 DigbyNemesis Premise4;    -- Wins SirDigby DigbyNemesis
+   Premise7 SirDigby DigbyNemesis h3
+
+ Alternatively, we can chain:
+
+   (Premise7 SirDigby DigbyNemesis) 
+        (Premise1 DigbyMovie Premise2 SirDigby 
+            (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+            (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+            DigbyNemesis Premise4)
+
+ We don't need Premise3 at all.
+
+ However, I recall that we also used Premise3 to deduce that ¬GoodGuy DigbyNemesis, but that wasn't used in the proof. So we can skip it.
+
+ But what about the following: if we didn't have an additional requirement, the proof is complete without Premise3.
+
+ However, let me check if there is a problem: 
+
+   We have Fights SirDigby DigbyNemesis and we are assuming (via Premise3) that one is good and the other is bad. We know SirDigby is good, so we then know that DigbyNemesis is bad. 
+
+   But is there any rule that says that in a superhero movie, the hero only fights bad guys? Actually, Premise1 only says that the good guy wins against any opponent (that he fights). It does not require the opponent to be bad. So it is okay.
+
+ Therefore, we will write:
+
+   theorem conclusion : ¬ Wins DigbyNemesis SirDigby := 
+      Premise7 SirDigby DigbyNemesis (Premise1 DigbyMovie Premise2 SirDigby 
+         (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+         (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+         DigbyNemesis Premise4)
+
+ However, to make it readable, we can break it down with `have` statements in a tactic block. But the task says: use a proof term. 
+
+ Alternatively, we can write:
+
+   have h : Wins SirDigby DigbyNemesis :=
+        Premise1 DigbyMovie Premise2 SirDigby 
+          (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+          (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+          DigbyNemesis Premise4;
+   Premise7 SirDigby DigbyNemesis h
+
+ But note: the theorem is about ¬ Wins DigbyNemesis SirDigby, and we are using a term. We can write:
+
+   let hWin : Wins SirDigby DigbyNemesis := Premise1 DigbyMovie Premise2 SirDigby 
+        (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+        (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+        DigbyNemesis Premise4
+   in Premise7 SirDigby DigbyNemesis hWin
+
+ However, in a theorem statement, we can use:
+
+   Premise7 SirDigby DigbyNemesis $
+     Premise1 DigbyMovie Premise2 SirDigby 
+        (Premise8 DigbyMovie SirDigby Premise2 Premise6)
+        (Premise5 DigbyMovie SirDigby Premise2 Premise6)
+        DigbyNemesis Premise4
+
+ But we are also allowed to write it in multiple lines without semi-colons.
+
+ Given that the problem says: replace 'sorry' with a valid proof term, we can do this as a single term.
+
+ But note: in the example, they wrote `R1 Cat T1` which is a single term.
+
+ We have a term that uses multiple steps. However, we can write it as:
+
+   Premise7 SirDigby DigbyNemesis (Premise1 DigbyMovie Premise2 SirDigby 
+        (Premise8 DigbyMovie SirDigby Premise2 Premise6) 
+        (Premise5 DigbyMovie SirDigby Premise2 Premise6) 
+        DigbyNemesis Premise4)
+
+ This is a valid term.
+
+ However, to be safe and avoid making the term too long, we can break it into `let` expressions.
+
+ But the problem does not specify whether we can use `let` in the proof term. Since the axioms are in the context, we can refer to them.
+
+ Actually, we can write:
+
+   theorem conclusion : ¬ Wins DigbyNemesis SirDigby := 
+     let goodSirDigby := Premise5 DigbyMovie SirDigby Premise2 Premise6;
+     let inMovieSirDigby := Premise8 DigbyMovie SirDigby Premise2 Premise6;
+     let winsSirDigbyNemesis := Premise1 DigbyMovie Premise2 SirDigby inMovieSirDigby goodSirDigby DigbyNemesis Premise4;
+     Premise7 SirDigby DigbyNemesis winsSirDigbyNemesis
+
+ This is acceptable.
+
+ Which style to use? I'll use the `let` version for clarity.
+
+ But note: the problem says "Provide the complete code", so including the axioms and the theorem. And replace the theorem's sorry.
+
+ Let me write the complete code.
+
+ However, the user says: after the code, provide ANSWER: True/False/Uncertain.
+
+ The theorem is: ¬ Wins DigbyNemesis SirDigby, and we have proved it. So the answer is True.
+
+ But note: in the problem, the theorem is stated as `conclusion` and we are proving it.
+
+ Therefore, the complete code is:
+
+
+=== RESPONSE ===
+The complete Lean code with the proof replacing `sorry` is provided below. The proof utilizes the given premises to derive the theorem through a series of logical steps. The key insight is that `SirDigby` is established as a good guy who wins fights in superhero movies (via `Premise1`, `Premise5`, and `Premise8`). This, combined with the asymmetry of the `Wins` relation (`Premise7`), directly proves that `DigbyNemesis` cannot win against `SirDigby`.
+
+```lean
+axiom Character : Type
+axiom Movie : Type
+axiom SirDigby : Character
+axiom DigbyNemesis : Character
+axiom DigbyMovie : Movie
+
+axiom SuperheroMovie : Movie → Prop
+axiom GoodGuy : Character → Prop
+axiom Fights : Character → Character → Prop
+axiom Wins : Character → Character → Prop
+axiom NamedAfter : Movie → Character → Prop
+axiom InMovie : Character → Movie → Prop
+
+axiom Premise1 : ∀ (m : Movie), SuperheroMovie m → 
+  ∀ (c : Character), InMovie c m → GoodGuy c → 
+    ∀ (opponent : Character), Fights c opponent → Wins c opponent
+
+axiom Premise2 : SuperheroMovie DigbyMovie
+axiom Premise3 : ∀ c1 c2, Fights c1 c2 → 
+  (GoodGuy c1 ∧ ¬ GoodGuy c2) ∨ (¬ GoodGuy c1 ∧ GoodGuy c2)
+axiom Premise4 : Fights SirDigby DigbyNemesis
+axiom Premise5 : ∀ (m : Movie) (c : Character), 
+  SuperheroMovie m → NamedAfter m c → GoodGuy c
+axiom Premise6 : NamedAfter DigbyMovie SirDigby
+axiom Premise7 : ∀ c1 c2, Wins c1 c2 → ¬ Wins c2 c1
+axiom Premise8 : ∀ (m : Movie) (c : Character), 
+  SuperheroMovie m → NamedAfter m c → InMovie c m
+
+theorem conclusion : ¬ Wins DigbyNemesis SirDigby := 
+  let goodSirDigby := Premise5 DigbyMovie SirDigby Premise2 Premise6;
+  let inMovieSirDigby := Premise8 DigbyMovie SirDigby Premise2 Premise6;
+  let winsSirDigby := Premise1 DigbyMovie Premise2 SirDigby inMovieSirDigby goodSirDigby DigbyNemesis Premise4;
+  Premise7 SirDigby DigbyNemesis winsSirDigby
+```
+
+ANSWER: True

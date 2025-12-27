@@ -1,0 +1,1037 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are formalizing the given premises and the conclusion about Bonnie.
+
+First, we define the type for "people" (or members of the club). We'll call it `Person`.
+We'll need predicates and relations to represent:
+- Being in the club (but note: all mentioned are in the club, so we don't need a separate "in club" predicate? Actually, the premises specify "People in this club", so we can assume our domain is the club? But Bonnie is specified as in the club. However, to be safe, we can have a club membership predicate? Alternatively, we can let the domain be the club members? Since the problem talks about people in the club, we can define:
+
+Approach: Let `Person` be the type of all people (or perhaps we restrict to club members? But note that the premises are about "people in this club", so we can assume that we are only talking about club members. However, the conclusion is about Bonnie and she is in the club. So we can define:
+
+We'll have:
+  `Person` : Type
+
+Then we define:
+- `performs_often` : Person → Prop   (performs in school talent shows often)
+- `attends_engaged` : Person → Prop   (attends and is very engaged with school events)
+- `inactive_disinterested` : Person → Prop   (are inactive and disinterested community members)
+- `chaperones` : Person → Prop   (chaperone high school dances)
+- `is_student` : Person → Prop   (is a student who attends the school)
+
+For the young children and teenagers part:
+- `young_child_teen` : Person → Prop   (young child or teenager)
+- `wish_further` : Person → Prop   (wish to further academic career and educational opportunities)
+
+We note that the premise says: "All young children and teenagers in this club who wish to further ... are students". So we have a predicate for being a young child or teenager and a predicate for wishing to further.
+
+Bonnie is a specific person: `Bonnie : Person`
+
+Now, premises:
+
+1. "People in this club who perform in school talent shows often attend and are very engaged with school events."
+   ∀ p, performs_often p → attends_engaged p
+
+2. "People in this club either perform in school talent shows often or are inactive and disinterested community members."
+   ∀ p, performs_often p ∨ inactive_disinterested p
+
+3. "People in this club who chaperone high school dances are not students who attend the school."
+   ∀ p, chaperones p → ¬ is_student p
+
+4. "All people in this club who are inactive and disinterested members of their community chaperone high school dances."
+   ∀ p, inactive_disinterested p → chaperones p
+
+5. "All young children and teenagers in this club who wish to further their academic careers and educational opportunities are students who attend the school."
+   ∀ p, young_child_teen p → wish_further p → is_student p
+
+6. "Bonnie is in this club and she either both attends and is very engaged with school events and is a student who attends the school or is not someone who both attends and is very engaged with school events and is not a student who attends the school."
+
+   This is a bit complex. It says:
+   Bonnie is in the club and ( (attends_engaged Bonnie ∧ is_student Bonnie) ∨ ¬ (attends_engaged Bonnie ∧ is_student Bonnie) )
+
+   But note: the second part is a tautology! Because for any proposition Q, Q ∨ ¬Q is always true. So we don't need to state that? Actually, the premise is redundant? But wait, the way it's phrased: "she either both ... or is not someone who both ...". So it's saying that either she is both (attends_engaged and student) OR she is not both (i.e., ¬(attends_engaged ∧ is_student)). So indeed, this is always true. Therefore, we can ignore this premise? But note: the premise says "Bonnie is in this club" and then the tautology. So the only non-tautological part is that Bonnie is in the club. However, we have already assumed that our domain is club members? Or we have a club membership predicate? Actually, in our setup, we haven't defined a club membership predicate because we are taking `Person` as the club members? So Bonnie is a `Person` and that's enough.
+
+   Therefore, we don't need an axiom for the tautology. We only need to have Bonnie as a club member, which we have by defining `Bonnie : Person`.
+
+   But wait: the premise says "Bonnie is in this club", so we have her as a `Person`. The tautology part is always true, so we skip it.
+
+   However, note: the tautology is stated as part of the premise. Since it's always true, we don't need to write it as an axiom. So we can omit it.
+
+Conclusion: "If Bonnie either chaperones high school dances or, if she does not, she performs in school talent shows often, then Bonnie is both a young child or teenager who wishes to further her academic career and educational opportunities and an inactive and disinterested member of the community."
+
+Formally:
+(chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+   (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+
+But note: the "if she does not" part: "if she does not chaperone, then she performs often". So the premise part is:
+   chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)
+
+However, note that (¬ chaperones Bonnie → performs_often Bonnie) is equivalent to (chaperones Bonnie ∨ performs_often Bonnie). Because:
+   ¬A → B   ≡   A ∨ B
+
+So we can rewrite the antecedent as:
+   chaperones Bonnie ∨ (chaperones Bonnie ∨ performs_often Bonnie)
+
+But that is equivalent to (chaperones Bonnie ∨ performs_often Bonnie) because A ∨ (A ∨ B) is equivalent to A ∨ B.
+
+Alternatively, we can read the original: "Bonnie either chaperones OR (if she does not chaperone then she performs often)".
+
+But note: the "if she does not" is only in the second part. So the structure is: A ∨ (¬A → B)
+
+And indeed, A ∨ (¬A → B) is equivalent to A ∨ B? Let's check:
+  If A is true, then A ∨ (¬A→B) is true.
+  If A is false, then ¬A is true, so ¬A→B becomes B. So we get B.
+
+Therefore, A ∨ (¬A → B) is equivalent to A ∨ B.
+
+So the antecedent is: chaperones Bonnie ∨ performs_often Bonnie.
+
+Therefore, the conclusion becomes:
+   (chaperones Bonnie ∨ performs_often Bonnie) → 
+      (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+
+Now, we write the Lean code.
+
+We'll define:
+- `Person` as a type.
+- `Bonnie` as a constant of type `Person`.
+- Predicates as above.
+
+Axioms:
+  T1: ∀ p, performs_often p → attends_engaged p
+  T2: ∀ p, performs_often p ∨ inactive_disinterested p
+  T3: ∀ p, chaperones p → ¬ is_student p
+  T4: ∀ p, inactive_disinterested p → chaperones p
+  T5: ∀ p, young_child_teen p → wish_further p → is_student p
+
+And the theorem:
+  theorem goal: (chaperones Bonnie ∨ performs_often Bonnie) → 
+                (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := sorry
+
+But note: the conclusion has three parts: Bonnie is a young child/teen, she wishes to further, and she is inactive_disinterested.
+
+However, wait: the problem says "Bonnie is both a young child or teenager who wishes to further ... and an inactive ...". So it's (young_child_teen Bonnie ∧ wish_further Bonnie) ∧ inactive_disinterested Bonnie, which is the same as the three together.
+
+But note: the "young child or teenager who wishes to further" is two conditions: being young_child_teen AND wish_further. So we have three conjuncts.
+
+Now, we write the code accordingly.
+
+Important: We must use the exact names? We can choose reasonable abbreviations.
+
+Let's define:
+<lean>
+axiom Person : Type
+
+axiom performs_often : Person → Prop
+axiom attends_engaged : Person → Prop
+axiom inactive_disinterested : Person → Prop
+axiom chaperones : Person → Prop
+axiom is_student : Person → Prop
+axiom young_child_teen : Person → Prop
+axiom wish_further : Person → Prop
+
+axiom Bonnie : Person
+
+axiom T1 : ∀ p : Person, performs_often p → attends_engaged p
+axiom T2 : ∀ p : Person, performs_often p ∨ inactive_disinterested p
+axiom T3 : ∀ p : Person, chaperones p → ¬ is_student p
+axiom T4 : ∀ p : Person, inactive_disinterested p → chaperones p
+axiom T5 : ∀ p : Person, young_child_teen p → wish_further p → is_student p
+
+theorem goal: (chaperones Bonnie ∨ performs_often Bonnie) → 
+              (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := sorry
+</lean>
+
+But note: premise 5 says: "All young children and teenagers in this club who wish to further ... are students". So we have:
+   young_child_teen p ∧ wish_further p → is_student p
+
+Which is what T5 says.
+
+However, note that T5 uses two implications. We can also write it as:
+   ∀ p, young_child_teen p → (wish_further p → is_student p)
+
+But that is equivalent to ∀ p, young_child_teen p ∧ wish_further p → is_student p.
+
+So we are good.
+
+But wait: the conclusion has inactive_disinterested Bonnie. How do we get that? We don't have a direct link. However, the problem is to formalize, not to prove. So we just state the theorem.
+
+We are done.
+
+However, note: the premise 6 we skipped because it was tautological. And we have Bonnie as a Person, so she is in the club.
+
+One more note: the premise 2 says "either ... or ...", meaning that every club member is either performing often OR inactive_disinterested. So we have T2 as an OR.
+
+Now, let's write the code accordingly.
+
+
+=== RESPONSE ===
+The premises and conclusion are translated into Lean 4 axioms and a theorem declaration. The domain is represented by `Person`, with predicates defined for each property mentioned. Bonnie is a specific `Person`.
+
+<lean>
+axiom Person : Type
+
+-- Predicates for properties
+axiom performs_often : Person → Prop
+axiom attends_engaged : Person → Prop
+axiom inactive_disinterested : Person → Prop
+axiom chaperones : Person → Prop
+axiom is_student : Person → Prop
+axiom young_child_teen : Person → Prop
+axiom wish_further : Person → Prop
+
+-- Bonnie is a specific person in the club
+axiom Bonnie : Person
+
+-- Premise 1: Performers are engaged attendees
+axiom T1 : ∀ p : Person, performs_often p → attends_engaged p
+
+-- Premise 2: Members either perform often or are inactive
+axiom T2 : ∀ p : Person, performs_often p ∨ inactive_disinterested p
+
+-- Premise 3: Chaperones are not students
+axiom T3 : ∀ p : Person, chaperones p → ¬ is_student p
+
+-- Premise 4: Inactive members chaperone
+axiom T4 : ∀ p : Person, inactive_disinterested p → chaperones p
+
+-- Premise 5: Young/teen members who wish to further are students
+axiom T5 : ∀ p : Person, young_child_teen p → wish_further p → is_student p
+
+-- Conclusion structure: 
+-- (Bonnie chaperones ∨ (¬chaperones → performs_often)) → 
+-- (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+theorem goal : 
+  (chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+  (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := 
+sorry
+</lean>
+
+Note: The conclusion's antecedent uses the equivalent form `chaperones Bonnie ∨ (¬chaperones Bonnie → performs_often Bonnie)` to capture "either chaperones or (if not, performs often)". The theorem declares the implication without proof.
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several axioms and a theorem to prove. The theorem states that if Bonnie either chaperones or if not chaperoning implies she performs often, then she is a young child/teen, wishes to further, and is inactive/disinterested.
+
+Let's break down the given premises:
+
+- T1: If someone performs often, then they attend engaged.
+- T2: Every member either performs often or is inactive/disinterested (but note: we don't have an explicit "Member" predicate; the axioms are about Persons, and we assume all are members? The problem states "Members" in the premises, but the axioms are universally quantified over Person. So we treat all persons as members of the club?).
+
+The conclusion is an implication with a disjunction in the premise. We need to prove that under the given premise about Bonnie, she has the three properties.
+
+We note that the premise is: chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)
+
+We can consider two cases based on the disjunction.
+
+Case 1: chaperones Bonnie.
+  Then by T4 (inactive_disinterested p → chaperones p), we don't immediately get inactive_disinterested Bonnie because T4 is an implication the other way? Wait, T4 says: inactive_disinterested p → chaperones p. But if Bonnie chaperones, that doesn't necessarily mean she is inactive. However, we have T2: every person either performs often or is inactive. So Bonnie must be either performing often or inactive.
+
+But if she chaperones, then by T3: chaperones p → ¬ is_student p. So Bonnie is not a student.
+
+Now, we need to show that Bonnie is young_child_teen, wishes to further, and inactive. We don't have direct links.
+
+Alternatively, let's look at the other case.
+
+Case 2: ¬ chaperones Bonnie → performs_often Bonnie.
+  So if Bonnie does not chaperone, then she performs often.
+
+But note: the disjunction in the premise is inclusive: either she chaperones OR if she doesn't then she performs often.
+
+We must show that Bonnie is inactive_disinterested? But if she performs often, then by T1 she attends engaged, and we don't have a direct contradiction with inactivity? Actually, T2 says that every person is either performing often OR inactive, but it doesn't say they can't be both? However, typically such disjunctions are exclusive? But the axiom uses ∨, so it could be both? But let's see the context.
+
+We don't have an axiom that says performing often and inactive are contradictory. So technically, a person could be both? But that might be odd. However, without an explicit contradiction, we must be cautious.
+
+But note: the conclusion requires Bonnie to be inactive_disinterested. So we must show that she is inactive.
+
+How can we get inactive_disinterested Bonnie?
+
+From T2, we know that Bonnie is either performs_often or inactive_disinterested (or both). So if we can show that she is not performing often, then she must be inactive.
+
+Alternatively, if we can show that if she performs often, then we get a contradiction? But we don't have any axiom that says a performer cannot chaperone? Actually, we don't have that.
+
+Wait, let's try to derive more facts.
+
+We have T4: inactive_disinterested p → chaperones p. So if Bonnie is inactive, then she chaperones.
+
+But if Bonnie chaperones, then by T3 she is not a student.
+
+Now, we also have T5: if Bonnie is young_child_teen and wishes to further, then she is a student.
+
+So if we assume that Bonnie is young_child_teen and wishes to further, then she would be a student. But if she chaperones, then she is not a student. So if she chaperones, then she cannot be both young_child_teen and wish_further? But wait, we don't know if she is young_child_teen and wishes to further.
+
+Actually, the conclusion we are to prove is that she is young_child_teen AND wishes_further AND inactive. So if we can prove inactive, then by T4 she chaperones, and then by T3 she is not a student. Then by T5, if she were young_child_teen and wished to further, she would be a student -> contradiction. So if we assume the premise, we get a contradiction? That would mean the theorem is false? But wait, the problem asks for a proof.
+
+Alternatively, maybe the premises and the antecedent lead to Bonnie being inactive and chaperoning, and then we must show she is young_child_teen and wishes_further? But we don't have any axioms that force that.
+
+So let me reexamine the premises:
+
+Premise 1: performers are engaged attendees.
+Premise 2: every member is either a performer or inactive.
+Premise 3: chaperones are not students.
+Premise 4: inactive members chaperone.
+Premise 5: young/teen members who wish to further are students.
+
+The theorem's antecedent: Bonnie either chaperones OR if she doesn't chaperone then she performs often.
+
+The consequent: Bonnie is young_child_teen, wishes_further, and inactive.
+
+How can we prove the consequent? We don't have any information that forces Bonnie to be young_child_teen or to wish_further. In fact, there are no axioms that mention young_child_teen or wish_further except T5, which is a conditional.
+
+So without any positive information about Bonnie being young_child_teen or wishing_further, how can we prove she has these properties?
+
+This suggests that the theorem might not be provable from the given axioms. But let's see if we can derive a contradiction from the negation of the consequent? That is, assume the antecedent and the negation of the consequent and see if we get a contradiction.
+
+Alternatively, perhaps the antecedent forces Bonnie to be inactive, and then we have chaperones Bonnie (by T4). Then we need to show she is young_child_teen and wishes_further? But we have no axioms that say inactive members are young or wish to further.
+
+Wait, the problem states: "Conclusion structure: ...". So we are to prove that the implication holds. But without any information about young_child_teen and wish_further, we cannot prove they hold for Bonnie.
+
+Therefore, the theorem as stated is not provable from the axioms. But wait, let me check if the antecedent forces Bonnie to be inactive.
+
+Consider: 
+Let C = chaperones Bonnie
+Let P = performs_often Bonnie
+Let I = inactive_disinterested Bonnie
+
+By T2: P ∨ I is true for Bonnie.
+
+The antecedent: C ∨ (¬C → P)
+
+We want to show I is true (because the consequent requires I and also young_child_teen and wish_further).
+
+But we also note:
+- If C is true, then by T4? Wait, T4 says I → C. It does not say C → I. So if C is true, we don't know if I is true. However, by T2 we have P ∨ I. So Bonnie is either P or I (or both). But if Bonnie is P, then she performs often. And if she is I, then she is inactive.
+
+But we need to show I. So we must show that Bonnie cannot be P? How?
+
+Suppose Bonnie is P (performs often). Then by T1, she attends engaged. But that doesn't contradict anything. Also, if she is P, then she might not be I? But T2 allows both? So she could be both? Then we don't have a problem.
+
+But the consequent requires I (inactive_disinterested). So if Bonnie is P and not I, then the consequent is false.
+
+So we must show that Bonnie is I.
+
+Now, let's consider the antecedent:
+
+Case 1: C is true. Then Bonnie chaperones. By T3, she is not a student. Now, we have T5: if she is young and wishes to further, then she is a student -> contradiction. But wait, we don't know if she is young and wishes to further? So no contradiction.
+
+But we need to show she is I. How? We don't have any link from C to I. T4 only gives I → C, not the converse.
+
+Case 2: ¬C → P. So if Bonnie does not chaperone, then she performs often.
+
+But note: if Bonnie is not C, then P holds. If she is C, then we are in case 1.
+
+Now, can we show that Bonnie must be I? Not directly.
+
+But let me try to assume that Bonnie is not I. Then by T2, since she must be P or I, if she is not I then she must be P. So ¬I → P.
+
+But we already know that if she is P, then ... nothing prevents it? However, if she is P, then she is not I? But we need to show I, so if we can show that she cannot be P, then she must be I.
+
+How to show she cannot be P?
+
+Suppose Bonnie is P. Then she performs often. Now, does that contradict anything? We don't have an axiom that says performers cannot chaperone? But if she is P, then she might chaperone or not? The antecedent says: either she chaperones OR if she doesn't then she performs often. If she is P, then the second part is satisfied regardless of chaperoning? Actually, if she is P, then even if she chaperones, the disjunction is still true because the first disjunct is true? So no issue.
+
+But then we have no way to force her to be I.
+
+Moreover, we have no information about young_child_teen and wish_further. So we cannot prove the consequent.
+
+Therefore, the theorem is not provable. But wait, perhaps we are missing something.
+
+Another approach: use the fact that if Bonnie chaperones, then she is not a student (T3). And if she is inactive, then she chaperones (T4). So if she is inactive, then she chaperones and is not a student.
+
+Now, the consequent requires her to be inactive, young_child_teen, and wish_further. Then by T5, if she is young_child_teen and wishes_further, then she is a student. But if she is inactive, then she is not a student (because chaperones and T3). So we have a contradiction: she would be both a student and not a student.
+
+Therefore, the consequent leads to a contradiction? That means the antecedent must be false? But the theorem is an implication: if the antecedent is true, then the consequent must be true. But we just showed that the consequent is false (because it leads to a contradiction). Therefore, the implication is true only if the antecedent is false? But we don't know that the antecedent is false.
+
+Wait, no: we have shown that the consequent is contradictory. That is, the three properties young_child_teen, wish_further, and inactive_disinterested cannot simultaneously hold for Bonnie? Why?
+
+Because:
+1. If Bonnie is inactive_disinterested, then by T4 she chaperones.
+2. If she chaperones, then by T3 she is not a student.
+3. If she is young_child_teen and wishes_further, then by T5 she is a student.
+
+So if she has all three, then she is a student (by 3) and not a student (by 2). Contradiction.
+
+Therefore, the consequent is always false? Then the theorem becomes: antecedent → false, i.e., ¬ antecedent.
+
+But is the antecedent always true? Or can we prove it is false?
+
+The antecedent is: chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)
+
+This is equivalent to: ¬ chaperones Bonnie → performs_often Bonnie
+
+And that is equivalent to: chaperones Bonnie ∨ performs_often Bonnie
+
+So the antecedent is: Bonnie either chaperones or performs often (or both).
+
+But by T2, Bonnie is either performs_often or inactive. And if she is inactive, then by T4 she chaperones. So:
+
+- If she is inactive, then she chaperones -> so she chaperones -> satisfies the antecedent.
+- If she is performs_often, then she performs often -> satisfies the antecedent.
+
+Therefore, the antecedent is always true for Bonnie? Because by T2 and T4, if she is inactive then she chaperones, and if she is not inactive then by T2 she must perform often? Wait, T2 says: performs_often ∨ inactive. So if she is not inactive, then she performs often. And if she is inactive, then she chaperones. So in both cases, she either chaperones or performs often. Therefore, the antecedent is always true.
+
+But then the theorem says: if true, then the consequent. But the consequent is always false (as we showed a contradiction). So we have true → false, which is false.
+
+Therefore, the theorem is false? But wait, that would mean the axioms are inconsistent? Because we have:
+
+From T4: inactive → chaperones
+From T3: chaperones → ¬ is_student
+From T5: young_child_teen ∧ wish_further → is_student
+
+But the consequent requires Bonnie to be inactive, young_child_teen, and wish_further. Then:
+
+inactive → chaperones → ¬ is_student
+young_child_teen ∧ wish_further → is_student
+
+So we get ¬ is_student ∧ is_student -> contradiction.
+
+Therefore, the consequent is impossible. But the antecedent is always true (as argued). So the implication is false.
+
+But the theorem is stated as something to prove. However, we have shown that the consequent is contradictory. Therefore, the theorem as stated is false.
+
+But note: the theorem is an implication. We have shown that the antecedent is always true and the consequent is always false. Therefore, the implication is false.
+
+But wait, is the consequent always false? It is false for Bonnie? But we don't know about other persons? The theorem is about Bonnie. And we have shown that for Bonnie, the three properties cannot hold simultaneously because:
+
+Assume Bonnie is inactive, young_child_teen, and wishes_further.
+Then:
+  inactive → chaperones (T4)
+  chaperones → ¬ is_student (T3)
+  young_child_teen and wish_further → is_student (T5)
+Contradiction.
+
+Therefore, it is impossible for Bonnie to have these three properties.
+
+Meanwhile, the antecedent is always true for Bonnie (as per T2 and T4: she must be either inactive (then chaperones) or performing often, so the disjunction holds).
+
+Therefore, the theorem goal is false: we have an antecedent that is true and a consequent that is false.
+
+But the task is to replace 'sorry' with a proof. How can we prove a false theorem? We cannot.
+
+Therefore, the correct answer is that the theorem is false.
+
+But the problem says: "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", and we are to provide a valid proof. However, if the theorem is false, we cannot provide a proof.
+
+But note: the axioms might be inconsistent? Because we have shown that if Bonnie were to have the three properties, we get a contradiction. But we don't have any axiom that says Bonnie is young_child_teen or wishes_further or inactive? So we don't have a contradiction in the axioms? The axioms are consistent because we can have a model where Bonnie is not young_child_teen, or not wishing_further, or not inactive? And the antecedent is true.
+
+But the theorem is an implication. We don't need the consequent to be true in general, only when the antecedent is true. But we have shown that the consequent is never true (for Bonnie) because it leads to a contradiction. And the antecedent is always true. So the implication is false.
+
+Therefore, we cannot prove it.
+
+But wait, maybe I made a mistake: is the consequent really impossible? The consequent is: young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie.
+
+And we derived:
+
+1. inactive_disinterested Bonnie → chaperones Bonnie (T4)
+2. chaperones Bonnie → ¬ is_student Bonnie (T3)
+3. young_child_teen Bonnie ∧ wish_further Bonnie → is_student Bonnie (T5)
+
+So if we assume the consequent, we get:
+  ¬ is_student Bonnie (from 1 and 2)
+  is_student Bonnie (from 3 and the other two parts of the consequent)
+
+Contradiction.
+
+Therefore, the consequent is false for Bonnie.
+
+Meanwhile, the antecedent is true for Bonnie (as argued: by T2, Bonnie is either performs_often or inactive; if inactive, then chaperones by T4, so the disjunction holds; if performs_often, then the disjunction holds because she performs often).
+
+Therefore, the implication is false.
+
+So we cannot provide a proof.
+
+But the problem says: "Replace 'sorry' with a valid proof term." However, there is no proof because the statement is false.
+
+Therefore, we must conclude that the theorem is false.
+
+But the instructions say: "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+So we should answer False.
+
+However, note that the problem says: "Given validated Lean 4 axiom definitions". This might imply that the axioms are consistent and the theorem should be provable? But we have found a contradiction in the consequent, which suggests that the axioms might be okay because the consequent is not forced by the axioms? But the theorem is not forced.
+
+Alternatively, perhaps I made a mistake in the analysis.
+
+Another thought: maybe the antecedent is not always true? Let me check.
+
+T2: ∀ p, performs_often p ∨ inactive_disinterested p.
+
+T4: ∀ p, inactive_disinterested p → chaperones p.
+
+So for Bonnie:
+  If Bonnie is inactive, then she chaperones -> so the antecedent (chaperones Bonnie ∨ ...) holds.
+  If Bonnie is not inactive, then by T2 she must be performs_often -> then the antecedent holds because the second part: ¬ chaperones Bonnie → performs_often Bonnie is true? Actually, if she performs_often, then regardless of chaperones, the disjunction holds? Because if she chaperones, then first disjunct holds; if she doesn't chaperone, then the second disjunct holds? But note the antecedent is: chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie). The second disjunct is an implication: if not chaperones then performs_often. But if she performs_often, then that implication is true? Because the consequent is true. So indeed, if she performs_often, then the entire disjunction is true regardless of chaperones.
+
+Therefore, the antecedent is always true.
+
+But the consequent is always false (for Bonnie) because it leads to a contradiction.
+
+Therefore, the theorem is false.
+
+So we cannot write a proof. But the problem asks for a proof. This is a dilemma.
+
+Perhaps the axioms are not validated? But the problem states they are validated.
+
+Maybe I misinterpreted the consequent? The consequent is: young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie.
+
+And we have shown that this leads to a contradiction. Therefore, it is impossible. So the implication would be true only if the antecedent is false. But the antecedent is always true. So the implication is false.
+
+Therefore, the theorem is false.
+
+But then what should we do? The instructions say: "Provide the complete code with 'sorry' replaced by your proof." But we cannot prove a false statement.
+
+Perhaps we can prove it by showing that the antecedent leads to a contradiction? But the antecedent is always true and we don't have a contradiction from the antecedent alone.
+
+Alternatively, we can prove the theorem by contradiction: assume the antecedent and the negation of the consequent, and derive a contradiction? But we have shown that the consequent is always false, so the negation of the consequent is always true. And the antecedent is always true. So we have true and true, and we need to derive a contradiction? But we don't have one.
+
+Therefore, we cannot.
+
+Given the above, I conclude that the theorem is false. So we cannot provide a proof.
+
+But the problem might expect us to recognize that and answer accordingly.
+
+So in the code, we must leave the sorry? But that is not allowed.
+
+Alternatively, we can try to prove it by showing that the consequent is unavoidable? But we have shown it is impossible.
+
+Perhaps there is a mistake in the problem.
+
+Given the analysis, I think the correct answer is that the theorem is false.
+
+So for the answer, we say ANSWER: False.
+
+But for the code, we cannot write a proof. However, the instructions require a complete code with proof. So we must write something? But it's impossible.
+
+Alternatively, we can use `by_contra` and assume the negation of the consequent, and then show that the antecedent leads to a contradiction? But the antecedent doesn't lead to a contradiction; it is always true.
+
+Let me try to derive a contradiction from the entire context? We have:
+
+The antecedent: chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)
+
+We want to prove: young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie
+
+But we know that if we assume that, we get a contradiction. So if we assume the antecedent and also assume the consequent, we get a contradiction. But that doesn't help because we are to prove the consequent from the antecedent.
+
+In other words, we have:
+
+  (antecedent) → (consequent)
+
+But we have shown that consequent → false.
+
+So the implication is equivalent to: antecedent → false, i.e., ¬ antecedent.
+
+But we have also shown that antecedent is true. So ¬ antecedent is false. Therefore, the implication is false.
+
+So we cannot prove it.
+
+Given the above, I think the only honest answer is that the theorem is false.
+
+So for the code, perhaps we can write a proof of the negation? But the theorem is stated as is.
+
+Alternatively, we might have to output the code with sorry and then say ANSWER: False? But the instructions say to replace sorry.
+
+After careful thought, I think there is a possibility that I missed: perhaps the consequent is not impossible if Bonnie is not young_child_teen or not wish_further? But the consequent requires both. And we showed that if she has both along with inactive, then contradiction. So she cannot have all three. Therefore, the consequent is false.
+
+But maybe the antecedent forces her to be inactive? Then we would have a contradiction, which would make the entire implication true vacuously? No, because the implication would be: true → false, which is false.
+
+Unless the antecedent is false for Bonnie? But we showed it is true.
+
+Unless my argument that the antecedent is always true is flawed.
+
+Let me try to construct a model.
+
+Assume there is only Bonnie.
+
+Define:
+- performs_often Bonnie = false
+- inactive_disinterested Bonnie = true
+- Then by T4, chaperones Bonnie = true
+- is_student Bonnie: must be false because chaperones and T3.
+- young_child_teen Bonnie: can be true or false? 
+- wish_further Bonnie: can be true or false?
+
+Now, the antecedent: chaperones Bonnie is true, so the disjunction holds.
+
+The consequent: young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie. This would require all three to be true. But if we set young_child_teen Bonnie = true and wish_further Bonnie = true, then by T5, is_student Bonnie = true, but we have is_student Bonnie = false -> contradiction. So we cannot set both to true. Therefore, the consequent is false in this model (because we can set them to false).
+
+For example, set young_child_teen Bonnie = false, wish_further Bonnie = false. Then the consequent is false.
+
+So in this model, the antecedent is true and the consequent is false. Therefore, the implication is false.
+
+If we set performs_often Bonnie = true, inactive_disinterested Bonnie = false, and chaperones Bonnie = false (or true, but if she performs often, chaperones might be false). Then the antecedent holds because she performs often (so the second disjunct holds: if not chaperones then performs_often -> true because she performs often). The consequent is false because inactive_disinterested is false.
+
+So in all models, the consequent is false? Because if inactive is true, then we cannot have both young and wish_further (without contradiction), so at least one of young or wish_further must be false. Therefore, the consequent is always false.
+
+And the antecedent is always true.
+
+Therefore, the theorem is false.
+
+So we cannot provide a proof.
+
+Given the above, I will output the code with a comment and then answer False.
+
+But the instructions say to replace sorry with a proof term. Since we cannot, we might have to leave it or use a tactic that fails? But that is not a valid proof.
+
+Alternatively, we can use `by_contra` to assume the negation of the consequent, and then derive a contradiction from the antecedent? But we cannot because the antecedent is true and the negation of the consequent is true, and we have no contradiction.
+
+Perhaps we can show that the antecedent implies the consequent by cases, but we know it's false.
+
+Given the constraints, I think the best is to state that the theorem is false.
+
+So for the code, I will output the same code with 'sorry' replaced by a placeholder and then answer False.
+
+But the problem says "Provide the complete code with proof". Since there is no proof, we cannot.
+
+Perhaps the axioms are not as I interpreted. Let me reread the premises.
+
+Premise 1: Performers are engaged attendees. (T1)
+Premise 2: Members either perform often or are inactive. (T2)
+Premise 3: Chaperones are not students. (T3)
+Premise 4: Inactive members chaperone. (T4)
+Premise 5: Young/teen members who wish to further are students. (T5)
+
+And the theorem: (Bonnie chaperones or (not chaperones -> performs often)) -> (Bonnie is young, wishes further, and inactive)
+
+But as above, this is false.
+
+Perhaps "Members" in the premises are not all persons? But the axioms are universally quantified over Person. And Bonnie is a Person.
+
+So I stand by my conclusion.
+
+Therefore, I will output the code with a proof that uses `by_contra` and then derives a contradiction from the consequent, but that only shows that the consequent is false, not that the implication holds.
+
+Alternatively, we can prove the implication by showing that the antecedent is false, but we know it's true.
+
+I think the only option is to say that the theorem is false.
+
+So for the answer, I will say ANSWER: False.
+
+For the code, since I cannot provide a proof, I will leave sorry and add a comment? But the instructions say to replace it.
+
+Given the instructions, I must provide a complete code with proof. If I cannot, then perhaps I should provide a proof that is not there.
+
+But that is unethical.
+
+Perhaps I missed a axiom or a connection.
+
+Another idea: from the antecedent, can we force Bonnie to be inactive? Let's try.
+
+Assume the antecedent.
+
+Case 1: chaperones Bonnie.
+  Then by T3, not is_student Bonnie.
+  By T2, Bonnie is either performs_often or inactive.
+  Subcase 1.1: performs_often Bonnie.
+    Then she performs often. But we don't get inactive.
+  Subcase 1.2: inactive_disinterested Bonnie.
+    Then we have inactive.
+
+Case 2: not chaperones Bonnie.
+  Then by the antecedent, performs_often Bonnie.
+
+So in Case 1.1 and Case 2, we have performs_often Bonnie, and not inactive (because if she were inactive, then by T4 she would chaperones, but in Case 2 we have not chaperones, so she cannot be inactive).
+
+In Case 1.1: she chaperones and performs often. Then by T2, she might or might not be inactive? But T2 says performs_often OR inactive. She is performs_often, so she might be inactive or not. We don't know.
+
+In Case 2: she is not chaperones and performs often. Then by T2, since she is performs_often, she might or might not be inactive.
+
+So in both cases, we cannot force her to be inactive.
+
+Therefore, the consequent's third part (inactive) may be false.
+
+And the other two parts (young and wish_further) are not constrained by the antecedent.
+
+Therefore, the theorem is false.
+
+So I will output the code with sorry and then answer False, but the instructions require replacing sorry.
+
+Perhaps the problem has a typo.
+
+Given the above, I will output a proof that uses classical logic and then does a case analysis, but eventually fails.
+
+But I can't.
+
+Perhaps the proof is to show that the consequent is impossible, so the implication is true because the antecedent implies anything? But no, the antecedent is true and the consequent is false, so the implication is false.
+
+I think the only reasonable output is to state that the theorem is false.
+
+Therefore, for the code, I will leave sorry and add a comment, but that's not allowed.
+
+Perhaps we can provide a proof of the negation of the theorem.
+
+But the theorem is declared as `theorem goal : ...`.
+
+So we cannot.
+
+Given the instructions, I will output the code with a proof that is a placeholder and then answer False.
+
+Or, I can use the `sorry` axiom, but that's not a proof.
+
+After careful consideration, I think the intended proof might have been for a different consequent.
+
+Perhaps the conclusion is not what I think.
+
+The theorem is:
+  (chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+  (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+
+But maybe the last part is or? But it's and.
+
+Perhaps the axioms are not as applied to Bonnie.
+
+Another idea: from the antecedent, we have that Bonnie is either chaperones or performs often.
+
+If she is chaperones, then she is not a student.
+ If she is not a student, then if she is young and wishes to further, we have a contradiction with T5? But again, we don't know if she is young and wishes to further.
+
+So still, no force for the consequent.
+
+Therefore, I must conclude that the theorem is false.
+
+So for the answer, I will say False.
+
+For the code, I will output a proof that uses `admit` (which is not in Lean 4) or `sorry` but that's not allowed.
+
+Perhaps we can write a proof that is not complete, but that's against the instructions.
+
+Given the above, I will output the code with a comment that the proof is not possible and then answer False.
+
+But to follow the format, I will provide the code as is with 'sorry' and then answer False.
+
+However, the instructions say: "Replace 'sorry' with a valid proof term." So if I leave sorry, it's not replaced.
+
+So I must put something.
+
+Perhaps we can use a tactic that fails, but then it won't compile.
+
+I think the only option is to provide an answer of False and for the code, put a trivial proof like `False.elim` but that requires a proof of False, which we don't have.
+
+Alternatively, we can assume a proof of False from the context, but we don't have.
+
+Given the instructions, I will provide the code with a proof that is not valid and then answer False, but that's not good.
+
+Perhaps the problem has a mistake, and the consequent should be different.
+
+For example, if the consequent was only inactive, then we might be able to prove it? But we can't because she might be performs_often.
+
+Or if the consequent was that she is not young or not wish_further, then it would be true.
+
+But as it is, it's false.
+
+Therefore, I will output the following code with a proof using `by_contra` and then deriving a contradiction from the consequent, but that only shows that the consequent is false, which doesn't prove the implication.
+
+In fact, if we have `h : false`, then we can prove anything, including the consequent. So:
+
+  assume h : chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)
+  have : young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie := by
+    have : false := ... (from the consequent's contradiction)
+    exact False.elim this
+
+ But to have `false`, we need to have the consequent first, which we are trying to prove.
+
+It's circular.
+
+Alternatively, we can do:
+
+  theorem goal : ... := by
+    intro h
+    have : young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie := by
+      let c : is_student Bonnie := by
+        sorry
+      let d : ¬ is_student Bonnie := by
+        sorry
+      exact False.elim (d c)
+
+ But we cannot fill the sorry for c and d.
+
+For d: if we can show chaperones Bonnie, then by T3, not is_student.
+ For c: if we can show young and wish_further, then by T5, is_student.
+
+ But we need to show both young and wish_further and inactive to use T5, and we need inactive to show chaperones (T4) and then not student.
+
+ So it's circular.
+
+Therefore, I cannot provide a proof.
+
+Given the above, I will output the code with sorry and then answer False.
+
+But to follow the instructions, I will try to provide a proof that uses classical.prop_complete or something, but that won't help.
+
+ I think the answer is to state that the theorem is false.
+
+ So for the code, I will leave it as sorry and for the answer, False.
+
+ But the instructions require the complete code with proof.
+
+ Therefore, I must say that the proof is not possible.
+
+ Perhaps the problem is to realize that and answer accordingly.
+
+ So I will output the code with sorry and then ANSWER: False.
+
+ Or, to follow the format, I will output the code with a proof that is a placeholder.
+
+ Let me write a proof using tactics that will fail, but perhaps for the sake of format.
+
+ After careful thought, I decide to output the following code with a proof that is not valid, but then answer False.
+
+ But that is not honest.
+
+ Given the instructions, I will output the code with a comment and then answer False.
+
+ However, the instructions say to provide the complete code with proof, and then answer.
+
+ So I will provide a proof that is the following: we can prove the implication by showing that the antecedent is false, which we cannot, or by showing the consequent is true, which we cannot. So we admit defeat.
+
+ But that's not a proof.
+
+ Therefore, I think the correct response is to say that the theorem is false.
+
+ So for the code, I will not change it, and for the answer, False.
+
+ But to follow the format, I will output the code with 'sorry' replaced by a proof that is `by admit` if that were allowed, but in Lean 4, there is no `admit`.
+
+ So I will use `sorry` again and then answer False.
+
+ But the instructions say to replace sorry with a valid proof term.
+
+ Since I cannot, I will use:
+
+  by 
+    have := by admit
+    exact this
+
+ but that's not valid.
+
+ Given the above, I will output the following as a way to show that the proof is not possible within the given axioms.
+
+ In the code, I will leave sorry and add a comment.
+
+ But the instructions don't allow comments in the code.
+
+ Therefore, I will output the code as given, with 'sorry', and then answer False.
+
+ But that doesn't replace sorry.
+
+ So as a last resort, I will provide a proof for a different interpretation.
+
+ Perhaps the consequent is not required to be proven, but the whole thing is to realize it's false.
+
+ I think the best is to output the code with 'sorry' and then answer False.
+
+ Or, to satisfy the format, I will put a dummy proof.
+
+ Let me put: `by exact sorry`
+
+ But that's not a proof.
+
+ Given the instructions, I will output the code with a proof that is based on the following idea: since the consequent is always false, and the antecedent is true, then the implication is false, so we can prove it by deriving a contradiction from the implication being true? But that's meta.
+
+ In object level, we cannot.
+
+ Therefore, I will output:
+
+<lean>
+... (the axioms and theorem declaration)...
+theorem goal : 
+  (chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+  (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := 
+  fun h => by
+    have : chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie) := h
+    have : false := by 
+      -- we cannot prove false
+      sorry
+    exact this.elim
+</lean>
+
+ But then we have to fill the sorry for false.
+
+ This is not helping.
+
+ Given the time, I will output the code with 'sorry' unchanged and then answer False.
+
+ But that's not what the task asks.
+
+ Perhaps the task is to realize that the theorem is not provable and answer Uncertain.
+
+ But I think it's False.
+
+ Another idea: maybe the axioms are not about Bonnie being a member? But the premises are about "Members", and the axioms are for all Person, and Bonnie is a Person, so we assume she is a member.
+
+ So I think it's False.
+
+ Therefore, I will answer False.
+
+ For the code, I will provide a proof using `by_contra` that assumes the negation of the consequent and then derives a contradiction from the antecedent and the context, but we cannot.
+
+ So here is a try:
+
+ We know the consequent is false, so its negation is true. So we can write:
+
+  fun h => by
+    have : ¬ (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := by
+      intro h1
+      have : young_child_teen Bonnie := h1.1
+      have : wish_further Bonnie := h1.2.1
+      have : inactive_disinterested Bonnie := h1.2.2
+      have : chaperones Bonnie := T4 Bonnie this
+      have : ¬ is_student Bonnie := T3 Bonnie this
+      have : is_student Bonnie := T5 Bonnie ‹_› ‹_›
+      exact this ‹_›
+    exact this
+
+ But wait, this proves that the negation of the consequent is true. But then the implication is: antecedent -> consequent. If the consequent is false, then the implication is false unless the antecedent is false. But we have the antecedent (h) as true, so this only proves that the consequent is false, but it does not prove the implication.
+
+ In fact, it proves that the implication is equivalent to antecedent -> false, i.e., not antecedent.
+
+ So to prove the implication, we would need to prove not antecedent, but we have h: antecedent.
+
+ So we would have:
+
+  have not_antecedent : false := by
+    have : not (antecedent) := ??
+    exact this h
+
+ This is not helping.
+
+ Therefore, I cannot.
+
+ Given the above, I will output the code with the proof of the negation of the consequent, and then use that to discharge the implication? No.
+
+ I think I have to give up.
+
+ So for the code, I will output the following proof:
+
+ We know that the consequent is false (because it leads to a contradiction), so we can prove anything from the implication including the consequent by exfalso. But we need a proof of false.
+
+ So:
+
+  theorem goal : ... := 
+  fun h => 
+  let not_consequent : ¬ (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) :=
+    fun ⟨hy, hw, hi⟩ => 
+      have c : chaperones Bonnie := T4 Bonnie hi
+      have ns : ¬ is_student Bonnie := T3 Bonnie c
+      have s : is_student Bonnie := T5 Bonnie hy hw
+      ns s
+  by exact False.elim (not_consequent sorry) 
+
+ But to use not_consequent, we need a proof of the consequent, which we don't have.
+
+ So we are stuck.
+
+ Therefore, I will output the code with 'sorry' and then answer False.
+
+ But to follow the instructions, I will change the proof to:
+
+  by exact sorry
+
+ So the code becomes:
+
+<lean>
+axiom Person : Type
+
+-- Predicates for properties
+axiom performs_often : Person → Prop
+axiom attends_engaged : Person → Prop
+axiom inactive_disinterested : Person → Prop
+axiom chaperones : Person → Prop
+axiom is_student : Person → Prop
+axiom young_child_teen : Person → Prop
+axiom wish_further : Person → Prop
+
+-- Bonnie is a specific person in the club
+axiom Bonnie : Person
+
+-- Premise 1: Performers are engaged attendees
+axiom T1 : ∀ p : Person, performs_often p → attends_engaged p
+
+-- Premise 2: Members either perform often or are inactive
+axiom T2 : ∀ p : Person, performs_often p ∨ inactive_disinterested p
+
+-- Premise 3: Chaperones are not students
+axiom T3 : ∀ p : Person, chaperones p → ¬ is_student p
+
+-- Premise 4: Inactive members chaperone
+axiom T4 : ∀ p : Person, inactive_disinterested p → chaperones p
+
+-- Premise 5: Young/teen members who wish to further are students
+axiom T5 : ∀ p : Person, young_child_teen p → wish_further p → is_student p
+
+-- Conclusion structure: 
+-- (Bonnie chaperones ∨ (¬chaperones → performs_often)) → 
+-- (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+theorem goal : 
+  (chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+  (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := 
+  by exact sorry
+</lean>
+
+Then, ANSWER: False
+
+But note: the instructions say "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+So I will do that.
+
+ However, I know that this is not a valid proof.
+
+ Perhaps the intended theorem was different.
+
+ Given the above, I output the code with sorry and answer False.
+
+
+=== RESPONSE ===
+The given theorem is not provable from the provided axioms. The antecedent `(chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie))` is always true for Bonnie due to axioms T2 and T4. However, the consequent `(young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)` leads to a contradiction when combined with axioms T3, T4, and T5. Specifically, if Bonnie is inactive, young, and wishes to further, she must be both a student (by T5) and not a student (by T3 and T4), which is impossible. Thus, the consequent is always false, making the implication false.
+
+Since the theorem is false, no valid proof exists. The Lean code remains unchanged with `sorry`.
+
+ANSWER: False
+
+<lean>
+axiom Person : Type
+
+-- Predicates for properties
+axiom performs_often : Person → Prop
+axiom attends_engaged : Person → Prop
+axiom inactive_disinterested : Person → Prop
+axiom chaperones : Person → Prop
+axiom is_student : Person → Prop
+axiom young_child_teen : Person → Prop
+axiom wish_further : Person → Prop
+
+-- Bonnie is a specific person in the club
+axiom Bonnie : Person
+
+-- Premise 1: Performers are engaged attendees
+axiom T1 : ∀ p : Person, performs_often p → attends_engaged p
+
+-- Premise 2: Members either perform often or are inactive
+axiom T2 : ∀ p : Person, performs_often p ∨ inactive_disinterested p
+
+-- Premise 3: Chaperones are not students
+axiom T3 : ∀ p : Person, chaperones p → ¬ is_student p
+
+-- Premise 4: Inactive members chaperone
+axiom T4 : ∀ p : Person, inactive_disinterested p → chaperones p
+
+-- Premise 5: Young/teen members who wish to further are students
+axiom T5 : ∀ p : Person, young_child_teen p → wish_further p → is_student p
+
+-- Conclusion structure: 
+-- (Bonnie chaperones ∨ (¬chaperones → performs_often)) → 
+-- (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie)
+theorem goal : 
+  (chaperones Bonnie ∨ (¬ chaperones Bonnie → performs_often Bonnie)) → 
+  (young_child_teen Bonnie ∧ wish_further Bonnie ∧ inactive_disinterested Bonnie) := 
+sorry
+</lean>

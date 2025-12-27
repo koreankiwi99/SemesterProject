@@ -1,0 +1,552 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and a conclusion about John.
+ We need to define the types and predicates, then formalize the premises as axioms and the conclusion as a theorem.
+
+ Steps:
+ 1. Identify the types: We have "people". So we can have a type for people.
+ 2. Identify predicates and relations:
+    - "make wedding plans": let's say `MakesWeddingPlans : Person → Prop`
+    - "are engaged": `Engaged : Person → Prop`
+    - "invite others to come to their ceremony": `InvitesToCeremony : Person → Prop`
+    - "has a well-attended wedding": `HasWellAttendedWedding : Person → Prop`
+    - "have larger families": `HasLargerFamily : Person → Prop`
+    - "invites friends to their ceremony": This seems similar to "invite others", but note the premise says "invites friends". 
+      However, the problem uses two different phrases: 
+        - "invite others to come to their ceremony" (in premises 2 and 3)
+        - "invites friends to their ceremony" (in premises 5 and 6)
+      We must treat them as distinct? Or same? Let's note:
+
+      Premise 5: "If John is engaged, then John does not invite friends to their ceremony and make wedding plans."
+      Premise 6: "If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony."
+
+      And premise 3: "Anyone who has a well-attended wedding invites others to come to their ceremony."
+
+      Since "invites friends" and "invites others" might be different, we'll create two predicates:
+        - `InvitesOthersToCeremony : Person → Prop`
+        - `InvitesFriendsToCeremony : Person → Prop`
+
+ 3. We have a specific individual: John. So we'll declare `John : Person`.
+
+ 4. Formalize the premises:
+
+    Premise 1: "All people who make wedding plans are people who are engaged."
+        ∀ p, MakesWeddingPlans p → Engaged p
+
+    Premise 2: "All people who invite others to come to their ceremony make wedding plans."
+        ∀ p, InvitesOthersToCeremony p → MakesWeddingPlans p
+
+    Premise 3: "Anyone who has a well-attended wedding invites others to come to their ceremony."
+        ∀ p, HasWellAttendedWedding p → InvitesOthersToCeremony p
+
+    Premise 4: "Some people that have well-attended weddings have larger families."
+        ∃ p, HasWellAttendedWedding p ∧ HasLargerFamily p
+
+    Premise 5: "If John is engaged, then John does not invite friends to their ceremony and make wedding plans."
+        Engaged John → (¬ InvitesFriendsToCeremony John ∧ ¬ MakesWeddingPlans John)
+
+        But note: the premise says "does not invite friends ... and make wedding plans". 
+        However, the logical structure is: Engaged John → (¬ (InvitesFriendsToCeremony John) ∧ ¬ (MakesWeddingPlans John))
+
+    Premise 6: "If John has a larger family, then either John has a well-attended wedding or invites friends to their ceremony."
+        HasLargerFamily John → (HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John)
+
+ 5. Conclusion: "John is engaged." → `Engaged John`
+
+ 6. We'll declare:
+    - `Person : Type`
+    - `John : Person`
+    - Predicates as above.
+
+ 7. Note: Premise 4 is an existential. We don't need to name the witness unless we use it in the proof. But since we are not proving, we can just state the existential.
+
+ 8. However, note that in Lean, we can state the existential without a witness.
+
+ 9. Let's write the axioms accordingly.
+
+ IMPORTANT: We are not proving, so the theorem will be `theorem goal : Engaged John := sorry`
+
+ Let's code accordingly.
+
+
+=== RESPONSE ===
+Based on the premises and conclusion provided, I'll formalize the logical structure in Lean 4. The key elements are:
+
+- Type: Person
+- Predicates: Engaged, MakesWeddingPlans, InvitesOthersToCeremony, HasWellAttendedWedding, HasLargerFamily, InvitesFriendsToCeremony
+- Constant: John (a specific person)
+- Premises: 6 logical statements
+- Conclusion: John is engaged
+
+Here's the formalization:
+
+<lean>
+axiom Person : Type
+
+-- Predicates
+axiom Engaged : Person → Prop
+axiom MakesWeddingPlans : Person → Prop
+axiom InvitesOthersToCeremony : Person → Prop
+axiom HasWellAttendedWedding : Person → Prop
+axiom HasLargerFamily : Person → Prop
+axiom InvitesFriendsToCeremony : Person → Prop
+
+-- Individual constant
+axiom John : Person
+
+-- Premises
+axiom P1 : ∀ p : Person, MakesWeddingPlans p → Engaged p
+axiom P2 : ∀ p : Person, InvitesOthersToCeremony p → MakesWeddingPlans p
+axiom P3 : ∀ p : Person, HasWellAttendedWedding p → InvitesOthersToCeremony p
+axiom P4 : ∃ p : Person, HasWellAttendedWedding p ∧ HasLargerFamily p
+axiom P5 : Engaged John → ¬InvitesFriendsToCeremony John ∧ ¬MakesWeddingPlans John
+axiom P6 : HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John
+
+-- Conclusion to prove
+theorem goal : Engaged John := sorry
+</lean>
+
+Explanation:
+1. Declared `Person` as the base type
+2. Defined 6 predicates corresponding to the properties mentioned in the premises
+3. Added `John` as a specific person
+4. Formalized the 6 premises as axioms:
+   - P1: Wedding planners are engaged
+   - P2: Inviting others implies making wedding plans
+   - P3: Well-attended weddings require inviting others
+   - P4: Existential about well-attended weddings and large families
+   - P5: Engaged John doesn't invite friends or make plans
+   - P6: Large family implies well-attended wedding or inviting friends
+5. Declared the conclusion as a theorem with `sorry` placeholder
+
+Note: The existential in P4 is declared without specifying a witness since we're only formalizing the structure, not proving the theorem. All axioms are properly typed and should pass Lean's type checking.
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+=== REASONING ===
+We are given several premises and we need to prove that John is engaged.
+ The conclusion is `Engaged John`.
+
+ Let's analyze the premises:
+
+ P1: ∀ p, MakesWeddingPlans p → Engaged p
+    So if John makes wedding plans, then he is engaged.
+
+ P2: ∀ p, InvitesOthersToCeremony p → MakesWeddingPlans p
+    So if John invites others to the ceremony, then he makes wedding plans.
+
+ P3: ∀ p, HasWellAttendedWedding p → InvitesOthersToCeremony p
+    So if John has a well-attended wedding, then he invites others to the ceremony.
+
+ P4: ∃ p, HasWellAttendedWedding p ∧ HasLargerFamily p
+    There exists some person who has a well-attended wedding and has a larger family.
+
+ P5: Engaged John → ¬InvitesFriendsToCeremony John ∧ ¬MakesWeddingPlans John
+    If John is engaged, then he does not invite friends to the ceremony and does not make wedding plans.
+
+ P6: HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John
+    If John has a larger family, then either he has a well-attended wedding or he invites friends to the ceremony.
+
+ We are to prove `Engaged John`.
+
+ However, note that P5 says that if John is engaged, then he does not make wedding plans and does not invite friends.
+ But P1 says that if he makes wedding plans then he is engaged. So if he is engaged, he doesn't make wedding plans? 
+ This seems contradictory because if he is engaged then by P1 we might expect he makes wedding plans? But P5 says he doesn't.
+
+ Let me try to see if we can derive a contradiction? Actually, we are to prove `Engaged John`. 
+
+ Alternatively, note that P4 says there exists someone (say p0) who has a well-attended wedding and has a larger family.
+ But we don't know if that person is John.
+
+ Approach:
+
+ We might try to assume that John is not engaged and derive a contradiction? Or use the other premises.
+
+ Alternatively, let us try to see what we can derive about John.
+
+ Consider P6: If John has a larger family, then he either has a well-attended wedding or invites friends.
+
+ Now, if John has a well-attended wedding, then by P3 he invites others to the ceremony, then by P2 he makes wedding plans, then by P1 he is engaged.
+
+ But if he is engaged, then by P5 he does not make wedding plans. This is a contradiction.
+
+ Similarly, if John invites friends to the ceremony, then note that P5 says if he is engaged then he does not invite friends. But we don't have a direct link from inviting friends to being engaged? 
+
+ However, note that if John has a larger family, then by P6 we have two cases:
+
+ Case 1: HasWellAttendedWedding John -> then we get a chain: HasWellAttendedWedding John -> InvitesOthersToCeremony John (P3) -> MakesWeddingPlans John (P2) -> Engaged John (P1). 
+ But then by P5, Engaged John implies ¬MakesWeddingPlans John, which contradicts MakesWeddingPlans John.
+
+ Case 2: InvitesFriendsToCeremony John. Now, we don't have a direct link from InvitesFriendsToCeremony to Engaged. But note that P5 says that if John is engaged then he does not invite friends. However, we don't have the contrapositive? 
+
+ Actually, we are trying to prove Engaged John. So if we assume that John has a larger family, then we get two cases and Case1 leads to a contradiction. In Case2, we have InvitesFriendsToCeremony John. But we don't have any premise that says that inviting friends leads to being engaged? 
+
+ However, note that P4 says there exists a person with a well-attended wedding and a larger family. But that person might not be John. So we cannot assume that John has a larger family.
+
+ Therefore, we must consider: what if John does not have a larger family? Then P6 doesn't tell us anything.
+
+ How can we use P4? We know there exists someone (call him p0) such that HasWellAttendedWedding p0 and HasLargerFamily p0.
+
+ But without knowing that p0 is John, it doesn't help directly.
+
+ Alternatively, we might try to show that John must have a well-attended wedding or not? 
+
+ Let me try to assume that John is not engaged and see if we can derive a contradiction.
+
+ Assume ¬Engaged John.
+
+ From P5: Engaged John → ... but since we assume ¬Engaged John, P5 doesn't give us anything.
+
+ Now, note that we have no premise that forces John to be engaged. In fact, we have:
+
+ P5: Engaged John → ¬InvitesFriendsToCeremony John ∧ ¬MakesWeddingPlans John
+
+ But without knowing anything about John's actions, we cannot derive that he is engaged.
+
+ Moreover, P4 says there exists someone with a well-attended wedding and larger family. That person might be John? Or might not.
+
+ Without knowing that John has a larger family, we cannot use P6.
+
+ Therefore, it seems we cannot prove Engaged John.
+
+ But wait: what if we try to show that John must have a larger family? We don't have any premise that says that.
+
+ Alternatively, consider that the only way to get Engaged John is through P1, which requires MakesWeddingPlans John. But if John makes wedding plans, then by P1 he is engaged, but then by P5 he does not make wedding plans. Contradiction.
+
+ So if John makes wedding plans, we get:
+
+   MakesWeddingPlans John → Engaged John (by P1) → ¬MakesWeddingPlans John (by P5)
+
+ Therefore, John cannot make wedding plans.
+
+ Similarly, if John invites others to the ceremony, then by P2 he makes wedding plans, which we just saw leads to a contradiction. So he cannot invite others.
+
+ Similarly, if John has a well-attended wedding, then by P3 he invites others, which leads to contradiction. So he cannot have a well-attended wedding.
+
+ Now, P4 says there exists someone (p0) with a well-attended wedding and larger family. So p0 must not be John? Because John cannot have a well-attended wedding.
+
+ But note that P4 does not say that John has a well-attended wedding. So that's fine.
+
+ Now, what about P6? It says: if John has a larger family, then he has a well-attended wedding or invites friends. But we know he cannot have a well-attended wedding (because that leads to contradiction). So if he has a larger family, then he must invite friends.
+
+ But we don't have any premise that says inviting friends leads to a contradiction? 
+
+ However, note that if John invites friends to the ceremony, is that the same as inviting others? The predicates are different: 
+   InvitesFriendsToCeremony vs InvitesOthersToCeremony.
+
+ We don't have a premise connecting these two.
+
+ So we have:
+
+   If John has a larger family, then InvitesFriendsToCeremony John.
+
+ But we don't have any negative consequence from inviting friends? 
+
+ Therefore, we don't have a contradiction. So John might not be engaged? 
+
+ But wait, we are trying to prove Engaged John. We have shown that if John makes wedding plans we get a contradiction, so he doesn't make wedding plans. Similarly, he doesn't invite others and doesn't have a well-attended wedding.
+
+ Now, is there any other way to be engaged? P1 says that being engaged requires making wedding plans. But we just showed that John does not make wedding plans. Therefore, we cannot have Engaged John by P1? 
+
+ Actually, P1 says: ∀ p, MakesWeddingPlans p → Engaged p. It does not say that Engaged p → MakesWeddingPlans p. So it is possible to be engaged without making wedding plans? 
+
+ But note that P5 says: if John is engaged, then he does not make wedding plans. So that is consistent: if he is engaged, then he doesn't make wedding plans. But how did he become engaged? 
+
+ The only way we have to get engaged is by making wedding plans? But if he is engaged, then he doesn't make wedding plans. So how did he get engaged? 
+
+ This suggests that the only way to be engaged is to make wedding plans, but then if you are engaged you stop making wedding plans? 
+
+ However, note that the premises do not specify that the actions are simultaneous or in time order. 
+
+ But more importantly, we have no way to prove that John is engaged. In fact, we have:
+
+   We cannot prove that John makes wedding plans (and if he does, we get a contradiction).
+
+   Therefore, we cannot use P1 to prove Engaged John.
+
+   And there is no other premise that directly gives Engaged John.
+
+ Therefore, it seems the theorem `Engaged John` is not provable from the premises.
+
+ However, let me check if we can derive a contradiction from the assumption that John is not engaged? 
+
+ We have:
+
+   ¬Engaged John.
+
+   From P5: if John were engaged, we would get a contradiction? But we are assuming he is not engaged, so P5 doesn't apply.
+
+   We have P4: there exists someone (p0) with HasWellAttendedWedding p0 and HasLargerFamily p0.
+
+   For p0: 
+        HasWellAttendedWedding p0 → InvitesOthersToCeremony p0 (by P3) → MakesWeddingPlans p0 (by P2) → Engaged p0 (by P1).
+
+   So p0 is engaged.
+
+   But that doesn't tell us about John.
+
+   Now, we have no premise that says John must be engaged.
+
+ Therefore, we cannot prove `Engaged John`.
+
+ But note: the problem says to replace the sorry with a proof. However, if we cannot prove it, then we must mark as Uncertain? 
+
+ However, the task says: "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ But wait: we are to provide the complete code. If we cannot prove it, then we cannot write a proof term. However, the problem says "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", so we are expected to replace sorry with a proof if possible.
+
+ Alternatively, we might have missed something.
+
+ Let me reexamine:
+
+   We have P4: ∃ p, HasWellAttendedWedding p ∧ HasLargerFamily p.
+
+   Let p0 be such a person. Then we know:
+
+        HasWellAttendedWedding p0 → ... → Engaged p0.
+
+   But what if p0 is John? Then we would have HasWellAttendedWedding John, which we have shown leads to a contradiction? 
+
+   How? Because:
+
+        HasWellAttendedWedding John → InvitesOthersToCeremony John → MakesWeddingPlans John → Engaged John → ¬MakesWeddingPlans John.
+
+   So we get MakesWeddingPlans John and ¬MakesWeddingPlans John.
+
+   Therefore, if p0 is John, we get a contradiction.
+
+   So p0 cannot be John.
+
+   Therefore, we must have that John is not the person with a well-attended wedding and larger family.
+
+   But that doesn't tell us anything about John being engaged.
+
+   Now, consider P6: HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John.
+
+   But we know that HasWellAttendedWedding John leads to contradiction. Therefore, if John has a larger family, then we must have InvitesFriendsToCeremony John.
+
+   But again, we don't have any contradiction from InvitesFriendsToCeremony John.
+
+   So we have no way to force Engaged John.
+
+ Therefore, I conclude that the statement `Engaged John` is not provable.
+
+ But note: the problem says "Provide the complete code with 'sorry' replaced by your proof". If we cannot prove it, we cannot write a proof. However, the problem says "Given validated Lean 4 axiom definitions", meaning we have to work with what we have.
+
+ Since we cannot prove it, we must mark as Uncertain? And in the code, we cannot replace sorry? 
+
+ However, the instructions say: "Replace 'sorry' with a valid proof term". But if we cannot prove it, we cannot provide a valid proof term.
+
+ This suggests that the theorem might be false? But in logic, we are to prove it from the axioms. If we cannot prove it, then the answer is Uncertain? 
+
+ But note: the problem says "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ However, we are to provide the code? How? We cannot prove it.
+
+ Alternatively, perhaps we can use classical reasoning? But Lean is constructive by default? 
+
+ Let me try to see if we can derive a contradiction from the negation of the goal? 
+
+ Assume ¬Engaged John.
+
+ We know that John does not make wedding plans? Because if he did, he would be engaged (P1) and then by P5 he wouldn't make wedding plans. So we have:
+
+   ¬MakesWeddingPlans John.
+
+ Similarly, ¬InvitesOthersToCeremony John (because if he did, he would make wedding plans, which we just said he doesn't).
+
+ Similarly, ¬HasWellAttendedWedding John.
+
+ Now, P6: if John has a larger family, then he must have a well-attended wedding (which we have shown is false) or invite friends. So he must invite friends.
+
+ But we don't have any contradiction from inviting friends? 
+
+ Also, P4 says there exists someone (p0) who has a well-attended wedding and larger family. We know p0 is not John. So that's fine.
+
+ Therefore, we have a consistent model where John is not engaged.
+
+ So the theorem is not provable.
+
+ Therefore, we must answer Uncertain.
+
+ But the problem asks for the complete code. How can we write a proof for something that is not provable? 
+
+ We cannot. Therefore, I think the task expects us to realize that the theorem is not provable and mark Uncertain.
+
+ However, note that the problem says "Given validated Lean 4 axiom definitions and a theorem declaration with 'sorry'", so we are expected to try to prove it.
+
+ Since we cannot prove it, we might leave it as sorry? But the task says "replace 'sorry' with a valid proof term".
+
+ Alternatively, we might try to use the fact that P4 gives us a witness? But we don't know that the witness is John.
+
+ Let me try to do a proof by contradiction on the goal? 
+
+ We assume ¬Engaged John and try to derive a contradiction.
+
+ But we have not found a contradiction.
+
+ Therefore, I think the answer is Uncertain.
+
+ However, let me write a Lean proof that shows that the goal is not provable? But that would be a meta-level statement.
+
+ Alternatively, we can try to construct a countermodel? But the task is to replace sorry with a proof term, not to disprove.
+
+ Given the instructions, I think we must provide a proof if we can, and if not, then we cannot complete the code.
+
+ But note: the problem says "Replace 'sorry' with a valid proof term". If we cannot, then we must not claim to have a proof.
+
+ Therefore, I will output the code with sorry still there? But that violates the task.
+
+ Alternatively, the task might be designed to be unprovable? And we are to mark Uncertain.
+
+ After careful analysis, I conclude that the theorem is not provable.
+
+ So I will output:
+
+ ANSWER: Uncertain
+
+ But what about the code? The task requires the complete code. Since we cannot provide a proof, we cannot replace the sorry. However, the instructions say "Replace 'sorry' with a valid proof term". If we cannot, then we must not output a proof term.
+
+ Therefore, I will leave the sorry and mark Uncertain? But that is not replacing.
+
+ Alternatively, we might use `by admit`? But that is not a valid proof.
+
+ Given the ambiguity, I think the intended answer is that the theorem is not provable.
+
+ Therefore, I will output the same code with sorry and mark Uncertain.
+
+ But the problem says: "Provide the complete code with 'sorry' replaced by your proof." So if we don't have a proof, we cannot comply.
+
+ However, note that the problem says "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ So I will output the code with sorry and then ANSWER: Uncertain? But that doesn't replace sorry.
+
+ Alternatively, we might try to write a proof that uses classical.choice and then gets stuck? But that is not valid.
+
+ After rethinking, I notice that we have not used P4 in any way that forces John to be engaged. And we have shown that if John were to make wedding plans, we get a contradiction. Therefore, John does not make wedding plans. And by P1, we cannot prove Engaged John without him making wedding plans. Therefore, we have no way.
+
+ So I decide:
+
+ ANSWER: Uncertain
+
+ But the code remains with sorry.
+
+ However, the task says to replace sorry with a proof term. If we cannot, then we must not pretend we can.
+
+ Given the instructions, I will output the code unchanged (with sorry) and then ANSWER: Uncertain.
+
+ But that seems to violate the task.
+
+ Alternatively, we might try to use the witness from P4 and then if that witness is John we get a contradiction? But we don't know it is John. And if it is not John, then we don't care.
+
+ We can do:
+
+   Let p0 be the person from P4: so we have (hw: HasWellAttendedWedding p0) and (hl: HasLargerFamily p0).
+
+   Then we can prove Engaged p0: by P3, P2, P1.
+
+   But for John, we cannot.
+
+ So in the proof, we can only prove Engaged p0, not Engaged John.
+
+ Therefore, I think the answer is Uncertain.
+
+ Since I cannot provide a proof term for `Engaged John`, I will not change the sorry.
+
+ But the problem says "Replace 'sorry' with a valid proof term", so if I cannot, then I have to leave it as sorry? 
+
+ However, the problem also says "After your code, provide your answer: ANSWER: True/False/Uncertain"
+
+ So I will output the code with sorry and then ANSWER: Uncertain.
+
+ But note: the problem says "Provide the complete code with 'sorry' replaced by your proof." So if I don't replace it, I am not following instructions.
+
+ This is a dilemma.
+
+ Let me try to see if there is any proof at all.
+
+ Another idea: use P5 and P6 together? 
+
+   We have P6: HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John.
+
+   And P5: Engaged John → ¬InvitesFriendsToCeremony John ∧ ¬MakesWeddingPlans John.
+
+   But we don't know if John has a larger family.
+
+   And P4 says there exists someone with a larger family and well-attended wedding, but not necessarily John.
+
+   So we cannot force John to have a larger family.
+
+   Therefore, we have no information about John.
+
+   So we cannot prove Engaged John.
+
+ Therefore, I stand by Uncertain.
+
+ Given the constraints, I will output the code unchanged and then ANSWER: Uncertain.
+
+ But to be safe, I will write:
+
+   We cannot prove it, so we leave sorry.
+
+ However, the problem says "Replace 'sorry' with a valid proof term", and if we cannot, then we are not able to complete the task.
+
+ Since the task is to provide the complete code with the proof, and we don't have one, we must not provide a proof.
+
+ Therefore, I will output the code with sorry and then ANSWER: Uncertain.
+
+ But note: the example provided in the instructions had a valid proof. So this task might be designed to be unprovable.
+
+ Let's output as follows:
+
+
+=== RESPONSE ===
+The given premises do not allow us to prove `Engaged John`. Here's why:
+
+1. Premises P1-P3 establish implications about wedding planning, invitations, and well-attended weddings, but these do not directly involve John.
+2. P4 states there exists *some* person with a well-attended wedding and larger family, but this person might not be John.
+3. P5 and P6 describe implications about John, but:
+   - P5 only tells us that if John is engaged, he doesn't invite friends or make plans
+   - P6 requires John to have a larger family to derive further properties, which we don't know
+4. There is no premise forcing John to have a larger family or linking John to the existential in P4
+5. Attempts to derive `Engaged John` lead to circular dependencies or require unprovable assumptions
+
+Thus, the theorem is unprovable from the given premises.
+
+ANSWER: Uncertain
+
+<lean>
+axiom Person : Type
+
+-- Predicates
+axiom Engaged : Person → Prop
+axiom MakesWeddingPlans : Person → Prop
+axiom InvitesOthersToCeremony : Person → Prop
+axiom HasWellAttendedWedding : Person → Prop
+axiom HasLargerFamily : Person → Prop
+axiom InvitesFriendsToCeremony : Person → Prop
+
+-- Individual constant
+axiom John : Person
+
+-- Premises
+axiom P1 : ∀ p : Person, MakesWeddingPlans p → Engaged p
+axiom P2 : ∀ p : Person, InvitesOthersToCeremony p → MakesWeddingPlans p
+axiom P3 : ∀ p : Person, HasWellAttendedWedding p → InvitesOthersToCeremony p
+axiom P4 : ∃ p : Person, HasWellAttendedWedding p ∧ HasLargerFamily p
+axiom P5 : Engaged John → ¬InvitesFriendsToCeremony John ∧ ¬MakesWeddingPlans John
+axiom P6 : HasLargerFamily John → HasWellAttendedWedding John ∨ InvitesFriendsToCeremony John
+
+-- Conclusion to prove
+theorem goal : Engaged John := sorry  -- No valid proof exists
+</lean>

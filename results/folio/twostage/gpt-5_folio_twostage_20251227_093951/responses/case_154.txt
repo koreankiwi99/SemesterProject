@@ -1,0 +1,70 @@
+======================================================================
+STAGE 1: TRANSLATION
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+axiom Hydrocarbon : obj → Prop
+axiom OrganicCompound : obj → Prop
+axiom Alkane : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom mixture : obj
+
+axiom All_Hydrocarbons_Are_Organic : ∀ x : obj, Hydrocarbon x → OrganicCompound x
+axiom All_Alkanes_Are_Hydrocarbons : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom All_Organic_Are_Chemical : ∀ x : obj, OrganicCompound x → ChemicalCompound x
+axiom All_Organic_Contain_Carbon : ∀ x : obj, OrganicCompound x → ContainsCarbon x
+axiom No_Chemical_OnlyOneElement : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+axiom Mixture_Both_or_Neither : (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨ (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+theorem goal : (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := sorry
+</lean>
+
+
+======================================================================
+STAGE 2: PROVING
+======================================================================
+
+--- Iteration 1 ---
+
+<lean>
+axiom obj : Type
+axiom Hydrocarbon : obj → Prop
+axiom OrganicCompound : obj → Prop
+axiom Alkane : obj → Prop
+axiom ChemicalCompound : obj → Prop
+axiom ContainsCarbon : obj → Prop
+axiom OnlyOneElement : obj → Prop
+axiom mixture : obj
+
+axiom All_Hydrocarbons_Are_Organic : ∀ x : obj, Hydrocarbon x → OrganicCompound x
+axiom All_Alkanes_Are_Hydrocarbons : ∀ x : obj, Alkane x → Hydrocarbon x
+axiom All_Organic_Are_Chemical : ∀ x : obj, OrganicCompound x → ChemicalCompound x
+axiom All_Organic_Contain_Carbon : ∀ x : obj, OrganicCompound x → ContainsCarbon x
+axiom No_Chemical_OnlyOneElement : ∀ x : obj, ChemicalCompound x → ¬ OnlyOneElement x
+axiom Mixture_Both_or_Neither : (ChemicalCompound mixture ∧ OnlyOneElement mixture) ∨ (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture)
+
+theorem goal : (OnlyOneElement mixture ∨ ContainsCarbon mixture) → (¬ ChemicalCompound mixture ∧ ¬ Alkane mixture) := by
+  intro h
+  have hneither : (¬ ChemicalCompound mixture ∧ ¬ OnlyOneElement mixture) := by
+    have hdisj := Mixture_Both_or_Neither
+    cases hdisj with
+    | inl hboth =>
+        have hnot : ¬ OnlyOneElement mixture := No_Chemical_OnlyOneElement mixture hboth.left
+        have contra : False := hnot hboth.right
+        exact False.elim contra
+    | inr hneither' => exact hneither'
+  have notChem : ¬ ChemicalCompound mixture := hneither.left
+  have notAlk : ¬ Alkane mixture := by
+    intro halk
+    have hhyd := All_Alkanes_Are_Hydrocarbons mixture halk
+    have horg := All_Hydrocarbons_Are_Organic mixture hhyd
+    have hchem := All_Organic_Are_Chemical mixture horg
+    exact notChem hchem
+  exact And.intro notChem notAlk
+</lean>
+ANSWER: True
